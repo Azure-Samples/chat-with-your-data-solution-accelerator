@@ -170,11 +170,15 @@ Review the configuration options below. You can customize any settings that meet
 | **Configuration File** | `main.parameters.json` (sandbox) | Copy `main.waf.parameters.json` to `main.parameters.json` |
 | **Security Controls** | Minimal (for rapid iteration) | Enhanced (production best practices) |
 | **Network Access** | All services publicly accessible | Backend API (Function App) restricted to private network; only frontend publicly accessible |
-| **Private Endpoints** | Disabled | Enabled for all backend services (Storage, Key Vault, Cosmos DB/PostgreSQL, OpenAI, Search, Function App) |
+| **Private Endpoints** | Disabled | Enabled for backend services (Storage, Key Vault, Cosmos DB/PostgreSQL, OpenAI, Search). Function App private endpoint is included for container hosting; for code hosting, keep API private access without adding a Function App private endpoint. |
 | **Cost** | Lower costs | Cost optimized |
 | **Use Case** | POCs, development, testing | Production workloads |
 | **Framework** | Basic configuration | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
 | **Features** | Core functionality | Reliability, security, operational excellence |
+
+> **Note - WAF Deployment (Restrict API to Private Access, Function App on App Service Plan Accelerators):**
+> If `AZURE_APP_SERVICE_HOSTING_MODEL` is set to `code`, do **not** implement a private endpoint for the backend API Function App.
+> Keep the API restricted through App Service access restrictions/private networking controls applicable to code hosting.
 
 **To use production configuration:**
 

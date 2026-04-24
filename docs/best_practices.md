@@ -47,12 +47,12 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 
 When deploying with the production/WAF configuration (`enablePrivateNetworking: true`), the following network security measures are automatically applied:
 
-- **Private Endpoints**: All backend services including Azure OpenAI, Azure AI Search, Storage Account, Key Vault, Cosmos DB/PostgreSQL, and the Function App (backend API) are configured with private endpoints, making them accessible only through the VNet.
+- **Private Endpoints**: Backend services including Azure OpenAI, Azure AI Search, Storage Account, Key Vault, and Cosmos DB/PostgreSQL are configured with private endpoints. For the Function App (backend API), private endpoint is used in container hosting; in code hosting, follow access restrictions/private networking controls without adding a Function App private endpoint.
 - **Function App (Backend API)**: The Function App hosting the backend API is secured with:
-  - Private endpoint for inbound traffic
+  - Private endpoint for inbound traffic in container hosting
   - VNet integration for outbound traffic
-  - Public network access disabled
-  - Communication limited to internal VNet traffic only
+  - Public inbound access blocked using App Service access restrictions
+  - Communication limited to approved private paths and network controls
 - **Frontend Web Apps**: The App Service (frontend) and Admin App remain publicly accessible to serve user traffic, while communicating with backend services through the private network.
 - **Virtual Network**: All resources are integrated into a secure virtual network with properly configured subnets and Network Security Groups (NSGs).
 - **Bastion Host**: A jumpbox VM accessible via Azure Bastion is provided for management access to private resources.

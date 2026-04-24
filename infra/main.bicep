@@ -1438,12 +1438,12 @@ module function 'modules/app/function.bicep' = {
     // WAF: Use IP restrictions to block public API access while allowing SCM for deployments
     // publicNetworkAccess stays Enabled, but ipSecurityRestrictions blocks public traffic to the main site
     publicNetworkAccess: 'Enabled'
-    // Block all public access to the main site (API) - traffic must go through private endpoint
+    // Block all public access to the main site (API)
     ipSecurityRestrictions: enablePrivateNetworking
       ? [
           {
             name: 'DenyAllPublicAccess'
-            description: 'Deny public access. Use private endpoint.'
+            description: 'Deny public access to API endpoint.'
             action: 'Deny'
             priority: 100
             ipAddress: '0.0.0.0/0'
@@ -1454,7 +1454,7 @@ module function 'modules/app/function.bicep' = {
     scmIpSecurityRestrictions: []
     // Do NOT inherit main site restrictions for SCM - this allows deployments while API is private
     scmIpSecurityRestrictionsUseMain: false
-    privateEndpoints: enablePrivateNetworking
+    privateEndpoints: (enablePrivateNetworking && hostingModel == 'container')
       ? [
           {
             name: 'pep-${hostingModel == 'container' ? '${functionName}-docker' : functionName}'
