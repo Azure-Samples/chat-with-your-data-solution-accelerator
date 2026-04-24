@@ -706,18 +706,32 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
 // matching the MACAE mixed-hosting pattern.
 //
 // Phase 1 deploys a placeholder image so the resources exist; the real
-// image is wired in azure.yaml `services:` (task #14b, after Dockerfile
-// ships in Phase 2).
+// image is wired in azure.yaml `services.backend` once the backend
+// Dockerfile (v2/docker/Dockerfile.backend) ships in Phase 2.
 // ----------------------------------------------------------------------
+var containerAppsEnvName = 'cae-${solutionSuffix}'
+var backendAppName = 'ca-backend-${solutionSuffix}'
+var acaWorkloadProfileName = 'Consumption'
+
 module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
   name: take('avm.res.app.managed-environment.${solutionSuffix}', 64)
   params: {
-    name: 'cae-${solutionSuffix}'
+    name: containerAppsEnvName
     location: location
     tags: allTags
     enableTelemetry: false
     zoneRedundant: enableRedundancy
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    // Workload Profile Consumption (NOT classic Consumption). Required
+    // for full VNet integration in #7-#8 and to allow mixing Dedicated
+    // profiles (e.g. GPU) later without re-creating the env. Idle cost
+    // for the Consumption profile is the same as classic Consumption.
+    workloadProfiles: [
+      {
+        name: acaWorkloadProfileName
+        workloadProfileType: acaWorkloadProfileName
+      }
+    ]
     // ACA env app logs: 'azure-monitor' destination routes logs through
     // an explicit Microsoft.Insights/diagnosticSettings resource (added
     // below when monitoring is on). Using 'log-analytics' here would
@@ -733,7 +747,7 @@ module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
 // Existing reference to the deployed env so we can attach diagnostic
 // settings to it without round-tripping through a module output.
 resource containerAppsEnvResource 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
-  name: 'cae-${solutionSuffix}'
+  name: containerAppsEnvName
   dependsOn: [ containerAppsEnv ]
 }
 
@@ -751,8 +765,6 @@ resource containerAppsEnvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-
   }
 }
 
-var backendAppName = 'ca-backend-${solutionSuffix}'
-
 module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app.backend.${solutionSuffix}', 64)
   params: {
@@ -766,6 +778,7 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
         userAssignedIdentity.outputs.resourceId
       ]
     }
+    workloadProfileName: acaWorkloadProfileName
     ingressTargetPort: 8000
     ingressExternal: true
     ingressAllowInsecure: false
@@ -778,36 +791,43 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
       {
         name: 'backend'
         // Placeholder image. Replaced by `azd deploy` once the real
-        // backend Dockerfile (v2/docker/Dockerfile.backend) is wired
-        // via azure.yaml services.backend.
+        // backend Dockerfile ships in Phase 2 and is referenced from
+        // azure.yaml `services.backend`.
         image: 'mcr.microsoft.com/k8se/quickstart:latest'
         resources: {
           cpu: enableScalability ? '1.0' : '0.5'
           memory: enableScalability ? '2.0Gi' : '1.0Gi'
         }
-        env: [
-          // Identity + region
-          { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
-          { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
-          // Foundry endpoints (consumed by both orchestrators)
-          { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-          { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
-          { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
-          { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
-          // Model deployment names
-          { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
-          { name: 'AZURE_OPENAI_REASONING_DEPLOYMENT', value: reasoningModelName }
-          { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
-          // Database routing
-          { name: 'AZURE_DB_TYPE', value: databaseType }
-          // Telemetry
-          {
-            name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-            value: enableMonitoring ? applicationInsights!.outputs.connectionString : ''
-          }
-          // Default orchestrator (runtime-switchable per request)
-          { name: 'ORCHESTRATOR', value: 'agent_framework' }
-        ]
+        // App Insights env entry is included only when monitoring is on,
+        // so SDKs don't auto-init against an empty connection string.
+        env: union(
+          [
+            // Identity + region
+            { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+            { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+            // Foundry endpoints (consumed by both orchestrators)
+            { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
+            { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+            { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
+            { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
+            // Model deployment names
+            { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
+            { name: 'AZURE_OPENAI_REASONING_DEPLOYMENT', value: reasoningModelName }
+            { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
+            // Database routing
+            { name: 'AZURE_DB_TYPE', value: databaseType }
+            // Default orchestrator (runtime-switchable per request)
+            { name: 'ORCHESTRATOR', value: 'agent_framework' }
+          ],
+          enableMonitoring
+            ? [
+                {
+                  name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+                  value: applicationInsights!.outputs.connectionString
+                }
+              ]
+            : []
+        )
       }
     ]
   }
