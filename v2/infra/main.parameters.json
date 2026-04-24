@@ -1,0 +1,90 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "solutionName": {
+      "value": "${AZURE_ENV_NAME}"
+    },
+    "solutionUniqueText": {
+      "value": "${AZURE_ENV_UNIQUE_TEXT=}"
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "azureAiServiceLocation": {
+      "value": "${AZURE_ENV_AI_SERVICE_LOCATION=${AZURE_LOCATION}}"
+    },
+    "databaseType": {
+      "value": "${AZURE_ENV_DATABASE_TYPE=cosmosdb}"
+    },
+    "gptModelName": {
+      "value": "${AZURE_ENV_GPT_MODEL_NAME=gpt-5.1}"
+    },
+    "gptModelVersion": {
+      "value": "${AZURE_ENV_GPT_MODEL_VERSION=2025-11-13}"
+    },
+    "gptModelDeploymentType": {
+      "value": "${AZURE_ENV_GPT_MODEL_SKU=GlobalStandard}"
+    },
+    "gptModelCapacity": {
+      "value": "${AZURE_ENV_GPT_MODEL_CAPACITY=150}"
+    },
+    "reasoningModelName": {
+      "value": "${AZURE_ENV_REASONING_MODEL_NAME=o4-mini}"
+    },
+    "reasoningModelVersion": {
+      "value": "${AZURE_ENV_REASONING_MODEL_VERSION=2025-04-16}"
+    },
+    "reasoningModelDeploymentType": {
+      "value": "${AZURE_ENV_REASONING_MODEL_SKU=GlobalStandard}"
+    },
+    "reasoningModelCapacity": {
+      "value": "${AZURE_ENV_REASONING_MODEL_CAPACITY=50}"
+    },
+    "embeddingModelName": {
+      "value": "${AZURE_ENV_EMBEDDING_MODEL_NAME=text-embedding-3-large}"
+    },
+    "embeddingModelVersion": {
+      "value": "${AZURE_ENV_EMBEDDING_MODEL_VERSION=1}"
+    },
+    "embeddingModelDeploymentType": {
+      "value": "${AZURE_ENV_EMBEDDING_MODEL_SKU=Standard}"
+    },
+    "embeddingModelCapacity": {
+      "value": "${AZURE_ENV_EMBEDDING_MODEL_CAPACITY=100}"
+    },
+    "azureOpenAiApiVersion": {
+      "value": "${AZURE_ENV_OPENAI_API_VERSION=2025-01-01-preview}"
+    },
+    "azureAiAgentApiVersion": {
+      "value": "${AZURE_ENV_AI_AGENT_API_VERSION=2025-05-01}"
+    },
+    "enableMonitoring": {
+      "value": "${AZURE_ENV_ENABLE_MONITORING=false}"
+    },
+    "enableScalability": {
+      "value": "${AZURE_ENV_ENABLE_SCALABILITY=false}"
+    },
+    "enableRedundancy": {
+      "value": "${AZURE_ENV_ENABLE_REDUNDANCY=false}"
+    },
+    "enablePrivateNetworking": {
+      "value": "${AZURE_ENV_ENABLE_PRIVATE_NETWORKING=false}"
+    },
+    "tags": {
+      "value": {}
+    },
+    "createdBy": {
+      "value": "${AZURE_ENV_CREATED_BY=${AZURE_PRINCIPAL_ID}}"
+    },
+    "postgresAdminPrincipalId": {
+      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_ID=${AZURE_PRINCIPAL_ID}}"
+    },
+    "postgresAdminPrincipalName": {
+      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_NAME=cwyd-deployer}"
+    },
+    "postgresAdminPrincipalType": {
+      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_TYPE=User}"
+    }
+  }
+}
