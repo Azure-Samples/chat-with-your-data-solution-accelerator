@@ -355,7 +355,15 @@ poetry export -o requirements.txt
 pip install -r requirements.txt
 ```
 
-> **📋 Note**: The batch function shares the same dependencies managed by the root `pyproject.toml`. No separate installation is needed for the batch function.
+### 6.2. Install Batch Function Dependencies
+
+```bash
+# Navigate to batch directory
+cd batch
+
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ### 6.3. Alternative: Use Setup Script
 
@@ -584,7 +592,14 @@ Copy-Item ..\..\..\.azure\<env-name>\.env .  # Windows PowerShell
 
 > **⚠️ Important**: Replace `<env-name>` with your actual azd environment name. You can find it by running `azd env list`.
 
-### 10.2. Run the Batch Function
+### 10.2. Install Batch Function Dependencies
+
+```bash
+# Make sure you're in code/backend/batch directory
+pip install -r requirements.txt
+```
+
+### 10.3. Run the Batch Function
 
 #### Option A: Using Azure Functions Core Tools (Command Line)
 
