@@ -57,8 +57,8 @@ LIMIT $2;
 
 ---
 
-### 4. **Automated Table Creation**
-The PostgreSQL deployment process automatically creates the necessary tables for chat history and vector storage, including table indexes. The script `create_postgres_tables.py` is executed as part of the infrastructure deployment, ensuring the database is ready for use immediately after setup.
+### 4. **Table Creation**
+The necessary PostgreSQL tables for chat history and vector storage, including table indexes, are created as part of the post-deployment steps. The `setup_postgres_tables.py` script is executed during post-deployment, and once complete, the database will be ready for use.
 
 ---
 
@@ -78,7 +78,7 @@ All PostgreSQL connections use secure configurations:
 ## Benefits of PostgreSQL Integration
 1. **Scalability**: PostgreSQL offers robust data storage and table indexing capabilities suitable for large-scale deployments
 2. **Flexibility**: Dynamic database switching allows users to choose between PostgreSQL and CosmosDB based on their requirements.
-3. **Ease of Use**: Automated table creation and environment configuration simplify deployment and management.
+3. **Ease of Use**: A single post-deployment script handles table creation and environment configuration, simplifying deployment and management.
 4. **Security**: SSL-enabled connections and secure credential handling ensure data protection.
 
 
