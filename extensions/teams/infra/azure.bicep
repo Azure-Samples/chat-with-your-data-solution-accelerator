@@ -30,7 +30,7 @@ param webAppName string = resourceBaseName
 param location string = resourceGroup().location
 
 // Compute resources for your Web App
-resource serverfarm 'Microsoft.Web/serverfarms@2021-02-01' = {
+resource serverfarm 'Microsoft.Web/serverfarms@2024-04-01' = {
   kind: 'app'
   location: location
   name: serverfarmsName
@@ -40,7 +40,7 @@ resource serverfarm 'Microsoft.Web/serverfarms@2021-02-01' = {
 }
 
 // Web App that hosts your bot
-resource webApp 'Microsoft.Web/sites@2021-02-01' = {
+resource webApp 'Microsoft.Web/sites@2024-04-01' = {
   kind: 'app'
   location: location
   name: webAppName

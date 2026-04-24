@@ -39,7 +39,7 @@ param connectionProperties connectionPropertyType
 // Existing resources references //
 // ============================= //
 
-resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@2022-10-01' existing = {
+resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@2025-12-01' existing = {
   name: machineLearningWorkspaceName
 }
 
@@ -47,7 +47,7 @@ resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@
 // Resources      //
 // ============== //
 
-resource connection 'Microsoft.MachineLearningServices/workspaces/connections@2024-10-01' = {
+resource connection 'Microsoft.MachineLearningServices/workspaces/connections@2025-12-01' = {
   name: name
   parent: machineLearningWorkspace
   properties: union(

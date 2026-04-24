@@ -46,7 +46,7 @@ param associatedContainerRegistryResourceId string?
 @sys.description('Optional. Enable service-side encryption.')
 param enableServiceSideCMKEncryption bool?
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.6.0'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The lock settings of the service.')
 param lock lockType?
 
@@ -56,11 +56,11 @@ param hbiWorkspace bool = false
 @sys.description('Conditional. The resource ID of the hub to associate with the workspace. Required if \'kind\' is set to \'Project\'.')
 param hubResourceId string?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
-import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointSingleServiceType[]?
 
@@ -73,7 +73,7 @@ param tags object?
 @sys.description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The managed identity definition for this resource. At least one identity type is required.')
 param managedIdentities managedIdentityAllType = {
   systemAssigned: true
@@ -106,7 +106,7 @@ param systemDatastoresAuthMode string?
 //param workspaceHubConfig workspaceHubConfigType?
 
 // Diagnostic Settings
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
@@ -116,7 +116,7 @@ param description string?
 @sys.description('Optional. URL for the discovery service to identify regional endpoints for machine learning experimentation services.')
 param discoveryUrl string?
 
-import { customerManagedKeyType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { customerManagedKeyType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The customer managed key definition.')
 param customerManagedKey customerManagedKeyType?
 
@@ -205,7 +205,7 @@ var formattedRoleAssignments = [
 ]
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.machinelearningservices-workspace.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -223,7 +223,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-resource cMKKeyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = if (!empty(customerManagedKey.?keyVaultResourceId)) {
+resource cMKKeyVault 'Microsoft.KeyVault/vaults@2026-02-01' existing = if (!empty(customerManagedKey.?keyVaultResourceId)) {
   name: last(split((customerManagedKey.?keyVaultResourceId!), '/'))
   scope: resourceGroup(
     split(customerManagedKey.?keyVaultResourceId!, '/')[2],
@@ -235,7 +235,7 @@ resource cMKKeyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = if (!empt
   }
 }
 
-resource cMKUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = if (!empty(customerManagedKey.?userAssignedIdentityResourceId)) {
+resource cMKUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = if (!empty(customerManagedKey.?userAssignedIdentityResourceId)) {
   name: last(split(customerManagedKey.?userAssignedIdentityResourceId!, '/'))
   scope: resourceGroup(
     split(customerManagedKey.?userAssignedIdentityResourceId!, '/')[2],
@@ -243,7 +243,7 @@ resource cMKUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentiti
   )
 }
 
-resource workspace 'Microsoft.MachineLearningServices/workspaces@2024-10-01-preview' = {
+resource workspace 'Microsoft.MachineLearningServices/workspaces@2025-12-01' = {
   name: name
   location: location
   tags: tags
@@ -272,8 +272,8 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2024-10-01-prev
           keyVaultProperties: {
             keyVaultArmId: cMKKeyVault.id
             keyIdentifier: !empty(customerManagedKey.?keyVersion ?? '')
-              ? '${cMKKeyVault::cMKKey!.properties.keyUri}/${customerManagedKey!.keyVersion}'
-              : cMKKeyVault::cMKKey!.properties.keyUriWithVersion
+              ? '${cMKKeyVault::cMKKey!.properties.?keyUri}/${customerManagedKey.?keyVersion}'
+              : cMKKeyVault::cMKKey!.properties.?keyUriWithVersion
           }
         }
       : null
@@ -347,7 +347,7 @@ resource workspace_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@202
   }
 ]
 
-module workspace_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.10.1' = [
+module workspace_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.12.0' = [
   for (privateEndpoint, index) in (privateEndpoints ?? []): {
     name: '${uniqueString(deployment().name, location)}-workspace-PrivateEndpoint-${index}'
     scope: resourceGroup(
@@ -623,5 +623,5 @@ type connectionType = {
 //   name: string
 
 //   @sys.description('Required. The properties of the datastore.')
-//   properties: resourceInput<'Microsoft.MachineLearningServices/workspaces/datastores@2024-10-01'>.properties
+//   properties: resourceInput<'Microsoft.MachineLearningServices/workspaces/datastores@2025-12-01'>.properties
 // }
