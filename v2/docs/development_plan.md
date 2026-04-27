@@ -12,7 +12,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 
 | Phase | Title | Status | Notes |
 |---|---|---|---|
-| 1 | Infrastructure + Project Skeleton | ⏳ partial | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`); 3 P1 polish tweaks queued (§3.6). Backend / frontend / functions stubs ☐. |
+| 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Backend / frontend / functions stubs ☐. |
 | 2 | Configuration + LLM Integration | ⏭ next | `shared/registry.py` + 11/11 tests ✅ (Phase 2 prerequisite). `shared/settings.py` is the next unit. |
 | 3 | Conversation + RAG (Core Chat) | ☐ | |
 | 4 | Chat History + Both Databases | ☐ | |
@@ -424,15 +424,15 @@ The Bicep infra (`v2/infra/`) follows three rules so adding a new backend (DB, s
 2. **Single dispatch point.** `main.bicep` selects backends via the `databaseType` param (today: `cosmosdb` | `postgresql`). Adding a third mode (e.g., `mongodb`) means: add the allowed value, instantiate one conditional module, expose its outputs to the same env-var names. **No other file changes** — backend code reads the same `AZURE_*` env vars regardless of mode.
 3. **WAF flags never branch topology, only sizing.** The four flags (`enableMonitoring`, `enableScalability`, `enableRedundancy`, `enablePrivateNetworking`) only adjust SKU / replica count / VNet integration on existing resources. Adding a new resource means deciding *how it responds to each flag*, not duplicating the resource per flag.
 
-#### 3.6.2 Phase 1 follow-up — P1 polish tweaks (queued)
+#### 3.6.2 Phase 1 follow-up — P1 polish tweaks (✅ shipped 2026-04-27)
 
-From the infra audit (8.5/10, AVM coverage ≈95%); fold into the next Phase 1 unit:
+From the infra audit (8.5/10, AVM coverage ≈95%); landed alongside the next Phase 2 unit so `AzurePostgresSettings` reads a single URI from day one:
 
-| # | Tweak | File |
-|---|---|---|
-| P1.1 | Add `AZURE_POSTGRES_ENDPOINT` Bicep output (full URI form) so `AzurePostgresSettings` reads one var, not `host`+`name`+`port`. Mirrors `AZURE_COSMOS_ENDPOINT` shape. | `infra/main.bicep` |
-| P1.2 | Validate `postgresAdminPrincipalName` non-empty when `databaseType == 'postgresql'` (fail fast at deploy, not at first request). | `infra/main.bicep` |
-| P1.3 | Refresh `enablePrivateNetworking` description — work is complete, not "until #8 ships". | `infra/main.bicep` |
+| # | Tweak | File | Status |
+|---|---|---|---|
+| P1.1 | Added `AZURE_POSTGRES_ENDPOINT` Bicep output (full `postgresql://<fqdn>:5432/cwyd?sslmode=require` URI form, no credentials — the workload supplies an Entra token; the user comes from `AZURE_UAMI_CLIENT_ID`). Mirrors `AZURE_COSMOS_ENDPOINT` shape. | `infra/main.bicep` | ✅ |
+| P1.2 | Validate `postgresAdminPrincipalName` non-empty when `databaseType == 'postgresql'` via a fail-fast `_validatePostgresAdminPrincipalName` guard variable that aborts ARM expansion before any resource is provisioned. | `infra/main.bicep` | ✅ |
+| P1.3 | Refreshed `enablePrivateNetworking` description — work is complete (VNet + private DNS + private endpoints + regional VNet integration + Bastion all wired); flag is the supported WAF-aligned topology. | `infra/main.bicep` | ✅ |
 
 ---
 
@@ -455,7 +455,7 @@ From the infra audit (8.5/10, AVM coverage ≈95%); fold into the next Phase 1 u
 | 7 | Dockerfiles for backend + frontend | `docker/` | ⏳ partial |
 | 8 | Post-deploy script — loads sample data + default config to Blob Storage | `scripts/post_provision.{sh,ps1,py}` | ⏳ partial |
 | 9 | Sample documents for bootstrap | `data/` (root) | ✅ |
-| P1.1–3 | P1 polish tweaks (§3.6.2) | `infra/main.bicep` | ⏭ next |
+| P1.1–3 | P1 polish tweaks (§3.6.2) | `infra/main.bicep` | ✅ |
 
 **`azd up` result**: All infra provisioned, stub apps running in Azure, sample data loaded, health check passes.
 

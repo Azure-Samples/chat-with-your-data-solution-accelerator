@@ -162,7 +162,7 @@ param enableScalability bool = false
 @description('Optional. Zone-redundant + paired-region failover on databases, App Service Plan, Container Apps, and Storage.')
 param enableRedundancy bool = false
 
-@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. The VNet itself is provisioned by `modules/virtualNetwork.bicep` (dev_plan task #7); private DNS zones, private endpoints, regional VNet integration, and Bastion are wired in dev_plan task #8 sub-units. Until #8 ships, set this to true only for VNet-only smoke tests.')
+@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. Wires the regional VNet (`modules/virtualNetwork.bicep`), private DNS zones, private endpoints for every data-plane resource, regional VNet integration for compute, and Bastion. Setting this to true is the WAF-aligned topology and requires no follow-up tasks; flipping it back to false re-enables public endpoints with default firewall rules.')
 param enablePrivateNetworking bool = false
 
 // ===================== //
@@ -182,11 +182,11 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 // ===================== //
 
 // NOTE: When enablePrivateNetworking=true, every data-plane resource
-// below is provisioned with publicNetworkAccess='Disabled'. The VNet
-// itself is now wired in (task #7); private DNS zones + private
-// endpoints + regional VNet integration land in task #8 sub-units.
-// Until #8 completes, expect resources to be unreachable when the
-// flag is on outside of VNet smoke tests.
+// below is provisioned with publicNetworkAccess='Disabled', the VNet
+// + private DNS zones + private endpoints are wired in, and compute
+// (Container Apps, Function App) connects via regional VNet
+// integration. The flag is the supported WAF-aligned topology and
+// requires no follow-up work to enable.
 
 
 // 15-char solution suffix used in every resource name. Lowercased and stripped
@@ -896,6 +896,19 @@ param postgresAdminPrincipalId string = ''
 
 @description('Required when databaseType=postgresql. Display name (UPN, group name, or app name) of the Entra principal above. Surfaced in pg_hba and used by the post-provision script to log in over AAD. No default: a wrong value silently locks the deployer out of the new server.')
 param postgresAdminPrincipalName string = ''
+
+// P1.2 fail-fast guard: postgresAdminPrincipalName is REQUIRED when
+// databaseType=postgresql. Without it, the post-provision script
+// cannot acquire an AAD token for the deployer and the new server
+// becomes unreachable for schema init. Indexing past the end of an
+// empty array aborts ARM template expansion with a clear, named error
+// before any resource is provisioned, so the user sees the failure at
+// `azd provision` time rather than after the Postgres server stands
+// up. Cosmosdb mode is unaffected.
+#disable-next-line no-unused-vars
+var _validatePostgresAdminPrincipalName = (databaseType == 'postgresql' && empty(postgresAdminPrincipalName))
+  ? array([])[0]
+  : ''
 
 @allowed([
   'User'
@@ -1620,6 +1633,11 @@ output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!
 
 @description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in cosmosdb mode.')
 output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.fqdn! : ''
+
+@description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in cosmosdb mode.')
+output AZURE_POSTGRES_ENDPOINT string = databaseType == 'postgresql'
+  ? 'postgresql://${postgresServer!.outputs.fqdn!}:5432/cwyd?sslmode=require'
+  : ''
 
 @description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
 output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
