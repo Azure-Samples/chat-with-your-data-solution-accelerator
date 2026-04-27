@@ -68,3 +68,10 @@ For trivial single-line edits, you may proceed directly — but still respect th
 - v2 backend-only: `docker compose -f v2/docker/docker-compose.dev.yml --profile backend-only up`.
 - v2 frontend-only: `docker compose -f v2/docker/docker-compose.dev.yml --profile frontend-only up` (set `VITE_BACKEND_URL`).
 - CI validation image: `docker build -f v2/docker/Dockerfile.ci-validate -t cwyd-ci .` then run.
+
+## Session conventions
+
+- A user-profile `Stop` hook (`~/.claude/settings.json`) plays a short two-tone beep at the **end of every agent turn** (i.e. whenever the agent is finished and is handing the conversation back to the user). Do not suppress it, do not duplicate it, and do not treat the beep as an error.
+- **Mid-turn waits for user input require an explicit beep.** The `Stop` hook does **not** fire for in-turn prompts. Whenever the agent is about to block on the user (calling `vscode_askQuestions`, sending an interactive prompt to a terminal via `send_to_terminal`, or otherwise pausing for a human reply before the turn ends), the agent **must** first emit a single low beep:
+  - Windows (default): `run_in_terminal` with `powershell -NoProfile -Command "[console]::beep(660,250)"` (sync, ~250ms, distinct from the two-tone Stop chime).
+  - The beep call is the only acceptable use of `[console]::beep` from agent tools — outside of "I'm about to wait on you", do not call it.
