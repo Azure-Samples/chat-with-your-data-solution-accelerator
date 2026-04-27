@@ -14,7 +14,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 |---|---|---|---|
 | 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Backend / frontend / functions stubs ☐. |
 | 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
-| 3 | Conversation + RAG (Core Chat) | ☐ | |
+| 3 | Conversation + RAG (Core Chat) | ⏳ in progress | Task #17 ✅ (orchestrator domain skeleton: `OrchestratorBase` ABC + empty `Registry`; 6/6). Tasks #18–#26 ☰ not started. 61/61 tests pass overall. |
 | 4 | Chat History + Both Databases | ☐ | |
 | 5 | Admin + Frontend Merge | ☐ | |
 | 6 | RAG Indexing Pipeline (Split Functions) | ☐ | |
@@ -486,7 +486,7 @@ Orchestrators and search providers follow the registry recipe in §3.5. Caller c
 
 | # | Task | Key Files | Status |
 |---|---|---|---|
-| 17 | Orchestrator domain registry + `OrchestratorBase` ABC (async `run()` yielding `OrchestratorEvent`) | `src/providers/orchestrators/{base,__init__}.py` | ☐ |
+| 17 | Orchestrator domain registry + `OrchestratorBase` ABC (async `run()` yielding `OrchestratorEvent`) | `src/providers/orchestrators/{base,__init__}.py` | ✅ (6/6) |
 | 18 | LangGraph orchestrator (`StateGraph` + `ToolNode`); `@register("langgraph")` | `src/providers/orchestrators/langgraph.py` | ☐ |
 | 19 | Azure AI Agent Framework orchestrator; `@register("agent_framework")` | `src/providers/orchestrators/agent_framework.py` | ☐ |
 | 20 | Cross-cutting tool helpers (QA, text processing, content safety, post-prompt). Tools are NOT a registry domain — they are imported directly. | `src/shared/tools/*` | ☐ |
