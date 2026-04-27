@@ -840,6 +840,7 @@ AZURE_TENANT_ID=your-tenant-id
 | [`v2/docs/development_plan.md`](development_plan.md) | This file. Source of truth for **what** to build and **when**. |
 | [`v2/docs/pillars_of_development.md`](pillars_of_development.md) | Read-only product policy (Stable Core / Scenario Pack / Configuration Layer / Customization Layer). Never edited by agents. |
 | [`v2/docs/infrastructure.md`](infrastructure.md) | Phase 1 infra design + operator guide. |
+| [`v2/docs/adr/`](adr/) | Architecture Decision Records (MADR-lite). 7 ADRs covering Phase 0–2: registry-first dispatch (0001), no Key Vault (0002), Pydantic settings (0003), Foundry IQ + no `openai` import (0004), credential/LLM lifespan singleton (0005), split health endpoints (0006), `OrchestratorEvent` typed SSE channel (0007). Read-only history once Accepted. |
 | [`v2/docs/plan/`](plan/) | Modernization plan, MVP, business-case docs (background reading). |
 
 ### 10.5 Agent guidance (✅ live; gate per Hard Rule #0)
