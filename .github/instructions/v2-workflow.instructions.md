@@ -7,6 +7,10 @@ applyTo: "v2/**"
 
 This file applies to every edit under `v2/`. It encodes the non-negotiable process.
 
+## Step 0 — sync agent guidance first (gate)
+
+Before any reorganization, refactor, or error fix under `v2/`, read the agent instructions and prompt files that scope the change (`.github/copilot-instructions.md` + the relevant `.github/instructions/v2-*.instructions.md`). If guidance is stale, contradicts the requested change, or is silent on a decision the change implies, **propose an instruction update first and wait for user approval** before touching code or other docs. Skipping Step 0 causes re-work and re-introduces removed concepts. The pillars file (`v2/docs/pillars_of_development.md`) is read-only product policy — never edit it.
+
 ## The loop (per request)
 
 1. **Plan.** Identify the ONE class or ONE method to implement. Map it to a phase in [v2/docs/development_plan.md](../../v2/docs/development_plan.md) and to a pillar in [v2/docs/pillars_of_development.md](../../v2/docs/pillars_of_development.md). If the user's request implies multiple units, list them and implement only the first; report the rest as next steps.
@@ -45,12 +49,14 @@ Valid pillars: `Stable Core`, `Scenario Pack`, `Configuration Layer`, `Customiza
 
 ## Multi-agent readiness
 
-All orchestrators implement `shared/orchestrator/base.py::OrchestratorBase` with:
+All orchestrators implement `v2/src/providers/orchestrators/base.py::OrchestratorBase` with:
 
 ```python
 async def run(self, request: ConversationRequest) -> AsyncIterator[OrchestratorEvent]:
     ...
 ```
+
+Concrete orchestrators self-register via `@registry.register("langgraph")` / `@registry.register("agent_framework")` against the registry in `v2/src/providers/orchestrators/__init__.py`. Caller code is `orchestrators.create(settings.orchestrator, ...)` — no `if/elif` over orchestrator names anywhere.
 
 `OrchestratorEvent` is a discriminated union over channels: `reasoning | tool | answer | citation | error`. Never collapse reasoning into the answer string. A future multi-agent coordinator will route `tool` and `reasoning` events between agents — keep them clean.
 
@@ -65,9 +71,13 @@ async def run(self, request: ConversationRequest) -> AsyncIterator[OrchestratorE
   - `citation` — `{id, source, snippet, score}` as they are referenced.
   - `error` — terminal; client closes connection.
 
-## Banned in v2
+## Banned in v2 / removed features (binding)
 
-`streamlit`, `promptflow`, `semantic_kernel`, `poetry`, direct `from openai import …` / `AzureOpenAI(...)`, `azure-keyvault-secrets` for app secrets. Importing any of these in `v2/**` is a review-block.
+**Tech bans:** `streamlit`, `promptflow`, `semantic_kernel`, `poetry`, direct `from openai import …` / `AzureOpenAI(...)`, `azure-keyvault-secrets` for app secrets. Importing any of these in `v2/**` is a review-block.
+
+**Removed features (do not re-add, do not re-document as a feature):** one-click "Deploy to Azure" ARM button (v2 is `azd`-only), Streamlit admin app (merged into the React/Vite frontend), Azure Bot Service integration, Teams extension. Full list: [v2/docs/development_plan.md](../../v2/docs/development_plan.md) §2.1.
+
+**Forbidden code patterns:** `if/elif` provider dispatch outside a `Registry[T]`; lazy in-function imports of provider classes; module-level client instantiation. Pluggable concerns belong under `v2/src/providers/<domain>/` and self-register.
 
 ## Anti-overengineering gate (4 questions, all must pass)
 
@@ -93,7 +103,7 @@ The following require an explicit user prompt **before** any agent acts:
 - New package directory under `v2/src/**` (anything beyond what dev_plan.md §3.4 enumerates).
 - New entry in `pyproject.toml` `[project] dependencies` or `v2/src/frontend/package.json` `dependencies`.
 - Renames or moves of existing modules.
-- New module layout (e.g., splitting `shared/orchestrator/` into sub-packages).
+- New module layout (e.g., splitting `providers/orchestrators/` into sub-packages, or moving anything between `shared/`, `providers/`, and `pipelines/`).
 
 The planner must ask the user, get a yes, and record the decision in the Work Order's `## References` section before proceeding.
 

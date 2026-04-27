@@ -15,16 +15,17 @@ applyTo: "v2/src/functions/**"
 
 - `function_app.py` — sole registration entry; imports blueprints and `app.register_functions(bp)`.
 - `blueprints/<name>.py` — one trigger per file. Files: `batch_start.py`, `batch_push.py`, `add_url.py`, `search_skill.py`.
-- Shared logic (parsing, chunking, embedding) lives in `v2/src/shared/embedders/` and is imported, not duplicated.
+- Pluggable logic is consumed via the registries in `v2/src/providers/`. Specifically: parsers via `providers.parsers.create(...)`, embedders via `providers.embedders.create(...)`, search via `providers.search.create(...)`. Composition lives in `v2/src/pipelines/ingestion.py` — blueprints invoke the pipeline, they do not duplicate parse/chunk/embed logic.
 
 ## Rules
 
 1. **One trigger per file.** No multi-trigger blueprints.
 2. **Idempotent.** Every handler computes a deterministic message key and skips if the key is already processed (track in a small `processing_state` table or blob metadata).
 3. **Poison handling.** Always wrap the handler body in `try/except`; on failure, log with `exc_info=True` and re-raise so the runtime moves the message to `<queue>-poison`. Never silently swallow.
-4. **No direct OpenAI SDK.** Embedders go through `shared/llm/llm_helper.py::FoundryIQClient.embed()`.
-5. **Settings.** Reuse `shared/config/env_settings.py::AppSettings` — do not reinvent env loading.
-6. **Tests.** Every blueprint has a sibling `tests/test_<name>.py` that invokes the handler with a constructed `func.QueueMessage` / `func.EventGridEvent` and asserts the side effects (embedder called, queue message produced, etc.).
+4. **No direct OpenAI SDK.** Embedders go through `providers.embedders.create(settings.database.index_store, ...)`; LLM access goes through `providers.llm.create("foundry_iq", ...)`. No module-level clients, no `from openai import …`.
+5. **Settings.** Reuse `v2/src/shared/settings.py::AppSettings` via `get_settings()` — do not reinvent env loading.
+6. **Pluggability.** Use the registry pattern from `v2/src/shared/registry.py`. Forbidden: `if/elif` over backend names (e.g. `if db_type == "cosmosdb": ...`) inside a blueprint — call `domain.create(key, ...)` instead.
+7. **Tests.** Every blueprint has a sibling `tests/test_<name>.py` that invokes the handler with a constructed `func.QueueMessage` / `func.EventGridEvent` and asserts the side effects (pipeline called, queue message produced, etc.).
 
 ## Pipeline contract
 

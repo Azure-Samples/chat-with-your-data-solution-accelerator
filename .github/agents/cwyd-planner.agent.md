@@ -39,7 +39,12 @@ Fetch only the parts you need. Cite specific files/sections.
 ## Signature
 ```python
 # proposed signature only — implementer writes the body
-class FoundryIQClient:
+# v2/src/providers/llm/foundry_iq.py
+from . import registry
+from .base import BaseLLMProvider
+
+@registry.register("foundry_iq")
+class FoundryIQ(BaseLLMProvider):
     def __init__(self, settings: AppSettings, credential: TokenCredential) -> None: ...
 ```
 

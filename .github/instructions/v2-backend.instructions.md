@@ -27,7 +27,7 @@ applyTo: "v2/src/backend/**"
 4. CORS is permissive in dev (`*`) and locked to `BACKEND_CORS_ORIGINS` (Pydantic setting) in deployed envs.
 5. Auth: use the `Depends(require_user)` / `Depends(require_admin)` helpers from `backend/routers/auth.py`. Do not roll JWT parsing inline.
 6. No `print` — use `logging.getLogger(__name__)`. OTel picks it up.
-7. No direct DB clients in routers — go through the factory in `shared/chat_history/database_factory.py`.
+7. No direct DB clients in routers — call `chat_history.create(settings.database.db_type, ...)` from `v2/src/providers/chat_history/`. Same rule for search (`providers/search/`) and LLM (`providers/llm/`).
 8. Errors raise `HTTPException` with a stable `detail` shape: `{"code": "<snake_case>", "message": "<human>"}`.
 
 ## Anti-patterns
