@@ -1188,15 +1188,124 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
 // ===================== //
 // Outputs               //
 // ===================== //
-// Outputs are wired in the Phase 1E unit (#17) once every module exists.
-// A single placeholder is emitted now so `azd env get-values` returns at least
-// the suffix needed by post-provision scripts.
+// Every AZURE_* output is consumed by either:
+//   - azd post-provision hooks (v2/scripts/post-provision.{sh,ps1}, #19)
+//   - the backend / function / frontend at build or run time
+//   - operator inspection via `azd env get-values`
+// Conditional outputs (cosmosdb-only / postgresql-only / monitoring-only)
+// emit empty strings when their gate is off so downstream consumers can
+// treat them as "not configured" without null-checks.
+
+// --- Identity / region / suffix ---
 
 @description('Lower-cased solution suffix used in every downstream resource name.')
 output AZURE_SOLUTION_SUFFIX string = solutionSuffix
 
+@description('Resource group containing the deployment.')
+output AZURE_RESOURCE_GROUP string = resourceGroup().name
+
+@description('Location of the non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres).')
+output AZURE_LOCATION string = location
+
+@description('Location of the AI Services account + model deployments (independent of AZURE_LOCATION).')
+output AZURE_AI_SERVICE_LOCATION string = azureAiServiceLocation
+
+@description('Tenant ID for the deployment subscription.')
+output AZURE_TENANT_ID string = subscription().tenantId
+
+@description('Client ID of the user-assigned managed identity shared by all v2 workloads.')
+output AZURE_UAMI_CLIENT_ID string = userAssignedIdentity.outputs.clientId
+
+@description('Principal (object) ID of the user-assigned managed identity.')
+output AZURE_UAMI_PRINCIPAL_ID string = userAssignedIdentity.outputs.principalId
+
+@description('Resource ID of the user-assigned managed identity.')
+output AZURE_UAMI_RESOURCE_ID string = userAssignedIdentity.outputs.resourceId
+
+// --- Database routing flag (mirrored as env on every workload) ---
+
 @description('Selected database engine for chat history + vector index (locked at deploy).')
 output AZURE_DB_TYPE string = databaseType
 
-@description('Resource group containing the deployment.')
-output AZURE_RESOURCE_GROUP string = resourceGroup().name
+@description('Logical name of the configured vector index store: "AzureSearch" (cosmosdb mode) or "pgvector" (postgresql mode).')
+output AZURE_INDEX_STORE string = databaseType == 'cosmosdb' ? 'AzureSearch' : 'pgvector'
+
+// --- Foundry substrate ---
+
+@description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
+output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
+
+@description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
+output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
+
+@description('OpenAI-compatible API version pinned for the GPT + reasoning deployments.')
+output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
+
+@description('Azure AI Agents API version pinned for the Foundry Project endpoint.')
+output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
+
+@description('Deployment name of the chat-completions GPT model.')
+output AZURE_OPENAI_GPT_DEPLOYMENT string = gptModelName
+
+@description('Deployment name of the o-series reasoning model (output flows on the SSE `reasoning` channel).')
+output AZURE_OPENAI_REASONING_DEPLOYMENT string = reasoningModelName
+
+@description('Deployment name of the embedding model used by the indexing pipeline.')
+output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = embeddingModelName
+
+// --- Conditional: Azure AI Search (cosmosdb mode only) ---
+
+@description('AI Search service endpoint. Empty in postgresql mode.')
+output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : ''
+
+@description('AI Search service name. Empty in postgresql mode.')
+output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? aiSearch!.outputs.name : ''
+
+// --- Conditional: Cosmos DB (cosmosdb mode only) ---
+
+@description('Cosmos DB account endpoint (DocumentEndpoint). Empty in postgresql mode.')
+output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : ''
+
+@description('Cosmos DB account name. Empty in postgresql mode.')
+output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : ''
+
+// --- Conditional: PostgreSQL Flexible Server (postgresql mode only) ---
+
+@description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in cosmosdb mode.')
+output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.fqdn! : ''
+
+@description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
+output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
+
+// --- Storage (blobs + queues + Function deployment package) ---
+
+@description('Storage account name (shared by RAG document store, indexing queues, and the Function App deployment package).')
+output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
+
+@description('Primary blob endpoint of the shared storage account (https URL ending in /). Hostname follows the storage cloud-specific suffix.')
+output AZURE_STORAGE_BLOB_ENDPOINT string = storageAccount.outputs.primaryBlobEndpoint
+
+@description('Container holding documents to be indexed (Event Grid filter + batch_start source).')
+output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
+
+@description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
+output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
+
+// --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
+
+@description('Public URL of the backend Container App (FastAPI + LangGraph/Agent Framework).')
+output AZURE_BACKEND_URL string = 'https://${backendContainerApp.outputs.fqdn}'
+
+@description('Public URL of the frontend Web App (React/Vite SPA). Backend CORS must allow this origin.')
+output AZURE_FRONTEND_URL string = 'https://${frontendWebApp.outputs.defaultHostname}'
+
+@description('Public URL of the Function App hosting the indexing pipeline.')
+output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostname}'
+
+@description('Function App resource name (used by azd to deploy the function package).')
+output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
+
+// --- Conditional: monitoring ---
+
+@description('Application Insights connection string. Empty when enableMonitoring=false.')
+output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring ? applicationInsights!.outputs.connectionString : ''
