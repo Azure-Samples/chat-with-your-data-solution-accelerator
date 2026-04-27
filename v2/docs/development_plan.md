@@ -13,7 +13,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 | Phase | Title | Status | Notes |
 |---|---|---|---|
 | 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Backend / frontend / functions stubs ☐. |
-| 2 | Configuration + LLM Integration | ⏭ next | `shared/registry.py` + 11/11 tests ✅ (Phase 2 prerequisite). `shared/settings.py` is the next unit. |
+| 2 | Configuration + LLM Integration | ⏳ partial | `shared/registry.py` ✅ (11/11). `shared/settings.py` ✅ (13/13). Credentials, LLM, health router, DI wiring ☐ — next units. |
 | 3 | Conversation + RAG (Core Chat) | ☐ | |
 | 4 | Chat History + Both Databases | ☐ | |
 | 5 | Admin + Frontend Merge | ☐ | |
@@ -468,7 +468,7 @@ All provider work in this phase follows the registry recipe in §3.5.
 | # | Task | Key Files | Status |
 |---|---|---|---|
 | 2.0 | Generic `Registry[T]` primitive (Phase 2 prerequisite) | `src/shared/registry.py` + `tests/shared/test_registry.py` | ✅ (11/11) |
-| 10 | Pydantic `AppSettings` replacing `EnvHelper` (nested models per Azure service; reads every Bicep output env var; cached `get_settings()`) | `src/shared/settings.py` + `tests/shared/test_settings.py` | ⏭ next |
+| 10 | Pydantic `AppSettings` replacing `EnvHelper` (nested models per Azure service; reads every Bicep output env var; cached `get_settings()`) | `src/shared/settings.py` + `tests/shared/test_settings.py` | ✅ (13/13) |
 | 11 | Credentials providers (registry domain): `BaseCredentialFactory` ABC + `managed_identity` + `cli` | `src/providers/credentials/{base,managed_identity,cli,__init__}.py` | ☐ |
 | 12 | LLM provider (registry domain): `BaseLLMProvider` ABC + `foundry_iq` (AIProjectClient-backed; methods `chat`, `chat_stream`, `embed`, `reason`) | `src/providers/llm/{base,foundry_iq,__init__}.py` | ☐ |
 | 13 | Health router with dependency checks (DB, search, Foundry IQ connectivity) — reads providers via DI | `src/backend/routers/health.py` | ☐ |
@@ -817,12 +817,14 @@ AZURE_TENANT_ID=your-tenant-id
 | [`v2/scripts/`](../scripts/) | post-provision hooks (`.sh`, `.ps1`, `.py`). |
 | [`v2/docs/infrastructure.md`](infrastructure.md) | Operator guide for the v2 substrate (resource topology, SKU table per WAF flag, troubleshooting). |
 
-### 10.3 Phase 2 prerequisite — Registry primitive (✅ done; 11/11 tests)
+### 10.3 Phase 2 prerequisite + first unit (✅ done)
 
 | File | Purpose |
 |---|---|
 | [`v2/src/shared/registry.py`](../src/shared/registry.py) | Generic `Registry[T]` class. Case-insensitive keys, idempotent re-register, `KeyError` listing available providers. Methods: `register("key")` decorator, `get(key)`, `keys()`, `__contains__`, `__len__`. Underpins every provider domain in §3.5. |
 | [`v2/tests/shared/test_registry.py`](../tests/shared/test_registry.py) | 11 tests covering registration, lookup, case-insensitivity, double-register rejection, empty domain/key validation, sorted keys. |
+| [`v2/src/shared/settings.py`](../src/shared/settings.py) | Pydantic v2 `AppSettings` root composing 9 nested `BaseSettings` (Identity, Foundry, OpenAI, Database, Search, Storage, Observability, Network, Orchestrator). Reads only `AZURE_*` env vars (37 verified) + `CWYD_ORCHESTRATOR_*`. `model_validator` enforces db_type ↔ endpoint consistency. `get_settings()` is `@lru_cache(maxsize=1)`. No secrets. |
+| [`v2/tests/shared/test_settings.py`](../tests/shared/test_settings.py) | 13 tests covering env loading (cosmosdb + postgresql), enum validation, model validators (mode consistency, index-store mismatch), `get_settings` caching + `cache_clear`, no-secret-fields gate, observability optional. |
 
 ### 10.4 Documentation (✅ live)
 

@@ -71,7 +71,8 @@ For trivial single-line edits, you may proceed directly — but still respect th
 
 ## Session conventions
 
-- A user-profile `Stop` hook (`~/.claude/settings.json`) plays a short two-tone beep at the **end of every agent turn** (i.e. whenever the agent is finished and is handing the conversation back to the user). Do not suppress it, do not duplicate it, and do not treat the beep as an error.
-- **Mid-turn waits for user input require an explicit beep.** The `Stop` hook does **not** fire for in-turn prompts. Whenever the agent is about to block on the user (calling `vscode_askQuestions`, sending an interactive prompt to a terminal via `send_to_terminal`, or otherwise pausing for a human reply before the turn ends), the agent **must** first emit a single low beep:
-  - Windows (default): `run_in_terminal` with `powershell -NoProfile -Command "[console]::beep(660,250)"` (sync, ~250ms, distinct from the two-tone Stop chime).
-  - The beep call is the only acceptable use of `[console]::beep` from agent tools — outside of "I'm about to wait on you", do not call it.
+- **End-of-turn beep is the agent's responsibility.** GitHub Copilot does not execute Claude Code-style `~/.claude/settings.json` `Stop` hooks, so the agent **must** emit the chime as its **final tool call** before handing the conversation back to the user. One call per turn, no exceptions, no duplicates:
+  - Windows (default): `run_in_terminal` (sync, ~500ms) with `[console]::beep(880,200); [console]::beep(1175,250)` — two ascending tones.
+- **Mid-turn waits for user input require a *different* beep.** Whenever the agent is about to block on the user *before* the turn ends (calling `vscode_askQuestions`, sending an interactive prompt to a terminal via `send_to_terminal`, or otherwise pausing for a human reply mid-task), the agent **must** first emit a single low beep:
+  - Windows (default): `run_in_terminal` with `[console]::beep(660,250)` (sync, ~250ms, distinct from the two-tone end-of-turn chime).
+- **`[console]::beep` is reserved for these two signals.** Do not call it from any other tool invocation, do not bury it inside another command, and do not skip it when wrapping up.
