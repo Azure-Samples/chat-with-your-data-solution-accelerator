@@ -162,7 +162,7 @@ param enableScalability bool = false
 @description('Optional. Zone-redundant + paired-region failover on databases, App Service Plan, Container Apps, and Storage.')
 param enableRedundancy bool = false
 
-@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. NOTE: VNet/DNS modules land in dev_plan tasks #7-#8; flipping this to true today provisions resources with public access disabled but no VNet, making them unreachable. Set to true only after #7-#8 ship.')
+@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. The VNet itself is provisioned by `modules/virtualNetwork.bicep` (dev_plan task #7); private DNS zones, private endpoints, regional VNet integration, and Bastion are wired in dev_plan task #8 sub-units. Until #8 ships, set this to true only for VNet-only smoke tests.')
 param enablePrivateNetworking bool = false
 
 // ===================== //
@@ -182,10 +182,11 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 // ===================== //
 
 // NOTE: When enablePrivateNetworking=true, every data-plane resource
-// below is provisioned with publicNetworkAccess='Disabled'. The
-// matching VNet + private DNS zones land in dev_plan tasks #7-#8;
-// until then, do not flip the flag. The parameter description above
-// surfaces this warning in the `azd up` prompt.
+// below is provisioned with publicNetworkAccess='Disabled'. The VNet
+// itself is now wired in (task #7); private DNS zones + private
+// endpoints + regional VNet integration land in task #8 sub-units.
+// Until #8 completes, expect resources to be unreachable when the
+// flag is on outside of VNet smoke tests.
 
 
 // 15-char solution suffix used in every resource name. Lowercased and stripped
@@ -267,6 +268,163 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = if (en
     applicationType: 'web'
     kind: 'web'
     disableLocalAuth: true
+  }
+}
+
+// ----------------------------------------------------------------------
+// Virtual network (conditional, dev_plan task #7). Wraps AVM
+// `network/virtual-network:0.7.0` + per-subnet NSGs. Address plan and
+// subnet roles documented in v2/infra/modules/virtualNetwork.bicep.
+//
+// `databaseType` is forwarded so the wrapper only allocates the
+// Postgres-delegated subnet in postgresql mode. Diagnostic logs are
+// piped to Log Analytics when monitoring is enabled, otherwise the
+// VNet ships without diagnostic settings (avoids a hard dependency on
+// the optional workspace).
+//
+// Downstream wiring (private DNS zones, private endpoints, regional
+// VNet integration on CAE / Web App / Function App, Bastion) lands in
+// dev_plan task #8 sub-units. This unit only stands up the network.
+// ----------------------------------------------------------------------
+module virtualNetwork 'modules/virtualNetwork.bicep' = if (enablePrivateNetworking) {
+  name: take('module.virtual-network.${solutionSuffix}', 64)
+  params: {
+    name: 'vnet-${solutionSuffix}'
+    location: location
+    tags: allTags
+    databaseType: databaseType
+    resourceSuffix: solutionSuffix
+    logAnalyticsWorkspaceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
+    enableTelemetry: false
+  }
+}
+
+// ----------------------------------------------------------------------
+// Private DNS zones (conditional, dev_plan task #8a). One AVM
+// `network/private-dns-zone:0.8.1` deployment per zone, linked to the
+// VNet from #7. Zone selection is driven by `databaseType` so we only
+// create zones we will actually wire to a private endpoint:
+//
+//   Always (when enablePrivateNetworking=true):
+//     0  cognitiveservices.azure.com   - AI Services account
+//     1  openai.azure.com              - OpenAI endpoint on AI Services
+//     2  services.ai.azure.com         - Foundry Project
+//     3  blob.<storage-suffix>         - Storage blob
+//     4  queue.<storage-suffix>        - Storage queue
+//     5  file.<storage-suffix>         - Storage file
+//
+//   cosmosdb mode only:
+//     6  documents.azure.com           - Cosmos DB
+//     7  search.windows.net            - AI Search
+//
+//   postgresql mode only:
+//     6  postgres.database.azure.com   - Postgres Flexible Server
+//                                        (used as `privateDnsZoneArmResourceId`
+//                                        on the AVM module, NOT a private
+//                                        endpoint - VNet-integrated Postgres
+//                                        Flex has no PE model)
+//
+// Index constants are exposed via `dnsZoneIndex` so PE wiring in #8b-#8f
+// stays readable. Indices >= 6 are mode-specific - the wrong mode reads
+// `null` from the array, which the consuming module deals with by simply
+// not deploying that PE in the wrong mode (gated by the same flag).
+// ----------------------------------------------------------------------
+
+var alwaysOnPrivateDnsZones = [
+  'privatelink.cognitiveservices.azure.com'
+  'privatelink.openai.azure.com'
+  'privatelink.services.ai.azure.com'
+  'privatelink.blob.${environment().suffixes.storage}'
+  'privatelink.queue.${environment().suffixes.storage}'
+  'privatelink.file.${environment().suffixes.storage}'
+]
+
+var cosmosModePrivateDnsZones = [
+  'privatelink.documents.azure.com'
+  'privatelink.search.windows.net'
+]
+
+var postgresModePrivateDnsZones = [
+  'privatelink.postgres.database.azure.com'
+]
+
+var privateDnsZones = concat(
+  alwaysOnPrivateDnsZones,
+  databaseType == 'postgresql' ? postgresModePrivateDnsZones : cosmosModePrivateDnsZones
+)
+
+// Named index map so PE wiring in #8b-#8f reads as
+// `avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId`
+// instead of magic numbers. Postgres / Cosmos / Search share index 6+ but
+// the consuming PE blocks are themselves gated on databaseType, so a
+// cosmosdb-mode build will never read `dnsZoneIndex.postgres` and vice versa.
+var dnsZoneIndex = {
+  cognitiveServices: 0
+  openAI: 1
+  aiServicesProject: 2
+  blob: 3
+  queue: 4
+  file: 5
+  cosmosDb: 6
+  search: 7
+  postgres: 6
+}
+
+@batchSize(5)
+module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
+  for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
+    name: take('avm.res.network.private-dns-zone.${replace(zone, '.', '-')}.${solutionSuffix}', 64)
+    params: {
+      name: zone
+      tags: allTags
+      enableTelemetry: false
+      virtualNetworkLinks: [
+        {
+          name: take('vnetlink-${solutionSuffix}-${replace(zone, '.', '-')}', 80)
+          virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+          registrationEnabled: false
+        }
+      ]
+    }
+  }
+]
+
+// ----------------------------------------------------------------------
+// Azure Bastion (CONDITIONAL — enablePrivateNetworking only).
+//
+// Operator access path into the private network. No jumpbox VM by
+// design (per user decision): operators connect via the Azure portal's
+// browser-based Bastion experience to RDP/SSH any future jumpbox you
+// add later, or to use Bastion's `az network bastion tunnel` for kubectl
+// / psql forwarded ports through the deployer's az session.
+//
+// Standard SKU is required for IP-based connect (no target NIC needed)
+// and tunnelling. Lands in the dedicated /26 `AzureBastionSubnet` (Azure
+// requires that exact subnet name) defined in the VNet module.
+// ----------------------------------------------------------------------
+module bastion 'br/public:avm/res/network/bastion-host:0.8.2' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.bastion-host.${solutionSuffix}', 64)
+  params: {
+    name: 'bas-${solutionSuffix}'
+    location: location
+    tags: allTags
+    enableTelemetry: false
+    skuName: 'Standard'
+    virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+    publicIPAddressObject: {
+      name: 'pip-bas-${solutionSuffix}'
+      publicIPAllocationMethod: 'Static'
+      skuName: 'Standard'
+      skuTier: 'Regional'
+      tags: allTags
+    }
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
+          }
+        ]
+      : []
   }
 }
 
@@ -360,6 +518,35 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
         roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
       }
     ]
+    // Private endpoint into the `peps` subnet with three DNS zone configs:
+    // cognitiveservices (account control plane), openai (model data plane),
+    // and services.ai.azure.com (Foundry Project + Agents data plane).
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-${aiServicesName}'
+            customNetworkInterfaceName: 'nic-${aiServicesName}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'account'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'cognitiveservices'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+                }
+                {
+                  name: 'openai'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
+                }
+                {
+                  name: 'aiServicesProject'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServicesProject]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+        ]
+      : []
   }
 }
 
@@ -439,6 +626,26 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
       }
     ]
+    // Private endpoint into the `peps` subnet, group `searchService`,
+    // bound to the search.windows.net DNS zone.
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-srch-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-srch-${solutionSuffix}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'searchService'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'search'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.search]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+        ]
+      : []
   }
 }
 
@@ -539,6 +746,55 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
         roleDefinitionIdOrName: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
       }
     ]
+    // Three private endpoints (blob, queue, file) into the `peps` subnet.
+    // Each binds to its matching private DNS zone so internal callers
+    // resolve `<account>.blob.<storage-suffix>` etc. to a private IP.
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-blob-${storageAccountName}'
+            customNetworkInterfaceName: 'nic-blob-${storageAccountName}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'blob'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'blob'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.blob]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+          {
+            name: 'pep-queue-${storageAccountName}'
+            customNetworkInterfaceName: 'nic-queue-${storageAccountName}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'queue'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'queue'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.queue]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+          {
+            name: 'pep-file-${storageAccountName}'
+            customNetworkInterfaceName: 'nic-file-${storageAccountName}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'file'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'file'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.file]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+        ]
+      : []
   }
 }
 
@@ -598,6 +854,26 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
         roleDefinitionId: '00000000-0000-0000-0000-000000000002'
       }
     ]
+    // Private endpoint into the `peps` subnet, group `Sql` (the SQL/NoSQL
+    // API surface). Bound to the documents.azure.com private DNS zone.
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-cosno-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-cosno-${solutionSuffix}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'Sql'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'cosmosdb'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cosmosDb]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+        ]
+      : []
   }
 }
 
@@ -693,6 +969,14 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
             endIpAddress: '0.0.0.0'
           }
         ]
+    // Postgres Flex private model = VNet integration via a delegated
+    // subnet (Microsoft.DBforPostgreSQL/flexibleServers), NOT a private
+    // endpoint. The DNS zone is bound at the server level, not in a PE
+    // group. Public access is mutually exclusive with delegation; the
+    // AVM module flips it off automatically when delegatedSubnetResourceId
+    // is set.
+    delegatedSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.postgresSubnetResourceId : null
+    privateDnsZoneArmResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.postgres]!.outputs.resourceId : null
     diagnosticSettings: enableMonitoring
       ? [
           {
@@ -730,6 +1014,12 @@ module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
     enableTelemetry: false
     zoneRedundant: enableRedundancy
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    // Private mode: env joins the `containerapps` /23 subnet and ingress
+    // gets an internal IP only. The wildcard DNS zone below makes
+    // `<app>.<defaultDomain>` resolve to that internal IP from inside
+    // the VNet (frontend Web App, Function App, Bastion clients).
+    internal: enablePrivateNetworking
+    infrastructureSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.containerAppsSubnetResourceId : null
     // Workload Profile Consumption (NOT classic Consumption). Required
     // for full VNet integration in #7-#8 and to allow mixing Dedicated
     // profiles (e.g. GPU) later without re-creating the env. Idle cost
@@ -773,6 +1063,42 @@ resource containerAppsEnvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-
   }
 }
 
+// Private DNS zone for the CAE internal default domain. The env emits
+// a per-deployment domain like `purpleforest-1234abcd.<region>.azurecontainerapps.io`;
+// in `internal: true` mode that domain only resolves publicly to a
+// 404 page and the real ingress is the env's static internal IP.
+// We register the zone as `<defaultDomain>` and put a single wildcard
+// A-record (`*`) pointing at the static IP, so any container app in
+// this env (backend now, more later) becomes reachable as
+// `<app>.<defaultDomain>` from inside the VNet without per-app records.
+module caeDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.1' = if (enablePrivateNetworking) {
+  name: take('avm.res.network.private-dns-zone.cae.${solutionSuffix}', 64)
+  params: {
+    name: containerAppsEnv.outputs.defaultDomain
+    location: 'global'
+    tags: allTags
+    enableTelemetry: false
+    a: [
+      {
+        name: '*'
+        ttl: 3600
+        aRecords: [
+          {
+            ipv4Address: containerAppsEnv.outputs.staticIp
+          }
+        ]
+      }
+    ]
+    virtualNetworkLinks: [
+      {
+        name: take('vnetlink-${solutionSuffix}-cae', 80)
+        virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
+        registrationEnabled: false
+      }
+    ]
+  }
+}
+
 module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app.backend.${solutionSuffix}', 64)
   params: {
@@ -788,7 +1114,13 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     }
     workloadProfileName: acaWorkloadProfileName
     ingressTargetPort: 8000
-    ingressExternal: true
+    // In private mode the CAE itself is `internal: true`, so ingress
+    // can only be internal. Setting external=true would either fail
+    // ARM validation or silently produce an unroutable FQDN that the
+    // wildcard `caeDnsZone` A-record cannot intercept. Frontend +
+    // Function App reach the backend via `<app>.<defaultDomain>` resolved
+    // by the private DNS link inside the VNet.
+    ingressExternal: !enablePrivateNetworking
     ingressAllowInsecure: false
     ingressTransport: 'auto'
     scaleSettings: {
@@ -899,6 +1231,11 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
     httpsOnly: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     clientAffinityEnabled: false
+    // Regional VNet integration into the `web` /24 subnet (delegated to
+    // Microsoft.Web/serverFarms). Forces all egress through the VNet so
+    // the frontend can reach the backend on the CAE internal IP and the
+    // App Insights / storage private endpoints.
+    virtualNetworkSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : null
     managedIdentities: {
       userAssignedResourceIds: [
         userAssignedIdentity.outputs.resourceId
@@ -919,6 +1256,7 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
       http20Enabled: true
+      vnetRouteAllEnabled: enablePrivateNetworking
       // App Insights env entry is included only when monitoring is on,
       // so SDKs don't auto-init against an empty connection string.
       appSettings: union(
@@ -1019,6 +1357,11 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
     httpsOnly: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     clientAffinityEnabled: false
+    // Flex Consumption regional VNet integration into the `functions` /24
+    // subnet (delegated to Microsoft.Web/serverFarms). Required for the
+    // function host to reach storage / search / AI Services through their
+    // private endpoints.
+    virtualNetworkSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.functionsSubnetResourceId : null
     managedIdentities: {
       userAssignedResourceIds: [
         userAssignedIdentity.outputs.resourceId
@@ -1057,6 +1400,7 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
     siteConfig: {
       // App Insights env entry is included only when monitoring is on,
       // so the SDK doesn't auto-init against an empty connection string.
+      vnetRouteAllEnabled: enablePrivateNetworking
       appSettings: union(
         [
           // AAD-only AzureWebJobsStorage — no connection string, UAMI auth.
@@ -1315,3 +1659,14 @@ output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
 
 @description('Application Insights connection string. Empty when enableMonitoring=false.')
 output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring ? applicationInsights!.outputs.connectionString : ''
+
+// --- Conditional: private networking (enablePrivateNetworking only) ---
+
+@description('VNet name. Empty when enablePrivateNetworking=false.')
+output AZURE_VNET_NAME string = enablePrivateNetworking ? virtualNetwork!.outputs.name : ''
+
+@description('VNet resource ID. Empty when enablePrivateNetworking=false.')
+output AZURE_VNET_RESOURCE_ID string = enablePrivateNetworking ? virtualNetwork!.outputs.resourceId : ''
+
+@description('Bastion host name (for `az network bastion tunnel`). Empty when enablePrivateNetworking=false.')
+output AZURE_BASTION_NAME string = enablePrivateNetworking ? bastion!.outputs.name : ''

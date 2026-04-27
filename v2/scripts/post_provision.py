@@ -78,6 +78,26 @@ def _enable_pgvector() -> None:
     host = _require("AZURE_POSTGRES_HOST")
     admin_user = _require("AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME")
 
+    # Private-networking pre-flight: if the server FQDN is in the
+    # `*.private.postgres.database.azure.com` zone the deployer machine
+    # cannot resolve it from outside the VNet. Fail loudly with an
+    # actionable Bastion-tunnel command instead of letting psycopg2
+    # raise an opaque `could not translate host name` error.
+    if ".private.postgres.database.azure.com" in host:
+        bastion = os.environ.get("AZURE_BASTION_NAME", "<bastion-name>")
+        rg = os.environ.get("AZURE_RESOURCE_GROUP", "<resource-group>")
+        pg_name = os.environ.get("AZURE_POSTGRES_NAME", "<postgres-name>")
+        sys.stderr.write(
+            "post-provision: postgres is in private mode and unreachable "
+            f"from this machine ({host}).\n"
+            "  fix: open a Bastion tunnel in another terminal, then re-run "
+            "`azd hooks run postprovision`:\n\n"
+            f"    az network bastion tunnel \\\n      --resource-group {rg} \\\n      --name {bastion} \\\n      --target-resource-id $(az postgres flexible-server show "
+            f"-g {rg} -n {pg_name} --query id -o tsv) \\\n      --resource-port 5432 --port 5432\n\n"
+            "  then set AZURE_POSTGRES_HOST=localhost and re-run.\n"
+        )
+        sys.exit(7)
+
     # Imports are deferred so the script's summary block still runs in
     # cosmosdb mode without these packages installed.
     try:
