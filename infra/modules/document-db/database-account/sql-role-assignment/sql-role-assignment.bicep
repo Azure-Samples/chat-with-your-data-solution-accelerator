@@ -13,11 +13,11 @@ param principalId string
 @description('Required. The unique identifier of the associated SQL Role Definition.')
 param roleDefinitionId string
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = {
+resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
   name: databaseAccountName
 }
 
-resource sqlRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = {
+resource sqlRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-10-15' = {
   parent: databaseAccount
   name: name ?? guid(roleDefinitionId, principalId, databaseAccount.id)
   properties: {

@@ -70,7 +70,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2024-01-01' existing 
   scope: resourceGroup(split(storageAccountResourceId!, '/')[2], split(storageAccountResourceId!, '/')[4])
 }
 
-resource app 'Microsoft.Web/sites@2023-12-01' existing = {
+resource app 'Microsoft.Web/sites@2024-04-01' existing = {
   name: appName
 }
 

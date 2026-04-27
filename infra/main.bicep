@@ -423,7 +423,7 @@ var replicaLocation = replicaRegionPairs[location]
 // ============== //
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.ptn.sa-chatwithyourdata.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -472,7 +472,7 @@ module virtualNetwork 'modules/virtualNetwork.bicep' = if (enablePrivateNetworki
 
 // Azure Bastion Host
 var bastionHostName = 'bas-${solutionSuffix}'
-module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePrivateNetworking) {
+module bastionHost 'br/public:avm/res/network/bastion-host:0.8.2' = if (enablePrivateNetworking) {
   name: take('avm.res.network.bastion-host.${bastionHostName}', 64)
   params: {
     name: bastionHostName
@@ -495,14 +495,14 @@ module bastionHost 'br/public:avm/res/network/bastion-host:0.6.1' = if (enablePr
     enableTelemetry: enableTelemetry
     publicIPAddressObject: {
       name: 'pip-${bastionHostName}'
-      zones: []
+      availabilityZones: []
     }
   }
 }
 
 // Jumpbox Virtual Machine
 var jumpboxVmName = take('vm-jumpbox-${solutionSuffix}', 15)
-module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enablePrivateNetworking) {
+module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.22.0' = if (enablePrivateNetworking) {
   name: take('avm.res.compute.virtual-machine.${jumpboxVmName}', 64)
   params: {
     name: take(jumpboxVmName, 15) // Shorten VM name to 15 characters to avoid Azure limits
@@ -511,7 +511,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
     adminUsername: !empty(virtualMachineAdminUsername) ? virtualMachineAdminUsername : 'JumpboxAdminUser'
     adminPassword: !empty(virtualMachineAdminPassword) ? virtualMachineAdminPassword : 'JumpboxAdminP@ssw0rd1234!'
     tags: tags
-    zone: 0
+    availabilityZone: 1
     imageReference: {
       offer: 'WindowsServer'
       publisher: 'MicrosoftWindowsServer'
@@ -564,7 +564,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
 // using AVM Virtual Machine module
 // https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/compute/virtual-machine
 
-module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.3.1' = if (enablePrivateNetworking) {
+module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-configuration:0.4.0' = if (enablePrivateNetworking) {
   name: take('avm.res.maintenance.maintenance-configuration.${solutionSuffix}', 64)
   params: {
     name: 'mc-${solutionSuffix}'
@@ -602,7 +602,7 @@ module maintenanceConfiguration 'br/public:avm/res/maintenance/maintenance-confi
 
 // ========== Managed Identity ========== //
 var userAssignedIdentityResourceName = 'id-${solutionSuffix}'
-module managedIdentityModule 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
+module managedIdentityModule 'br/public:avm/res/managed-identity/user-assigned-identity:0.5.0' = {
   name: take('avm.res.managed-identity.user-assigned-identity.${userAssignedIdentityResourceName}', 64)
   params: {
     name: userAssignedIdentityResourceName
@@ -751,7 +751,7 @@ var allowAllIPsFirewall = false
 var allowAzureIPsFirewall = true
 var postgresResourceName = '${azurePostgresDBAccountName}-postgres'
 var postgresDBName = 'postgres'
-module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.13.1' = if (databaseType == 'PostgreSQL') {
+module postgresDBModule 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.2' = if (databaseType == 'PostgreSQL') {
   name: take('avm.res.db-for-postgre-sql.flexible-server.${azurePostgresDBAccountName}', 64)
   params: {
     name: postgresResourceName
@@ -1077,7 +1077,7 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
   dependsOn: enablePrivateNetworking ? avmPrivateDnsZones : []
 }
 
-resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = if (databaseType == 'CosmosDB') {
+resource search 'Microsoft.Search/searchServices@2025-05-01' = if (databaseType == 'CosmosDB') {
   name: azureAISearchName
   location: location
   sku: {
@@ -1086,7 +1086,7 @@ resource search 'Microsoft.Search/searchServices@2024-06-01-preview' = if (datab
 }
 
 // Separate module for Search Service to enable managed identity and update other properties, as this reduces deployment time for the search service
-module searchUpdate 'br/public:avm/res/search/search-service:0.11.1' = if (databaseType == 'CosmosDB') {
+module searchUpdate 'br/public:avm/res/search/search-service:0.12.0' = if (databaseType == 'CosmosDB') {
   name: take('avm.res.search.update.${azureAISearchName}', 64)
   params: {
     // Required parameters
@@ -1101,7 +1101,7 @@ module searchUpdate 'br/public:avm/res/search/search-service:0.11.1' = if (datab
       }
     }
     disableLocalAuth: false
-    hostingMode: 'default'
+    hostingMode: 'Default'
     networkRuleSet: {
       bypass: 'AzureServices'
       ipRules: []
@@ -1180,7 +1180,7 @@ module searchUpdate 'br/public:avm/res/search/search-service:0.11.1' = if (datab
 // AVM WAF - Server Farm + Web Site conversions
 var webServerFarmResourceName = hostingPlanName
 
-module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
+module webServerFarm 'br/public:avm/res/web/serverfarm:0.7.0' = {
   name: take('avm.res.web.serverfarm.${webServerFarmResourceName}', 64)
   scope: resourceGroup()
   params: {
@@ -1269,6 +1269,7 @@ module web 'modules/app/web.bicep' = {
         AZURE_CLIENT_ID: managedIdentityModule.outputs.clientId // Required so LangChain AzureSearch vector store authenticates with this user-assigned managed identity
         APP_ENV: appEnvironment
         AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
+        APPLICATIONINSIGHTS_ENABLED: enableMonitoring ? 'true' : 'false'
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1368,6 +1369,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
         MANAGED_IDENTITY_RESOURCE_ID: managedIdentityModule.outputs.resourceId
         APP_ENV: appEnvironment
         AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
+        APPLICATIONINSIGHTS_ENABLED: enableMonitoring ? 'true' : 'false'
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1469,6 +1471,7 @@ module function 'modules/app/function.bicep' = {
         APP_ENV: appEnvironment
         BACKEND_URL: backendUrl
         AZURE_SEARCH_DIMENSIONS: azureSearchDimensions
+        APPLICATIONINSIGHTS_ENABLED: enableMonitoring ? 'true' : 'false'
       },
       databaseType == 'CosmosDB'
         ? {
@@ -1733,7 +1736,7 @@ module workbook 'modules/app/workbook.bicep' = if (enableMonitoring) {
   }
 }
 
-module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3' = {
+module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = {
   name: take('avm.res.event-grid.system-topic.${eventGridSystemTopicName}', 64)
   params: {
     name: eventGridSystemTopicName
@@ -1850,7 +1853,7 @@ var azureCosmosDBInfo = string({
 })
 
 var azurePostgresDBInfo = string({
-  host_name: databaseType == 'PostgreSQL' ? postgresDBModule!.outputs.fqdn : ''
+  host_name: databaseType == 'PostgreSQL' ? (postgresDBModule.?outputs.?fqdn ?? '') : ''
   database_name: databaseType == 'PostgreSQL' ? postgresDBName : ''
   user: ''
 })

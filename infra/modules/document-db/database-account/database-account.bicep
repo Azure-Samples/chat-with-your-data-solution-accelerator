@@ -8,9 +8,9 @@ param name string
 param location string = resourceGroup().location
 
 @description('Optional. Tags for the resource.')
-param tags resourceInput<'Microsoft.DocumentDB/databaseAccounts@2024-11-15'>.tags?
+param tags resourceInput<'Microsoft.DocumentDB/databaseAccounts@2025-10-15'>.tags?
 
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The managed identity definition for this resource.')
 param managedIdentities managedIdentityAllType?
 
@@ -73,14 +73,14 @@ param enableTelemetry bool = true
 @description('Optional. The total throughput limit imposed on this account in request units per second (RU/s). Default to unlimited throughput.')
 param totalThroughputLimit int = -1
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.6.0'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
 @description('Optional. Configurations for Azure Cosmos DB for NoSQL native role-based access control definitions. Allows the creations of custom role definitions.')
 param dataPlaneRoleDefinitions dataPlaneRoleDefinitionType[]?
 
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The diagnostic settings for the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
@@ -131,7 +131,7 @@ param backupRetentionIntervalInHours int = 8
 @description('Optional. Setting that indicates the type of backup residency. This setting only applies to the periodic backup type. Defaults to "Local".')
 param backupStorageRedundancy string = 'Local'
 
-import { privateEndpointMultiServiceType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { privateEndpointMultiServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Configuration details for private endpoints. For security reasons, it is advised to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointMultiServiceType[]?
 
@@ -166,7 +166,7 @@ var identity = !empty(managedIdentities)
   : null
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-07-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.documentdb-databaseaccount.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -184,7 +184,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-07-01' = if (enableT
   }
 }
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
+resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' = {
   name: name
   location: location
   tags: tags
@@ -332,7 +332,7 @@ module databaseAccount_sqlRoleDefinitions 'sql-role-definition/sql-role-definiti
   }
 ]
 
-module databaseAccount_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.10.1' = [
+module databaseAccount_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.12.0' = [
   for (privateEndpoint, index) in (privateEndpoints ?? []): {
     name: '${uniqueString(deployment().name, location)}-dbAccount-PrivateEndpoint-${index}'
     scope: resourceGroup(

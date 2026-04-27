@@ -26,7 +26,7 @@ param enableTelemetry bool = true
 @description('Optional. Replica location for redundancy (if enabled). Required if redundancy is enabled.')
 param replicaLocation string = ''
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
@@ -55,7 +55,7 @@ param applicationType string = 'web'
 // Resources  //
 // ========== //
 
-module avmWorkspace 'br/public:avm/res/operational-insights/workspace:0.12.0' = if (empty(existingLogAnalyticsWorkspaceId)) {
+module avmWorkspace 'br/public:avm/res/operational-insights/workspace:0.15.0' = if (empty(existingLogAnalyticsWorkspaceId)) {
   name: take('avm.res.operational-insights.workspace.${logAnalyticsName}', 64)
   params: {
     name: logAnalyticsName
@@ -67,7 +67,7 @@ module avmWorkspace 'br/public:avm/res/operational-insights/workspace:0.12.0' = 
     features: { enableLogAccessUsingOnlyResourcePermissions: true }
     diagnosticSettings: [{ useThisWorkspace: true }]
     // WAF aligned configuration for Redundancy
-    dailyQuotaGb: enableRedundancy ? 10 : null //WAF recommendation: 10 GB per day is a good starting point for most workloads
+    dailyQuotaGb: enableRedundancy ? '10' : null //WAF recommendation: 10 GB per day is a good starting point for most workloads
     replication: enableRedundancy
       ? {
           enabled: true
@@ -119,7 +119,7 @@ var workspaceResourceId = empty(existingLogAnalyticsWorkspaceId)
   ? avmWorkspace!.outputs.resourceId
   : existingLogAnalyticsWorkspaceId
 
-module avmAppInsights 'br/public:avm/res/insights/component:0.6.0' = {
+module avmAppInsights 'br/public:avm/res/insights/component:0.7.1' = {
   name: '${applicationInsightsName}-deploy'
   params: {
     name: applicationInsightsName
@@ -131,11 +131,10 @@ module avmAppInsights 'br/public:avm/res/insights/component:0.6.0' = {
     disableIpMasking: false
     flowType: 'Bluefield'
     workspaceResourceId: empty(workspaceResourceId) ? '' : workspaceResourceId
-    diagnosticSettings: empty(workspaceResourceId) ? null : [{ workspaceResourceId: workspaceResourceId }]
   }
 }
 
-module applicationInsightsDashboard 'br/public:avm/res/portal/dashboard:0.3.1' = if (!empty(applicationInsightsDashboardName)) {
+module applicationInsightsDashboard 'br/public:avm/res/portal/dashboard:0.3.2' = if (!empty(applicationInsightsDashboardName)) {
   name: '${applicationInsightsDashboardName}-deploy'
   params: {
     name: applicationInsightsDashboardName

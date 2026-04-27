@@ -78,7 +78,7 @@ var containerResourceParams = union(
     : {}
 )
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = {
+resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
   name: databaseAccountName
 
   resource sqlDatabase 'sqlDatabases@2024-11-15' existing = {
@@ -86,7 +86,7 @@ resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' exis
   }
 }
 
-resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
+resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-10-15' = {
   name: name
   parent: databaseAccount::sqlDatabase
   tags: tags
