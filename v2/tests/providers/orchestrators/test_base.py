@@ -38,19 +38,20 @@ class _StubOrchestrator(OrchestratorBase):
 # ---------------------------------------------------------------------------
 
 
-def test_registry_exists_and_is_empty_until_task_18() -> None:
-    """No concrete provider registers in this unit -- only the ABC + registry land."""
+def test_registry_domain_and_known_providers() -> None:
+    """`langgraph` registered in task #18; `agent_framework` lands in task #19."""
     assert orchestrators.registry.domain == "orchestrators"
-    assert orchestrators.registry.keys() == []
+    assert "langgraph" in orchestrators.registry.keys()
 
 
-def test_create_raises_keyerror_with_helpful_message_when_empty() -> None:
+def test_create_raises_keyerror_for_unknown_provider() -> None:
     with pytest.raises(KeyError) as excinfo:
-        orchestrators.create("langgraph")
+        orchestrators.create("does_not_exist")
     msg = str(excinfo.value)
     assert "orchestrators" in msg
+    assert "does_not_exist" in msg
+    # Registered providers are listed in the error message.
     assert "langgraph" in msg
-    assert "<none>" in msg  # registry's empty-availability marker
 
 
 # ---------------------------------------------------------------------------

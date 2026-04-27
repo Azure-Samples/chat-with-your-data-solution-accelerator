@@ -33,7 +33,8 @@ from .base import OrchestratorBase
 registry: Registry[type[OrchestratorBase]] = Registry("orchestrators")
 
 # Side-effect imports (eager, one line per concrete provider).
-# Future: from . import langgraph, agent_framework  # noqa: E402, F401
+from . import langgraph  # noqa: E402, F401
+# Future: from . import agent_framework  # noqa: E402, F401
 
 
 def create(key: str, **kwargs: object) -> OrchestratorBase:
