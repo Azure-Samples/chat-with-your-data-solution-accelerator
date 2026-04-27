@@ -31,6 +31,9 @@ import os
 import sys
 
 REQUIRED_ENV = ("AZURE_DB_TYPE",)
+# Mirrors the @allowed() list on `databaseType` in v2/infra/main.bicep.
+# Kept in sync by hand: a typo here or there silently breaks deploys.
+ALLOWED_DB_TYPES = ("cosmosdb", "postgresql")
 POSTGRES_AAD_SCOPE = "https://ossrdbms-aad.database.windows.net/.default"
 POSTGRES_DB = "postgres"
 
@@ -144,6 +147,15 @@ def main() -> int:
         _require(var)
 
     db_type = os.environ["AZURE_DB_TYPE"].strip().lower()
+    if db_type not in ALLOWED_DB_TYPES:
+        sys.stderr.write(
+            f"post-provision: AZURE_DB_TYPE={db_type!r} is not one of "
+            f"{ALLOWED_DB_TYPES}. Check the `databaseType` parameter in "
+            "v2/infra/main.parameters.json (or the AZURE_ENV_DB_TYPE "
+            "value set via `azd env set`).\n"
+        )
+        return 6
+
     if db_type == "postgresql":
         _enable_pgvector()
     else:
