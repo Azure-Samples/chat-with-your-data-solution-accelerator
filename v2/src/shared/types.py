@@ -66,11 +66,46 @@ class OrchestratorEvent(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class Citation(BaseModel):
+    """One source citation surfaced alongside an answer.
+
+    `id` is the source document/chunk id (provider-specific). `url` is
+    a renderable link (blob SAS, URL of an external page, ...). `score`
+    is the search relevance, normalized 0..1 where the provider can
+    expose one. Frontend dedupes by `id`.
+    """
+
+    id: str
+    title: str = ""
+    url: str = ""
+    snippet: str = ""
+    score: float | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SearchResult(BaseModel):
+    """A single hit returned by a `BaseSearch.search()` call.
+
+    The orchestrator / RAG pipeline turns these into `Citation`s and
+    folds the `content` into the prompt context. Kept minimal: provider
+    -specific extras land in `metadata`.
+    """
+
+    id: str
+    content: str
+    title: str = ""
+    url: str = ""
+    score: float | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 __all__ = [
     "ChatChunk",
     "ChatMessage",
+    "Citation",
     "EmbeddingResult",
     "OrchestratorChannel",
     "OrchestratorEvent",
     "Role",
+    "SearchResult",
 ]

@@ -14,7 +14,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 |---|---|---|---|
 | 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Backend / frontend / functions stubs ☐. |
 | 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
-| 3 | Conversation + RAG (Core Chat) | ⏳ in progress | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 6/6), #19 ✅ (Agent Framework, 9/9), #20a ✅ (content_safety guard, 10/10). Tasks #20b–d (text/QA/post-prompt) + #21–#26 ☰ not started. 86/86 tests pass overall. |
+| 3 | Conversation + RAG (Core Chat) | ⏳ in progress | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 6/6), #19 ✅ (Agent Framework, 9/9), #20a ✅ (content_safety, 10/10), #21 ✅ (search domain + AzureSearch, 13/13). Tasks #20b–d, #22–#26 ☰ not started. 99/99 tests pass overall. |
 | 4 | Chat History + Both Databases | ☐ | |
 | 5 | Admin + Frontend Merge | ☐ | |
 | 6 | RAG Indexing Pipeline (Split Functions) | ☐ | |
@@ -490,7 +490,7 @@ Orchestrators and search providers follow the registry recipe in §3.5. Caller c
 | 18 | LangGraph orchestrator (`StateGraph` + `ToolNode`); `@register("langgraph")` | `src/providers/orchestrators/langgraph.py` | ✅ (7/7) — single LLM node today; `ToolNode` wires in via task #20 |
 | 19 | Azure AI Agent Framework orchestrator; `@register("agent_framework")` | `src/providers/orchestrators/agent_framework.py` | ✅ (8/8) — DI-injected `AgentsClient` + `agent_id`; production wiring in task #22 |
 | 20 | Cross-cutting tool helpers (QA, text processing, content safety, post-prompt). Tools are NOT a registry domain — they are imported directly. | `src/shared/tools/*` | ⏳ partial: content_safety ✅ (10/10); QA / text_processing / post_prompt ☰ |
-| 21 | Search domain: `BaseSearch` ABC + `azure_search` provider (async); `@register("azure_search")` | `src/providers/search/{base,azure_search,__init__}.py` | ☐ |
+| 21 | Search domain: `BaseSearch` ABC + `azure_search` provider (async); `@register("azure_search")` | `src/providers/search/{base,azure_search,__init__}.py` | ✅ (13/13) — hybrid (text+vector), semantic re-ranking, OData filter pass-through. Citation/SearchResult types added to `shared/types.py`. |
 | 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom); composes `orchestrators.create(...)` | `src/backend/routers/conversation.py`, `src/pipelines/chat.py` | ☐ |
 | 23 | Citation extraction and formatting | `src/shared/types.py` (Citation), tool helpers | ☐ |
 | 24 | Frontend: chat connected to `/api/conversation`, SSE stream consumption (channels: `reasoning`, `tool`, `answer`, `citation`, `error`) | `src/frontend/src/pages/chat/` | ☐ |
