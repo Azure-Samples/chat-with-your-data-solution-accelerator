@@ -1277,6 +1277,9 @@ output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServe
 @description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
 output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
 
+@description('Configured Entra admin principal name for the Postgres Flex server (used as the `user` in AAD-token connections by the post-provision hook). Empty in cosmosdb mode.')
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? postgresAdminPrincipalName : ''
+
 // --- Storage (blobs + queues + Function deployment package) ---
 
 @description('Storage account name (shared by RAG document store, indexing queues, and the Function App deployment package).')

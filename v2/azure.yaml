@@ -27,7 +27,7 @@ requiredVersions:
 
 infra:
   provider: bicep
-  path: v2/infra
+  path: infra
   module: main
 
 # ----------------------------------------------------------------------
@@ -89,9 +89,31 @@ parameters:
     default: false
 
 # ----------------------------------------------------------------------
-# Services and post-provision hooks land in later units once the Bicep
-# modules expose the required outputs:
-#   - hooks      -> task #19 (post-provision scripts)
-#   - services   -> tasks #14 backend, #15 frontend, #16 functions
+# Services land in later units once the Bicep modules expose the
+# required outputs:
+#   - services -> tasks #14 backend, #15 frontend, #16 functions
 # ----------------------------------------------------------------------
 services: {}
+
+# ----------------------------------------------------------------------
+# Post-provision hook (task #19). Runs after every successful `azd
+# provision` / `azd up`. Idempotent. In postgresql mode it creates the
+# pgvector extension on the freshly provisioned Flexible Server using
+# the deployer's Entra token. Always prints a compact summary of the
+# AZURE_* outputs an operator most commonly needs.
+#
+# Both wrappers shell out to v2/scripts/post_provision.py so the logic
+# stays in one place.
+# ----------------------------------------------------------------------
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/post-provision.sh
+      continueOnError: false
+      interactive: true
+    windows:
+      shell: pwsh
+      run: ./scripts/post-provision.ps1
+      continueOnError: false
+      interactive: true
