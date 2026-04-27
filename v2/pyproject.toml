@@ -1,0 +1,95 @@
+[project]
+name = "cwyd-v2"
+version = "0.1.0"
+description = "Chat With Your Data Solution Accelerator — v2 (FastAPI + Functions + Foundry IQ)"
+readme = "../README.md"
+requires-python = ">=3.11"
+dependencies = [
+    # Core web + Functions runtime
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.34,<1.0",
+    "azure-functions>=1.24,<2.0",
+    "httpx>=0.28,<1.0",
+    "python-dotenv>=1.2,<2.0",
+
+    # Config + validation
+    "pydantic>=2.11,<3.0",
+    "pydantic-settings>=2.7,<3.0",
+    "jsonschema>=4.25,<5.0",
+
+    # Foundry IQ + Azure AI
+    "azure-ai-projects>=1.0,<2.0",
+    "azure-ai-agents>=1.2.0b3",
+    "azure-ai-formrecognizer>=3.3,<4.0",
+    "azure-ai-contentsafety>=1.0,<2.0",
+    "azure-search-documents>=11.6.0b1",
+    "openai>=2.26,<3.0",
+    "tiktoken>=0.12,<1.0",
+
+    # LangChain / LangGraph orchestrators
+    "langchain>=0.3,<1.0",
+    "langgraph>=0.4,<1.0",
+    "langchain-openai>=0.3,<1.0",
+
+    # Azure data plane (passwordless via Managed Identity)
+    "azure-identity>=1.25,<2.0",
+    "azure-storage-blob>=12.28,<13.0",
+    "azure-storage-queue>=12.15,<13.0",
+    "azure-cosmos>=4.14,<5.0",
+
+    # PostgreSQL (pgvector mode)
+    "asyncpg>=0.31,<1.0",
+    "psycopg2-binary>=2.9,<3.0",
+    "pgvector>=0.4,<1.0",
+
+    # Document parsers
+    "python-docx>=1.2,<2.0",
+    "beautifulsoup4>=4.14,<5.0",
+    "chardet>=5.2,<6.0",
+    "pillow>=11.0,<12.0",
+    "fake-useragent>=2.2,<3.0",
+    "requests>=2.32,<3.0",
+
+    # Observability
+    "azure-monitor-opentelemetry>=1.6.10,<2.0",
+    "opentelemetry-instrumentation-httpx>=0.52b0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0,<10.0",
+    "pytest-cov>=7.0,<8.0",
+    "pytest-asyncio>=1.2,<2.0",
+    "pytest-httpserver>=1.1,<2.0",
+    "black>=25.12,<26.0",
+    "flake8>=7.3,<8.0",
+    "trustme>=1.2,<2.0",
+]
+
+[tool.uv]
+prerelease = "if-necessary-or-explicit"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "unit: fast unit tests with all I/O mocked",
+    "integration: tests requiring a running dependency (azurite, postgres, etc.)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["**/tests/*", "**/__init__.py"]
+
+[tool.coverage.report]
+skip_empty = true
+show_missing = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shared", "src/backend", "src/functions"]
