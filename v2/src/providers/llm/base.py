@@ -7,6 +7,11 @@ Every concrete provider (`foundry_iq`, future swap-ins) inherits from
 `BaseLLMProvider` and self-registers via `@registry.register("<key>")`.
 Constructors take `AppSettings` + an `AsyncTokenCredential`; provider
 classes never read env vars directly (settings is the boundary).
+
+Lifecycle: providers may hold an SDK client (e.g. `AIProjectClient`)
+that owns an HTTP transport. Callers are expected to invoke
+`await provider.aclose()` during shutdown -- the FastAPI lifespan in
+`backend/app.py` does this for the cached singleton.
 """
 from __future__ import annotations
 
@@ -17,7 +22,12 @@ if TYPE_CHECKING:
     from azure.core.credentials_async import AsyncTokenCredential
 
     from shared.settings import AppSettings
-    from shared.types import ChatChunk, ChatMessage, EmbeddingResult
+    from shared.types import (
+        ChatChunk,
+        ChatMessage,
+        EmbeddingResult,
+        OrchestratorEvent,
+    )
 
 
 class BaseLLMProvider(ABC):
@@ -47,7 +57,12 @@ class BaseLLMProvider(ABC):
         temperature: float | None = None,
         max_tokens: int | None = None,
     ) -> "AsyncIterator[ChatChunk]":
-        """Streamed chat completion. Yields deltas as `ChatChunk`s."""
+        """Streamed chat completion. Yields deltas as `ChatChunk`s.
+
+        Implementations are typically `async def` with `yield` -- the
+        ABC declares the return type as `AsyncIterator[ChatChunk]` to
+        match PEP 525 async generators.
+        """
 
     @abstractmethod
     async def embed(
@@ -59,16 +74,24 @@ class BaseLLMProvider(ABC):
         """Embed one or more inputs into a dense vector."""
 
     @abstractmethod
-    async def reason(
+    def reason(
         self,
         messages: "Sequence[ChatMessage]",
         *,
         deployment: str | None = None,
-    ) -> "ChatMessage":
+    ) -> "AsyncIterator[OrchestratorEvent]":
         """Reasoning-model (o-series) completion.
 
-        Implementations must route to the configured reasoning
-        deployment and surface chain-of-thought separately from the
-        final answer when the orchestrator integration lands (task #25
-        in v2/docs/development_plan.md).
+        Yields `OrchestratorEvent`s on two channels:
+
+        - `channel="reasoning"` -- chain-of-thought tokens (rendered in
+          the frontend's collapsible reasoning panel).
+        - `channel="answer"` -- the final answer tokens.
+
+        Implementations route to the configured reasoning deployment.
+        Wired end-to-end by task #25 in v2/docs/development_plan.md
+        (Phase 7).
         """
+
+    async def aclose(self) -> None:
+        """Release any owned SDK clients. Default implementation is a no-op."""

@@ -13,7 +13,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 | Phase | Title | Status | Notes |
 |---|---|---|---|
 | 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Backend / frontend / functions stubs ☐. |
-| 2 | Configuration + LLM Integration | ⏳ partial | `shared/registry.py` ✅ (11/11). `shared/settings.py` ✅ (13/13). `shared/types.py` ✅. `providers/credentials/` ✅ (9/9). `providers/llm/` ✅ (11/11). Health router, DI wiring ☐ — next units. |
+| 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
 | 3 | Conversation + RAG (Core Chat) | ☐ | |
 | 4 | Chat History + Both Databases | ☐ | |
 | 5 | Admin + Frontend Merge | ☐ | |
@@ -450,7 +450,7 @@ From the infra audit (8.5/10, AVM coverage ≈95%); landed alongside the next Ph
 | 2 | User-assigned managed identity + RBAC roles (no Key Vault secrets) | `infra/main.bicep` (UAMI inline + role assignments per AVM) | ✅ |
 | 3 | Foundry IQ resource (AI Services account, Foundry Project, model deployments) | `infra/modules/ai-project.bicep`, `infra/modules/ai-project-search-connection.bicep` | ✅ |
 | 4 | `azure.yaml` with v2 service paths (backend, frontend, functions) | `azure.yaml` | ✅ |
-| 5 | Stub FastAPI backend — `GET /api/health` returns 200 | `src/backend/app.py`, `src/backend/routers/health.py` | ☐ |
+| 5 | Stub FastAPI backend — `GET /api/health` returns 200 | `src/backend/app.py`, `src/backend/routers/health.py` | ✅ (subsumed by task #13) |
 | 6 | Stub React frontend — placeholder page with "CWYD v2" | `src/frontend/src/` | ☐ |
 | 7 | Dockerfiles for backend + frontend | `docker/` | ⏳ partial |
 | 8 | Post-deploy script — loads sample data + default config to Blob Storage | `scripts/post_provision.{sh,ps1,py}` | ⏳ partial |
@@ -471,8 +471,8 @@ All provider work in this phase follows the registry recipe in §3.5.
 | 10 | Pydantic `AppSettings` replacing `EnvHelper` (nested models per Azure service; reads every Bicep output env var; cached `get_settings()`) | `src/shared/settings.py` + `tests/shared/test_settings.py` | ✅ (13/13) |
 | 11 | Credentials providers (registry domain): `BaseCredentialFactory` ABC + `managed_identity` + `cli` | `src/providers/credentials/{base,managed_identity,cli,__init__}.py` | ✅ (9/9) |
 | 12 | LLM provider (registry domain): `BaseLLMProvider` ABC + `foundry_iq` (AIProjectClient-backed; methods `chat`, `chat_stream`, `embed`, `reason`) | `src/providers/llm/{base,foundry_iq,__init__}.py` | ✅ (11/11) — `reason()` stubbed, see task #25 |
-| 13 | Health router with dependency checks (DB, search, Foundry IQ connectivity) — reads providers via DI | `src/backend/routers/health.py` | ☐ |
-| 14 | Dependency injection wiring (settings + credentials + llm registries → routers) | `src/backend/dependencies.py` | ☐ |
+| 13 | Health router with dependency checks (DB, search, Foundry IQ connectivity) — reads providers via DI | `src/backend/routers/health.py` | ✅ (8/8) — shallow probes; deep liveness deferred to Phase 6 |
+| 14 | Dependency injection wiring (settings + credentials + llm registries → routers) | `src/backend/dependencies.py` | ✅ (covered by health router tests) |
 | 15 | Frontend: basic chat UI shell (input box, message list, layout) | `src/frontend/src/pages/chat/` | ☐ |
 | 16 | Bicep outputs wired to backend env vars (no Key Vault) | `infra/main.bicep` outputs section | ✅ |
 
@@ -830,6 +830,8 @@ AZURE_TENANT_ID=your-tenant-id
 | [`v2/src/shared/types.py`](../src/shared/types.py) | Pydantic value types shared by providers and pipelines. `ChatMessage` (role + content), `ChatChunk` (streamed delta + finish_reason), `EmbeddingResult` (vectors + model + dimensions). |
 | [`v2/src/providers/llm/`](../src/providers/llm/) | Second registry-keyed provider domain. `BaseLLMProvider` ABC (`chat`, `chat_stream`, `embed`, `reason`) + `FoundryIQ` wrapping `azure.ai.projects.aio.AIProjectClient.get_openai_client()`. Lazily constructs the project client; resolves deployments from `OpenAISettings`; never imports `openai` (banned tech rule #7). `reason()` is a `NotImplementedError` stub reserved for task #25 (Phase 7). |
 | [`v2/tests/providers/llm/test_foundry_iq.py`](../tests/providers/llm/test_foundry_iq.py) | 11 tests covering registry registration, `chat` (deployment resolution + temperature/max_tokens passthrough + missing-deployment guard), `chat_stream` (async iterator + `stream=True` flag), `embed` (vector + dimensions + model passthrough), `reason` (NotImplementedError pointer to task #25), lazy AIProjectClient construction (raises when `AZURE_AI_PROJECT_ENDPOINT` missing), `aclose()` does not close an injected client. |
+| [`v2/src/backend/`](../src/backend/) | FastAPI app skeleton. `app.py` (factory + lifespan that lazy-configures Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set, **builds credential + LLM provider once and stashes on `app.state`, closes both on shutdown**, plus a CORS wildcard guard that drops `allow_credentials=True` when origins is `*`), `dependencies.py` (DI reads from `app.state` -- no per-request credential construction), `routers/health.py` (`GET /api/health` always 200 diagnostic + `GET /api/health/ready` returning 503 on fail; `skip` is neutral in aggregation), `models/health.py` (`HealthResponse`, `DependencyCheck`). |
+| [`v2/tests/backend/test_health.py`](../tests/backend/test_health.py) | 11 tests using `httpx.ASGITransport` + `dependency_overrides` for the diagnostic endpoint, plus a real lifespan exercise (`async with _lifespan(app)`) confirming `app.state` population and `aclose()`/`close()` on shutdown: pass when all checks succeed, fail when Foundry endpoint missing, fail when Search endpoint missing, **`skip` does not degrade overall status (pgvector mode)**, response shape gate, **`/api/health/ready` returns 200 on pass and 503 on fail**, DI raises clearly when lifespan never ran. |
 
 ### 10.4 Documentation (✅ live)
 

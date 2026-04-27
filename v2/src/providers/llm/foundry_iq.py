@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, AsyncIterator, Sequence
 
 from azure.ai.projects.aio import AIProjectClient
 
-from shared.types import ChatChunk, ChatMessage, EmbeddingResult
+from shared.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent
 
 from . import registry
 from .base import BaseLLMProvider
@@ -157,15 +157,19 @@ class FoundryIQ(BaseLLMProvider):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
-    ) -> ChatMessage:
+    ) -> AsyncIterator[OrchestratorEvent]:
         # Reasoning-model integration (o-series) is task #25 in
-        # v2/docs/development_plan.md and ships in Phase 7. Until then
-        # the contract is declared but unimplemented so callers fail
-        # loudly instead of silently routing to a chat deployment.
+        # v2/docs/development_plan.md and ships in Phase 7. The ABC
+        # signature is locked now -- see shared.types.OrchestratorEvent
+        # -- so callers and orchestrators can wire against it. Until
+        # task #25 lands the implementation fails loudly.
         raise NotImplementedError(
             "FoundryIQ.reason() is reserved for task #25 (Phase 7 -- "
             "o-series reasoning model routing)."
         )
+        # Make this an async generator (PEP 525) so static type
+        # checkers see the AsyncIterator return type. Unreachable.
+        yield  # pragma: no cover  # type: ignore[unreachable]
 
     async def aclose(self) -> None:
         # We only own the client when we constructed it ourselves.

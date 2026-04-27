@@ -240,8 +240,12 @@ async def test_reason_is_not_yet_implemented(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
     provider = FoundryIQ(settings, fake_credential, project_client=MagicMock())
+    # reason() is an async generator -- the NotImplementedError is
+    # raised on first iteration, not on the call itself.
+    iterator = provider.reason([ChatMessage(role="user", content="hi")])
     with pytest.raises(NotImplementedError, match="task #25"):
-        await provider.reason([ChatMessage(role="user", content="hi")])
+        async for _ in iterator:
+            pass
 
 
 # ---------------------------------------------------------------------------
