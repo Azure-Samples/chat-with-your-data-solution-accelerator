@@ -5,7 +5,7 @@ metadata:
    template: chat-with-your-data-solution-accelerator@1.7.0
 
 requiredVersions:
-  azd: '>= 1.18.0 != 1.23.9''
+  azd: '>= 1.18.0 != 1.23.9'
 
 hooks:
   postprovision:
