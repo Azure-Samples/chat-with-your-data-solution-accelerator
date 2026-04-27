@@ -98,6 +98,9 @@ StyleCopReport.xml
 *.vspscc
 *.vssscc
 .builds
+# Bicep transient build output (az bicep build --outdir)
+.build/
+v2/infra/.build/
 *.pidb
 *.svclog
 *.scc

@@ -465,6 +465,7 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
 // short name when the solution suffix is too long.
 // ----------------------------------------------------------------------
 var storageAccountName = take(replace('st${solutionSuffix}', '-', ''), 24)
+var deploymentContainerName = 'deployment-package'
 
 module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
   name: take('avm.res.storage.storage-account.${solutionSuffix}', 64)
@@ -499,6 +500,13 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
         }
         {
           name: 'config'
+          publicAccess: 'None'
+        }
+        {
+          // Flex Consumption Function App pulls its zipped runtime from
+          // this container via the UAMI assigned below. Created here so
+          // the function app deployment never has to provision storage.
+          name: deploymentContainerName
           publicAccess: 'None'
         }
       ]
@@ -833,12 +841,353 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
   }
 }
 
+// ----------------------------------------------------------------------
+// App Service Plan + frontend Web App.
+// Frontend (React/Vite static SPA served by an nginx container) runs on
+// App Service rather than ACA because:
+//   - Static SPA workload doesn't benefit from scale-to-zero (negligible
+//     cold-start matters more for the user-facing landing page).
+//   - App Service exposes a stable *.azurewebsites.net hostname suitable
+//     for branding / custom-domain CNAME.
+//   - Mixed hosting (ACA backend + App Service frontend) follows MACAE's
+//     reference layout for plug-and-play deployments.
+//
+// Phase 1 deploys a placeholder image; the real image is wired in
+// azure.yaml `services.frontend` once the frontend Dockerfile ships in
+// Phase 2.
+// ----------------------------------------------------------------------
+var appServicePlanName = 'asp-${solutionSuffix}'
+var frontendAppName = 'app-frontend-${solutionSuffix}'
+// SKU ladder hoisted per naming-stability rule §11:
+//   default            → B1 / 1 worker  (cheapest Linux container plan)
+//   enableScalability  → P1v3 / 1 worker (autoscale, faster cold start)
+//   enableRedundancy   → P1v3 / 3 workers + zoneRedundant (Premium v3 is
+//                        the minimum tier supporting AZ spread; B1 does
+//                        NOT support zone redundancy and would fail at
+//                        deploy time — the && guard below makes that
+//                        guarantee explicit, not coincidental).
+var appServicePlanSkuName = enableRedundancy || enableScalability ? 'P1v3' : 'B1'
+var appServicePlanSkuCapacity = enableRedundancy ? 3 : 1
+
+module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
+  name: take('avm.res.web.serverfarm.${solutionSuffix}', 64)
+  params: {
+    name: appServicePlanName
+    location: location
+    tags: allTags
+    enableTelemetry: false
+    kind: 'linux'
+    reserved: true
+    skuName: appServicePlanSkuName
+    skuCapacity: appServicePlanSkuCapacity
+    zoneRedundant: enableRedundancy && appServicePlanSkuName == 'P1v3'
+  }
+}
+
+module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
+  name: take('avm.res.web.site.frontend.${solutionSuffix}', 64)
+  params: {
+    name: frontendAppName
+    location: location
+    tags: union(allTags, { 'azd-service-name': 'frontend' })
+    enableTelemetry: false
+    kind: 'app,linux,container'
+    serverFarmResourceId: appServicePlan.outputs.resourceId
+    httpsOnly: true
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    clientAffinityEnabled: false
+    managedIdentities: {
+      userAssignedResourceIds: [
+        userAssignedIdentity.outputs.resourceId
+      ]
+    }
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
+          }
+        ]
+      : []
+    siteConfig: {
+      // Placeholder image. Replaced by `azd deploy` once the real
+      // frontend Dockerfile ships in Phase 2 and is referenced from
+      // azure.yaml `services.frontend`.
+      linuxFxVersion: 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+      ftpsState: 'FtpsOnly'
+      minTlsVersion: '1.2'
+      http20Enabled: true
+      // App Insights env entry is included only when monitoring is on,
+      // so SDKs don't auto-init against an empty connection string.
+      appSettings: union(
+        [
+          // VITE_BACKEND_URL is consumed by the Vite build step (see
+          // azd post-provision hook + frontend Dockerfile in Phase 2)
+          // via `azd env get-values`. It is set here for parity and
+          // diagnostics only — the running container does NOT read it,
+          // since the SPA is fully static once built.
+          {
+            name: 'VITE_BACKEND_URL'
+            value: 'https://${backendContainerApp.outputs.fqdn}'
+          }
+          // Tell App Service to pull the image from MCR (no ACR creds).
+          // (No AZURE_CLIENT_ID here — the SPA does not call Azure
+          // directly. All Azure calls go through the FastAPI backend per
+          // plug-and-play rule §4. UAMI on the site is for ACR pull only.)
+          { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
+        ],
+        enableMonitoring
+          ? [
+              {
+                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+                value: applicationInsights!.outputs.connectionString
+              }
+            ]
+          : []
+      )
+    }
+  }
+}
+
+// ----------------------------------------------------------------------
+// Function App (Flex Consumption) + Event Grid system topic.
+// The Function App hosts the modular RAG indexing pipeline:
+//   - batch_start  — list blobs in /documents/, enqueue per-blob messages
+//   - batch_push   — Storage Queue trigger; parse, chunk, embed, push to
+//                    the configured vector index (AI Search OR Postgres)
+//   - add_url      — HTTP trigger; fetch URL content, parse, embed
+// Event Grid system topic on the Storage Account fans out BlobCreated
+// notifications under /documents/ to the doc-processing queue, which
+// triggers batch_push.
+//
+// Flex Consumption (FC1) chosen over Premium because:
+//   - sub-second cold start, scale-to-zero (cheap when idle)
+//   - native AAD-only AzureWebJobsStorage (no shared keys)
+//   - built-in always-ready instance support if scale matters later
+//
+// Identity / no-keys posture: Storage has allowSharedKeyAccess=false,
+// so Event Grid → Storage Queue MUST use deliveryWithResourceIdentity
+// with the system topic's system-assigned MI, plus a Storage Queue Data
+// Message Sender role on that MI. AzureWebJobsStorage uses the function
+// app's UAMI via the `AzureWebJobsStorage__credential=managedidentity`
+// + `__clientId` pattern.
+// ----------------------------------------------------------------------
+var functionPlanName = 'plan-func-${solutionSuffix}'
+var functionAppName = 'func-${solutionSuffix}'
+var eventGridSystemTopicName = 'evgt-${solutionSuffix}'
+var functionsPlanSkuName = 'FC1'
+var functionsRuntimeName = 'python'
+var functionsRuntimeVersion = '3.11'
+var docProcessingQueueName = 'doc-processing'
+var documentsContainerName = 'documents'
+// Built-in role definition GUIDs used by this section.
+//   Storage Queue Data Message Sender — for Event Grid → Storage Queue
+//   Storage Blob Data Owner           — for AzureWebJobsStorage Flex pkg
+var storageQueueDataMessageSenderRoleId = 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
+var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+
+module functionPlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
+  name: take('avm.res.web.serverfarm.func.${solutionSuffix}', 64)
+  params: {
+    name: functionPlanName
+    location: location
+    tags: allTags
+    enableTelemetry: false
+    // `kind: 'functionapp'` (NOT 'linux') is the documented value for
+    // Linux Function App plans. `reserved: true` is what actually flips
+    // the Linux bit; `kind` is a hint used by the portal. The frontend
+    // App Service Plan above uses `kind: 'linux'` because it hosts a
+    // generic Web App, not a Function App.
+    kind: 'functionapp'
+    reserved: true
+    skuName: functionsPlanSkuName
+    skuCapacity: 0
+  }
+}
+
+module functionApp 'br/public:avm/res/web/site:0.22.0' = {
+  name: take('avm.res.web.site.func.${solutionSuffix}', 64)
+  params: {
+    name: functionAppName
+    location: location
+    tags: union(allTags, { 'azd-service-name': 'function' })
+    enableTelemetry: false
+    kind: 'functionapp,linux'
+    serverFarmResourceId: functionPlan.outputs.resourceId
+    httpsOnly: true
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    clientAffinityEnabled: false
+    managedIdentities: {
+      userAssignedResourceIds: [
+        userAssignedIdentity.outputs.resourceId
+      ]
+    }
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
+          }
+        ]
+      : []
+    // Flex Consumption-specific runtime + deployment storage. The package
+    // is pulled from the deployment-package container on the same storage
+    // account using the function's UAMI (UserAssignedIdentity auth).
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storageAccount.outputs.primaryBlobEndpoint}${deploymentContainerName}'
+          authentication: {
+            type: 'UserAssignedIdentity'
+            userAssignedIdentityResourceId: userAssignedIdentity.outputs.resourceId
+          }
+        }
+      }
+      runtime: {
+        name: functionsRuntimeName
+        version: functionsRuntimeVersion
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: enableScalability ? 100 : 40
+        instanceMemoryMB: 2048
+      }
+    }
+    siteConfig: {
+      // App Insights env entry is included only when monitoring is on,
+      // so the SDK doesn't auto-init against an empty connection string.
+      appSettings: union(
+        [
+          // AAD-only AzureWebJobsStorage — no connection string, UAMI auth.
+          { name: 'AzureWebJobsStorage__accountName', value: storageAccount.outputs.name }
+          { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
+          { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentity.outputs.clientId }
+          // Functions runtime knobs.
+          { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+          { name: 'FUNCTIONS_WORKER_RUNTIME', value: functionsRuntimeName }
+          // Identity + Foundry endpoints (mirrors backend env so the
+          // indexing pipeline can call the embedding model + write to
+          // the configured vector index).
+          { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+          { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+          { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
+          { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+          { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
+          { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
+          // Database routing — same flag the backend reads.
+          { name: 'AZURE_DB_TYPE', value: databaseType }
+          // Storage wiring used by batch_start / batch_push / add_url.
+          { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount.outputs.name }
+          { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
+          { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+        ],
+        enableMonitoring
+          ? [
+              {
+                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+                value: applicationInsights!.outputs.connectionString
+              }
+            ]
+          : []
+      )
+    }
+  }
+}
+
+// Function App needs Storage Blob Data Owner on the deployment container
+// to upload its package via Flex Consumption's UserAssignedIdentity auth.
+// Scoped to the storage account because the AVM module assigns at the
+// account level (sub-scoping requires a separate inline child resource,
+// not worth it for a deployment-only role).
+// `existing` uses the *variable* (compile-time known), not the module
+// output (runtime-only) — required for roleAssignment scope/name to
+// satisfy BCP120.
+resource storageAccountExisting 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
+  // BCP334: take(...) returns string 0..24 chars; storage account name
+  // requires min 3. solutionSuffix is generated by MACAE pattern as 8+
+  // chars in main.bicep, so the actual value is always 10..24. Suppress
+  // the static-analysis warning rather than add a runtime guard.
+  #disable-next-line BCP334
+  name: storageAccountName
+  dependsOn: [ storageAccount ]
+}
+
+resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccountExisting.id, userAssignedIdentity.name, storageBlobDataOwnerRoleId)
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Event Grid system topic on the Storage Account. Single subscription
+// for now: BlobCreated under /documents/ → doc-processing queue. The
+// add_url path is HTTP-triggered, not blob-triggered, so it does not
+// need an Event Grid subscription.
+module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = {
+  name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
+  params: {
+    name: eventGridSystemTopicName
+    location: location
+    tags: allTags
+    enableTelemetry: false
+    source: storageAccount.outputs.resourceId
+    topicType: 'Microsoft.Storage.StorageAccounts'
+    managedIdentities: {
+      systemAssigned: true
+    }
+    eventSubscriptions: [
+      {
+        name: 'blob-created-to-doc-processing'
+        // deliveryWithResourceIdentity (NOT plain destination) is required
+        // because storage has allowSharedKeyAccess=false. The system
+        // topic's system-assigned MI authenticates to Storage Queue.
+        deliveryWithResourceIdentity: {
+          identity: {
+            type: 'SystemAssigned'
+          }
+          destination: {
+            endpointType: 'StorageQueue'
+            properties: {
+              resourceId: storageAccount.outputs.resourceId
+              queueName: docProcessingQueueName
+            }
+          }
+        }
+        filter: {
+          includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+          subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
+          enableAdvancedFilteringOnArrays: true
+        }
+        eventDeliverySchema: 'EventGridSchema'
+        retryPolicy: {
+          maxDeliveryAttempts: 30
+          eventTimeToLiveInMinutes: 1440
+        }
+      }
+    ]
+  }
+}
+
+// Grant the Event Grid system topic's system-assigned MI permission to
+// enqueue messages on the storage account's queues.
+resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccountExisting.id, eventGridSystemTopicName, storageQueueDataMessageSenderRoleId)
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataMessageSenderRoleId)
+    // managedIdentities.systemAssigned: true is set unconditionally on
+    // the topic above, so this output is always populated. The non-null
+    // assertion satisfies Bicep's nullable-output type without the
+    // empty-string fallback (which would fail the GUID min-length check).
+    principalId: eventGridSystemTopic.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
 // ===================== //
 // Outputs               //
 // ===================== //
-// Outputs are wired in the Phase 1E unit (#17) once every module exists.
-// A single placeholder is emitted now so `azd env get-values` returns at least
-// the suffix needed by post-provision scripts.
 // Outputs are wired in the Phase 1E unit (#17) once every module exists.
 // A single placeholder is emitted now so `azd env get-values` returns at least
 // the suffix needed by post-provision scripts.
