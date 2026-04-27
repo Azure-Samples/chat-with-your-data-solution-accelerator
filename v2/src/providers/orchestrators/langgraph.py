@@ -17,7 +17,8 @@ node to `chat_stream` and pump `astream_events` from the graph.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Sequence, TypedDict
+import operator
+from typing import TYPE_CHECKING, Annotated, Any, AsyncIterator, Sequence, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -32,9 +33,17 @@ if TYPE_CHECKING:
 
 
 class _GraphState(TypedDict):
-    """Shape of the value flowing through the LangGraph state machine."""
+    """Shape of the value flowing through the LangGraph state machine.
 
-    messages: list[ChatMessage]
+    `messages` carries an append-only conversation log. The
+    `operator.add` reducer makes multi-node writes (e.g., `llm` and the
+    future `tools` node added in task #20) merge instead of overwrite.
+    Without this reducer, the second writer would silently clobber the
+    first -- a class of bug LangGraph specifically protects against
+    when you declare a channel reducer.
+    """
+
+    messages: Annotated[list[ChatMessage], operator.add]
 
 
 @registry.register("langgraph")
@@ -60,7 +69,9 @@ class LangGraphOrchestrator(OrchestratorBase):
 
     async def _llm_node(self, state: _GraphState) -> _GraphState:
         reply = await self._llm.chat(state["messages"])
-        return {"messages": [*state["messages"], reply]}
+        # Return only the delta -- the `operator.add` reducer on
+        # `messages` appends it to the existing log.
+        return {"messages": [reply]}
 
     # ------------------------------------------------------------------
     # OrchestratorBase implementation

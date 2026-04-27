@@ -99,11 +99,6 @@ def test_create_returns_langgraph_orchestrator_instance() -> None:
     assert isinstance(orch, LangGraphOrchestrator)
 
 
-def test_graph_is_compiled_once_per_instance() -> None:
-    orch = _make_orchestrator()
-    assert orch._graph is orch._graph  # stable reference
-
-
 # ---------------------------------------------------------------------------
 # run() behavior
 # ---------------------------------------------------------------------------
