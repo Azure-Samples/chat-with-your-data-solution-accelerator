@@ -7,7 +7,7 @@
 # platforms.
 #
 # azd guarantees:
-#   * cwd == repo root
+#   * cwd == the azure.yaml project directory (== v2/, not the repo root)
 #   * every Bicep output prefixed AZURE_* is exported as an env var
 #   * AZURE_ENV_* values from the typed-prompt block are also exported
 

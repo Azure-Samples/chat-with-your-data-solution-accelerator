@@ -88,16 +88,38 @@ def _enable_pgvector() -> None:
         sys.exit(3)
 
     print(f"post-provision: acquiring Entra token for {host}")
-    token = DefaultAzureCredential().get_token(POSTGRES_AAD_SCOPE).token
+    try:
+        token = DefaultAzureCredential().get_token(POSTGRES_AAD_SCOPE).token
+    except Exception as exc:  # noqa: BLE001 - surface auth failures verbatim
+        sys.stderr.write(
+            "post-provision: failed to acquire an Entra token for "
+            f"{POSTGRES_AAD_SCOPE}.\n  cause: {exc}\n  fix: run `az login` "
+            "as the deployer principal, or set AZURE_CLIENT_ID/"
+            "AZURE_CLIENT_SECRET/AZURE_TENANT_ID for a service principal.\n"
+        )
+        sys.exit(4)
 
     print(f"post-provision: connecting as {admin_user}@{host}/{POSTGRES_DB}")
-    conn = psycopg2.connect(
-        host=host,
-        user=admin_user,
-        dbname=POSTGRES_DB,
-        password=token,
-        sslmode="require",
-    )
+    try:
+        conn = psycopg2.connect(
+            host=host,
+            user=admin_user,
+            dbname=POSTGRES_DB,
+            password=token,
+            sslmode="require",
+        )
+    except Exception as exc:  # noqa: BLE001 - surface connect failures verbatim
+        sys.stderr.write(
+            f"post-provision: failed to connect to {admin_user}@{host}/"
+            f"{POSTGRES_DB}.\n  cause: {exc}\n  likely causes:\n"
+            "    * AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME does not match the "
+            "AAD admin configured on the server\n"
+            "    * client IP not allowed by the server firewall (public mode) "
+            "or private DNS not resolving (private mode)\n"
+            "    * the deployer's token does not have the "
+            "`https://ossrdbms-aad.database.windows.net/.default` scope\n"
+        )
+        sys.exit(5)
     try:
         conn.autocommit = True
         with conn.cursor() as cur:

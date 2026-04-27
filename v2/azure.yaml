@@ -89,11 +89,13 @@ parameters:
     default: false
 
 # ----------------------------------------------------------------------
-# Services land in later units once the Bicep modules expose the
-# required outputs:
-#   - services -> tasks #14 backend, #15 frontend, #16 functions
+# `services:` is intentionally omitted in Phase 1. azd schema rejects an
+# empty mapping, and we only have placeholder container images at this
+# point. The block lands in Phase 2 once the real Dockerfiles ship:
+#   - backend  -> dev_plan task #21
+#   - frontend -> dev_plan task #22
+#   - functions-> dev_plan task #25
 # ----------------------------------------------------------------------
-services: {}
 
 # ----------------------------------------------------------------------
 # Post-provision hook (task #19). Runs after every successful `azd

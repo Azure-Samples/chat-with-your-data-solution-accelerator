@@ -618,8 +618,8 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
 @description('Optional. Object ID of the Entra principal (user/group) to grant Postgres admin access to. Defaults to the deploying principal so the post-provision script can run schema-init via az AAD token.')
 param postgresAdminPrincipalId string = ''
 
-@description('Optional. Display name (UPN, group name, or app name) of the Entra principal above. Surfaced in pg_hba.')
-param postgresAdminPrincipalName string = 'cwyd-deployer'
+@description('Required when databaseType=postgresql. Display name (UPN, group name, or app name) of the Entra principal above. Surfaced in pg_hba and used by the post-provision script to log in over AAD. No default: a wrong value silently locks the deployer out of the new server.')
+param postgresAdminPrincipalName string = ''
 
 @allowed([
   'User'
@@ -803,7 +803,10 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
         // azure.yaml `services.backend`.
         image: 'mcr.microsoft.com/k8se/quickstart:latest'
         resources: {
-          cpu: enableScalability ? '1.0' : '0.5'
+          // AVM v0.22.1 declares `cpu: int | null`, but ACA accepts
+          // fractional CPU. `any()` bypasses the over-strict type so
+          // we can keep the cheaper 0.5-core default for non-scaled runs.
+          cpu: any(enableScalability ? '1.0' : '0.5')
           memory: enableScalability ? '2.0Gi' : '1.0Gi'
         }
         // App Insights env entry is included only when monitoring is on,

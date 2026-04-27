@@ -81,7 +81,7 @@
       "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_ID=${AZURE_PRINCIPAL_ID}}"
     },
     "postgresAdminPrincipalName": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_NAME=cwyd-deployer}"
+      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_NAME}"
     },
     "postgresAdminPrincipalType": {
       "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_TYPE=User}"
