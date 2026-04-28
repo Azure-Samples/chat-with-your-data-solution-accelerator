@@ -1,5 +1,6 @@
 """Pillar: Stable Core
 Phase:  1 (Infrastructure + Project Skeleton, task #19)
+Phase:  3 (Conversation + RAG, task #26 — search-index bootstrap)
 
 Post-provision hook executed by `azd up` / `azd provision` after every
 Bicep deployment. Idempotent and safe to re-run.
@@ -11,7 +12,10 @@ Responsibilities
    ``CREATE EXTENSION IF NOT EXISTS vector`` against the ``postgres``
    database. The server must already have ``vector`` allow-listed via
    the ``azure.extensions`` server parameter (handled in main.bicep).
-2. Print a compact summary of the AZURE_* outputs an operator most
+2. If ``AZURE_AI_SEARCH_ENDPOINT`` is set (cosmosdb mode): ensure the
+   chat index exists with the schema the ``azure_search`` provider
+   reads. Idempotent (no-op when the index already exists).
+3. Print a compact summary of the AZURE_* outputs an operator most
    commonly needs (endpoints, deployment names, identity IDs).
 
 Notes
@@ -23,12 +27,17 @@ Notes
 * Authentication uses ``DefaultAzureCredential`` so the script works
   unchanged for an interactive deployer, a service principal in CI, or
   a managed identity in Cloud Shell.
+* ``--dry-run`` skips every external SDK call (no postgres connect, no
+  Search index create) but still validates env vars and prints the
+  summary. Wire-trace before a real deploy.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
+from typing import Sequence
 
 REQUIRED_ENV = ("AZURE_DB_TYPE",)
 # Mirrors the @allowed() list on `databaseType` in v2/infra/main.bicep.
@@ -36,6 +45,16 @@ REQUIRED_ENV = ("AZURE_DB_TYPE",)
 ALLOWED_DB_TYPES = ("cosmosdb", "postgresql")
 POSTGRES_AAD_SCOPE = "https://ossrdbms-aad.database.windows.net/.default"
 POSTGRES_DB = "postgres"
+
+# Chat search index schema. Field names match those the
+# `azure_search` provider reads in v2/src/providers/search/azure_search.py
+# (id / content / title / url / content_vector). Re-naming here without
+# the corresponding provider change breaks Phase 3 RAG retrieval.
+DEFAULT_INDEX_NAME = "cwyd-index"
+DEFAULT_EMBEDDING_DIMENSIONS = 1536  # text-embedding-3-small / -ada-002
+VECTOR_PROFILE_NAME = "cwyd-vector-profile"
+HNSW_ALGORITHM_NAME = "cwyd-hnsw"
+SEMANTIC_CONFIG_NAME = "default"
 
 # Outputs surfaced in the summary block. Kept in display order; missing
 # entries are skipped silently (e.g. cosmos vars in postgresql mode).
@@ -162,7 +181,153 @@ def _print_summary() -> None:
     print("===================\n")
 
 
-def main() -> int:
+def _build_chat_index(name: str, dimensions: int):
+    """Build the SearchIndex object the chat path retrieves against.
+
+    Imported lazily so that `--dry-run` and postgresql-mode invocations
+    don't import the Search SDK.
+    """
+    from azure.search.documents.indexes.models import (
+        HnswAlgorithmConfiguration,
+        SearchableField,
+        SearchField,
+        SearchFieldDataType,
+        SearchIndex,
+        SemanticConfiguration,
+        SemanticField,
+        SemanticPrioritizedFields,
+        SemanticSearch,
+        SimpleField,
+        VectorSearch,
+        VectorSearchProfile,
+    )
+
+    fields = [
+        SimpleField(name="id", type=SearchFieldDataType.String, key=True),
+        SearchableField(name="content", type=SearchFieldDataType.String),
+        SearchableField(name="title", type=SearchFieldDataType.String),
+        SimpleField(name="url", type=SearchFieldDataType.String),
+        SearchField(
+            name="content_vector",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
+            searchable=True,
+            vector_search_dimensions=dimensions,
+            vector_search_profile_name=VECTOR_PROFILE_NAME,
+        ),
+    ]
+    vector_search = VectorSearch(
+        algorithms=[HnswAlgorithmConfiguration(name=HNSW_ALGORITHM_NAME)],
+        profiles=[
+            VectorSearchProfile(
+                name=VECTOR_PROFILE_NAME,
+                algorithm_configuration_name=HNSW_ALGORITHM_NAME,
+            )
+        ],
+    )
+    semantic_search = SemanticSearch(
+        configurations=[
+            SemanticConfiguration(
+                name=SEMANTIC_CONFIG_NAME,
+                prioritized_fields=SemanticPrioritizedFields(
+                    title_field=SemanticField(field_name="title"),
+                    content_fields=[SemanticField(field_name="content")],
+                ),
+            )
+        ]
+    )
+    return SearchIndex(
+        name=name,
+        fields=fields,
+        vector_search=vector_search,
+        semantic_search=semantic_search,
+    )
+
+
+def _ensure_search_index(*, dry_run: bool, client_factory=None) -> str:
+    """Create the chat index when missing; no-op when it exists.
+
+    Returns one of: ``"skipped"`` (no endpoint configured),
+    ``"dry-run"``, ``"exists"``, ``"created"``. ``client_factory`` is
+    a test seam — production passes ``None`` and the function builds a
+    ``SearchIndexClient`` from the deployer's ``DefaultAzureCredential``.
+    """
+    endpoint = os.environ.get("AZURE_AI_SEARCH_ENDPOINT", "").strip()
+    if not endpoint:
+        print("post-provision: AZURE_AI_SEARCH_ENDPOINT not set; skipping search index")
+        return "skipped"
+
+    index_name = (
+        os.environ.get("AZURE_AI_SEARCH_INDEX", "").strip() or DEFAULT_INDEX_NAME
+    )
+    dimensions_raw = os.environ.get("AZURE_OPENAI_EMBEDDING_DIMENSIONS", "").strip()
+    try:
+        dimensions = int(dimensions_raw) if dimensions_raw else DEFAULT_EMBEDDING_DIMENSIONS
+    except ValueError:
+        sys.stderr.write(
+            f"post-provision: AZURE_OPENAI_EMBEDDING_DIMENSIONS={dimensions_raw!r} "
+            "is not a valid integer.\n"
+        )
+        sys.exit(8)
+
+    if dry_run:
+        print(
+            f"post-provision: [dry-run] would ensure index {index_name!r} on {endpoint} "
+            f"with vector dimensions={dimensions}"
+        )
+        return "dry-run"
+
+    if client_factory is None:
+        try:
+            from azure.identity import DefaultAzureCredential
+            from azure.search.documents.indexes import SearchIndexClient
+        except ImportError as exc:  # pragma: no cover - environment guard
+            sys.stderr.write(
+                "post-provision: missing dependency for search index setup "
+                f"({exc.name}). Run `uv sync` first.\n"
+            )
+            sys.exit(3)
+
+        def client_factory():  # type: ignore[no-redef]
+            return SearchIndexClient(
+                endpoint=endpoint, credential=DefaultAzureCredential()
+            )
+
+    client = client_factory()
+    try:
+        # `get_index` raises ResourceNotFoundError when missing; any other
+        # exception (auth, network, malformed endpoint) propagates.
+        try:
+            client.get_index(index_name)
+            print(f"post-provision: search index {index_name!r} already exists")
+            return "exists"
+        except Exception as exc:  # noqa: BLE001 - normalized below
+            if exc.__class__.__name__ != "ResourceNotFoundError":
+                raise
+            index = _build_chat_index(index_name, dimensions)
+            client.create_index(index)
+            print(
+                f"post-provision: created search index {index_name!r} "
+                f"(vector dimensions={dimensions})"
+            )
+            return "created"
+    finally:
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="post-provision",
+        description="azd post-provision hook (idempotent).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate env + print summary without making any SDK calls.",
+    )
+    args = parser.parse_args(argv)
+
     for var in REQUIRED_ENV:
         _require(var)
 
@@ -177,9 +342,14 @@ def main() -> int:
         return 6
 
     if db_type == "postgresql":
-        _enable_pgvector()
+        if args.dry_run:
+            print("post-provision: [dry-run] would enable pgvector extension")
+        else:
+            _enable_pgvector()
     else:
         print(f"post-provision: AZURE_DB_TYPE={db_type!r}; skipping postgres setup")
+
+    _ensure_search_index(dry_run=args.dry_run)
 
     _print_summary()
     return 0

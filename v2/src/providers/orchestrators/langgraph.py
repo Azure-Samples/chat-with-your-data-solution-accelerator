@@ -14,6 +14,17 @@ wire in via task #20 once the cross-cutting tool helpers
 assistant reply as a single `answer` event on the SSE channel
 (ADR 0007). Token-level streaming is a follow-up: it'll move the LLM
 node to `chat_stream` and pump `astream_events` from the graph.
+
+Citation wiring (task #23, audit step 6d): when an optional
+``BaseSearch`` provider is supplied at construction time, ``run()``
+retrieves grounding documents for the latest user message, injects
+them as a numbered ``[doc1] / [doc2] / ...`` system message via
+``shared.tools.citations.format_sources_block``, and emits one
+``citation`` event per marker actually referenced in the assistant
+reply (filtered through ``filter_to_referenced``). When ``search`` is
+``None`` the orchestrator stays in pass-through mode -- no retrieval,
+no citation events -- so the existing single-answer contract is
+preserved for callers that haven't wired search through DI yet.
 """
 from __future__ import annotations
 
@@ -22,6 +33,11 @@ from typing import TYPE_CHECKING, Annotated, Any, AsyncIterator, Sequence, Typed
 
 from langgraph.graph import END, START, StateGraph
 
+from shared.tools.citations import (
+    build_citations,
+    filter_to_referenced,
+    format_sources_block,
+)
 from shared.types import ChatMessage, OrchestratorEvent
 
 from . import registry
@@ -29,6 +45,7 @@ from .base import OrchestratorBase
 
 if TYPE_CHECKING:
     from providers.llm.base import BaseLLMProvider
+    from providers.search.base import BaseSearch
     from shared.settings import AppSettings
 
 
@@ -52,8 +69,10 @@ class LangGraphOrchestrator(OrchestratorBase):
         self,
         settings: "AppSettings",
         llm: "BaseLLMProvider",
+        search: "BaseSearch | None" = None,
     ) -> None:
         super().__init__(settings, llm)
+        self._search = search
         self._graph = self._build_graph()
 
     # ------------------------------------------------------------------
@@ -77,15 +96,38 @@ class LangGraphOrchestrator(OrchestratorBase):
     # OrchestratorBase implementation
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _latest_user_text(messages: Sequence[ChatMessage]) -> str:
+        for msg in reversed(messages):
+            if msg.role == "user":
+                return msg.content
+        return ""
+
     async def run(
         self,
         messages: Sequence[ChatMessage],
         *,
         settings_override: dict[str, Any] | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
-        result: _GraphState = await self._graph.ainvoke(
-            {"messages": list(messages)}
-        )
+        # Optional retrieval: when a search provider is wired, prepend a
+        # system message containing the [docN] block before invoking the
+        # graph. Citation events are emitted only for markers actually
+        # referenced in the final answer.
+        graph_messages: list[ChatMessage] = list(messages)
+        citations = []
+        if self._search is not None:
+            query = self._latest_user_text(messages)
+            if query:
+                sources = await self._search.search(query)
+                if sources:
+                    citations = build_citations(sources)
+                    block = format_sources_block(sources)
+                    graph_messages = [
+                        ChatMessage(role="system", content=f"Sources:\n{block}"),
+                        *messages,
+                    ]
+
+        result: _GraphState = await self._graph.ainvoke({"messages": graph_messages})
         # The LLM node appends the assistant reply as the last message.
         # Empty input (no messages) would still produce a reply, but a
         # missing reply is a hard error -- emit a typed error event so
@@ -97,7 +139,11 @@ class LangGraphOrchestrator(OrchestratorBase):
                 content="LangGraph run produced no assistant reply.",
             )
             return
-        yield OrchestratorEvent(
-            channel="answer",
-            content=all_messages[-1].content,
-        )
+
+        answer = all_messages[-1].content
+        for citation in filter_to_referenced(answer, citations):
+            yield OrchestratorEvent(
+                channel="citation",
+                metadata=citation.model_dump(),
+            )
+        yield OrchestratorEvent(channel="answer", content=answer)

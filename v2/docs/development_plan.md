@@ -14,7 +14,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 |---|---|---|---|
 | 1 | Infrastructure + Project Skeleton | ⚠️ open debt | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Frontend stub ✅ (Vite+React 19+TS, no UI lib, `/api/health` ping, 3/3 vitest). Backend stub ✅ (subsumed by Phase 2 #13). **Open debt: #7 Functions stub, #8 post_provision.sh — see §0.1.** |
 | 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
-| 3 | Conversation + RAG (Core Chat) | ⏳ in progress | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 6/6), #19 ✅ (Agent Framework, 9/9), #20 ✅ (tools: content_safety 10/10 + text_processing 9/9 + post_prompt 14/14 + qa 13/13), #21 ✅ (search domain + AzureSearch, 13/13). Tasks #22–#26 ☰ not started. 135/135 backend tests + 20/20 frontend vitest pass. **See §4 Phase 3 sub-plan for execution order.** |
+| 3 | Conversation + RAG (Core Chat) | ✅ BE done | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 11/11 — incl. citation wiring), #19 ✅ (Agent Framework, 9/9), #20 ✅ (tools: content_safety 10/10 + text_processing 9/9 + post_prompt 14/14 + qa 13/13), #21 ✅ (search domain + AzureSearch, 13/13), #22a ✅ (router, 6/6), #22b ✅ (chat pipeline, 6/6), #23 ✅ (citations, 10/10), #25 ✅ (reasoning, 14/14), #26 ✅ (indexing scripts, 10/10). 179/179 backend tests. **#24 (FE SSE wiring) owned by frontend workstream.** |
 | 4 | Chat History + Both Databases | ☐ | |
 | 5 | Admin + Frontend Merge | ☐ | |
 | 6 | RAG Indexing Pipeline (Split Functions) | ☐ | |
@@ -30,13 +30,22 @@ See §10 for the file-level inventory of work already shipped.
 
 Debt items carried over from earlier phases. Appended-only during normal work; **cleared in batch during the originating phase's end-of-phase audit, or the next available audit turn if discovered after the originating phase closed**.
 
+**Workstream split (decision 2026-04-28)**: backend debt is cleared in backend phase audits; **frontend debt is owned by the dedicated frontend workstream and is out of scope for backend phase audits.** Frontend audits run on their own cadence and are tracked in §0.2 below.
+
+### Backend debt
+
 | ID | Origin Phase | Item | Files | Cleared in | Status |
 |---|---|---|---|---|---|
-| 7 | 1 | Functions stub: minimal `function_app.py` + `Dockerfile.functions` (no blueprints — those are Phase 6) | `v2/src/functions/`, `v2/docker/` | Phase 3 audit | ☰ open |
-| 8 | 1 | `post_provision.sh` POSIX wrapper (env-var validation parity with `.ps1`, `--dry-run`, exec's `python scripts/post_provision.py`) | `v2/scripts/` | Phase 3 audit | ☰ open |
-| DV1 | 1 | Re-verify `docker compose -f v2/docker/docker-compose.dev.yml build frontend` (currently blocked: Docker Desktop daemon down on dev machine) | n/a | Whenever Docker Desktop available; latest by Phase 4 audit | ⏸ blocked |
+| 7 | 1 | Functions stub: minimal `function_app.py` + `host.json` + `pyproject.toml` (no blueprints — those are Phase 6) | `v2/src/functions/` | Phase 3 audit (pre-pulled 2026-04-28) | ✅ 2026-04-28 (4/4 tests) |
+| 8 | 1 | `post_provision.sh` POSIX wrapper (env-var validation parity with `.ps1`, exec's `python scripts/post_provision.py`) | `v2/scripts/post-provision.sh` | n/a — shipped during Phase 1, ledger entry only | ✅ 2026-04-28 (verified existing) |
 
-Legend: ☰ open · ⏸ blocked · ✅ cleared (date)
+### 0.2 Frontend debt (separate workstream)
+
+| ID | Origin Phase | Item | Files | Cleared in | Status |
+|---|---|---|---|---|---|
+| DV1 | 1 | Re-verify `docker compose -f v2/docker/docker-compose.dev.yml build frontend` (currently blocked: Docker Desktop daemon down on dev machine) | n/a | Frontend workstream audit | ⏸ blocked — FE workstream owns |
+
+Legend: ☐ open · ⏸ blocked · ✅ cleared (date)
 
 ---
 
@@ -507,11 +516,11 @@ Orchestrators and search providers follow the registry recipe in §3.5. Caller c
 | 19 | Azure AI Agent Framework orchestrator; `@register("agent_framework")` | `src/providers/orchestrators/agent_framework.py` | ✅ (8/8) — DI-injected `AgentsClient` + `agent_id`; production wiring in task #22 |
 | 20 | Cross-cutting tool helpers (QA, text processing, content safety, post-prompt). Tools are NOT a registry domain — they are imported directly. | `src/shared/tools/*` | ✅ content_safety (10/10) + text_processing (9/9) + post_prompt (14/14) + qa (13/13). All four DI'd, async, no SDK leakage. |
 | 21 | Search domain: `BaseSearch` ABC + `azure_search` provider (async); `@register("azure_search")` | `src/providers/search/{base,azure_search,__init__}.py` | ✅ (13/13) — hybrid (text+vector), semantic re-ranking, OData filter pass-through. Citation/SearchResult types added to `shared/types.py`. |
-| 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom); composes `orchestrators.create(...)` | `src/backend/routers/conversation.py`, `src/pipelines/chat.py` | ☐ |
-| 23 | Citation extraction and formatting | `src/shared/types.py` (Citation), tool helpers | ☐ |
-| 24 | Frontend: chat connected to `/api/conversation`, SSE stream consumption (channels: `reasoning`, `tool`, `answer`, `citation`, `error`) | `src/frontend/src/pages/chat/` | ☐ |
-| 25 | Reasoning model support via Foundry IQ (o-series routing in `foundry_iq.reason()`) | `src/providers/llm/foundry_iq.py` | ☐ |
-| 26 | Scripts: create search index + index sample documents | `scripts/post_provision.py` | ☐ |
+| 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom); composes `orchestrators.create(...)` | `src/backend/routers/conversation.py`, `src/pipelines/chat.py` | ✅ (12/12) — router 6/6, pipeline 6/6, registry dispatch + pipeline delegation enforced |
+| 23 | Citation extraction and formatting | `src/shared/types.py` (Citation), tool helpers | ✅ (10/10) — `shared/tools/citations.py`; wired into LangGraph orchestrator |
+| 24 | Frontend: chat connected to `/api/conversation`, SSE stream consumption (channels: `reasoning`, `tool`, `answer`, `citation`, `error`) | `src/frontend/src/pages/chat/` | ⏸ FE workstream |
+| 25 | Reasoning model support via Foundry IQ (o-series routing in `foundry_iq.reason()`) | `src/providers/llm/foundry_iq.py` | ✅ (14/14) |
+| 26 | Scripts: create search index + index sample documents | `scripts/post_provision.py` | ✅ (10/10) — idempotent `_ensure_search_index` (skipped/dry-run/exists/created), `--dry-run` CLI flag, fail-fast on bad embedding dimensions |
 
 **Phase 3 sub-plan (execution order — Hard Rule #12)**
 
@@ -519,12 +528,12 @@ Tasks below execute in this order; `audit` is the final turn(s) and clears all o
 
 | Order | Task # | Description | Unit count | Status |
 |---|---|---|---|---|
-| 1 | 22a | Conversation router (`POST /api/conversation`, JSON + SSE) | 1 | ☐ |
-| 2 | 22b | Chat pipeline (`pipelines/chat.py` — pure async generator) | 1 | ☐ |
-| 3 | 23 | Citation extraction + formatting | 1 | ☐ |
-| 4 | 25 | Reasoning model routing in `foundry_iq.reason()` | 1 | ☐ |
-| 5 | 26 | Indexing scripts (extend `post_provision.py`, idempotent, `--dry-run`) | 1 | ☐ |
-| 6 | audit | Greppable gates · clear debt #7 + #8 · ship #24 FE SSE wiring · re-verify DV1 if Docker up · update §0/§4/§0.1 · run full test suite | 3-4 | ☐ |
+| 1 | 22a | Conversation router (`POST /api/conversation`, JSON + SSE) | 1 | ✅ |
+| 2 | 22b | Chat pipeline (`pipelines/chat.py` — pure async generator) | 1 | ✅ |
+| 3 | 23 | Citation extraction + formatting | 1 | ✅ |
+| 4 | 25 | Reasoning model routing in `foundry_iq.reason()` | 1 | ✅ |
+| 5 | 26 | Indexing scripts (extend `post_provision.py`, idempotent, `--dry-run`) | 1 | ✅ |
+| 6 | audit | Greppable gates · clear debt #7 + #8 · ship #24 FE SSE wiring · re-verify DV1 if Docker up · update §0/§4/§0.1 · run full test suite | 3-4 | ✅ BE side (6a-6d, 6f) — 6e (#24 FE SSE) and DV1 owned by FE workstream |
 
 **`azd up` result**: Working chat experience — user asks a question, gets a streamed answer with citations from sample documents.
 

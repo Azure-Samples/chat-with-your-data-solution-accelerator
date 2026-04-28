@@ -158,18 +158,47 @@ class FoundryIQ(BaseLLMProvider):
         *,
         deployment: str | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
-        # Reasoning-model integration (o-series) is task #25 in
-        # v2/docs/development_plan.md and ships in Phase 7. The ABC
-        # signature is locked now -- see shared.types.OrchestratorEvent
-        # -- so callers and orchestrators can wire against it. Until
-        # task #25 lands the implementation fails loudly.
-        raise NotImplementedError(
-            "FoundryIQ.reason() is reserved for task #25 (Phase 7 -- "
-            "o-series reasoning model routing)."
-        )
-        # Make this an async generator (PEP 525) so static type
-        # checkers see the AsyncIterator return type. Unreachable.
-        yield  # pragma: no cover  # type: ignore[unreachable]
+        """Stream from a reasoning (o-series) deployment.
+
+        Yields ``reasoning``-channel events for chain-of-thought tokens
+        and ``answer``-channel events for the final answer tokens
+        (ADR 0007). Implementation reads ``reasoning_content`` and
+        ``content`` deltas from the streamed Chat Completions response;
+        the OpenAI-compatible client returned by Foundry IQ surfaces
+        both fields for o-series deployments.
+
+        ``temperature`` / ``max_tokens`` are intentionally not exposed:
+        o-series models reject the former and prefer
+        ``max_completion_tokens`` (left to the deployment's configured
+        default for now -- task #25 wires per-request knobs once the
+        FE surfaces them).
+        """
+        oai = self._get_project_client().get_openai_client()
+        kwargs: dict[str, Any] = {
+            "model": self._resolve_deployment(deployment, kind="reason"),
+            "messages": self._to_openai_messages(messages),
+            "stream": True,
+        }
+        stream = await oai.chat.completions.create(**kwargs)
+        try:
+            async for event in stream:
+                if not event.choices:
+                    continue
+                delta = event.choices[0].delta
+                reasoning = getattr(delta, "reasoning_content", None) or ""
+                if reasoning:
+                    yield OrchestratorEvent(
+                        channel="reasoning", content=reasoning
+                    )
+                answer = getattr(delta, "content", None) or ""
+                if answer:
+                    yield OrchestratorEvent(channel="answer", content=answer)
+        except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
+            yield OrchestratorEvent(
+                channel="error",
+                content=str(exc),
+                metadata={"code": "reason_stream_failed"},
+            )
 
     async def aclose(self) -> None:
         # We only own the client when we constructed it ourselves.
