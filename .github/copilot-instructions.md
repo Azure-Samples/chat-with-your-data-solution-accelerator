@@ -50,6 +50,7 @@ Specifically:
     - **Python** — `snake_case` for functions, methods, variables, modules; `PascalCase` for classes; `UPPER_SNAKE_CASE` for module-level constants; `_leading_underscore` for private. Match PEP 8 exactly.
     - **TypeScript** — `camelCase` for variables, functions, methods; `PascalCase` for types, interfaces, classes, React components; `UPPER_SNAKE_CASE` for module-level constants; no `I`-prefix on interfaces. File names: `camelCase.ts` for utilities, `PascalCase.tsx` for components.
     - **Cross-cutting** — environment variables are `UPPER_SNAKE_CASE` and prefixed (`AZURE_*`, `VITE_*`, `CWYD_*`). Azure resource names follow `<type-abbrev>-<solutionSuffix>` per `v2/infra/abbreviations.json`. Names of public APIs (HTTP routes, OpenAPI operationIds, SSE event types, OrchestratorEvent fields) require user confirmation to rename once shipped.
+12. **No mid-phase back-fills.** Debt items discovered while working on Phase N are appended to [v2/docs/development_plan.md](../v2/docs/development_plan.md) §0.1 Debt Queue, **not implemented inline**. The queue is cleared in a single dedicated audit turn at the end of each phase. Within a phase, tasks execute in numeric order from §4 — no "and while we're here" additions, no out-of-order pulls from later phases. The only exception: a current task literally cannot proceed without the missed item; in that case a single back-fill turn is allowed and must be annotated in §0.1 with reason.
 
 ## Workflow contract
 

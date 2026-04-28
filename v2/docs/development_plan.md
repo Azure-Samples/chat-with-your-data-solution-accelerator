@@ -2,7 +2,7 @@
 
 **Repo**: [Azure-Samples/chat-with-your-data-solution-accelerator](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator)
 **Branch**: `dev-v2`
-**Last updated**: April 27, 2026
+**Last updated**: April 28, 2026
 
 ---
 
@@ -12,15 +12,31 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 
 | Phase | Title | Status | Notes |
 |---|---|---|---|
-| 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Backend / frontend / functions stubs ☐. |
+| 1 | Infrastructure + Project Skeleton | ⚠️ open debt | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Frontend stub ✅ (Vite+React 19+TS, no UI lib, `/api/health` ping, 3/3 vitest). Backend stub ✅ (subsumed by Phase 2 #13). **Open debt: #7 Functions stub, #8 post_provision.sh — see §0.1.** |
 | 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
-| 3 | Conversation + RAG (Core Chat) | ⏳ in progress | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 6/6), #19 ✅ (Agent Framework, 9/9), #20a ✅ (content_safety, 10/10), #21 ✅ (search domain + AzureSearch, 13/13). Tasks #20b–d, #22–#26 ☰ not started. 99/99 tests pass overall. |
+| 3 | Conversation + RAG (Core Chat) | ⏳ in progress | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 6/6), #19 ✅ (Agent Framework, 9/9), #20 ✅ (tools: content_safety 10/10 + text_processing 9/9 + post_prompt 14/14 + qa 13/13), #21 ✅ (search domain + AzureSearch, 13/13). Tasks #22–#26 ☰ not started. 135/135 backend tests + 20/20 frontend vitest pass. **See §4 Phase 3 sub-plan for execution order.** |
 | 4 | Chat History + Both Databases | ☐ | |
 | 5 | Admin + Frontend Merge | ☐ | |
 | 6 | RAG Indexing Pipeline (Split Functions) | ☐ | |
 | 7 | Testing + Documentation | ☐ | Rolling — each phase ends with `azd up` green and updates this file. |
 
 See §10 for the file-level inventory of work already shipped.
+
+> **Phase closure discipline** (Hard Rule #12 in [copilot-instructions.md](../../.github/copilot-instructions.md)): debt items discovered while working on Phase N are appended to §0.1 below — **never implemented inline**. The queue is cleared in a single dedicated audit turn at the end of the phase. Within a phase, tasks execute in numeric order from §4; no out-of-order pulls from later phases.
+
+---
+
+## 0.1 Debt Queue
+
+Debt items carried over from earlier phases. Appended-only during normal work; **cleared in batch during the originating phase's end-of-phase audit, or the next available audit turn if discovered after the originating phase closed**.
+
+| ID | Origin Phase | Item | Files | Cleared in | Status |
+|---|---|---|---|---|---|
+| 7 | 1 | Functions stub: minimal `function_app.py` + `Dockerfile.functions` (no blueprints — those are Phase 6) | `v2/src/functions/`, `v2/docker/` | Phase 3 audit | ☰ open |
+| 8 | 1 | `post_provision.sh` POSIX wrapper (env-var validation parity with `.ps1`, `--dry-run`, exec's `python scripts/post_provision.py`) | `v2/scripts/` | Phase 3 audit | ☰ open |
+| DV1 | 1 | Re-verify `docker compose -f v2/docker/docker-compose.dev.yml build frontend` (currently blocked: Docker Desktop daemon down on dev machine) | n/a | Whenever Docker Desktop available; latest by Phase 4 audit | ⏸ blocked |
+
+Legend: ☰ open · ⏸ blocked · ✅ cleared (date)
 
 ---
 
@@ -451,7 +467,7 @@ From the infra audit (8.5/10, AVM coverage ≈95%); landed alongside the next Ph
 | 3 | Foundry IQ resource (AI Services account, Foundry Project, model deployments) | `infra/modules/ai-project.bicep`, `infra/modules/ai-project-search-connection.bicep` | ✅ |
 | 4 | `azure.yaml` with v2 service paths (backend, frontend, functions) | `azure.yaml` | ✅ |
 | 5 | Stub FastAPI backend — `GET /api/health` returns 200 | `src/backend/app.py`, `src/backend/routers/health.py` | ✅ (subsumed by task #13) |
-| 6 | Stub React frontend — placeholder page with "CWYD v2" | `src/frontend/src/` | ☐ |
+| 6 | Stub React frontend — placeholder page with "CWYD v2" | `src/frontend/src/` | ✅ (3/3 vitest) — Vite+React 19+TS scaffold, no UI library, no router, pings `/api/health` via `VITE_BACKEND_URL`. *Back-filled 2026-04-28 during Phase 3 deep-clean.* |
 | 7 | Dockerfiles for backend + frontend | `docker/` | ⏳ partial |
 | 8 | Post-deploy script — loads sample data + default config to Blob Storage | `scripts/post_provision.{sh,ps1,py}` | ⏳ partial |
 | 9 | Sample documents for bootstrap | `data/` (root) | ✅ |
@@ -473,7 +489,7 @@ All provider work in this phase follows the registry recipe in §3.5.
 | 12 | LLM provider (registry domain): `BaseLLMProvider` ABC + `foundry_iq` (AIProjectClient-backed; methods `chat`, `chat_stream`, `embed`, `reason`) | `src/providers/llm/{base,foundry_iq,__init__}.py` | ✅ (11/11) — `reason()` stubbed, see task #25 |
 | 13 | Health router with dependency checks (DB, search, Foundry IQ connectivity) — reads providers via DI | `src/backend/routers/health.py` | ✅ (8/8) — shallow probes; deep liveness deferred to Phase 6 |
 | 14 | Dependency injection wiring (settings + credentials + llm registries → routers) | `src/backend/dependencies.py` | ✅ (covered by health router tests) |
-| 15 | Frontend: basic chat UI shell (input box, message list, layout) | `src/frontend/src/pages/chat/` | ☐ |
+| 15 | Frontend: basic chat UI shell (input box, message list, layout) | `src/frontend/src/pages/chat/` | ✅ ChatContext + MessageList + MessageInput + ChatPage shipped, mounted from App.tsx (20/20 vitest). *Back-filled 2026-04-28 during Phase 3 deep-clean.* |
 | 16 | Bicep outputs wired to backend env vars (no Key Vault) | `infra/main.bicep` outputs section | ✅ |
 
 **`azd up` result**: Configured backend with detailed health check, frontend shell visible, all Azure service connections validated.
@@ -489,13 +505,26 @@ Orchestrators and search providers follow the registry recipe in §3.5. Caller c
 | 17 | Orchestrator domain registry + `OrchestratorBase` ABC (async `run()` yielding `OrchestratorEvent`) | `src/providers/orchestrators/{base,__init__}.py` | ✅ (6/6) |
 | 18 | LangGraph orchestrator (`StateGraph` + `ToolNode`); `@register("langgraph")` | `src/providers/orchestrators/langgraph.py` | ✅ (7/7) — single LLM node today; `ToolNode` wires in via task #20 |
 | 19 | Azure AI Agent Framework orchestrator; `@register("agent_framework")` | `src/providers/orchestrators/agent_framework.py` | ✅ (8/8) — DI-injected `AgentsClient` + `agent_id`; production wiring in task #22 |
-| 20 | Cross-cutting tool helpers (QA, text processing, content safety, post-prompt). Tools are NOT a registry domain — they are imported directly. | `src/shared/tools/*` | ⏳ partial: content_safety ✅ (10/10); QA / text_processing / post_prompt ☰ |
+| 20 | Cross-cutting tool helpers (QA, text processing, content safety, post-prompt). Tools are NOT a registry domain — they are imported directly. | `src/shared/tools/*` | ✅ content_safety (10/10) + text_processing (9/9) + post_prompt (14/14) + qa (13/13). All four DI'd, async, no SDK leakage. |
 | 21 | Search domain: `BaseSearch` ABC + `azure_search` provider (async); `@register("azure_search")` | `src/providers/search/{base,azure_search,__init__}.py` | ✅ (13/13) — hybrid (text+vector), semantic re-ranking, OData filter pass-through. Citation/SearchResult types added to `shared/types.py`. |
 | 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom); composes `orchestrators.create(...)` | `src/backend/routers/conversation.py`, `src/pipelines/chat.py` | ☐ |
 | 23 | Citation extraction and formatting | `src/shared/types.py` (Citation), tool helpers | ☐ |
 | 24 | Frontend: chat connected to `/api/conversation`, SSE stream consumption (channels: `reasoning`, `tool`, `answer`, `citation`, `error`) | `src/frontend/src/pages/chat/` | ☐ |
 | 25 | Reasoning model support via Foundry IQ (o-series routing in `foundry_iq.reason()`) | `src/providers/llm/foundry_iq.py` | ☐ |
 | 26 | Scripts: create search index + index sample documents | `scripts/post_provision.py` | ☐ |
+
+**Phase 3 sub-plan (execution order — Hard Rule #12)**
+
+Tasks below execute in this order; `audit` is the final turn(s) and clears all open §0.1 Debt Queue items targeted at this phase.
+
+| Order | Task # | Description | Unit count | Status |
+|---|---|---|---|---|
+| 1 | 22a | Conversation router (`POST /api/conversation`, JSON + SSE) | 1 | ☐ |
+| 2 | 22b | Chat pipeline (`pipelines/chat.py` — pure async generator) | 1 | ☐ |
+| 3 | 23 | Citation extraction + formatting | 1 | ☐ |
+| 4 | 25 | Reasoning model routing in `foundry_iq.reason()` | 1 | ☐ |
+| 5 | 26 | Indexing scripts (extend `post_provision.py`, idempotent, `--dry-run`) | 1 | ☐ |
+| 6 | audit | Greppable gates · clear debt #7 + #8 · ship #24 FE SSE wiring · re-verify DV1 if Docker up · update §0/§4/§0.1 · run full test suite | 3-4 | ☐ |
 
 **`azd up` result**: Working chat experience — user asks a question, gets a streamed answer with citations from sample documents.
 
