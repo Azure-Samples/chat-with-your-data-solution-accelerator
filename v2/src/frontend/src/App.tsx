@@ -7,7 +7,7 @@
  * the chat page from dev_plan #15. SSE wiring lands in #24; routing
  * lands with the admin merge in #36.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { ChatPage } from "./pages/chat/ChatPage";
 
 type HealthState =

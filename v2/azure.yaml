@@ -89,13 +89,39 @@ parameters:
     default: false
 
 # ----------------------------------------------------------------------
-# `services:` is intentionally omitted in Phase 1. azd schema rejects an
-# empty mapping, and we only have placeholder container images at this
-# point. The block lands in Phase 2 once the real Dockerfiles ship:
-#   - backend  -> dev_plan task #21
-#   - frontend -> dev_plan task #22
-#   - functions-> dev_plan task #25
+# Services — bound to Bicep resources by the `azd-service-name` tag in
+# v2/infra/main.bicep:
+#   - backend  → Container App  (tag 'backend',  L1120)
+#   - frontend → App Service    (tag 'frontend', L1240)
+#   - function → Function App   (tag 'function', L1366)
+# Each service uses its own Dockerfile under v2/docker/. `azd deploy`
+# builds the image, pushes to the Bicep-deployed ACR, and updates the
+# target resource. Debt #Q4 (Phase 3.5 QA remediation) — closes the
+# blocker that `azure.yaml` `services:` was empty.
 # ----------------------------------------------------------------------
+services:
+  backend:
+    project: ./src/backend
+    language: py
+    host: containerapp
+    docker:
+      path: ../../docker/Dockerfile.backend
+      context: ../..
+  frontend:
+    project: ./src/frontend
+    language: js
+    host: appservice
+    docker:
+      path: ../../docker/Dockerfile.frontend
+      context: ../..
+      target: prod
+  function:
+    project: ./src/functions
+    language: py
+    host: function
+    docker:
+      path: ../../docker/Dockerfile.functions
+      context: ../..
 
 # ----------------------------------------------------------------------
 # Post-provision hook (task #19). Runs after every successful `azd

@@ -38,6 +38,11 @@ Debt items carried over from earlier phases. Appended-only during normal work; *
 |---|---|---|---|---|---|
 | 7 | 1 | Functions stub: minimal `function_app.py` + `host.json` + `pyproject.toml` (no blueprints — those are Phase 6) | `v2/src/functions/` | Phase 3 audit (pre-pulled 2026-04-28) | ✅ 2026-04-28 (4/4 tests) |
 | 8 | 1 | `post_provision.sh` POSIX wrapper (env-var validation parity with `.ps1`, exec's `python scripts/post_provision.py`) | `v2/scripts/post-provision.sh` | n/a — shipped during Phase 1, ledger entry only | ✅ 2026-04-28 (verified existing) |
+| Q2 | 3.5 | Frontend prod build TS error: `App.tsx` used global `JSX.Element` (dropped from React 19 `@types/react`); imported `type JSX` from `react` | `v2/src/frontend/src/App.tsx` | Phase 3.5 QA remediation | ✅ 2026-04-28 (`npm run build` exit 0; vitest 20/20) |
+| Q3 | 3.5 | Frontend prod stage missing `frontend_app.py`; created tiny FastAPI + StaticFiles(html=True) ASGI app with `DIST_DIR` env override | `v2/src/frontend/frontend_app.py`, `v2/tests/frontend/test_frontend_app.py` | Phase 3.5 QA remediation | ✅ 2026-04-28 (2/2 new tests; 181/181 total) |
+| Q4 | 3.5 | `azure.yaml` `services:` block was empty (blocked `azd deploy`); wired `backend` (containerapp), `frontend` (appservice), `function` (function), each pointing at its Dockerfile and matching the `azd-service-name` tags in `infra/main.bicep` | `v2/azure.yaml` | Phase 3.5 QA remediation | ✅ 2026-04-28 (YAML parse OK, 3 services; full `azd package` deferred until env provisioned) |
+| Q5 | 3.5 | Compose backend used `AZURE_DB_ENDPOINT` (not in `AppSettings`) + required `.env.dev` blocked clean-checkout `compose config`; renamed to `AZURE_POSTGRES_ENDPOINT`, added `AZURE_INDEX_STORE=pgvector` (validator requirement), and marked `env_file` as `required: false` (compose v2.24+) for both backend + functions services | `v2/docker/docker-compose.dev.yml` | Phase 3.5 QA remediation | ✅ 2026-04-28 (`compose config` exit 0 from clean checkout, both backend-only and frontend-only profiles) |
+| Q7 | 3.5 | CI entrypoint masked pytest + frontend test failures with `\|\| true` so the validation image always reported green; removed the masks so `failures` accumulator + non-zero exit actually trigger | `v2/docker/ci-entrypoint.sh` | Phase 3.5 QA remediation | ✅ 2026-04-28 |
 
 ### 0.2 Frontend debt (separate workstream)
 
@@ -474,7 +479,7 @@ From the infra audit (8.5/10, AVM coverage ≈95%); landed alongside the next Ph
 | 1 | Clean Bicep infra with `databaseType` parameter (Cosmos DB or PostgreSQL); follows §3.6 uniform output contract | `infra/main.bicep`, `infra/modules/` | ✅ |
 | 2 | User-assigned managed identity + RBAC roles (no Key Vault secrets) | `infra/main.bicep` (UAMI inline + role assignments per AVM) | ✅ |
 | 3 | Foundry IQ resource (AI Services account, Foundry Project, model deployments) | `infra/modules/ai-project.bicep`, `infra/modules/ai-project-search-connection.bicep` | ✅ |
-| 4 | `azure.yaml` with v2 service paths (backend, frontend, functions) | `azure.yaml` | ✅ |
+| 4 | `azure.yaml` with v2 service paths (backend, frontend, functions) | `azure.yaml` | ✅ — infra+params+hooks shipped Phase 1; `services:` block deferred and wired in Phase 3.5 audit (debt #Q4, 2026-04-28) |
 | 5 | Stub FastAPI backend — `GET /api/health` returns 200 | `src/backend/app.py`, `src/backend/routers/health.py` | ✅ (subsumed by task #13) |
 | 6 | Stub React frontend — placeholder page with "CWYD v2" | `src/frontend/src/` | ✅ (3/3 vitest) — Vite+React 19+TS scaffold, no UI library, no router, pings `/api/health` via `VITE_BACKEND_URL`. *Back-filled 2026-04-28 during Phase 3 deep-clean.* |
 | 7 | Dockerfiles for backend + frontend | `docker/` | ⏳ partial |

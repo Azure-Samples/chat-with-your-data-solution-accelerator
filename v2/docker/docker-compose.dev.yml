@@ -22,11 +22,18 @@ services:
       dockerfile: v2/docker/Dockerfile.backend
     image: cwyd-v2-backend:dev
     container_name: cwyd-v2-backend
+    # `.env.dev` is operator-supplied (copy from .env.dev.example). Marked
+    # `required: false` (compose v2.24+) so a clean checkout can boot the
+    # backend-only profile without first creating the file. Debt #Q5.
     env_file:
-      - .env.dev
+      - path: .env.dev
+        required: false
     environment:
       AZURE_DB_TYPE: postgresql
-      AZURE_DB_ENDPOINT: postgresql://cwyd:cwyd@postgres:5432/cwyd
+      # Match shared/settings.py: AzurePostgresSettings reads AZURE_POSTGRES_ENDPOINT.
+      AZURE_POSTGRES_ENDPOINT: postgresql://cwyd:cwyd@postgres:5432/cwyd?sslmode=disable
+      # AppSettings validator: AZURE_DB_TYPE=postgresql requires AZURE_INDEX_STORE=pgvector.
+      AZURE_INDEX_STORE: pgvector
       AZURE_STORAGE_BLOB_URL: http://azurite:10000/devstoreaccount1
       AZURE_STORAGE_QUEUE_URL: http://azurite:10001/devstoreaccount1
       # Telemetry: when APPLICATIONINSIGHTS_CONNECTION_STRING is set in .env.dev,
@@ -71,8 +78,10 @@ services:
       dockerfile: v2/docker/Dockerfile.functions
     image: cwyd-v2-functions:dev
     container_name: cwyd-v2-functions
+    # See backend service note on `required: false` (debt #Q5).
     env_file:
-      - .env.dev
+      - path: .env.dev
+        required: false
     environment:
       AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
       FUNCTIONS_WORKER_RUNTIME: python
