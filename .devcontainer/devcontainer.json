@@ -5,7 +5,10 @@
 	},
 	"features": {
 		"ghcr.io/devcontainers/features/azure-cli:1": {
-			"extensions": "ml"
+			"extensions": "ml",
+			"installBicep": true,
+            "version": "latest",
+            "bicepVersion": "latest"
 		},
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
 		"ghcr.io/devcontainers/features/node:1": {},
