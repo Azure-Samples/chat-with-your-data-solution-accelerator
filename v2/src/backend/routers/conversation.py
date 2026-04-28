@@ -34,8 +34,8 @@ from fastapi.responses import StreamingResponse
 
 from backend.dependencies import LLMProviderDep, SearchProviderDep, SettingsDep
 from backend.models.conversation import ConversationRequest, ConversationResponse
-from pipelines.chat import run_chat
-from providers import orchestrators
+from shared.pipelines.chat import run_chat
+from shared.providers import orchestrators
 from shared.types import Citation, OrchestratorEvent
 
 logger = logging.getLogger(__name__)

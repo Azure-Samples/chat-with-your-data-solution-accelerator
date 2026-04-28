@@ -31,7 +31,7 @@ from pydantic import BaseModel
 from shared.types import ChatMessage, SearchResult
 
 if TYPE_CHECKING:
-    from providers.llm.base import BaseLLMProvider
+    from shared.providers.llm.base import BaseLLMProvider
 
 
 # Default validation prompt -- asks the model for a single yes/no token

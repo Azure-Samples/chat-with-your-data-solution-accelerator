@@ -26,7 +26,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, AsyncIterator, Sequence
 
 if TYPE_CHECKING:
-    from providers.llm.base import BaseLLMProvider
+    from shared.providers.llm.base import BaseLLMProvider
     from shared.settings import AppSettings
     from shared.types import ChatMessage, OrchestratorEvent
 

@@ -11,9 +11,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from providers import orchestrators
-from providers.llm.base import BaseLLMProvider
-from providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
+from shared.providers import orchestrators
+from shared.providers.llm.base import BaseLLMProvider
+from shared.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
 from shared.settings import AppSettings
 from shared.types import ChatMessage
 

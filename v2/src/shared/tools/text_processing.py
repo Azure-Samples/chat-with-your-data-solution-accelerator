@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 from shared.types import ChatMessage
 
 if TYPE_CHECKING:
-    from providers.llm.base import BaseLLMProvider
+    from shared.providers.llm.base import BaseLLMProvider
 
 
 DEFAULT_SYSTEM_PROMPT = (

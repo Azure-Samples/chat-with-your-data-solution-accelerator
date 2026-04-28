@@ -13,7 +13,7 @@ Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in 
 | Phase | Title | Status | Notes |
 |---|---|---|---|
 | 1 | Infrastructure + Project Skeleton | ✅ done | Bicep ✅ (AVM-first, UAMI+RBAC, no Key Vault, two-mode `databaseType`, P1 polish shipped). Frontend stub ✅ (Vite+React 19+TS, no UI lib, `/api/health` ping, 3/3 vitest). Backend stub ✅ (subsumed by Phase 2 #13). Functions stub ✅ (#7 cleared 2026-04-28, 4/4). `post_provision.sh` ✅ (#8 verified 2026-04-28). |
-| 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
+| 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` ✅ (incl. `OrchestratorEvent`). `shared/providers/{credentials,llm}/` ✅ (20/20). `backend/{app,dependencies,routers/health,models/health}` ✅ (11/11). 55/55 tests pass overall. **Post-build review pass** locked in: per-app credential+LLM singleton via lifespan (no per-request leaks), `/api/health` (always 200) split from `/api/health/ready` (503 on fail), `skip` is neutral in aggregation, `BaseLLMProvider.reason()` returns `AsyncIterator[OrchestratorEvent]` to match the SSE channel contract. |
 | 3 | Conversation + RAG (Core Chat) | ✅ BE done | Tasks #17 ✅ (skeleton, 6/6), #18 ✅ (LangGraph, 11/11 — incl. citation wiring), #19 ✅ (Agent Framework, 9/9), #20 ✅ (tools: content_safety 10/10 + text_processing 9/9 + post_prompt 14/14 + qa 13/13), #21 ✅ (search domain + AzureSearch, 13/13), #22a ✅ (router, 6/6 → 7/7 after Q6c), #22b ✅ (chat pipeline, 6/6), #23 ✅ (citations, 10/10), #25 ✅ (reasoning, 14/14), #26 ✅ (indexing scripts, 10/10). 179/179 baseline → 186/186 after Phase 3.5 QA remediation. **#24 (FE SSE wiring) owned by frontend workstream.** |
 | 3.5 | QA Remediation (post-Phase-3 audit) | ✅ done | QA report `v2/docs/qa_report_v2.md` (2026-04-28) found 6 deployability blockers + 5 medium risks. Cleared: Q2 (App.tsx React 19 JSX), Q3 (`frontend_app.py`), Q4 (`azure.yaml services:`), Q5 (compose env vars + optional `.env.dev`), Q6a/b/c (chat-route DI + lifespan + search wiring), Q7 (CI mask removal), Q8 (re-run all gates). Deferred: Q1 (Docker build, awaiting Docker Desktop), Q6d (agent_framework 503 guard → Phase 4 task #28). 186/186 backend, 20/20 frontend, both compose profiles green, registry-dispatch grep gate clean. |
 | 4 | Chat History + Both Databases | ☐ | |
@@ -46,9 +46,10 @@ Debt items carried over from earlier phases. Appended-only during normal work; *
 | Q7 | 3.5 | CI entrypoint masked pytest + frontend test failures with `\|\| true` so the validation image always reported green; removed the masks so `failures` accumulator + non-zero exit actually trigger | `v2/docker/ci-entrypoint.sh` | Phase 3.5 QA remediation | ✅ 2026-04-28 |
 | Q6a | 3.5 | Chat router had no DI seam for the search provider, so production `langgraph` ran in pass-through mode (no citations) despite tests proving the path; added `get_search_provider` + `SearchProviderDep` returning `Optional[BaseSearch]` from `app.state.search_provider`, matching langgraph's optional contract | `v2/src/backend/dependencies.py`, `v2/tests/backend/test_dependencies.py` | Phase 3.5 QA remediation | ✅ 2026-04-28 (2 new tests, 183/183 total) |
 | Q6b | 3.5 | Lifespan never built a search provider, so `app.state.search_provider` was always missing; added optional construction (`search.create("azure_search", ...)` when `settings.search.endpoint` set AND `index_store == "AzureSearch"`) + reverse-order `aclose()` in shutdown; pgvector path deferred to Phase 4 | `v2/src/backend/app.py`, `v2/tests/backend/test_app_lifespan.py` | Phase 3.5 QA remediation | ✅ 2026-04-28 (2 new tests, 185/185 total) |
-| Q6c | 3.5 | Conversation route still constructed orchestrator without `search=`, so production langgraph ran in pass-through mode (no citations); injected `SearchProviderDep`, forwarded `search=search` through `orchestrators.create(...)`, added `**_extras` swallow on both langgraph + agent_framework `__init__` so the route can pass uniform kwargs without name-based dispatch (Hard Rule #4) | `v2/src/backend/routers/conversation.py`, `v2/src/providers/orchestrators/{langgraph,agent_framework}.py`, `v2/tests/backend/test_conversation.py` | Phase 3.5 QA remediation | ✅ 2026-04-28 (1 new test, 186/186 total; agent_framework 503 guard deferred to Phase 4 task #28 when AgentsClient lifespan wiring lands — currently unreachable) |
+| Q6c | 3.5 | Conversation route still constructed orchestrator without `search=`, so production langgraph ran in pass-through mode (no citations); injected `SearchProviderDep`, forwarded `search=search` through `orchestrators.create(...)`, added `**_extras` swallow on both langgraph + agent_framework `__init__` so the route can pass uniform kwargs without name-based dispatch (Hard Rule #4) | `v2/src/backend/routers/conversation.py`, `v2/src/shared/providers/orchestrators/{langgraph,agent_framework}.py`, `v2/tests/backend/test_conversation.py` | Phase 3.5 QA remediation | ✅ 2026-04-28 (1 new test, 186/186 total; agent_framework 503 guard deferred to Phase 4 task #28 when AgentsClient lifespan wiring lands — currently unreachable) |
 | Q8 | 3.5 | Re-ran all QA gates after Q2-Q7 remediation: backend pytest 186/186, frontend vitest 20/20, frontend `npm run build` exit 0 (built in 630ms), `compose config` exit 0 for both backend-only + frontend-only profiles, registry-dispatch grep gate 0 hits (refined to skip explicit `# noqa: registry-dispatch` markers on `health.py` diagnostic display + `settings.py` config validator — neither is provider dispatch), `azure.yaml` parses; bicep build + docker build deferred (CLI/daemon unavailable) | `v2/src/backend/routers/health.py`, `v2/src/shared/settings.py` (noqa markers + clarifying comments) | Phase 3.5 QA remediation | ✅ 2026-04-28 |
 | Q9 | 3.5 | Reconciliation pass: §0 status snapshot rolled forward (Phase 1 ⚠️→✅, Phase 3 test count 179→186, new Phase 3.5 row); QA report `v2/docs/qa_report_v2.md` got a Phase 3.5 Re-Run Update table mapping each original blocker to its cleared-or-deferred status | `v2/docs/development_plan.md` (§0), `v2/docs/qa_report_v2.md` | Phase 3.5 QA remediation | ✅ 2026-04-28 |
+| Q10 | 3.5 | Pre-Phase-4 structural realignment: moved `v2/src/providers/` → `v2/src/shared/providers/` and `v2/src/pipelines/` → `v2/src/shared/pipelines/` (test mirrors moved too); rewrote 35 import sites across 19 files; folded `chat_history` domain into a new `databases` domain (DB client owns CRUD, no separate chat_history factory). Side effects: silently fixed two latent packaging bugs — (a) `pyproject.toml` packages list omitted `providers/` + `pipelines/` (would not have shipped in wheel); (b) `docker-compose.dev.yml` dev-mounts omitted them (no hot-reload in dev). Both are now covered by the existing `src/shared` package + mount. Updated dev_plan §3.4 tree, §3.5 swappable list, §4 Phase 4 task table (#27-#30), §6.5 customization points; updated `.github/copilot-instructions.md` Hard Rule #4 path; updated all `v2-*.instructions.md` glob + path refs (incl. v2-shared `applyTo` collapsed from `v2/src/{shared,providers,pipelines}/**` → `v2/src/shared/**`) | `v2/src/shared/{providers,pipelines}/**`, `v2/tests/shared/{providers,pipelines}/**`, `v2/src/{backend,shared}/**/*.py` (imports), `v2/docs/development_plan.md`, `v2/docs/qa_report_v2.md`, `.github/copilot-instructions.md`, `.github/instructions/v2-*.instructions.md` | Phase 3.5 → Phase 4 prep | ✅ 2026-04-28 (186/186 tests still green; zero `from providers.` / `from pipelines.` leftovers) |
 
 ### 0.2 Frontend debt (separate workstream)
 
@@ -308,30 +309,30 @@ v1: Direct Azure OpenAI SDK  ──▶  v2: Foundry IQ
 
 ### 3.4 Project Structure (v2)
 
-> **On-disk layout** (already adopted; replaces the earlier "everything-under-`shared/`" sketch). Cross-cutting **primitives** live in `shared/`. Every **swappable concern** lives under `providers/<domain>/` and is wired through the registry pattern in §3.5. **Composed flows** that wire providers together live in `pipelines/`.
+> **On-disk layout** (already adopted; replaces the earlier "everything-under-`shared/`" sketch). Cross-cutting **primitives** live in `shared/`. Every **swappable concern** lives under `shared/providers/<domain>/` and is wired through the registry pattern in §3.5. **Composed flows** that wire providers together live in `shared/pipelines/`.
 
 ```
 v2/
 ├── src/
-│   ├── shared/                       # primitives only — NOT pluggable
+│   ├── shared/                       # primitives + plug-ins + composed flows
 │   │   ├── registry.py               # generic Registry[T]                     [done]
 │   │   ├── settings.py               # Pydantic AppSettings (Bicep outputs)    [Phase 2]
 │   │   ├── types.py                  # OrchestratorEvent, Citation, SearchResult
 │   │   ├── observability.py          # OTel + App Insights wiring
-│   │   └── tools/                    # cross-cutting helpers (content_safety, post_prompt)
-│   │
-│   ├── providers/                    # registry-keyed plug-ins (§3.5)
-│   │   ├── credentials/              # managed_identity · cli
-│   │   ├── llm/                      # foundry_iq
-│   │   ├── embedders/                # foundry_kb · pgvector
-│   │   ├── parsers/                  # pdf · docx · html · md · txt
-│   │   ├── search/                   # azure_search · pgvector · integrated_vectorization
-│   │   ├── chat_history/             # cosmosdb · postgres
-│   │   └── orchestrators/            # langgraph · agent_framework
-│   │
-│   ├── pipelines/                    # composed flows — NOT pluggable
-│   │   ├── ingestion.py              # parse → chunk → embed → index
-│   │   └── chat.py                   # user msg → orchestrator → SSE
+│   │   ├── tools/                    # cross-cutting helpers (content_safety, post_prompt)
+│   │   │
+│   │   ├── providers/                # registry-keyed plug-ins (§3.5)
+│   │   │   ├── credentials/          # managed_identity · cli
+│   │   │   ├── llm/                  # foundry_iq
+│   │   │   ├── embedders/            # foundry_kb · pgvector
+│   │   │   ├── parsers/              # pdf · docx · html · md · txt
+│   │   │   ├── search/               # azure_search · pgvector · integrated_vectorization
+│   │   │   ├── databases/            # cosmosdb · postgres (chat-history CRUD on the client)
+│   │   │   └── orchestrators/        # langgraph · agent_framework
+│   │   │
+│   │   └── pipelines/                # composed flows — NOT pluggable
+│   │       ├── ingestion.py          # parse → chunk → embed → index
+│   │       └── chat.py               # user msg → orchestrator → SSE
 │   │
 │   ├── backend/                      # FastAPI app    (azd service)
 │   │   ├── app.py                    # App factory, lifespan, CORS, OpenTelemetry
@@ -366,28 +367,28 @@ v2/
 └── tests/                            # mirrors src/
     ├── conftest.py                                                          [done]
     ├── shared/                       # test_registry.py [done] + test_settings.py [Phase 2]
-    ├── providers/                    # one folder per registered domain
-    ├── pipelines/
+    │   ├── providers/                # one folder per registered domain
+    │   └── pipelines/
     ├── backend/routers/
     └── functions/blueprints/
 ```
 
 **Why this layout** (rather than the older monolithic `shared/{orchestrator,llm,embedders,...}/` tree):
 
-1. **`shared/` becomes small and obvious** — only true cross-cutting primitives (registry, settings, types, observability, helper tools). Easier to reason about, easier to test.
-2. **`providers/` makes "what's pluggable" explicit** — every subfolder is a registry-keyed domain with the same recipe (§3.5). Adding a new provider = drop a file + 1 import in `__init__.py`. No grep across `shared/` to find the plug-in surface.
-3. **`pipelines/` separates orchestration from plug-points** — ingestion and chat are *composed code* that wires providers together, not providers themselves. They have one implementation each and don't belong in a registry.
-4. **`backend/`, `functions/`, `frontend/` stay top-level under `src/`** — matches azd convention, keeps Dockerfile contexts simple, keeps `azure.yaml` service paths short.
+1. **Only deployable units sit at the top of `src/`** — `backend/`, `functions/`, `frontend/` map 1:1 to azd services + Docker build contexts. Everything not packaged as its own runtime lives under `shared/`.
+2. **`shared/providers/` makes "what's pluggable" explicit** — every subfolder is a registry-keyed domain with the same recipe (§3.5). Adding a new provider = drop a file + 1 import in `__init__.py`. No grep to find the plug-in surface.
+3. **`shared/pipelines/` separates orchestration from plug-points** — ingestion and chat are *composed code* that wires providers together, not providers themselves. They have one implementation each and don't belong in a registry.
+4. **One `shared/` package = one wheel + one dev-mount** — `pyproject.toml`'s `packages = ["src/shared", ...]` and the dev compose mount of `src/shared` automatically cover providers + pipelines. No risk of forgetting to ship them (the bug Q10 closed).
 5. **`config_assets/`** — default config JSON + JSON schemas are *data*, not code. Keeping them out of `shared/` keeps the code tree clean.
 
 ### 3.5 Pluggability contract (registry-first) — stated once, referenced from every phase
 
-Every swappable concern in v2 (credentials, llm, embedders, parsers, search, chat_history, orchestrators) follows the **same** registry recipe — driven by the generic `Registry[T]` primitive in [`v2/src/shared/registry.py`](../src/shared/registry.py).
+Every swappable concern in v2 (credentials, llm, embedders, parsers, search, databases, orchestrators) follows the **same** registry recipe — driven by the generic `Registry[T]` primitive in [`v2/src/shared/registry.py`](../src/shared/registry.py).
 
 #### 3.5.1 The recipe (3 files per domain)
 
 ```python
-# v2/src/providers/<domain>/base.py
+# v2/src/shared/providers/<domain>/base.py
 from abc import ABC, abstractmethod
 
 class Base<Domain>(ABC):
@@ -396,7 +397,7 @@ class Base<Domain>(ABC):
 ```
 
 ```python
-# v2/src/providers/<domain>/__init__.py
+# v2/src/shared/providers/<domain>/__init__.py
 from shared.registry import Registry
 from .base import Base<Domain>
 
@@ -409,7 +410,7 @@ def create(key: str, **kwargs) -> Base<Domain>:
 ```
 
 ```python
-# v2/src/providers/<domain>/provider_a.py
+# v2/src/shared/providers/<domain>/provider_a.py
 from . import registry
 from .base import Base<Domain>
 
@@ -435,18 +436,18 @@ embedder = embedders.create(settings.database.index_store, settings=settings, ll
 
 | Want to add… | Step 1 | Step 2 | Step 3 |
 |---|---|---|---|
-| **A new orchestrator** (e.g., CrewAI) | Create `v2/src/providers/orchestrators/crewai.py` with `class CrewAIOrchestrator(OrchestratorBase)` | Decorate the class: `@registry.register("crewai")` | Add `from . import crewai` to `providers/orchestrators/__init__.py` |
-| **A new chat-history backend** (e.g., Redis) | Create `v2/src/providers/chat_history/redis.py` with `class RedisChatHistory(BaseChatHistory)` | `@registry.register("redis")` | Add `from . import redis` to `providers/chat_history/__init__.py` |
-| **A new embedder** (e.g., local sentence-transformers) | Create `v2/src/providers/embedders/sentence_transformers.py` | `@registry.register("sentence_transformers")` | Add `from . import sentence_transformers` to `providers/embedders/__init__.py` |
+| **A new orchestrator** (e.g., CrewAI) | Create `v2/src/shared/providers/orchestrators/crewai.py` with `class CrewAIOrchestrator(OrchestratorBase)` | Decorate the class: `@registry.register("crewai")` | Add `from . import crewai` to `shared/providers/orchestrators/__init__.py` |
+| **A new chat-history backend** (e.g., Redis) | Create `v2/src/shared/providers/databases/redis.py` with `class RedisDatabaseClient(BaseDatabaseClient)` (chat-history CRUD on the client) | `@registry.register("redis")` | Add `from . import redis` to `shared/providers/databases/__init__.py` |
+| **A new embedder** (e.g., local sentence-transformers) | Create `v2/src/shared/providers/embedders/sentence_transformers.py` | `@registry.register("sentence_transformers")` | Add `from . import sentence_transformers` to `shared/providers/embedders/__init__.py` |
 
 No central factory file to edit. No `if/elif` chain to extend. The new provider is selectable by setting the corresponding env var (e.g., `AZURE_DB_TYPE=redis`).
 
 #### 3.5.4 What the registry buys CWYD at multi-container scale
 
-- **Per-container imports.** Backend imports `providers/orchestrators/`, `providers/chat_history/`, `providers/search/`. Functions imports `providers/embedders/`, `providers/parsers/`, `providers/search/`. Heavy SDKs (`azure-ai-projects`, `langgraph`, `psycopg`) load only where used — smaller cold starts, smaller images, lower memory per replica.
+- **Per-container imports.** Backend imports `shared/providers/orchestrators/`, `shared/providers/databases/`, `shared/providers/search/`. Functions imports `shared/providers/embedders/`, `shared/providers/parsers/`, `shared/providers/search/`. Heavy SDKs (`azure-ai-projects`, `langgraph`, `psycopg`) load only where used — smaller cold starts, smaller images, lower memory per replica.
 - **Independent deployment.** Each azd service ships only the providers it needs; adding a provider in one service has zero impact on the other.
-- **Scenario Pack / Customization Layer plug-ins** can ship out-of-tree: a customer fork drops `providers/embedders/customer_aoai.py` with `@register("customer_aoai")` — no upstream patch required.
-- **Configuration-driven swaps.** The provider key *is* the config value (`settings.database.db_type` → `chat_history.create(...)`). No drift between config strings and dispatch labels.
+- **Scenario Pack / Customization Layer plug-ins** can ship out-of-tree: a customer fork drops `shared/providers/embedders/customer_aoai.py` with `@register("customer_aoai")` — no upstream patch required.
+- **Configuration-driven swaps.** The provider key *is* the config value (`settings.database.db_type` → `databases.create(...)`). No drift between config strings and dispatch labels.
 
 See §3.6 below for the parallel rule applied to **infrastructure** modules.
 
@@ -505,8 +506,8 @@ All provider work in this phase follows the registry recipe in §3.5.
 |---|---|---|---|
 | 2.0 | Generic `Registry[T]` primitive (Phase 2 prerequisite) | `src/shared/registry.py` + `tests/shared/test_registry.py` | ✅ (11/11) |
 | 10 | Pydantic `AppSettings` replacing `EnvHelper` (nested models per Azure service; reads every Bicep output env var; cached `get_settings()`) | `src/shared/settings.py` + `tests/shared/test_settings.py` | ✅ (13/13) |
-| 11 | Credentials providers (registry domain): `BaseCredentialFactory` ABC + `managed_identity` + `cli` | `src/providers/credentials/{base,managed_identity,cli,__init__}.py` | ✅ (9/9) |
-| 12 | LLM provider (registry domain): `BaseLLMProvider` ABC + `foundry_iq` (AIProjectClient-backed; methods `chat`, `chat_stream`, `embed`, `reason`) | `src/providers/llm/{base,foundry_iq,__init__}.py` | ✅ (11/11) — `reason()` stubbed, see task #25 |
+| 11 | Credentials providers (registry domain): `BaseCredentialFactory` ABC + `managed_identity` + `cli` | `src/shared/providers/credentials/{base,managed_identity,cli,__init__}.py` | ✅ (9/9) |
+| 12 | LLM provider (registry domain): `BaseLLMProvider` ABC + `foundry_iq` (AIProjectClient-backed; methods `chat`, `chat_stream`, `embed`, `reason`) | `src/shared/providers/llm/{base,foundry_iq,__init__}.py` | ✅ (11/11) — `reason()` stubbed, see task #25 |
 | 13 | Health router with dependency checks (DB, search, Foundry IQ connectivity) — reads providers via DI | `src/backend/routers/health.py` | ✅ (8/8) — shallow probes; deep liveness deferred to Phase 6 |
 | 14 | Dependency injection wiring (settings + credentials + llm registries → routers) | `src/backend/dependencies.py` | ✅ (covered by health router tests) |
 | 15 | Frontend: basic chat UI shell (input box, message list, layout) | `src/frontend/src/pages/chat/` | ✅ ChatContext + MessageList + MessageInput + ChatPage shipped, mounted from App.tsx (20/20 vitest). *Back-filled 2026-04-28 during Phase 3 deep-clean.* |
@@ -522,15 +523,15 @@ Orchestrators and search providers follow the registry recipe in §3.5. Caller c
 
 | # | Task | Key Files | Status |
 |---|---|---|---|
-| 17 | Orchestrator domain registry + `OrchestratorBase` ABC (async `run()` yielding `OrchestratorEvent`) | `src/providers/orchestrators/{base,__init__}.py` | ✅ (6/6) |
-| 18 | LangGraph orchestrator (`StateGraph` + `ToolNode`); `@register("langgraph")` | `src/providers/orchestrators/langgraph.py` | ✅ (7/7) — single LLM node today; `ToolNode` wires in via task #20 |
-| 19 | Azure AI Agent Framework orchestrator; `@register("agent_framework")` | `src/providers/orchestrators/agent_framework.py` | ✅ (8/8) — DI-injected `AgentsClient` + `agent_id`; production wiring in task #22 |
+| 17 | Orchestrator domain registry + `OrchestratorBase` ABC (async `run()` yielding `OrchestratorEvent`) | `src/shared/providers/orchestrators/{base,__init__}.py` | ✅ (6/6) |
+| 18 | LangGraph orchestrator (`StateGraph` + `ToolNode`); `@register("langgraph")` | `src/shared/providers/orchestrators/langgraph.py` | ✅ (7/7) — single LLM node today; `ToolNode` wires in via task #20 |
+| 19 | Azure AI Agent Framework orchestrator; `@register("agent_framework")` | `src/shared/providers/orchestrators/agent_framework.py` | ✅ (8/8) — DI-injected `AgentsClient` + `agent_id`; production wiring in task #22 |
 | 20 | Cross-cutting tool helpers (QA, text processing, content safety, post-prompt). Tools are NOT a registry domain — they are imported directly. | `src/shared/tools/*` | ✅ content_safety (10/10) + text_processing (9/9) + post_prompt (14/14) + qa (13/13). All four DI'd, async, no SDK leakage. |
-| 21 | Search domain: `BaseSearch` ABC + `azure_search` provider (async); `@register("azure_search")` | `src/providers/search/{base,azure_search,__init__}.py` | ✅ (13/13) — hybrid (text+vector), semantic re-ranking, OData filter pass-through. Citation/SearchResult types added to `shared/types.py`. |
-| 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom); composes `orchestrators.create(...)` | `src/backend/routers/conversation.py`, `src/pipelines/chat.py` | ✅ (12/12) — router 6/6, pipeline 6/6, registry dispatch + pipeline delegation enforced |
+| 21 | Search domain: `BaseSearch` ABC + `azure_search` provider (async); `@register("azure_search")` | `src/shared/providers/search/{base,azure_search,__init__}.py` | ✅ (13/13) — hybrid (text+vector), semantic re-ranking, OData filter pass-through. Citation/SearchResult types added to `shared/types.py`. |
+| 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom); composes `orchestrators.create(...)` | `src/backend/routers/conversation.py`, `src/shared/pipelines/chat.py` | ✅ (12/12) — router 6/6, pipeline 6/6, registry dispatch + pipeline delegation enforced |
 | 23 | Citation extraction and formatting | `src/shared/types.py` (Citation), tool helpers | ✅ (10/10) — `shared/tools/citations.py`; wired into LangGraph orchestrator |
 | 24 | Frontend: chat connected to `/api/conversation`, SSE stream consumption (channels: `reasoning`, `tool`, `answer`, `citation`, `error`) | `src/frontend/src/pages/chat/` | ⏸ FE workstream |
-| 25 | Reasoning model support via Foundry IQ (o-series routing in `foundry_iq.reason()`) | `src/providers/llm/foundry_iq.py` | ✅ (14/14) |
+| 25 | Reasoning model support via Foundry IQ (o-series routing in `foundry_iq.reason()`) | `src/shared/providers/llm/foundry_iq.py` | ✅ (14/14) |
 | 26 | Scripts: create search index + index sample documents | `scripts/post_provision.py` | ✅ (10/10) — idempotent `_ensure_search_index` (skipped/dry-run/exists/created), `--dry-run` CLI flag, fail-fast on bad embedding dimensions |
 
 **Phase 3 sub-plan (execution order — Hard Rule #12)**
@@ -540,7 +541,7 @@ Tasks below execute in this order; `audit` is the final turn(s) and clears all o
 | Order | Task # | Description | Unit count | Status |
 |---|---|---|---|---|
 | 1 | 22a | Conversation router (`POST /api/conversation`, JSON + SSE) | 1 | ✅ |
-| 2 | 22b | Chat pipeline (`pipelines/chat.py` — pure async generator) | 1 | ✅ |
+| 2 | 22b | Chat pipeline (`shared/pipelines/chat.py` — pure async generator) | 1 | ✅ |
 | 3 | 23 | Citation extraction + formatting | 1 | ✅ |
 | 4 | 25 | Reasoning model routing in `foundry_iq.reason()` | 1 | ✅ |
 | 5 | 26 | Indexing scripts (extend `post_provision.py`, idempotent, `--dry-run`) | 1 | ✅ |
@@ -552,14 +553,14 @@ Tasks below execute in this order; `audit` is the final turn(s) and clears all o
 
 **Goal**: Conversations persist across sessions. Both Cosmos DB and PostgreSQL work as chat history backends. pgvector search enabled for PostgreSQL deployments.
 
-Chat history and search-pgvector are registry domains (§3.5). Picking the backend is one line: `chat_history.create(settings.database.db_type, ...)`.
+Chat history and search-pgvector are registry domains (§3.5). Picking the backend is one line: `databases.create(settings.database.db_type, ...)`.
 
 | # | Task | Key Files | Status |
 |---|---|---|---|
-| 27 | Chat history domain: `BaseChatHistory` ABC + `cosmosdb` provider (async); `@register("cosmosdb")` | `src/providers/chat_history/{base,cosmosdb,__init__}.py` | ☐ |
-| 28 | `postgres` chat-history provider (async); `@register("postgres")` | `src/providers/chat_history/postgres.py` | ☐ |
-| 29 | Caller wiring — backend reads `chat_history.create(settings.database.db_type, ...)` (no `database_factory.py`; the registry IS the factory) | `src/backend/dependencies.py` | ☐ |
-| 30 | `pgvector` search provider (async); `@register("pgvector")` | `src/providers/search/pgvector.py` | ☐ |
+| 27 | `databases` domain: `BaseDatabaseClient` ABC + `cosmosdb` client (async; connection lifecycle + chat-history CRUD on the client; later: vector store metadata, config storage); `@register("cosmosdb")` | `src/shared/providers/databases/{base,cosmosdb,__init__}.py` | ☐ |
+| 28 | `postgres` database client (async asyncpg pool + chat-history CRUD; pool injectable into pgvector search); `@register("postgres")` | `src/shared/providers/databases/postgres.py` | ☐ |
+| 29 | Caller wiring — backend reads `databases.create(settings.database.db_type, ...)` via DI; chat-history routes consume the database client directly (the registry IS the factory; no separate chat_history domain) | `src/backend/dependencies.py` | ☐ |
+| 30 | `pgvector` search provider (async; DI-injects the `PostgresPool` from `databases.create('postgres', ...)` — single pool per process); `@register("pgvector")` | `src/shared/providers/search/pgvector.py` | ☐ |
 | 31 | Chat history router (CRUD, feedback, status) | `src/backend/routers/chat_history.py` | ☐ |
 | 32 | Frontend: conversation history panel (list, select, rename, delete) | `src/frontend/src/pages/chat/` | ☐ |
 | 33 | (Phase 4 is for backends; Agent Framework was added in Phase 3 §19.) | — | — |
@@ -594,9 +595,9 @@ Parsers and embedders are registry domains (§3.5). The blueprint invokes `pipel
 | 42 | `batch_push` blueprint (queue trigger → `pipelines.ingestion.run`) | `src/functions/blueprints/batch_push.py` | ☐ |
 | 43 | `add_url` blueprint (queue trigger; URL fetch → ingestion pipeline) | `src/functions/blueprints/add_url.py` | ☐ |
 | 44 | `search_skill` blueprint (HTTP trigger; custom AI Search skill endpoint) | `src/functions/blueprints/search_skill.py` | ☐ |
-| 45 | Parsers domain: `BaseParser` ABC + 5 providers (`pdf`, `docx`, `html`, `md`, `txt`); each `@register("<ext>")` | `src/providers/parsers/{base,pdf,docx,html,md,txt,__init__}.py` | ☐ |
-| 46 | Embedders domain: `BaseEmbedder` ABC + 2 providers (`foundry_kb` Knowledge-Base upsert, `pgvector` chunk+embed+insert); each `@register("<key>")` | `src/providers/embedders/{base,foundry_kb,pgvector,__init__}.py` | ☐ |
-| 47 | Ingestion pipeline (composes parsers + embedders; NOT a registry) | `src/pipelines/ingestion.py` | ☐ |
+| 45 | Parsers domain: `BaseParser` ABC + 5 providers (`pdf`, `docx`, `html`, `md`, `txt`); each `@register("<ext>")` | `src/shared/providers/parsers/{base,pdf,docx,html,md,txt,__init__}.py` | ☐ |
+| 46 | Embedders domain: `BaseEmbedder` ABC + 2 providers (`foundry_kb` Knowledge-Base upsert, `pgvector` chunk+embed+insert); each `@register("<key>")` | `src/shared/providers/embedders/{base,foundry_kb,pgvector,__init__}.py` | ☐ |
+| 47 | Ingestion pipeline (composes parsers + embedders; NOT a registry) | `src/shared/pipelines/ingestion.py` | ☐ |
 | 48 | Default config + post-provision (`config_assets/default.json`, `ConfigHelper.ensure_default_uploaded`, `scripts/post_provision.py` hook) | `src/config_assets/default.json`, `src/shared/config_helper.py`, `scripts/post_provision.py` | ☐ |
 
 **`azd up` result**: End-to-end pipeline — upload a document via admin UI → functions process it → document appears in search → user can chat about it.
@@ -765,8 +766,9 @@ The assistant behavior, system prompts, and UI customization are controlled by `
 | **Document processing** | Edit `active.json` → `document_processors` | `data/active.json` |
 | **UI branding** | Edit `active.json` → `ui` section | `data/active.json` |
 | **Add a new tool** | Implement helper in `shared/tools/`, import where needed (tools are not a registry domain) | `src/shared/tools/` |
-| **Add a new orchestrator** | Follow §3.5 recipe: subclass `OrchestratorBase`, decorate with `@registry.register("<key>")`, add `from . import <module>` to `__init__.py` | `src/providers/orchestrators/` |
-| **Add a new chat-history backend / search / embedder / parser / credential** | Same §3.5 recipe under the matching `providers/<domain>/` folder | `src/providers/<domain>/` |
+| **Add a new orchestrator** | Follow §3.5 recipe: subclass `OrchestratorBase`, decorate with `@registry.register("<key>")`, add `from . import <module>` to `__init__.py` | `src/shared/providers/orchestrators/` |
+| **Add a new database backend** (chat history + later: vector store metadata, config storage) | §3.5 recipe under `shared/providers/databases/`; client implements `BaseDatabaseClient` with chat-history CRUD methods | `src/shared/providers/databases/` |
+| **Add a new search / embedder / parser / credential** | Same §3.5 recipe under the matching `shared/providers/<domain>/` folder | `src/shared/providers/<domain>/` |
 | **WAF-aligned deployment** | Enable `enableMonitoring`, `enableScalability`, `enableRedundancy`, `enablePrivateNetworking` | `main.parameters.json` |
 
 ### 6.6 Local Development Configuration
@@ -874,10 +876,10 @@ AZURE_TENANT_ID=your-tenant-id
 | [`v2/tests/shared/test_registry.py`](../tests/shared/test_registry.py) | 11 tests covering registration, lookup, case-insensitivity, double-register rejection, empty domain/key validation, sorted keys. |
 | [`v2/src/shared/settings.py`](../src/shared/settings.py) | Pydantic v2 `AppSettings` root composing 9 nested `BaseSettings` (Identity, Foundry, OpenAI, Database, Search, Storage, Observability, Network, Orchestrator). Reads only `AZURE_*` env vars (37 verified) + `CWYD_ORCHESTRATOR_*`. `model_validator` enforces db_type ↔ endpoint consistency. `get_settings()` is `@lru_cache(maxsize=1)`. No secrets. |
 | [`v2/tests/shared/test_settings.py`](../tests/shared/test_settings.py) | 13 tests covering env loading (cosmosdb + postgresql), enum validation, model validators (mode consistency, index-store mismatch), `get_settings` caching + `cache_clear`, no-secret-fields gate, observability optional. |
-| [`v2/src/providers/__init__.py`](../src/providers/__init__.py) + [`v2/src/providers/credentials/`](../src/providers/credentials/) | First registry-keyed provider domain. `BaseCredentialProvider` ABC + `ManagedIdentityCredentialProvider` (production default; `azure.identity.aio.DefaultAzureCredential` pinned to `AZURE_UAMI_CLIENT_ID`) + `CliCredentialProvider` (local dev; `AzureCliCredential`). `credentials.create(key, settings=...)` + `credentials.select_default(uami_client_id)` heuristic. |
+| [`v2/src/shared/providers/__init__.py`](../src/shared/providers/__init__.py) + [`v2/src/shared/providers/credentials/`](../src/shared/providers/credentials/) | First registry-keyed provider domain. `BaseCredentialProvider` ABC + `ManagedIdentityCredentialProvider` (production default; `azure.identity.aio.DefaultAzureCredential` pinned to `AZURE_UAMI_CLIENT_ID`) + `CliCredentialProvider` (local dev; `AzureCliCredential`). `credentials.create(key, settings=...)` + `credentials.select_default(uami_client_id)` heuristic. |
 | [`v2/tests/providers/credentials/test_credentials.py`](../tests/providers/credentials/test_credentials.py) | 9 tests covering registry registration (case-insensitive), unknown-key rejection, `select_default` heuristic (uami present → managed_identity, missing → cli), `get_credential()` returns the right SDK type for each provider, settings reference stored on the provider. |
 | [`v2/src/shared/types.py`](../src/shared/types.py) | Pydantic value types shared by providers and pipelines. `ChatMessage` (role + content), `ChatChunk` (streamed delta + finish_reason), `EmbeddingResult` (vectors + model + dimensions). |
-| [`v2/src/providers/llm/`](../src/providers/llm/) | Second registry-keyed provider domain. `BaseLLMProvider` ABC (`chat`, `chat_stream`, `embed`, `reason`) + `FoundryIQ` wrapping `azure.ai.projects.aio.AIProjectClient.get_openai_client()`. Lazily constructs the project client; resolves deployments from `OpenAISettings`; never imports `openai` (banned tech rule #7). `reason()` is a `NotImplementedError` stub reserved for task #25 (Phase 7). |
+| [`v2/src/shared/providers/llm/`](../src/shared/providers/llm/) | Second registry-keyed provider domain. `BaseLLMProvider` ABC (`chat`, `chat_stream`, `embed`, `reason`) + `FoundryIQ` wrapping `azure.ai.projects.aio.AIProjectClient.get_openai_client()`. Lazily constructs the project client; resolves deployments from `OpenAISettings`; never imports `openai` (banned tech rule #7). `reason()` is a `NotImplementedError` stub reserved for task #25 (Phase 7). |
 | [`v2/tests/providers/llm/test_foundry_iq.py`](../tests/providers/llm/test_foundry_iq.py) | 11 tests covering registry registration, `chat` (deployment resolution + temperature/max_tokens passthrough + missing-deployment guard), `chat_stream` (async iterator + `stream=True` flag), `embed` (vector + dimensions + model passthrough), `reason` (NotImplementedError pointer to task #25), lazy AIProjectClient construction (raises when `AZURE_AI_PROJECT_ENDPOINT` missing), `aclose()` does not close an injected client. |
 | [`v2/src/backend/`](../src/backend/) | FastAPI app skeleton. `app.py` (factory + lifespan that lazy-configures Application Insights when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set, **builds credential + LLM provider once and stashes on `app.state`, closes both on shutdown**, plus a CORS wildcard guard that drops `allow_credentials=True` when origins is `*`), `dependencies.py` (DI reads from `app.state` -- no per-request credential construction), `routers/health.py` (`GET /api/health` always 200 diagnostic + `GET /api/health/ready` returning 503 on fail; `skip` is neutral in aggregation), `models/health.py` (`HealthResponse`, `DependencyCheck`). |
 | [`v2/tests/backend/test_health.py`](../tests/backend/test_health.py) | 11 tests using `httpx.ASGITransport` + `dependency_overrides` for the diagnostic endpoint, plus a real lifespan exercise (`async with _lifespan(app)`) confirming `app.state` population and `aclose()`/`close()` on shutdown: pass when all checks succeed, fail when Foundry endpoint missing, fail when Search endpoint missing, **`skip` does not degrade overall status (pgvector mode)**, response shape gate, **`/api/health/ready` returns 200 on pass and 503 on fail**, DI raises clearly when lifespan never ran. |
@@ -898,9 +900,9 @@ AZURE_TENANT_ID=your-tenant-id
 |---|---|
 | [`.github/copilot-instructions.md`](../../.github/copilot-instructions.md) | Repo-wide always-loaded rules. Hard Rule #0 (sync agent guidance first), #4 (registry-first plug-and-play), #7 (banned tech + removed features incl. one-click). |
 | [`.github/instructions/v2-workflow.instructions.md`](../../.github/instructions/v2-workflow.instructions.md) | "Step 0" gate; per-turn loop; banned/removed/forbidden split. |
-| [`.github/instructions/v2-shared.instructions.md`](../../.github/instructions/v2-shared.instructions.md) | `applyTo: v2/src/{shared,providers,pipelines}/**`. Pluggability contract code template. |
-| [`.github/instructions/v2-backend.instructions.md`](../../.github/instructions/v2-backend.instructions.md) | FastAPI conventions; routers consume `providers/<domain>/` via DI. |
-| [`.github/instructions/v2-functions.instructions.md`](../../.github/instructions/v2-functions.instructions.md) | Blueprints invoke `pipelines/ingestion.py`; no parse/embed code in blueprints. |
+| [`.github/instructions/v2-shared.instructions.md`](../../.github/instructions/v2-shared.instructions.md) | `applyTo: v2/src/shared/**`. Pluggability contract code template. |
+| [`.github/instructions/v2-backend.instructions.md`](../../.github/instructions/v2-backend.instructions.md) | FastAPI conventions; routers consume `shared/providers/<domain>/` via DI. |
+| [`.github/instructions/v2-functions.instructions.md`](../../.github/instructions/v2-functions.instructions.md) | Blueprints invoke `shared/pipelines/ingestion.py`; no parse/embed code in blueprints. |
 | [`.github/instructions/v2-frontend.instructions.md`](../../.github/instructions/v2-frontend.instructions.md) | React/Vite conventions; consumes generated OpenAPI client. |
 | [`.github/instructions/v2-infra.instructions.md`](../../.github/instructions/v2-infra.instructions.md) | Bicep + AVM conventions; matches §3.6 extensibility rules. |
 | [`.github/instructions/v2-tests.instructions.md`](../../.github/instructions/v2-tests.instructions.md) | `tests/` mirrors `src/`; pytest + pytest-asyncio; `httpx.AsyncClient` for backend. |

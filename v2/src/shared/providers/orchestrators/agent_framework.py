@@ -35,7 +35,7 @@ from .base import OrchestratorBase
 if TYPE_CHECKING:
     from azure.ai.agents.aio import AgentsClient
 
-    from providers.llm.base import BaseLLMProvider
+    from shared.providers.llm.base import BaseLLMProvider
     from shared.settings import AppSettings
 
 

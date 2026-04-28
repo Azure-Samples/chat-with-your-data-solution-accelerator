@@ -49,14 +49,14 @@ Valid pillars: `Stable Core`, `Scenario Pack`, `Configuration Layer`, `Customiza
 
 ## Multi-agent readiness
 
-All orchestrators implement `v2/src/providers/orchestrators/base.py::OrchestratorBase` with:
+All orchestrators implement `v2/src/shared/providers/orchestrators/base.py::OrchestratorBase` with:
 
 ```python
 async def run(self, request: ConversationRequest) -> AsyncIterator[OrchestratorEvent]:
     ...
 ```
 
-Concrete orchestrators self-register via `@registry.register("langgraph")` / `@registry.register("agent_framework")` against the registry in `v2/src/providers/orchestrators/__init__.py`. Caller code is `orchestrators.create(settings.orchestrator, ...)` — no `if/elif` over orchestrator names anywhere.
+Concrete orchestrators self-register via `@registry.register("langgraph")` / `@registry.register("agent_framework")` against the registry in `v2/src/shared/providers/orchestrators/__init__.py`. Caller code is `orchestrators.create(settings.orchestrator, ...)` — no `if/elif` over orchestrator names anywhere.
 
 `OrchestratorEvent` is a discriminated union over channels: `reasoning | tool | answer | citation | error`. Never collapse reasoning into the answer string. A future multi-agent coordinator will route `tool` and `reasoning` events between agents — keep them clean.
 
@@ -77,7 +77,7 @@ Concrete orchestrators self-register via `@registry.register("langgraph")` / `@r
 
 **Removed features (do not re-add, do not re-document as a feature):** one-click "Deploy to Azure" ARM button (v2 is `azd`-only), Streamlit admin app (merged into the React/Vite frontend), Azure Bot Service integration, Teams extension. Full list: [v2/docs/development_plan.md](../../v2/docs/development_plan.md) §2.1.
 
-**Forbidden code patterns:** `if/elif` provider dispatch outside a `Registry[T]`; lazy in-function imports of provider classes; module-level client instantiation. Pluggable concerns belong under `v2/src/providers/<domain>/` and self-register.
+**Forbidden code patterns:** `if/elif` provider dispatch outside a `Registry[T]`; lazy in-function imports of provider classes; module-level client instantiation. Pluggable concerns belong under `v2/src/shared/providers/<domain>/` and self-register.
 
 ## Anti-overengineering gate (4 questions, all must pass)
 
@@ -103,7 +103,7 @@ The following require an explicit user prompt **before** any agent acts:
 - New package directory under `v2/src/**` (anything beyond what dev_plan.md §3.4 enumerates).
 - New entry in `pyproject.toml` `[project] dependencies` or `v2/src/frontend/package.json` `dependencies`.
 - Renames or moves of existing modules.
-- New module layout (e.g., splitting `providers/orchestrators/` into sub-packages, or moving anything between `shared/`, `providers/`, and `pipelines/`).
+- New module layout (e.g., splitting `shared/providers/orchestrators/` into sub-packages, or moving anything between `shared/`, `shared/providers/`, and `shared/pipelines/`).
 
 The planner must ask the user, get a yes, and record the decision in the Work Order's `## References` section before proceeding.
 

@@ -11,9 +11,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from providers import llm
-from providers.llm.base import BaseLLMProvider
-from providers.llm.foundry_iq import FoundryIQ
+from shared.providers import llm
+from shared.providers.llm.base import BaseLLMProvider
+from shared.providers.llm.foundry_iq import FoundryIQ
 from shared.settings import AppSettings
 from shared.types import ChatChunk, ChatMessage, EmbeddingResult
 

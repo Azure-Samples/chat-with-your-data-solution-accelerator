@@ -20,9 +20,10 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
-from providers.credentials.base import BaseCredentialProvider
-from providers.llm.base import BaseLLMProvider
-from providers.search.base import BaseSearch
+from shared.providers.credentials.base import BaseCredentialProvider
+from shared.providers.databases.base import BaseDatabaseClient
+from shared.providers.llm.base import BaseLLMProvider
+from shared.providers.search.base import BaseSearch
 from shared.settings import AppSettings, get_settings
 
 
@@ -83,13 +84,34 @@ def get_search_provider(request: Request) -> BaseSearch | None:
 SearchProviderDep = Annotated[BaseSearch | None, Depends(get_search_provider)]
 
 
+def get_database_client(request: Request) -> BaseDatabaseClient:
+    """Return the database client stashed on `app.state` at startup.
+
+    Lifespan always constructs a database client (`cosmosdb` or
+    `postgresql`) -- chat history is a Stable Core feature with no
+    "disabled" mode. Tests can override this dependency directly via
+    `app.dependency_overrides`.
+    """
+    client = getattr(request.app.state, "database_client", None)
+    if client is None:
+        raise RuntimeError(
+            "database_client missing on app.state -- lifespan did not run."
+        )
+    return client
+
+
+DatabaseClientDep = Annotated[BaseDatabaseClient, Depends(get_database_client)]
+
+
 __all__ = [
     "CredentialProviderDep",
+    "DatabaseClientDep",
     "LLMProviderDep",
     "SearchProviderDep",
     "SettingsDep",
     "get_app_settings",
     "get_credential_provider",
+    "get_database_client",
     "get_llm_provider",
     "get_search_provider",
 ]

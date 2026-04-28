@@ -44,8 +44,8 @@ from . import registry
 from .base import OrchestratorBase
 
 if TYPE_CHECKING:
-    from providers.llm.base import BaseLLMProvider
-    from providers.search.base import BaseSearch
+    from shared.providers.llm.base import BaseLLMProvider
+    from shared.providers.search.base import BaseSearch
     from shared.settings import AppSettings
 
 

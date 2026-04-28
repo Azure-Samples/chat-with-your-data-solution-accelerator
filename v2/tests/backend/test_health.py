@@ -16,8 +16,8 @@ from backend.dependencies import (
     get_credential_provider,
     get_llm_provider,
 )
-from providers.credentials.base import BaseCredentialProvider
-from providers.llm.base import BaseLLMProvider
+from shared.providers.credentials.base import BaseCredentialProvider
+from shared.providers.llm.base import BaseLLMProvider
 from shared.settings import AppSettings, get_settings
 
 

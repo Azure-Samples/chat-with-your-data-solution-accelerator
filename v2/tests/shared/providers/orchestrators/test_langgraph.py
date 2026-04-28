@@ -10,9 +10,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from providers import orchestrators
-from providers.llm.base import BaseLLMProvider
-from providers.orchestrators.langgraph import LangGraphOrchestrator
+from shared.providers import orchestrators
+from shared.providers.llm.base import BaseLLMProvider
+from shared.providers.orchestrators.langgraph import LangGraphOrchestrator
 from shared.settings import AppSettings
 from shared.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent
 

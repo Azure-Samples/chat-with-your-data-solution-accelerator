@@ -32,8 +32,8 @@ from pydantic import BaseModel, Field
 from shared.types import ChatMessage, SearchResult
 
 if TYPE_CHECKING:
-    from providers.llm.base import BaseLLMProvider
-    from providers.search.base import BaseSearch
+    from shared.providers.llm.base import BaseLLMProvider
+    from shared.providers.search.base import BaseSearch
 
 
 # Default Azure-OpenAI-On-Your-Data-style prompts. The system message

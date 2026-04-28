@@ -8,10 +8,10 @@ from __future__ import annotations
 import pytest
 from azure.identity.aio import AzureCliCredential, DefaultAzureCredential
 
-from providers import credentials
-from providers.credentials.base import BaseCredentialProvider
-from providers.credentials.cli import CliCredentialProvider
-from providers.credentials.managed_identity import ManagedIdentityCredentialProvider
+from shared.providers import credentials
+from shared.providers.credentials.base import BaseCredentialProvider
+from shared.providers.credentials.cli import CliCredentialProvider
+from shared.providers.credentials.managed_identity import ManagedIdentityCredentialProvider
 from shared.settings import AppSettings
 
 

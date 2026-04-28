@@ -96,6 +96,8 @@ class DatabaseSettings(BaseSettings):
     # cosmosdb mode (empty in postgresql mode)
     cosmos_endpoint: str = ""
     cosmos_account_name: str = ""
+    cosmos_database_name: str = "cwyd"
+    cosmos_container_name: str = "conversations"
 
     # postgresql mode (empty in cosmosdb mode)
     postgres_endpoint: str = ""  # full libpq URI from AZURE_POSTGRES_ENDPOINT

@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routers import conversation, health
-from providers import credentials, llm, search
+from shared.providers import credentials, databases, llm, search
 from shared.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -83,12 +83,29 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
     app.state.search_provider = search_provider
 
+    # Chat-history database. Always wired -- there is no "no-database"
+    # mode in v2 (chat history is a Stable Core feature). The registry
+    # key matches the `Literal` value of `settings.database.db_type`
+    # (`cosmosdb` / `postgresql`) so dispatch is registry-only
+    # (Hard Rule #4).
+    database_client = databases.create(
+        settings.database.db_type,
+        settings=settings,
+        credential=credential,
+    )
+    app.state.database_client = database_client
+    logger.info("Database client ready (%s).", settings.database.db_type)
+
     try:
         yield
     finally:
         # Close in reverse order of construction. `aclose()` on
         # FoundryIQ closes the lazily-built AIProjectClient if and only
         # if FoundryIQ owned it.
+        try:
+            await database_client.aclose()
+        except Exception:  # noqa: BLE001 -- shutdown is best-effort
+            logger.exception("Error closing database client.")
         if search_provider is not None:
             try:
                 await search_provider.aclose()

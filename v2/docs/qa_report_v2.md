@@ -41,7 +41,7 @@ The main risks are in packaging, `azd` service wiring, frontend production build
 
 5. [conversation.py](../src/backend/routers/conversation.py#L123): the conversation endpoint creates orchestrators with only `settings` and `llm`, then calls `run_chat` without search, content safety, or post-prompt dependencies. The backend route therefore does not yet deliver the full grounded RAG behavior claimed by [development_plan.md](development_plan.md#L538).
 
-6. [conversation.py](../src/backend/routers/conversation.py#L123) and [agent_framework.py](../src/providers/orchestrators/agent_framework.py#L49): selecting `agent_framework` will fail at runtime because `AgentFrameworkOrchestrator` requires `agents_client` and `agent_id`, but the router/dependency path never supplies them.
+6. [conversation.py](../src/backend/routers/conversation.py#L123) and [agent_framework.py](../src/shared/providers/orchestrators/agent_framework.py#L49): selecting `agent_framework` will fail at runtime because `AgentFrameworkOrchestrator` requires `agents_client` and `agent_id`, but the router/dependency path never supplies them.
 
 ## High And Medium Risks
 

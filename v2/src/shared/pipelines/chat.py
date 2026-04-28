@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, AsyncIterator, Sequence
 from shared.types import Citation, OrchestratorEvent, SearchResult
 
 if TYPE_CHECKING:
-    from providers.orchestrators.base import OrchestratorBase
+    from shared.providers.orchestrators.base import OrchestratorBase
     from shared.tools.content_safety import ContentSafetyGuard
     from shared.tools.post_prompt import PostPromptValidator
     from shared.types import ChatMessage

@@ -11,9 +11,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from providers import search
-from providers.search.azure_search import AzureSearch
-from providers.search.base import BaseSearch
+from shared.providers import search
+from shared.providers.search.azure_search import AzureSearch
+from shared.providers.search.base import BaseSearch
 from shared.settings import AppSettings, get_settings
 from shared.types import SearchResult
 

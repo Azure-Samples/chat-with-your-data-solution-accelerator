@@ -1,6 +1,6 @@
 ---
-description: "CWYD v2 shared + providers + pipelines conventions (registry primitive, settings, observability, types; LLM, embedders, parsers, search, chat history, orchestrators, credentials providers; ingestion + chat pipelines). Use when: editing v2/src/shared/**, v2/src/providers/**, or v2/src/pipelines/**; building an orchestrator; adding a tool; calling Foundry IQ; adding a search handler; adding an embedder; adding a chat history backend; defining the OrchestratorEvent contract; wiring async credentials."
-applyTo: "v2/src/{shared,providers,pipelines}/**"
+description: "CWYD v2 shared + providers + pipelines conventions (registry primitive, settings, observability, types; LLM, embedders, parsers, search, chat history, orchestrators, credentials providers; ingestion + chat pipelines). Use when: editing v2/src/shared/**, v2/src/shared/providers/**, or v2/src/shared/pipelines/**; building an orchestrator; adding a tool; calling Foundry IQ; adding a search handler; adding an embedder; adding a chat history backend; defining the OrchestratorEvent contract; wiring async credentials."
+applyTo: "v2/src/shared/**"
 ---
 
 # v2 Shared / Providers / Pipelines Conventions
@@ -16,14 +16,14 @@ v2/src/
   pipelines/     composed flows — ingestion.py, chat.py (NOT pluggable)
 ```
 
-`shared/` holds cross-cutting primitives only. `providers/` holds every swappable concern. `pipelines/` composes providers into flows. Do not introduce subfolders under `shared/<domain>/` for pluggable concerns — those belong under `providers/<domain>/`.
+`shared/` holds cross-cutting primitives only. `shared/providers/` holds every swappable concern. `shared/pipelines/` composes providers into flows. Do not introduce subfolders under `shared/<domain>/` for pluggable concerns — those belong under `shared/providers/<domain>/`.
 
 ## Pluggability contract (registry-first)
 
 The generic `Registry[T]` lives in `v2/src/shared/registry.py`. Every provider domain follows the same recipe:
 
 ```python
-# v2/src/providers/<domain>/__init__.py
+# v2/src/shared/providers/<domain>/__init__.py
 from shared.registry import Registry
 
 registry: Registry[Base<Domain>] = Registry("<domain>")
@@ -35,7 +35,7 @@ def create(key: str, **kwargs) -> Base<Domain>:
 ```
 
 ```python
-# v2/src/providers/<domain>/provider_a.py
+# v2/src/shared/providers/<domain>/provider_a.py
 from . import registry
 
 @registry.register("a")
@@ -53,7 +53,7 @@ Caller code is one line — `domain.create(settings.<key>, ...)`. **Forbidden:**
 
 ## Orchestrator contract
 
-`v2/src/providers/orchestrators/base.py` defines:
+`v2/src/shared/providers/orchestrators/base.py` defines:
 
 ```python
 class OrchestratorBase(ABC):
@@ -64,22 +64,22 @@ class OrchestratorBase(ABC):
 Every concrete orchestrator (`langgraph.py`, `agent_framework.py`):
 
 1. Inherits `OrchestratorBase`.
-2. Self-registers via `@registry.register("<key>")` against the registry exposed in `providers/orchestrators/__init__.py`.
+2. Self-registers via `@registry.register("<key>")` against the registry exposed in `shared/providers/orchestrators/__init__.py`.
 3. Emits events on channels: `reasoning`, `tool`, `answer`, `citation`, `error`. Never inline reasoning into `answer`.
 4. Pre-pipeline: content safety check on input. Post-pipeline: post-prompt formatting + content safety check on output. Both live in `v2/src/shared/tools/` (cross-cutting helpers, not registry providers).
 
 ## LLM provider (Foundry IQ)
 
-- Class `FoundryIQ` in `v2/src/providers/llm/foundry_iq.py`, registered as `@registry.register("foundry_iq")` against `providers/llm/__init__.py`.
-- Inherits `BaseLLMProvider` (`v2/src/providers/llm/base.py`).
+- Class `FoundryIQ` in `v2/src/shared/providers/llm/foundry_iq.py`, registered as `@registry.register("foundry_iq")` against `shared/providers/llm/__init__.py`.
+- Inherits `BaseLLMProvider` (`v2/src/shared/providers/llm/base.py`).
 - Methods: `chat(...)`, `chat_stream(...)`, `embed(...)`, `reason(...)` (o-series; routes to a reasoning deployment).
 - Constructor takes `AppSettings` and a `TokenCredential`. Never reads env vars directly.
 - `reason()` yields `OrchestratorEvent(channel="reasoning", ...)` and `OrchestratorEvent(channel="answer", ...)` separately.
 
 ## Credentials provider
 
-- `v2/src/providers/credentials/managed_identity.py` registered as `"managed_identity"` (returns `DefaultAzureCredential`).
-- `v2/src/providers/credentials/cli.py` registered as `"cli"` (returns `AzureCliCredential`).
+- `v2/src/shared/providers/credentials/managed_identity.py` registered as `"managed_identity"` (returns `DefaultAzureCredential`).
+- `v2/src/shared/providers/credentials/cli.py` registered as `"cli"` (returns `AzureCliCredential`).
 - Selected via `AppSettings.identity.client_id` presence (deployed Managed Identity has it set) or explicit setting.
 - Async: prefer `azure.identity.aio.DefaultAzureCredential` for use in async clients.
 
@@ -90,14 +90,14 @@ Every concrete orchestrator (`langgraph.py`, `agent_framework.py`):
 
 ## Search providers
 
-- `v2/src/providers/search/azure_search.py` (registered `"azure_search"`) and `v2/src/providers/search/pgvector.py` (registered `"pgvector"`) implement `BaseSearch` (`v2/src/providers/search/base.py`) with `async def search(query, top_k, filters) -> list[SearchResult]`.
+- `v2/src/shared/providers/search/azure_search.py` (registered `"azure_search"`) and `v2/src/shared/providers/search/pgvector.py` (registered `"pgvector"`) implement `BaseSearch` (`v2/src/shared/providers/search/base.py`) with `async def search(query, top_k, filters) -> list[SearchResult]`.
 - `SearchResult` is a Pydantic model in `v2/src/shared/types.py` with `id`, `content`, `score`, `metadata`.
 - Selected at runtime via `search.create(settings.database.index_store, ...)`.
 
 ## Chat history providers
 
-- `v2/src/providers/chat_history/cosmosdb.py` (registered `"cosmosdb"`) and `v2/src/providers/chat_history/postgres.py` (registered `"postgres"`) implement `BaseChatHistory` (CRUD + feedback). Async only.
-- Selected at runtime via `chat_history.create(settings.database.db_type, ...)`.
+- `v2/src/shared/providers/databases/cosmosdb.py` (registered `"cosmosdb"`) and `v2/src/shared/providers/databases/postgres.py` (registered `"postgres"`) implement `BaseChatHistory` (CRUD + feedback). Async only.
+- Selected at runtime via `databases.create(settings.database.db_type, ...)`.
 
 ## Settings
 
@@ -106,7 +106,7 @@ Every concrete orchestrator (`langgraph.py`, `agent_framework.py`):
 
 ## Banned
 
-- `from openai import …` anywhere in `v2/src/{shared,providers,pipelines}/**`.
+- `from openai import …` anywhere in `v2/src/shared/**`.
 - `semantic_kernel`, `promptflow`.
 - Module-level `client = SomeClient(...)`.
 - Sync DB drivers (`psycopg2` for runtime paths, blocking `azure.cosmos.CosmosClient`). `psycopg2-binary` is acceptable for migration scripts only.

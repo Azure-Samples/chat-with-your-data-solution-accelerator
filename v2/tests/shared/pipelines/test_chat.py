@@ -5,8 +5,8 @@ from typing import Any, AsyncIterator, Sequence
 
 import pytest
 
-from pipelines.chat import run_chat
-from providers.orchestrators.base import OrchestratorBase
+from shared.pipelines.chat import run_chat
+from shared.providers.orchestrators.base import OrchestratorBase
 from shared.tools.content_safety import ContentSafetyVerdict
 from shared.tools.post_prompt import ValidationResult
 from shared.types import ChatMessage, OrchestratorEvent

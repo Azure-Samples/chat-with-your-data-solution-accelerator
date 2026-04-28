@@ -9,8 +9,8 @@ import pytest
 
 from backend.app import create_app
 from backend.dependencies import get_app_settings, get_llm_provider
-from providers import orchestrators
-from providers.orchestrators.base import OrchestratorBase
+from shared.providers import orchestrators
+from shared.providers.orchestrators.base import OrchestratorBase
 from shared.types import ChatMessage, OrchestratorEvent
 
 # ---------------------------------------------------------------------------
@@ -222,7 +222,7 @@ async def test_router_routes_through_chat_pipeline(
     calls: list[dict[str, Any]] = []
 
     from backend.routers import conversation as conv_module
-    from pipelines import chat as chat_pipeline
+    from shared.pipelines import chat as chat_pipeline
 
     real_run_chat = chat_pipeline.run_chat
 
