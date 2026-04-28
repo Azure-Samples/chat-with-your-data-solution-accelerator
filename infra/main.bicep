@@ -1434,6 +1434,7 @@ module function 'modules/app/function.bicep' = {
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    vnetContentShareEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
     appSettings: union(
