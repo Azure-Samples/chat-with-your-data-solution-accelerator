@@ -22,6 +22,7 @@ from fastapi import Depends, Request
 
 from providers.credentials.base import BaseCredentialProvider
 from providers.llm.base import BaseLLMProvider
+from providers.search.base import BaseSearch
 from shared.settings import AppSettings, get_settings
 
 
@@ -66,11 +67,29 @@ def get_llm_provider(request: Request) -> BaseLLMProvider:
 LLMProviderDep = Annotated[BaseLLMProvider, Depends(get_llm_provider)]
 
 
+def get_search_provider(request: Request) -> BaseSearch | None:
+    """Return the optional search provider stashed on `app.state` at startup.
+
+    Returns ``None`` when no search backend is configured -- the chat
+    orchestrators (`langgraph`, `agent_framework`) treat search as
+    optional and fall back to pass-through retrieval. Lifespan
+    constructs `app.state.search_provider` only when
+    `settings.search.endpoint` is populated; tests can override this
+    dependency directly via `app.dependency_overrides`.
+    """
+    return getattr(request.app.state, "search_provider", None)
+
+
+SearchProviderDep = Annotated[BaseSearch | None, Depends(get_search_provider)]
+
+
 __all__ = [
     "CredentialProviderDep",
     "LLMProviderDep",
+    "SearchProviderDep",
     "SettingsDep",
     "get_app_settings",
     "get_credential_provider",
     "get_llm_provider",
+    "get_search_provider",
 ]
