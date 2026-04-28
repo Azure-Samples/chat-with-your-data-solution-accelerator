@@ -37,8 +37,10 @@ param clientAffinityEnabled bool = true
 param appServiceEnvironmentResourceId string?
 
 import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
-@description('Optional. The managed identity definition for this resource.')
-param managedIdentities managedIdentityAllType?
+@description('Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity.')
+param managedIdentities managedIdentityAllType = {
+  systemAssigned: true
+}
 
 @description('Optional. The resource ID of the assigned identity to be used to access a key vault with.')
 param keyVaultAccessIdentityResourceId string?
