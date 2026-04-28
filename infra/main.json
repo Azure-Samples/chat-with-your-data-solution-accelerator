@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "7917528723591220424"
+      "templateHash": "11227085249942350248"
     }
   },
   "parameters": {
@@ -702,7 +702,7 @@
       "apiVersion": "2025-04-01",
       "name": "default",
       "properties": {
-        "tags": "[union(variables('existingTags'), variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'), 'SecurityControl', 'Ignore'))]"
+        "tags": "[union(variables('existingTags'), variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy')))]"
       }
     },
     "avmTelemetry": {
@@ -776,7 +776,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "10505014921320408169"
+              "templateHash": "9098946313286116864"
             }
           },
           "definitions": {
@@ -1060,7 +1060,38 @@
                   "privateLinkServiceNetworkPolicies": "Disabled",
                   "networkSecurityGroup": {
                     "name": "nsg-peps",
-                    "securityRules": []
+                    "securityRules": [
+                      {
+                        "name": "AllowWebSubnetInbound",
+                        "properties": {
+                          "access": "Allow",
+                          "direction": "Inbound",
+                          "priority": 100,
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefixes": [
+                            "10.0.0.0/23"
+                          ],
+                          "destinationAddressPrefixes": [
+                            "10.0.2.0/23"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "AllowVNetInbound",
+                        "properties": {
+                          "access": "Allow",
+                          "direction": "Inbound",
+                          "priority": 200,
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "VirtualNetwork"
+                        }
+                      }
+                    ]
                   }
                 },
                 {
@@ -37793,14 +37824,14 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
-          "ipSecurityRestrictions": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', 'DenyAllPublicAccess', 'description', 'Deny public access. Use private endpoint.', 'action', 'Deny', 'priority', 100, 'ipAddress', '0.0.0.0/0'))), createObject('value', createArray()))]",
+          "ipSecurityRestrictions": "[if(and(parameters('enablePrivateNetworking'), equals(parameters('hostingModel'), 'container')), createObject('value', createArray(createObject('name', 'DenyAllPublicAccess', 'description', 'Deny public access to API endpoint.', 'action', 'Deny', 'priority', 100, 'ipAddress', '0.0.0.0/0'))), createObject('value', createArray()))]",
           "scmIpSecurityRestrictions": {
             "value": []
           },
           "scmIpSecurityRestrictionsUseMain": {
             "value": false
           },
-          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'customNetworkInterfaceName', format('nic-{0}', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').azureWebsites)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('virtualNetwork').outputs.pepsSubnetResourceId.value))), createObject('value', createArray()))]",
+          "privateEndpoints": "[if(and(parameters('enablePrivateNetworking'), equals(parameters('hostingModel'), 'container')), createObject('value', createArray(createObject('name', format('pep-{0}', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'customNetworkInterfaceName', format('nic-{0}', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').azureWebsites)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('virtualNetwork').outputs.pepsSubnetResourceId.value))), createObject('value', createArray()))]",
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'BACKEND_URL', variables('backendUrl'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           }
@@ -37813,7 +37844,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "579857106859534555"
+              "templateHash": "12424573526045346163"
             }
           },
           "parameters": {
@@ -38084,7 +38115,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "17498839439506952033"
+                      "templateHash": "14045360282106151326"
                     }
                   },
                   "parameters": {
@@ -54619,8 +54650,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "virtualNetwork"

@@ -1439,7 +1439,7 @@ module function 'modules/app/function.bicep' = {
     // publicNetworkAccess stays Enabled, but ipSecurityRestrictions blocks public traffic to the main site
     publicNetworkAccess: 'Enabled'
     // Block all public access to the main site (API)
-    ipSecurityRestrictions: enablePrivateNetworking
+    ipSecurityRestrictions: (enablePrivateNetworking && hostingModel == 'container')
       ? [
           {
             name: 'DenyAllPublicAccess'
