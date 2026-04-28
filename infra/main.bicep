@@ -624,6 +624,7 @@ var privateDnsZones = [
   'privatelink.openai.azure.com'
   'privatelink.vaultcore.azure.net'
   'privatelink.api.azureml.ms'
+  'privatelink.azurewebsites.net'
 ]
 
 // DNS Zone Index Constants
@@ -638,6 +639,7 @@ var dnsZoneIndex = {
   openAI: 7
   keyVault: 8
   machinelearning: 9
+  azureWebsites: 10 // 'privatelink.azurewebsites.net'
 }
 
 // ===================================================
@@ -1435,7 +1437,42 @@ module function 'modules/app/function.bicep' = {
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: 'Enabled' // Always enabling public network access
+    // WAF: Use IP restrictions to block public API access while allowing SCM for deployments
+    // publicNetworkAccess stays Enabled, but ipSecurityRestrictions blocks public traffic to the main site
+    publicNetworkAccess: 'Enabled'
+    // Block all public access to the main site (API)
+    ipSecurityRestrictions: enablePrivateNetworking
+      ? [
+          {
+            name: 'DenyAllPublicAccess'
+            description: 'Deny public access to API endpoint.'
+            action: 'Deny'
+            priority: 100
+            ipAddress: '0.0.0.0/0'
+          }
+        ]
+      : []
+    // SCM restrictions: Keep empty to allow deployments from any location (or restrict to specific IPs if needed)
+    scmIpSecurityRestrictions: []
+    // Do NOT inherit main site restrictions for SCM - this allows deployments while API is private
+    scmIpSecurityRestrictionsUseMain: false
+    privateEndpoints: (enablePrivateNetworking && hostingModel == 'container')
+      ? [
+          {
+            name: 'pep-${hostingModel == 'container' ? '${functionName}-docker' : functionName}'
+            customNetworkInterfaceName: 'nic-${hostingModel == 'container' ? '${functionName}-docker' : functionName}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.azureWebsites]!.outputs.resourceId
+                }
+              ]
+            }
+            service: 'sites'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+          }
+        ]
+      : []
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName

@@ -635,7 +635,8 @@
       "privatelink.cognitiveservices.azure.com",
       "privatelink.openai.azure.com",
       "privatelink.vaultcore.azure.net",
-      "privatelink.api.azureml.ms"
+      "privatelink.api.azureml.ms",
+      "privatelink.azurewebsites.net"
     ],
     "dnsZoneIndex": {
       "cosmosDB": 0,
@@ -647,7 +648,8 @@
       "cognitiveServices": 6,
       "openAI": 7,
       "keyVault": 8,
-      "machinelearning": 9
+      "machinelearning": 9,
+      "azureWebsites": 10
     },
     "cosmosDbName": "db_conversation_history",
     "cosmosDbContainerName": "conversations",
@@ -700,7 +702,7 @@
       "apiVersion": "2025-04-01",
       "name": "default",
       "properties": {
-        "tags": "[union(variables('existingTags'), variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy')))]"
+        "tags": "[union(variables('existingTags'), variables('allTags'), createObject('TemplateName', 'CWYD', 'CreatedBy', parameters('createdBy'), 'SecurityControl', 'Ignore'))]"
       }
     },
     "avmTelemetry": {
@@ -1013,6 +1015,36 @@
                           "destinationPortRange": "*",
                           "sourceAddressPrefix": "AzureLoadBalancer",
                           "destinationAddressPrefix": "10.0.0.0/23"
+                        }
+                      },
+                      {
+                        "name": "AllowOutboundToPrivateEndpoints",
+                        "properties": {
+                          "access": "Allow",
+                          "direction": "Outbound",
+                          "priority": 100,
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefixes": [
+                            "10.0.0.0/23"
+                          ],
+                          "destinationAddressPrefixes": [
+                            "10.0.2.0/23"
+                          ]
+                        }
+                      },
+                      {
+                        "name": "AllowOutboundToVNet",
+                        "properties": {
+                          "access": "Allow",
+                          "direction": "Outbound",
+                          "priority": 200,
+                          "protocol": "*",
+                          "sourcePortRange": "*",
+                          "destinationPortRange": "*",
+                          "sourceAddressPrefix": "VirtualNetwork",
+                          "destinationAddressPrefix": "VirtualNetwork"
                         }
                       }
                     ]
@@ -37727,6 +37759,14 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
+          "ipSecurityRestrictions": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', 'DenyAllPublicAccess', 'description', 'Deny public access. Use private endpoint.', 'action', 'Deny', 'priority', 100, 'ipAddress', '0.0.0.0/0'))), createObject('value', createArray()))]",
+          "scmIpSecurityRestrictions": {
+            "value": []
+          },
+          "scmIpSecurityRestrictionsUseMain": {
+            "value": false
+          },
+          "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'customNetworkInterfaceName', format('nic-{0}', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').azureWebsites)).outputs.resourceId.value))), 'service', 'sites', 'subnetResourceId', reference('virtualNetwork').outputs.pepsSubnetResourceId.value))), createObject('value', createArray()))]",
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'BACKEND_URL', variables('backendUrl'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions'), 'APPLICATIONINSIGHTS_ENABLED', if(parameters('enableMonitoring'), 'true', 'false')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           }
@@ -37894,6 +37934,27 @@
               "metadata": {
                 "description": "Optional. Whether or not public network access is allowed for this resource. For security reasons it should be disabled when using private endpoints."
               }
+            },
+            "ipSecurityRestrictions": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. IP security restrictions for the main site. Use to restrict access to specific IPs/subnets while keeping SCM accessible."
+              }
+            },
+            "scmIpSecurityRestrictions": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Optional. IP security restrictions for the SCM site. Use to control deployment access separately from the main site."
+              }
+            },
+            "scmIpSecurityRestrictionsUseMain": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Whether to use the same restrictions for SCM as for the main site."
+              }
             }
           },
           "variables": {
@@ -37971,7 +38032,16 @@
                   "diagnosticSettings": {
                     "value": "[parameters('diagnosticSettings')]"
                   },
-                  "publicNetworkAccess": "[if(empty(parameters('publicNetworkAccess')), createObject('value', null()), createObject('value', parameters('publicNetworkAccess')))]"
+                  "publicNetworkAccess": "[if(empty(parameters('publicNetworkAccess')), createObject('value', null()), createObject('value', parameters('publicNetworkAccess')))]",
+                  "ipSecurityRestrictions": {
+                    "value": "[parameters('ipSecurityRestrictions')]"
+                  },
+                  "scmIpSecurityRestrictions": {
+                    "value": "[parameters('scmIpSecurityRestrictions')]"
+                  },
+                  "scmIpSecurityRestrictionsUseMain": {
+                    "value": "[parameters('scmIpSecurityRestrictionsUseMain')]"
+                  }
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -38244,6 +38314,27 @@
                       "metadata": {
                         "description": "Optional. Whether or not public network access is allowed for this resource. For security reasons it should be disabled when using private endpoints."
                       }
+                    },
+                    "ipSecurityRestrictions": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. IP security restrictions for the main site. Use to restrict access to specific IPs/subnets while keeping SCM accessible."
+                      }
+                    },
+                    "scmIpSecurityRestrictions": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Optional. IP security restrictions for the SCM site. Use to control deployment access separately from the main site."
+                      }
+                    },
+                    "scmIpSecurityRestrictionsUseMain": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Optional. Whether to use the same restrictions for SCM as for the main site."
+                      }
                     }
                   },
                   "variables": {
@@ -38292,7 +38383,10 @@
                               },
                               "healthCheckPath": "[parameters('healthCheckPath')]",
                               "minTlsVersion": "1.2",
-                              "ftpsState": "FtpsOnly"
+                              "ftpsState": "FtpsOnly",
+                              "ipSecurityRestrictions": "[if(not(empty(parameters('ipSecurityRestrictions'))), parameters('ipSecurityRestrictions'), null())]",
+                              "scmIpSecurityRestrictions": "[if(not(empty(parameters('scmIpSecurityRestrictions'))), parameters('scmIpSecurityRestrictions'), null())]",
+                              "scmIpSecurityRestrictionsUseMain": "[parameters('scmIpSecurityRestrictionsUseMain')]"
                             }
                           },
                           "serverFarmResourceId": {
@@ -40269,6 +40363,7 @@
         }
       },
       "dependsOn": [
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').azureWebsites)]",
         "computerVision",
         "contentsafety",
         "formrecognizer",
