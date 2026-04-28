@@ -48,7 +48,11 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         *,
         agents_client: "AgentsClient",
         agent_id: str,
+        **_extras: object,
     ) -> None:
+        # `**_extras` swallows kwargs the router passes uniformly to every
+        # orchestrator (e.g. `search` for `langgraph`). Avoids name-based
+        # dispatch in the caller (Hard Rule #4).
         super().__init__(settings, llm)
         if not agent_id:
             raise ValueError(

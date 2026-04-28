@@ -22,9 +22,11 @@ class _FakeOrchestrator(OrchestratorBase):
     """Yields a scripted sequence of events on each ``run()``."""
 
     scripted: list[OrchestratorEvent] = []
+    last_kwargs: dict[str, Any] = {}
 
-    def __init__(self, settings: Any, llm: Any) -> None:  # noqa: D401
+    def __init__(self, settings: Any, llm: Any, **extras: Any) -> None:  # noqa: D401
         super().__init__(settings, llm)
+        type(self).last_kwargs = dict(extras)
 
     async def run(  # type: ignore[override]
         self,
@@ -39,7 +41,7 @@ class _FakeOrchestrator(OrchestratorBase):
 class _BoomOrchestrator(OrchestratorBase):
     """Raises mid-stream to exercise the SSE error channel."""
 
-    def __init__(self, settings: Any, llm: Any) -> None:
+    def __init__(self, settings: Any, llm: Any, **_extras: Any) -> None:
         super().__init__(settings, llm)
 
     async def run(  # type: ignore[override]
@@ -170,6 +172,29 @@ async def test_empty_messages_returns_422(app_with_fakes) -> None:
     async with _client(app_with_fakes) as client:
         resp = await client.post("/api/conversation", json={"messages": []})
     assert resp.status_code == 422
+
+
+async def test_router_forwards_search_provider_to_orchestrator(
+    app_with_fakes,
+) -> None:
+    """Phase 3.5 Q6c: chat route must pass the DI'd search provider into
+    orchestrator construction so production langgraph runs in retrieval mode."""
+    from backend.dependencies import get_search_provider
+
+    sentinel_search = object()
+    app_with_fakes.dependency_overrides[get_search_provider] = lambda: sentinel_search
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert _FakeOrchestrator.last_kwargs.get("search") is sentinel_search
 
 
 async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> None:

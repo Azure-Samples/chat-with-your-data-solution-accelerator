@@ -6,6 +6,23 @@ Scope: current `v2/` code, tests, infrastructure, Docker assets, scripts, and re
 
 QA integrity note: after this report was first drafted, a local uncommitted edit was made to [Dockerfile.backend](../docker/Dockerfile.backend) during follow-up work. This report keeps the Dockerfile finding open until that implementation change is either accepted through the normal one-unit workflow and validated with a real Docker build, or reverted outside the QA report flow. No production code changes are required to maintain this report.
 
+## Phase 3.5 Re-Run Update — 2026-04-28 (post-remediation)
+
+The original findings below stand as the audit trail. Status after the Phase 3.5 remediation pass:
+
+| Finding | Original | Status |
+|---|---|---|
+| Q2 — Frontend prod build TS error (`App.tsx` JSX) | Blocker | ✅ Cleared (`npm run build` exit 0; vitest 20/20) |
+| Q3 — `frontend_app.py` missing | Blocker | ✅ Cleared (FastAPI + StaticFiles wrapper, 2 tests) |
+| Q4 — `azure.yaml services:` empty | Blocker | ✅ Cleared (3 services wired, YAML parses) |
+| Q5 — Compose env vars + required `.env.dev` | Blocker | ✅ Cleared (`compose config` exit 0 from clean checkout, both profiles) |
+| Q6 — Chat route doesn't pass search/tools to orchestrator | Blocker | ✅ Cleared (DI seam + lifespan construction + route forwards `search=`); Q6d (agent_framework 503 guard) deferred to Phase 4 task #28 (path unreachable today) |
+| Q7 — CI entrypoint masked failures with `\|\| true` | Blocker | ✅ Cleared (masks removed) |
+| Q1 — Docker build verify (`Dockerfile.backend`) | Blocker | ⏸ Deferred (Docker Desktop unavailable) |
+| Q8 — Re-run all gates | Recommended | ✅ Done — backend pytest 186/186, frontend vitest 20/20, `npm run build` exit 0 (built in 630ms), `compose config` exit 0 for both profiles, registry-dispatch grep gate 0 hits (refined to skip explicit `# noqa: registry-dispatch` markers on `health.py` diagnostic + `settings.py` validator), `azure.yaml` parses |
+
+Re-run verdict: **6 of 7 deployability blockers cleared; Q1 (Docker build) remains the only gate not yet exercised.** Tests went from 179/179 baseline to 186/186 (+7 new tests across Q3, Q6a, Q6b, Q6c). Full ledger entries in [development_plan.md §0.1](development_plan.md#01-debt-queue) (rows Q2-Q8).
+
 ## Executive Summary
 
 CWYD v2 has a solid modular foundation: provider registries are in place, backend and frontend unit tests are green, and the Python test suite is substantial. However, the current state is not deployable end to end yet.

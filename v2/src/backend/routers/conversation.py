@@ -32,7 +32,7 @@ from typing import AsyncIterator
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
-from backend.dependencies import LLMProviderDep, SettingsDep
+from backend.dependencies import LLMProviderDep, SearchProviderDep, SettingsDep
 from backend.models.conversation import ConversationRequest, ConversationResponse
 from pipelines.chat import run_chat
 from providers import orchestrators
@@ -117,6 +117,7 @@ async def conversation(
     body: ConversationRequest,
     settings: SettingsDep,
     llm: LLMProviderDep,
+    search: SearchProviderDep,
     accept: str | None = Header(default=None),
 ) -> ConversationResponse | StreamingResponse:
     """Run the configured orchestrator and stream / buffer the result."""
@@ -124,6 +125,7 @@ async def conversation(
         settings.orchestrator.name,
         settings=settings,
         llm=llm,
+        search=search,
     )
 
     events = run_chat(body.messages, orchestrator=orchestrator)

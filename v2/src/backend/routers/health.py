@@ -50,8 +50,12 @@ def _check_foundry(settings: AppSettings) -> DependencyCheck:
 
 def _check_database(settings: AppSettings) -> DependencyCheck:
     db = settings.database
+    # Diagnostic display only -- picks which configured endpoint string to
+    # surface in the health payload. Not provider dispatch (no class
+    # instantiation, no behavior branch); chat-history provider selection
+    # goes through `chat_history.create(db.db_type, ...)` per Hard Rule #4.
     endpoint = (
-        db.cosmos_endpoint if db.db_type == "cosmosdb" else db.postgres_endpoint
+        db.cosmos_endpoint if db.db_type == "cosmosdb" else db.postgres_endpoint  # noqa: registry-dispatch -- diagnostic
     )
     if not endpoint:
         return DependencyCheck(

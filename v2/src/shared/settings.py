@@ -105,7 +105,11 @@ class DatabaseSettings(BaseSettings):
 
     @model_validator(mode="after")
     def _enforce_mode_consistency(self) -> "DatabaseSettings":
-        if self.db_type == "cosmosdb":
+        # Pydantic config-consistency validator. Not provider dispatch (no
+        # class instantiation, no behavior branch); registry callers always
+        # go through `chat_history.create(db_type, ...)` / `search.create(
+        # index_store, ...)` per Hard Rule #4.
+        if self.db_type == "cosmosdb":  # noqa: registry-dispatch -- config validator
             if not self.cosmos_endpoint:
                 raise ValueError(
                     "AZURE_DB_TYPE=cosmosdb requires AZURE_COSMOS_ENDPOINT to be set."

@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routers import conversation, health
-from providers import credentials, llm
+from providers import credentials, llm, search
 from shared.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -59,12 +59,41 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         "Providers ready (credentials=%s llm=foundry_iq).", cred_key
     )
 
+    # Optional search provider. Only construct when a backend is
+    # actually configured -- backend-only dev profile and tests boot
+    # without search wired, and `langgraph` falls back to pass-through
+    # retrieval when `app.state.search_provider` is None
+    # (see `providers/orchestrators/langgraph.py`). pgvector lands in
+    # Phase 4; until then only `AzureSearch` is supported.
+    search_provider = None
+    if (
+        settings.search.endpoint
+        and settings.database.index_store == "AzureSearch"
+    ):
+        search_provider = search.create(
+            "azure_search", settings=settings, credential=credential
+        )
+        logger.info("Search provider ready (azure_search).")
+    else:
+        logger.info(
+            "Search provider not configured (endpoint=%s, index_store=%s); "
+            "orchestrator will run in pass-through mode.",
+            bool(settings.search.endpoint),
+            settings.database.index_store,
+        )
+    app.state.search_provider = search_provider
+
     try:
         yield
     finally:
         # Close in reverse order of construction. `aclose()` on
         # FoundryIQ closes the lazily-built AIProjectClient if and only
         # if FoundryIQ owned it.
+        if search_provider is not None:
+            try:
+                await search_provider.aclose()
+            except Exception:  # noqa: BLE001 -- shutdown is best-effort
+                logger.exception("Error closing search provider.")
         try:
             await llm_provider.aclose()
         except Exception:  # noqa: BLE001 -- shutdown is best-effort

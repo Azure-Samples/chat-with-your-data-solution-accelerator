@@ -70,7 +70,11 @@ class LangGraphOrchestrator(OrchestratorBase):
         settings: "AppSettings",
         llm: "BaseLLMProvider",
         search: "BaseSearch | None" = None,
+        **_extras: object,
     ) -> None:
+        # `**_extras` swallows kwargs the router passes uniformly to every
+        # orchestrator (e.g. `agents_client`, `agent_id` for `agent_framework`).
+        # Avoids name-based dispatch in the caller (Hard Rule #4).
         super().__init__(settings, llm)
         self._search = search
         self._graph = self._build_graph()
