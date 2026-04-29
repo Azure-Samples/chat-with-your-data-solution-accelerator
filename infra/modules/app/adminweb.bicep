@@ -57,6 +57,9 @@ param diagnosticSettings array = []
 @description('Optional. To enable pulling image over Virtual Network.')
 param vnetImagePullEnabled bool = false
 
+@description('Optional. To enable accessing content over Virtual Network.')
+param vnetContentShareEnabled bool = false
+
 @description('Optional. Virtual Network Route All enabled.')
 param vnetRouteAllEnabled bool = false
 
@@ -68,7 +71,6 @@ param publicNetworkAccess string?
 
 @description('Optional. Configuration details for private endpoints.')
 param privateEndpoints array = []
-
 
 // Calculate the linuxFxVersion based on runtime or docker settings
 var linuxFxVersion = useDocker
@@ -122,6 +124,7 @@ module adminweb '../core/host/appservice.bicep' = {
     configs: appConfigs
     diagnosticSettings: diagnosticSettings
     vnetImagePullEnabled: vnetImagePullEnabled
+    vnetContentShareEnabled: vnetContentShareEnabled
     vnetRouteAllEnabled: vnetRouteAllEnabled
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
