@@ -58,6 +58,9 @@ param diagnosticSettings array = []
 @description('Optional. To enable pulling image over Virtual Network.')
 param vnetImagePullEnabled bool = false
 
+@description('Optional. To enable accessing content over Virtual Network.')
+param vnetContentShareEnabled bool = false
+
 @description('Optional. Virtual Network Route All enabled.')
 param vnetRouteAllEnabled bool = false
 
@@ -124,6 +127,7 @@ module web '../core/host/appservice.bicep' = {
     configs: appConfigs
     diagnosticSettings: diagnosticSettings
     vnetImagePullEnabled: vnetImagePullEnabled
+    vnetContentShareEnabled: vnetContentShareEnabled
     vnetRouteAllEnabled: vnetRouteAllEnabled
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess

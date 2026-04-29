@@ -1222,6 +1222,7 @@ module web 'modules/app/web.bicep' = {
     userAssignedIdentityResourceId: managedIdentityModule.outputs.resourceId
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    vnetContentShareEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
@@ -1409,6 +1410,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
     // WAF parameters
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
+    vnetContentShareEnabled: enablePrivateNetworking ? true : false
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
@@ -1434,6 +1436,7 @@ module function 'modules/app/function.bicep' = {
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : []
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
+    vnetContentShareEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
     appSettings: union(

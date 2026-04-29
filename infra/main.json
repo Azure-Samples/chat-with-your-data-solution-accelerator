@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "2250711427691307859"
+      "templateHash": "17330836752643719139"
     }
   },
   "parameters": {
@@ -33279,6 +33279,7 @@
           },
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', createArray()))]",
           "vnetRouteAllEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
+          "vnetContentShareEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
           "vnetImagePullEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
           "virtualNetworkSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.webSubnetResourceId.value), createObject('value', ''))]",
           "publicNetworkAccess": {
@@ -33297,7 +33298,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "8683679294545259497"
+              "templateHash": "12236308682752581177"
             }
           },
           "parameters": {
@@ -33436,6 +33437,13 @@
                 "description": "Optional. To enable pulling image over Virtual Network."
               }
             },
+            "vnetContentShareEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. To enable accessing content over Virtual Network."
+              }
+            },
             "vnetRouteAllEnabled": {
               "type": "bool",
               "defaultValue": false,
@@ -33527,6 +33535,9 @@
                   },
                   "vnetImagePullEnabled": {
                     "value": "[parameters('vnetImagePullEnabled')]"
+                  },
+                  "vnetContentShareEnabled": {
+                    "value": "[parameters('vnetContentShareEnabled')]"
                   },
                   "vnetRouteAllEnabled": {
                     "value": "[parameters('vnetRouteAllEnabled')]"
@@ -35502,6 +35513,7 @@
           "applicationInsightsName": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.applicationInsightsName.value), createObject('value', ''))]",
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', createArray()))]",
           "vnetImagePullEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
+          "vnetContentShareEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
           "vnetRouteAllEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
           "virtualNetworkSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.webSubnetResourceId.value), createObject('value', ''))]",
           "publicNetworkAccess": {
@@ -35516,7 +35528,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9592410913633598971"
+              "templateHash": "18093852877535318756"
             }
           },
           "parameters": {
@@ -35655,6 +35667,13 @@
                 "description": "Optional. To enable pulling image over Virtual Network."
               }
             },
+            "vnetContentShareEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. To enable accessing content over Virtual Network."
+              }
+            },
             "vnetRouteAllEnabled": {
               "type": "bool",
               "defaultValue": false,
@@ -35746,6 +35765,9 @@
                   },
                   "vnetImagePullEnabled": {
                     "value": "[parameters('vnetImagePullEnabled')]"
+                  },
+                  "vnetContentShareEnabled": {
+                    "value": "[parameters('vnetContentShareEnabled')]"
                   },
                   "vnetRouteAllEnabled": {
                     "value": "[parameters('vnetRouteAllEnabled')]"
@@ -37723,6 +37745,7 @@
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', createArray()))]",
           "virtualNetworkSubnetId": "[if(parameters('enablePrivateNetworking'), createObject('value', reference('virtualNetwork').outputs.webSubnetResourceId.value), createObject('value', ''))]",
           "vnetRouteAllEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
+          "vnetContentShareEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
           "vnetImagePullEnabled": "[if(parameters('enablePrivateNetworking'), createObject('value', true()), createObject('value', false()))]",
           "publicNetworkAccess": {
             "value": "Enabled"
@@ -53872,9 +53895,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
