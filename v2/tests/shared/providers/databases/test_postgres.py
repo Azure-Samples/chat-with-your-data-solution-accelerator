@@ -162,6 +162,19 @@ async def test_aclose_closes_pool() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ensure_pool_returns_pool_and_runs_schema() -> None:
+    """Public counterpart of `_ensure_pool`, used by pgvector DI (task #30)."""
+    pool, conn = _make_pool()
+    client = _make_client(pool=pool)
+    client._schema_ready = False  # type: ignore[attr-defined]
+
+    returned = await client.ensure_pool()
+    assert returned is pool
+    assert conn.execute.await_count == 1
+    assert "CREATE TABLE IF NOT EXISTS conversations" in conn.execute.await_args.args[0]
+
+
+@pytest.mark.asyncio
 async def test_first_use_runs_schema_then_skips_on_subsequent_calls() -> None:
     pool, conn = _make_pool()
     # Force schema_ready=False so bootstrap runs at least once.

@@ -125,9 +125,20 @@ class PostgresClient(BaseDatabaseClient):
         if self._pool is None:
             raise RuntimeError(
                 "PostgresClient pool is not initialized. Await any client "
-                "method (e.g. `list_conversations`) at least once first."
+                "method (e.g. `list_conversations`) at least once first, "
+                "or call `await client.ensure_pool()` explicitly."
             )
         return self._pool
+
+    async def ensure_pool(self) -> "asyncpg.Pool":
+        """Bootstrap the pool + schema and return it.
+
+        Public counterpart of the lazy `_ensure_pool()` used internally
+        by every CRUD method. The pgvector search provider (task #30)
+        calls this from `lifespan` so it can DI-inject a single pool
+        per process (per development plan \u00a74 task #30).
+        """
+        return await self._ensure_pool()
 
     async def _password_provider(self) -> str:
         """asyncpg-compatible async callable that returns a fresh AAD

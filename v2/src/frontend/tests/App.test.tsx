@@ -45,7 +45,9 @@ describe("App", () => {
     ) as typeof fetch;
     render(<App />);
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent(/HTTP 503/);
+      // Scope to the health element -- the history panel also renders
+      // an alert when its own /api/history calls fail.
+      expect(screen.getByTestId("health")).toHaveTextContent(/HTTP 503/);
     });
   });
 });

@@ -30,7 +30,7 @@ registry: Registry[type[BaseSearch]] = Registry("search")
 
 # Side-effect imports (eager, one line per concrete provider).
 from . import azure_search  # noqa: E402, F401
-# Future: from . import pgvector  # noqa: E402, F401
+from . import pgvector  # noqa: E402, F401
 
 
 def create(key: str, **kwargs: object) -> BaseSearch:

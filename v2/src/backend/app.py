@@ -24,7 +24,7 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import conversation, health
+from backend.routers import conversation, health, history
 from shared.providers import credentials, databases, llm, search
 from shared.settings import get_settings
 
@@ -145,6 +145,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(conversation.router)
+    app.include_router(history.router)
     return app
 
 
