@@ -6,6 +6,31 @@ Scope: current `v2/` code, tests, infrastructure, Docker assets, scripts, and re
 
 QA integrity note: after this report was first drafted, a local uncommitted edit was made to [Dockerfile.backend](../docker/Dockerfile.backend) during follow-up work. This report keeps the Dockerfile finding open until that implementation change is either accepted through the normal one-unit workflow and validated with a real Docker build, or reverted outside the QA report flow. No production code changes are required to maintain this report.
 
+## Project Consistency Blocker Addendum - 2026-04-29
+
+Current blocker: v2 source code is testing clean, but the surrounding QA/deployment guidance still mixes current v2 decisions with legacy v1 automation assumptions. This can cause future agents or CI runs to validate the wrong product shape even when the runtime code is correct.
+
+### Blocker B1 - v2 Source Of Truth Drift
+
+| Area | Evidence | Impact | Status |
+|---|---|---|---|
+| Repo memory | `/memories/repo/cwyd-tech-stack.md` contained v1-biased stack details such as separate admin app, Poetry, Streamlit-era admin shape, direct OpenAI SDK, and Key Vault app-secret patterns. | Agents are instructed to treat repo memory as current stack truth, so stale memory can reintroduce banned or removed v2 concepts. | Immediate mitigation complete: a 2026-04-29 v2 truth block now appears at the top of repo memory and explicitly overrides the historical notes below it. |
+| v2-labeled deployment workflows | [deploy-v2.yml](../../.github/workflows/deploy-v2.yml), [deploy-orchestrator.yml](../../.github/workflows/deploy-orchestrator.yml), [job-deploy-linux.yml](../../.github/workflows/job-deploy-linux.yml), and [job-deploy-windows.yml](../../.github/workflows/job-deploy-windows.yml) still expect a separate admin URL / `ADMIN_WEBSITE_NAME`. | Conflicts with the v2 decision that admin is merged into the frontend SPA and can make deployment validation fail or validate a v1 topology. | Open. Requires a dedicated workflow remediation work order. |
+| Root validation workflows | [tests.yml](../../.github/workflows/tests.yml), [build-docker-images.yml](../../.github/workflows/build-docker-images.yml), and [ci.yml](../../.github/workflows/ci.yml) remain scoped around `code/**`, root Dockerfiles, Poetry/root make targets, or v1 URL extraction. | Pull requests can appear validated while v2 `uv`, Vite, `v2/azure.yaml`, `v2/infra`, and `v2/docker` paths are not the primary gates. | Open. Requires CI strategy alignment before treating workflow green as v2 release evidence. |
+| Validation image behavior | [Dockerfile.functions](../docker/Dockerfile.functions#L17) masks dependency sync failure with `|| true`; [Dockerfile.ci-validate](../docker/Dockerfile.ci-validate#L29) allows Bicep install failure; [ci-entrypoint.sh](../docker/ci-entrypoint.sh#L30) keeps ruff optional. | Build or quality failures can be hidden, leaving false-green validation risk. | Open. Treat as a deployability/quality gate remediation item. |
+
+### QA Decision
+
+This is a blocker for release confidence, not for continuing small implementation units. Runtime source can continue moving forward one unit at a time, but any claim that v2 is deployment-ready must remain blocked until the workflow and validation surfaces prove the v2 topology instead of the v1/root topology.
+
+### Recommended Next Work Orders
+
+| Priority | Unit | Acceptance |
+|---|---|---|
+| 1 | Align v2 workflow path filters and test/build commands with `v2/` | CI runs Python tests via `uv` from `v2`, frontend tests/build from `v2/src/frontend`, and no longer depends on Poetry/root `code/**` gates for v2 confidence. |
+| 2 | Remove separate admin app assumptions from v2 deployment workflows | v2 workflows stop requiring `existing_admin_app_url`, `ADMIN_APPURL`, and `ADMIN_WEBSITE_NAME`; frontend/admin validation targets the unified SPA. |
+| 3 | Tighten false-green Docker/CI gates | Function dependency install, Bicep installation/validation, and selected lint gates fail loudly when required for the validation image. |
+
 ## Phase 3.5 Re-Run Update — 2026-04-28 (post-remediation)
 
 The original findings below stand as the audit trail. Status after the Phase 3.5 remediation pass:
