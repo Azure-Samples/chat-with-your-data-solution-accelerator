@@ -11,14 +11,15 @@ Hard Rule #4).
 Recipe (per development_plan.md \u00a73.5):
 
     handler = search.create(
-        settings.database.index_store.lower(),
+        settings.database.index_store,
         settings=settings,
         credential=credential,
     )
     hits = await handler.search("ping")
 
-`pgvector` lands in Phase 4 (task #30); the eager-import line is
-reserved below until then.
+The registry key MUST equal the `settings.database.index_store` Literal
+value (`AzureSearch` / `pgvector`) so dispatch never goes through a
+name-string translation (Hard Rule #4).
 """
 from __future__ import annotations
 

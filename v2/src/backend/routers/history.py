@@ -1,15 +1,18 @@
 """Chat-history router.
 
 Pillar: Stable Core
-Phase: 4 (task #31)
+Phase: 4 (task #31; hardened in #32b)
 
 Thin REST surface over the registered ``BaseDatabaseClient``
 (``cosmosdb`` or ``postgresql`` -- selected at startup, see
 ``backend/app.py::_lifespan``). All routes are tenant-scoped: the
 ``user_id`` is derived from the Easy Auth client-principal header
 (``x-ms-client-principal-id``) so each request is naturally isolated
-to its caller. Local dev requests without the header fall back to a
-single ``"local-dev"`` user so the panel stays interactive.
+to its caller. When the header is missing we **only** fall back to a
+single ``"local-dev"`` partition if ``AZURE_ENVIRONMENT=local``
+(default for clean checkouts); production deployments raise ``401``
+instead, so a misconfigured Easy Auth never silently merges every
+caller into one tenant (see audit B1's sibling H1).
 
 Routes
 ------
@@ -46,17 +49,28 @@ _LOCAL_DEV_USER = "local-dev"
 _PRINCIPAL_ID_HEADER = "x-ms-client-principal-id"
 
 
-def get_user_id(request: Request) -> str:
+def get_user_id(request: Request, settings: SettingsDep) -> str:
     """Return the caller's user id.
 
     Reads the Azure App Service Easy Auth header
     ``x-ms-client-principal-id`` (the user's Entra object id). When
-    the header is absent (local dev, anonymous routes) we fall back
-    to a single ``"local-dev"`` partition so the chat-history panel
-    is still exercisable end-to-end.
+    the header is absent we fall back to a single ``"local-dev"``
+    partition **only** when ``settings.environment == "local"`` so
+    the chat-history panel is exercisable end-to-end during
+    development. In ``production`` a missing header raises
+    ``401 Unauthorized`` -- a misconfigured Easy Auth must fail
+    closed, never silently fold every anonymous caller into the
+    ``local-dev`` partition.
     """
     value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
-    return value or _LOCAL_DEV_USER
+    if value:
+        return value
+    if settings.environment == "local":
+        return _LOCAL_DEV_USER
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Missing client principal; Easy Auth header required.",
+    )
 
 
 UserIdDep = Annotated[str, Depends(get_user_id)]

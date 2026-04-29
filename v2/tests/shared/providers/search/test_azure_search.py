@@ -66,8 +66,11 @@ def _settings_for_search(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
 
 
 def test_azure_search_is_registered() -> None:
-    assert "azure_search" in search.registry.keys()
-    assert search.registry.get("azure_search") is AzureSearch
+    # Registry is case-insensitive; the registration key is the
+    # `settings.database.index_store` Literal value "AzureSearch"
+    # (Hard Rule #4 -- registry key matches settings Literal).
+    assert "azuresearch" in search.registry.keys()
+    assert search.registry.get("AzureSearch") is AzureSearch
 
 
 def test_search_create_returns_azure_search_instance(
@@ -75,7 +78,7 @@ def test_search_create_returns_azure_search_instance(
 ) -> None:
     settings = _settings_for_search(monkeypatch)
     handler = search.create(
-        "azure_search",
+        "AzureSearch",
         settings=settings,
         credential=MagicMock(),
         client=_make_client(),

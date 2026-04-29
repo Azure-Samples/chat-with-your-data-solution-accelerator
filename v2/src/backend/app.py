@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -59,30 +59,6 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         "Providers ready (credentials=%s llm=foundry_iq).", cred_key
     )
 
-    # Optional search provider. Only construct when a backend is
-    # actually configured -- backend-only dev profile and tests boot
-    # without search wired, and `langgraph` falls back to pass-through
-    # retrieval when `app.state.search_provider` is None
-    # (see `providers/orchestrators/langgraph.py`). pgvector lands in
-    # Phase 4; until then only `AzureSearch` is supported.
-    search_provider = None
-    if (
-        settings.search.endpoint
-        and settings.database.index_store == "AzureSearch"
-    ):
-        search_provider = search.create(
-            "azure_search", settings=settings, credential=credential
-        )
-        logger.info("Search provider ready (azure_search).")
-    else:
-        logger.info(
-            "Search provider not configured (endpoint=%s, index_store=%s); "
-            "orchestrator will run in pass-through mode.",
-            bool(settings.search.endpoint),
-            settings.database.index_store,
-        )
-    app.state.search_provider = search_provider
-
     # Chat-history database. Always wired -- there is no "no-database"
     # mode in v2 (chat history is a Stable Core feature). The registry
     # key matches the `Literal` value of `settings.database.db_type`
@@ -96,21 +72,59 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.database_client = database_client
     logger.info("Database client ready (%s).", settings.database.db_type)
 
+    # Search provider: registry dispatches by `index_store` key
+    # (`AzureSearch` / `pgvector`). The two conditionals below are
+    # *configuration gates and dependency assembly*, NOT provider
+    # dispatch (which is the `search.create(search_key, ...)` call):
+    #   - `AzureSearch` without an endpoint stays disabled so the
+    #     backend-only dev profile still boots (orchestrators fall
+    #     back to pass-through retrieval when `app.state.search_provider`
+    #     is None -- see `providers/orchestrators/langgraph.py`).
+    #   - `pgvector` needs the postgres pool injected. The pool lives
+    #     on the database client and must be a single per-process
+    #     instance (see Phase 4 task #30); only the lifespan can
+    #     supply it.
+    search_key = settings.database.index_store
+    search_provider = None
+    needs_endpoint = search_key == "AzureSearch"
+    if needs_endpoint and not settings.search.endpoint:
+        logger.info(
+            "Search disabled (key=%s, no endpoint configured); "
+            "orchestrator will run in pass-through mode.",
+            search_key,
+        )
+    else:
+        search_kwargs: dict[str, Any] = {
+            "settings": settings,
+            "credential": credential,
+        }
+        if search_key == "pgvector":
+            # pgvector requires the postgres pool. `ensure_pool()` lives
+            # only on the postgres client; if the pgvector path is
+            # selected but the database client isn't postgres, the
+            # AttributeError surfaces the misconfiguration loudly
+            # instead of silently failing.
+            search_kwargs["pool"] = await database_client.ensure_pool()
+        search_provider = search.create(search_key, **search_kwargs)
+        logger.info("Search provider ready (%s).", search_key)
+    app.state.search_provider = search_provider
+
     try:
         yield
     finally:
-        # Close in reverse order of construction. `aclose()` on
-        # FoundryIQ closes the lazily-built AIProjectClient if and only
-        # if FoundryIQ owned it.
-        try:
-            await database_client.aclose()
-        except Exception:  # noqa: BLE001 -- shutdown is best-effort
-            logger.exception("Error closing database client.")
+        # Close in reverse order of construction. Search first because
+        # pgvector borrows the postgres pool owned by the database
+        # client -- closing the database client first would leave
+        # search with a dead pool to call `aclose()` on.
         if search_provider is not None:
             try:
                 await search_provider.aclose()
             except Exception:  # noqa: BLE001 -- shutdown is best-effort
                 logger.exception("Error closing search provider.")
+        try:
+            await database_client.aclose()
+        except Exception:  # noqa: BLE001 -- shutdown is best-effort
+            logger.exception("Error closing database client.")
         try:
             await llm_provider.aclose()
         except Exception:  # noqa: BLE001 -- shutdown is best-effort

@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 _DEFAULT_SELECT_FIELDS = ("id", "content", "title", "url")
 
 
-@registry.register("azure_search")
+@registry.register("AzureSearch")
 class AzureSearch(BaseSearch):
     def __init__(
         self,

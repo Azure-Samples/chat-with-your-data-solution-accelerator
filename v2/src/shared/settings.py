@@ -211,6 +211,16 @@ class AppSettings(BaseSettings):
     location: str = ""
     ai_service_location: str = ""
 
+    # Runtime mode. `local` is the default so a clean checkout boots
+    # without surprises; production deployments must set
+    # `AZURE_ENVIRONMENT=production` (set by `v2/infra/main.bicep`
+    # on the Container App env-vars).
+    #
+    # Stable Core code that branches on environment must use this
+    # field -- never sniff `os.getenv` ad-hoc -- so the value is
+    # type-checked at boot and centrally testable.
+    environment: Literal["local", "production"] = "local"
+
     identity: IdentitySettings = Field(default_factory=IdentitySettings)
     foundry: FoundrySettings = Field(default_factory=FoundrySettings)
     openai: OpenAISettings = Field(default_factory=OpenAISettings)

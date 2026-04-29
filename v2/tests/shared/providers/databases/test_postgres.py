@@ -190,6 +190,48 @@ async def test_first_use_runs_schema_then_skips_on_subsequent_calls() -> None:
 
 
 @pytest.mark.asyncio
+async def test_concurrent_ensure_pool_creates_pool_only_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """H3 hardening (#32c): TOCTOU race in `_ensure_pool` is closed.
+
+    Two coroutines hitting `_ensure_pool` simultaneously must NOT both
+    call `asyncpg.create_pool` -- the second one must observe the
+    first's pool under the `_init_lock`. Without the lock, both pass
+    the `is None` check and both create a pool, leaking one.
+    """
+    import asyncio
+
+    pool, conn = _make_pool()
+    create_calls = {"count": 0}
+
+    async def _fake_create_pool(**_kw: Any) -> MagicMock:
+        # Yield to the loop so a concurrent caller gets a chance to
+        # race past the `is None` check if the lock is missing.
+        create_calls["count"] += 1
+        await asyncio.sleep(0)
+        return pool
+
+    monkeypatch.setattr(
+        "shared.providers.databases.postgres.asyncpg.create_pool",
+        _fake_create_pool,
+    )
+
+    client = _make_client()  # no injected pool -> lazy path
+
+    results = await asyncio.gather(
+        client._ensure_pool(),  # type: ignore[attr-defined]
+        client._ensure_pool(),  # type: ignore[attr-defined]
+        client._ensure_pool(),  # type: ignore[attr-defined]
+    )
+
+    assert create_calls["count"] == 1
+    assert all(r is pool for r in results)
+    # Schema DDL also ran exactly once across the three concurrent calls.
+    assert conn.execute.await_count == 1
+
+
+@pytest.mark.asyncio
 async def test_password_provider_returns_token_from_credential() -> None:
     client = _make_client()
     token_obj = MagicMock()

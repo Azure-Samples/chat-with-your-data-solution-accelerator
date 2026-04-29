@@ -170,12 +170,109 @@ async def test_lifespan_dispatches_postgresql_db_type(
         captured_key["key"] = key
         client = MagicMock()
         client.aclose = AsyncMock()
+        client.ensure_pool = AsyncMock(return_value=MagicMock(name="pool"))
         return client
 
     monkeypatch.setattr("backend.app.databases.create", _capture)
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
 
     app = create_app()
     async with app.router.lifespan_context(app):
         pass
 
     assert captured_key["key"] == "postgresql"
+
+
+async def test_lifespan_wires_pgvector_with_postgres_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase 4 hardening (B1): pgvector dispatch + pool DI from postgres client.
+
+    `index_store=pgvector` must (1) register a search provider on app.state
+    via `search.create("pgvector", ...)` -- not be silently skipped -- and
+    (2) inject the postgres client's pool as the `pool=` kwarg so the
+    search provider and the database client share one pool per process.
+    """
+    env = {
+        **COSMOS_ENV,
+        "AZURE_DB_TYPE": "postgresql",
+        "AZURE_INDEX_STORE": "pgvector",
+        "AZURE_COSMOS_ENDPOINT": "",
+        "AZURE_AI_SEARCH_ENDPOINT": "",
+        "AZURE_POSTGRES_ENDPOINT": "postgresql://x.postgres.database.azure.com:5432/cwyd?sslmode=require",
+        "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME": "id-cwyd001",
+    }
+    _apply_env(monkeypatch, env)
+    _patched_lifespan(monkeypatch)
+
+    fake_pool = MagicMock(name="postgres_pool")
+    fake_db = MagicMock(name="postgres_client")
+    fake_db.aclose = AsyncMock()
+    fake_db.ensure_pool = AsyncMock(return_value=fake_pool)
+    monkeypatch.setattr(
+        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+    )
+
+    fake_search = MagicMock(name="pgvector_provider")
+    fake_search.aclose = AsyncMock()
+    captured: dict[str, object] = {}
+
+    def _capture_search(key, **kwargs):
+        captured["key"] = key
+        captured["kwargs"] = kwargs
+        return fake_search
+
+    monkeypatch.setattr("backend.app.search.create", _capture_search)
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.search_provider is fake_search
+
+    # Registry key must equal the settings index_store Literal value
+    # (Hard Rule #4) -- no name-string translation in dispatch.
+    assert captured["key"] == "pgvector"
+    # pgvector must receive the postgres pool via DI (single pool/process).
+    assert captured["kwargs"]["pool"] is fake_pool
+    fake_db.ensure_pool.assert_awaited_once()
+    fake_search.aclose.assert_awaited_once()
+
+
+async def test_lifespan_pgvector_does_not_require_search_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """pgvector mode must not be gated on `AZURE_AI_SEARCH_ENDPOINT`.
+
+    The `endpoint`-absent skip applies to `AzureSearch` only; pgvector
+    talks to postgres, not Azure AI Search.
+    """
+    env = {
+        **COSMOS_ENV,
+        "AZURE_DB_TYPE": "postgresql",
+        "AZURE_INDEX_STORE": "pgvector",
+        "AZURE_COSMOS_ENDPOINT": "",
+        "AZURE_AI_SEARCH_ENDPOINT": "",  # explicitly absent
+        "AZURE_POSTGRES_ENDPOINT": "postgresql://x.postgres.database.azure.com:5432/cwyd?sslmode=require",
+        "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME": "id-cwyd001",
+    }
+    _apply_env(monkeypatch, env)
+    _patched_lifespan(monkeypatch)
+
+    fake_db = MagicMock()
+    fake_db.aclose = AsyncMock()
+    fake_db.ensure_pool = AsyncMock(return_value=MagicMock())
+    monkeypatch.setattr(
+        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+    )
+
+    fake_search = MagicMock()
+    fake_search.aclose = AsyncMock()
+    monkeypatch.setattr(
+        "backend.app.search.create", lambda *_a, **_kw: fake_search
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.search_provider is fake_search

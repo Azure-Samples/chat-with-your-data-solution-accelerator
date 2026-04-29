@@ -112,7 +112,11 @@ class PostgresClient(BaseDatabaseClient):
         # an existing pool. Production path constructs lazily so no
         # connection opens at import.
         self._pool: "asyncpg.Pool | None" = pool
-        self._schema_lock = asyncio.Lock()
+        # Single lock guards both lazy pool construction AND the schema
+        # bootstrap. Two coroutines hitting `_ensure_pool` simultaneously
+        # would otherwise both pass the `is None` check and both call
+        # `asyncpg.create_pool`, leaking one pool. Hardened in #32c.
+        self._init_lock = asyncio.Lock()
         self._schema_ready = pool is not None
 
     # ------------------------------------------------------------------
@@ -148,43 +152,48 @@ class PostgresClient(BaseDatabaseClient):
         return token.token
 
     async def _ensure_pool(self) -> "asyncpg.Pool":
-        if self._pool is not None:
-            await self._ensure_schema()
+        # Fast path: pool already built and schema applied.
+        if self._pool is not None and self._schema_ready:
             return self._pool
-        cfg = self._settings.database
-        endpoint = cfg.postgres_endpoint
-        if not endpoint:
-            raise RuntimeError(
-                "AZURE_POSTGRES_ENDPOINT is not set. PostgresClient requires "
-                "a libpq URI from the Bicep deployment."
-            )
-        user = cfg.postgres_admin_principal_name
-        if not user:
-            raise RuntimeError(
-                "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME is not set. "
-                "PostgresClient requires the Entra principal name to "
-                "connect as."
-            )
-        self._pool = await asyncpg.create_pool(
-            dsn=endpoint,
-            user=user,
-            password=self._password_provider,
-            min_size=1,
-            max_size=10,
-        )
-        await self._ensure_schema()
+        # Slow path: serialize pool creation + schema bootstrap behind a
+        # single lock so concurrent first-use callers cannot race
+        # `asyncpg.create_pool` (TOCTOU) and leak a pool.
+        async with self._init_lock:
+            if self._pool is None:
+                cfg = self._settings.database
+                endpoint = cfg.postgres_endpoint
+                if not endpoint:
+                    raise RuntimeError(
+                        "AZURE_POSTGRES_ENDPOINT is not set. PostgresClient "
+                        "requires a libpq URI from the Bicep deployment."
+                    )
+                user = cfg.postgres_admin_principal_name
+                if not user:
+                    raise RuntimeError(
+                        "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME is not set. "
+                        "PostgresClient requires the Entra principal name "
+                        "to connect as."
+                    )
+                self._pool = await asyncpg.create_pool(
+                    dsn=endpoint,
+                    user=user,
+                    password=self._password_provider,
+                    min_size=1,
+                    max_size=10,
+                )
+            if not self._schema_ready:
+                async with self._pool.acquire() as conn:
+                    await conn.execute(_SCHEMA_SQL)
+                self._schema_ready = True
         return self._pool
 
     async def _ensure_schema(self) -> None:
+        # Retained as a thin wrapper for callers that already hold a
+        # bootstrapped pool (e.g. an externally-injected one). Routes
+        # through `_ensure_pool` so the same `_init_lock` is used.
         if self._schema_ready:
             return
-        async with self._schema_lock:
-            if self._schema_ready:
-                return
-            assert self._pool is not None
-            async with self._pool.acquire() as conn:
-                await conn.execute(_SCHEMA_SQL)
-            self._schema_ready = True
+        await self._ensure_pool()
 
     async def aclose(self) -> None:
         if self._pool is not None:

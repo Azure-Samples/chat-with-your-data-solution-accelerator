@@ -88,14 +88,38 @@ def test_get_user_id_reads_easy_auth_header() -> None:
         "type": "http",
         "headers": [(b"x-ms-client-principal-id", b"00000000-0000-0000-0000-000000000abc")],
     }
-    assert get_user_id(Request(scope)) == "00000000-0000-0000-0000-000000000abc"
+    # Header present -> environment is irrelevant; use a stub so the
+    # test does not require a fully-populated AZURE_* env.
+    settings = MagicMock(environment="production")
+    assert (
+        get_user_id(Request(scope), settings)
+        == "00000000-0000-0000-0000-000000000abc"
+    )
 
 
 def test_get_user_id_falls_back_to_local_dev_when_header_missing() -> None:
     from starlette.requests import Request
 
     scope: dict[str, Any] = {"type": "http", "headers": []}
-    assert get_user_id(Request(scope)) == "local-dev"
+    settings = MagicMock(environment="local")
+    assert get_user_id(Request(scope), settings) == "local-dev"
+
+
+def test_get_user_id_raises_401_in_production_when_header_missing() -> None:
+    """H1 hardening: production must fail closed.
+
+    A misconfigured Easy Auth in production must NOT silently fold
+    every anonymous caller into the ``local-dev`` partition. With
+    ``AZURE_ENVIRONMENT=production`` and no header, we raise 401.
+    """
+    from fastapi import HTTPException
+    from starlette.requests import Request
+
+    scope: dict[str, Any] = {"type": "http", "headers": []}
+    settings = MagicMock(environment="production")
+    with pytest.raises(HTTPException) as exc:
+        get_user_id(Request(scope), settings)
+    assert exc.value.status_code == 401
 
 
 # ---------------------------------------------------------------------------
