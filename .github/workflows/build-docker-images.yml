@@ -45,7 +45,7 @@ jobs:
 
       - name: Check for relevant changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             docker_related:

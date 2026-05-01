@@ -45,7 +45,7 @@ jobs:
           poetry install
       - name: Get coverage artifact ID
         id: coverage-artifact
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         if: github.event_name == 'pull_request'
         with:
           script: |

@@ -25,7 +25,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
       - name: Find associated pull request
         id: pr
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         if: ${{ github.event.workflow_run.pull_requests[0].number == null }}
         with:
           script: |
@@ -39,7 +39,7 @@ jobs:
             return response.data[0]?.number ?? "";
           retries: 3
       - name: Comment coverage
-        uses: MishaKav/pytest-coverage-comment@287292879eaaff04116f36d3eb1a670f6e5df1a4
+        uses: MishaKav/pytest-coverage-comment@dd5b80bde6d16941f336518e92929e89069d8451
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: coverage-junit.xml
