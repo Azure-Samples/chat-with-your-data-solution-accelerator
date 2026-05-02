@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Login to Azure for Sample Data Download
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -98,7 +98,7 @@ jobs:
           echo "✅ Sample data file downloaded to $SAMPLE_DATA_DIR"
 
       - name: Login to Azure for Sample Data Download
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
