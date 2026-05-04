@@ -5,6 +5,9 @@ from backend.batch.utilities.helpers.config.config_helper import ConfigHelper, C
 from backend.batch.utilities.helpers.config.embedding_config import EmbeddingConfig
 from backend.batch.utilities.document_chunking.chunking_strategy import ChunkingSettings
 from backend.batch.utilities.document_loading import LoadingSettings
+from backend.batch.utilities.orchestrator.orchestration_strategy import (
+    OrchestrationStrategy,
+)
 
 
 @pytest.fixture
@@ -483,6 +486,23 @@ def test_get_available_orchestration_strategies(config: Config):
     orchestration_strategies = config.get_available_orchestration_strategies()
 
     # then
+    # prompt_flow is intentionally hidden from the admin UI (the deployment
+    # pipeline does not provision the Azure ML workspace it depends on).
+    assert sorted(orchestration_strategies) == sorted(
+        ["openai_function", "langchain", "semantic_kernel"]
+    )
+
+
+def test_get_available_orchestration_strategies_keeps_prompt_flow_when_currently_selected(
+    config: Config,
+):
+    # given - existing deployment already has prompt_flow selected
+    config.orchestrator.strategy = OrchestrationStrategy.PROMPT_FLOW
+
+    # when
+    orchestration_strategies = config.get_available_orchestration_strategies()
+
+    # then - prompt_flow is surfaced so the admin selectbox remains valid
     assert sorted(orchestration_strategies) == sorted(
         ["openai_function", "langchain", "prompt_flow", "semantic_kernel"]
     )
