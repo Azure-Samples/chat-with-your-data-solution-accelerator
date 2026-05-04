@@ -85,18 +85,7 @@ class Config:
         return [c.value for c in LoadingStrategy]
 
     def get_available_orchestration_strategies(self):
-        # prompt_flow is hidden from the admin UI because the deployment
-        # pipeline (Bicep / azd) does not provision the required Azure ML
-        # workspace, endpoint, or env vars. The orchestrator class is kept
-        # for backward compatibility; if a deployment already has it
-        # selected, surface it so the selectbox stays valid.
-        hidden = {OrchestrationStrategy.PROMPT_FLOW.value}
-        current = self.orchestrator.strategy.value if self.orchestrator else None
-        return [
-            c.value
-            for c in OrchestrationStrategy
-            if c.value not in hidden or c.value == current
-        ]
+        return [c.value for c in OrchestrationStrategy]
 
     def get_available_ai_assistant_types(self):
         return [c.value for c in AssistantStrategy]
