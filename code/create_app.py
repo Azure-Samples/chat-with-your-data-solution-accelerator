@@ -742,15 +742,32 @@ def create_app():
         """Get the speech config for Azure Speech."""
         try:
             logger.info("Method speech_config started")
-            speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(env_helper)
 
-            response = requests.post(
-                f"{env_helper.AZURE_SPEECH_REGION_ENDPOINT}sts/v1.0/issueToken",
-                headers={
-                    "Ocp-Apim-Subscription-Key": speech_key,
-                },
-                timeout=5,
-            )
+            if env_helper.AZURE_AUTH_TYPE == "rbac":
+                credential = get_azure_credential(
+                    env_helper.MANAGED_IDENTITY_CLIENT_ID
+                )
+                token = credential.get_token(
+                    "https://cognitiveservices.azure.com/.default"
+                )
+                response = requests.post(
+                    f"{env_helper.AZURE_SPEECH_REGION_ENDPOINT}sts/v1.0/issueToken",
+                    headers={
+                        "Authorization": f"Bearer {token.token}",
+                    },
+                    timeout=5,
+                )
+            else:
+                speech_key = env_helper.AZURE_SPEECH_KEY or get_speech_key(
+                    env_helper
+                )
+                response = requests.post(
+                    f"{env_helper.AZURE_SPEECH_REGION_ENDPOINT}sts/v1.0/issueToken",
+                    headers={
+                        "Ocp-Apim-Subscription-Key": speech_key,
+                    },
+                    timeout=5,
+                )
 
             if response.status_code == 200:
                 return {
