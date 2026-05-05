@@ -53,11 +53,13 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3'
     eventSubscriptions: [
       {
         name: name
-        destination: {
-          endpointType: 'StorageQueue'
-          properties: {
-            queueName: queueName
-            resourceId: storageAccountId
+        deliveryWithResourceIdentity: {
+          destination: {
+            endpointType: 'StorageQueue'
+            properties: {
+              queueName: queueName
+              resourceId: storageAccountId
+            }
           }
         }
         eventDeliverySchema: 'EventGridSchema'
