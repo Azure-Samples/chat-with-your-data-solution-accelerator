@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "16421140691716802279"
+      "templateHash": "3757241389066518547"
     }
   },
   "parameters": {
@@ -634,8 +634,7 @@
       "privatelink.search.windows.net",
       "privatelink.cognitiveservices.azure.com",
       "privatelink.openai.azure.com",
-      "privatelink.vaultcore.azure.net",
-      "privatelink.api.azureml.ms"
+      "privatelink.vaultcore.azure.net"
     ],
     "dnsZoneIndex": {
       "cosmosDB": 0,
@@ -646,8 +645,7 @@
       "searchService": 5,
       "cognitiveServices": 6,
       "openAI": 7,
-      "keyVault": 8,
-      "machinelearning": 9
+      "keyVault": 8
     },
     "cosmosDbName": "db_conversation_history",
     "cosmosDbContainerName": "conversations",
