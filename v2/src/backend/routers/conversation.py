@@ -34,11 +34,13 @@ from fastapi.responses import StreamingResponse
 
 from backend.dependencies import (
     AgentsProviderDep,
+    DatabaseClientDep,
     LLMProviderDep,
     SearchProviderDep,
     SettingsDep,
 )
 from backend.models.conversation import ConversationRequest, ConversationResponse
+from shared.agents import CWYD_AGENT
 from shared.pipelines.chat import run_chat
 from shared.providers import orchestrators
 from shared.types import Citation, OrchestratorEvent
@@ -124,35 +126,40 @@ async def conversation(
     llm: LLMProviderDep,
     search: SearchProviderDep,
     agents: AgentsProviderDep,
+    db: DatabaseClientDep,
     accept: str | None = Header(default=None),
 ) -> ConversationResponse | StreamingResponse:
     """Run the configured orchestrator and stream / buffer the result."""
-    # Forward `agents_client` + `agent_id` *uniformly* to every
-    # orchestrator. The `agent_framework` orchestrator binds them as
-    # explicit kwargs; `langgraph` (and any future provider that
-    # doesn't need them) swallows them via `**_extras`. This keeps
-    # dispatch registry-only -- the router never branches on
-    # `settings.orchestrator.name` (Hard Rule #4).
-    #
     # `agents.get_client()` is lazy: the first call constructs the
     # AgentsClient against `settings.foundry.project_endpoint` and
     # caches it on the provider; subsequent requests reuse the same
     # HTTP transport for the lifetime of the process.
     #
-    # CU-009b (2026-05-05) removed `OrchestratorSettings.agent_id` per
-    # ADR 0008. Until CU-010d wires the lazy resolver, the router
-    # forwards an empty `agent_id` literal -- the `agent_framework`
-    # orchestrator's existing config-validation will raise on first
-    # request, exactly the same fail-fast behavior as before. CU-010d
-    # replaces this literal with `await agents.get_or_create_agent(
-    # CWYD_AGENT, settings=settings).id`.
+    # `agents.get_or_create_agent(...)` is the lazy DB-backed resolver
+    # landed in CU-010c (ADR 0008). We only spend the DB + Foundry
+    # round-trip on the `agent_framework` branch -- the langgraph
+    # branch swallows `agent_id` via `**_extras` and never touches the
+    # Agents SDK, so resolving an id we'd never use is wasted I/O.
+    #
+    # Hard Rule #4 nuance: the `if name == "agent_framework"` check
+    # below is *kwarg preparation*, not orchestrator dispatch.
+    # `orchestrators.create(...)` remains the single registry-keyed
+    # factory call -- the router never has a chain of `if/elif` that
+    # *constructs* different orchestrator instances per name. The
+    # invariant is enforced by `test_router_uses_registry_dispatch_
+    # no_hardcoded_provider_names` (asserts exactly one
+    # `orchestrators.create(` call site).
+    agent_id = ""
+    if settings.orchestrator.name == "agent_framework":
+        agent_id = await agents.get_or_create_agent(CWYD_AGENT, db)
+
     orchestrator = orchestrators.create(
         settings.orchestrator.name,
         settings=settings,
         llm=llm,
         search=search,
         agents_client=agents.get_client(),
-        agent_id="",  # TODO(CU-010d): replace with lazy DB-backed resolver
+        agent_id=agent_id,
     )
 
     events = run_chat(body.messages, orchestrator=orchestrator)

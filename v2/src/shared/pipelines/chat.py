@@ -1,29 +1,43 @@
 """Chat pipeline.
 
 Pillar: Stable Core
-Phase: 3 (task #22b)
+Phase: 3 (task #22b) + Cleanup audit batch 2 (CU-011b)
 
 Pure async generator that wraps the chat flow:
 
     user messages
-      → content-safety pre-screen (optional)
+      → content-safety pre-screen (optional)        ← ContentSafetyGuard (Azure REST)
+      → RAI agent classifier pre-screen (optional)  ← rai_check (Foundry agent, CU-011a)
       → orchestrator.run()
       → post-prompt groundedness validation (optional)
       → SSE-channel events (ADR 0007)
 
 The pipeline knows **nothing** about FastAPI: it consumes already-built
 collaborators (orchestrator, optional ``ContentSafetyGuard``, optional
-``PostPromptValidator``) and yields :class:`OrchestratorEvent` values.
+RAI screener callable, optional ``PostPromptValidator``) and yields
+:class:`OrchestratorEvent` values.
 ``backend/routers/conversation.py`` is the FastAPI adapter that turns
 this stream into JSON or SSE.
 
 Behavior contracts
 ------------------
 
-* **Content safety**: when a guard is supplied and the latest user
-  message trips its threshold, the pipeline yields a single ``error``
-  event with ``metadata.code == "content_safety"`` and stops. The
-  orchestrator is never invoked.
+* **Content safety (REST)**: when a ``ContentSafetyGuard`` is supplied
+  and the latest user message trips its severity threshold, the
+  pipeline yields a single ``error`` event with
+  ``metadata.code == "content_safety"`` and stops. The orchestrator is
+  never invoked.
+* **RAI agent (Foundry)**: when a ``rai_check`` callable is supplied
+  and the latest user message classifies as **unsafe** (``rai_check``
+  returns ``False``), the pipeline yields a single ``error`` event with
+  ``metadata.code == "rai_blocked"`` and stops. Runs *after* the
+  ``ContentSafetyGuard`` so the cheap REST screen short-circuits the
+  more expensive Foundry round-trip. Both guards are independent and
+  can be enabled together; the first to flag wins.
+  The pipeline takes a callable (not a provider + db pair) so it stays
+  free of DI plumbing -- the router binds ``rai_check`` as
+  ``functools.partial(rai_check, agents=agents, db=db)`` (or a closure)
+  before calling ``run_chat``.
 * **Post-prompt validation**: when a validator is supplied, ``answer``
   events are *buffered* until the orchestrator stream finishes, then
   validated, then emitted as a single ``answer`` event whose content
@@ -35,7 +49,7 @@ Behavior contracts
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncIterator, Sequence
+from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable, Sequence
 
 from shared.types import Citation, OrchestratorEvent, SearchResult
 
@@ -44,6 +58,13 @@ if TYPE_CHECKING:
     from shared.tools.content_safety import ContentSafetyGuard
     from shared.tools.post_prompt import PostPromptValidator
     from shared.types import ChatMessage
+
+# Type alias for the RAI screener callable. Returns True when input
+# is safe, False when unsafe. The pipeline never inspects the
+# implementation -- the router is responsible for binding the
+# `agents` provider + `db` client into a partial / closure that
+# matches this shape.
+RaiScreener = Callable[[str], Awaitable[bool]]
 
 
 def _latest_user_text(messages: Sequence["ChatMessage"]) -> str:
@@ -71,6 +92,7 @@ async def run_chat(
     *,
     orchestrator: "OrchestratorBase",
     content_safety: "ContentSafetyGuard | None" = None,
+    rai_check: RaiScreener | None = None,
     post_prompt: "PostPromptValidator | None" = None,
 ) -> AsyncIterator[OrchestratorEvent]:
     """Run the configured chat flow and yield typed SSE events."""
@@ -83,6 +105,21 @@ async def run_chat(
                 channel="error",
                 content="Input was blocked by the content safety guard.",
                 metadata={"code": "content_safety", "triggered": verdict.triggered},
+            )
+            return
+
+    if rai_check is not None:
+        # Order matters: REST content-safety runs first (cheap, ~50ms
+        # per call), Foundry RAI agent second (more expensive, full
+        # thread + run round-trip). Either guard flagging the input
+        # short-circuits before orchestrator dispatch -- the user
+        # message never reaches the model.
+        is_safe = await rai_check(user_text)
+        if not is_safe:
+            yield OrchestratorEvent(
+                channel="error",
+                content="Input was blocked by the RAI safety classifier.",
+                metadata={"code": "rai_blocked"},
             )
             return
 
@@ -124,4 +161,4 @@ async def run_chat(
     yield OrchestratorEvent(channel="answer", content=result.answer)
 
 
-__all__ = ["run_chat"]
+__all__ = ["RaiScreener", "run_chat"]

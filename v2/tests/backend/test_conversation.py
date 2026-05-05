@@ -11,8 +11,10 @@ from backend.app import create_app
 from backend.dependencies import (
     get_agents_provider,
     get_app_settings,
+    get_database_client,
     get_llm_provider,
 )
+from shared.agents import CWYD_AGENT
 from shared.providers import orchestrators
 from shared.providers.orchestrators.base import OrchestratorBase
 from shared.types import ChatMessage, OrchestratorEvent
@@ -77,15 +79,39 @@ class _FakeAgentsProvider:
     `get_client()` returns a sentinel object so we can assert the
     router forwards the *exact* client instance into
     `orchestrators.create(...)` (CU-001d).
+
+    `get_or_create_agent()` is the CU-010c lazy resolver seam --
+    CU-010d wires the router to call it on the `agent_framework`
+    branch only. Tests configure `agent_id_to_return` to control the
+    resolved id and inspect `resolver_calls` to assert the resolver
+    was invoked with `(CWYD_AGENT, db_sentinel)`.
     """
 
-    def __init__(self, client: object | None = None) -> None:
+    def __init__(
+        self,
+        client: object | None = None,
+        agent_id_to_return: str = "resolved-agent-id",
+    ) -> None:
         self.client = client if client is not None else object()
         self.get_client_calls = 0
+        self.agent_id_to_return = agent_id_to_return
+        self.resolver_calls: list[dict[str, Any]] = []
 
     def get_client(self) -> object:
         self.get_client_calls += 1
         return self.client
+
+    async def get_or_create_agent(self, definition: Any, db: Any) -> str:
+        self.resolver_calls.append({"definition": definition, "db": db})
+        return self.agent_id_to_return
+
+
+class _FakeDatabaseClient:
+    """Sentinel DB client. The router forwards this instance into the
+    agents resolver; all assertions in this test module check
+    *identity* (``is db_sentinel``), never behavior, because the
+    resolver itself is faked at the agents-provider seam.
+    """
 
 
 @pytest.fixture
@@ -103,6 +129,11 @@ def app_with_fakes(monkeypatch: pytest.MonkeyPatch):
     # for orchestrators that don't use it (langgraph swallows the
     # kwarg via `**_extras` -- Hard Rule #4: no name dispatch).
     app.dependency_overrides[get_agents_provider] = lambda: _FakeAgentsProvider()
+    # Same reason: CU-010d wires `db: DatabaseClientDep` into the
+    # handler. Even orchestrators that never trigger the resolver
+    # (anything other than `agent_framework`) need the DI to resolve
+    # so FastAPI can satisfy the signature.
+    app.dependency_overrides[get_database_client] = lambda: _FakeDatabaseClient()
     return app
 
 
@@ -232,15 +263,45 @@ async def test_router_forwards_search_provider_to_orchestrator(
 
 
 async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> None:
-    """Greppable gate: no `if/elif` over orchestrator names in the router."""
+    """Greppable gate: orchestrator construction goes through the
+    registry exactly once -- no parallel `if/elif` chain that
+    *constructs* different orchestrator instances per name.
+
+    CU-010d nuance: the router *does* contain a single
+    ``if settings.orchestrator.name == "agent_framework"`` check, but
+    that's *kwarg preparation* for the lazy agent-id resolver, not
+    dispatch (the resolved id is then passed into the same single
+    ``orchestrators.create(...)`` call). The Hard Rule #4 invariant
+    is that orchestrator *construction* is registry-keyed -- so the
+    test asserts there is exactly one ``orchestrators.create(...)``
+    *call site* (AST-counted, ignoring docstrings + comments).
+    """
+    import ast
     import inspect
 
     from backend.routers import conversation as conv_module
 
     src = inspect.getsource(conv_module)
-    for forbidden in ("== \"langgraph\"", "== 'langgraph'", "== \"agent_framework\"", "== 'agent_framework'"):
-        assert forbidden not in src, f"Forbidden hard-coded provider check: {forbidden}"
-    assert "orchestrators.create(" in src
+    tree = ast.parse(src)
+
+    create_calls = 0
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if (
+            isinstance(func, ast.Attribute)
+            and func.attr == "create"
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "orchestrators"
+        ):
+            create_calls += 1
+
+    assert create_calls == 1, (
+        "router must dispatch through `orchestrators.create(...)` exactly "
+        f"once -- found {create_calls} call sites; a parallel `if/elif` "
+        "chain constructing orchestrators by name is forbidden (Hard Rule #4)"
+    )
 
 
 async def test_router_routes_through_chat_pipeline(
@@ -384,6 +445,128 @@ async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
         assert resp.json()["content"] == name
         # Same kwargs forwarded regardless of orchestrator key.
         assert _FakeOrchestrator.last_kwargs.get("agents_client") is sentinel_client
-        # CU-009b: empty-literal pass-through (CU-010d wires resolver).
-        assert _FakeOrchestrator.last_kwargs.get("agent_id") == ""
+        # CU-010d: `agent_framework` triggers the lazy resolver and
+        # gets the resolved id; every other orchestrator (here
+        # `langgraph`) gets the empty literal pass-through, swallowed
+        # via `**_extras` in the orchestrator constructor.
+        if name == "agent_framework":
+            assert _FakeOrchestrator.last_kwargs.get("agent_id") == fake_provider.agent_id_to_return
+        else:
+            assert _FakeOrchestrator.last_kwargs.get("agent_id") == ""
         assert "search" in _FakeOrchestrator.last_kwargs
+
+
+# ---------------------------------------------------------------------------
+# CU-010d: lazy DB-backed agent-id resolution on the agent_framework branch
+# ---------------------------------------------------------------------------
+
+
+async def test_agent_framework_branch_resolves_agent_id_via_provider(
+    app_with_fakes,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the configured orchestrator is `agent_framework`, the
+    router must call `agents.get_or_create_agent(CWYD_AGENT, db)`
+    exactly once and forward the resolved id as the `agent_id` kwarg.
+    """
+    monkeypatch.setitem(
+        orchestrators.registry._items, "agent_framework", _FakeOrchestrator
+    )
+
+    fake_provider = _FakeAgentsProvider(agent_id_to_return="asst_resolved_123")
+    app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
+
+    class _S:
+        class _O:
+            name = "agent_framework"
+
+        orchestrator = _O()
+
+    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _S()
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    assert resp.status_code == 200
+    assert len(fake_provider.resolver_calls) == 1, (
+        "agent_framework branch must call get_or_create_agent exactly once"
+    )
+    assert _FakeOrchestrator.last_kwargs.get("agent_id") == "asst_resolved_123"
+
+
+async def test_non_agent_framework_branch_does_not_call_resolver(
+    app_with_fakes,
+) -> None:
+    """When the orchestrator is anything other than `agent_framework`,
+    the router must skip the resolver entirely (zero DB / Foundry
+    round-trips) and forward `agent_id=""` as the empty literal.
+
+    `_FakeSettings.orchestrator.name == "fake"` (set in the fixture).
+    """
+    fake_provider = _FakeAgentsProvider()
+    app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    assert resp.status_code == 200
+    assert fake_provider.resolver_calls == [], (
+        "non-agent_framework orchestrators must not trigger the resolver"
+    )
+    assert _FakeOrchestrator.last_kwargs.get("agent_id") == ""
+
+
+async def test_resolver_receives_cwyd_definition_and_database_client(
+    app_with_fakes,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The resolver must be called with (a) the `CWYD_AGENT` built-in
+    definition (not `RAI_AGENT`, not a fresh instance), and (b) the
+    DI'd database client *instance* (identity check).
+    """
+    monkeypatch.setitem(
+        orchestrators.registry._items, "agent_framework", _FakeOrchestrator
+    )
+
+    fake_provider = _FakeAgentsProvider()
+    db_sentinel = _FakeDatabaseClient()
+    app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
+    app_with_fakes.dependency_overrides[get_database_client] = lambda: db_sentinel
+
+    class _S:
+        class _O:
+            name = "agent_framework"
+
+        orchestrator = _O()
+
+    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _S()
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    assert resp.status_code == 200
+    assert len(fake_provider.resolver_calls) == 1
+    call = fake_provider.resolver_calls[0]
+    assert call["definition"] is CWYD_AGENT, (
+        "router must pass the CWYD_AGENT singleton, not a fresh definition"
+    )
+    assert call["db"] is db_sentinel, (
+        "router must forward the DI'd database client by identity"
+    )

@@ -187,3 +187,39 @@ def test_ensure_search_index_rejects_bad_dimensions(monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         post_provision._ensure_search_index(dry_run=True, client_factory=lambda: None)
     assert excinfo.value.code == 8
+
+
+# ---------------------------------------------------------------------------
+# Agent registry bootstrap (CU-010b3 -- no-op closure)
+# ---------------------------------------------------------------------------
+#
+# CU-010b3 deliberately makes NO change to post_provision.py. The agent
+# registry is bootstrapped lazily by the per-backend client:
+#   * Cosmos: reuses the chat-history container; agent rows just use
+#     `userId="_system"` + `type=CosmosItemType.AGENT` (no DDL needed).
+#   * Postgres: the `agents` table is part of `_SCHEMA_SQL` which runs
+#     under `_ensure_pool()` on first DB call (idempotent CREATE TABLE
+#     IF NOT EXISTS).
+#
+# These tests lock in that decision: a future regression that moves
+# agent-table DDL or container creation into post_provision would break
+# the lazy-bootstrap contract (and would force every `azd up` to take
+# a write dependency on Postgres / Cosmos at provisioning time, which
+# the dev loop should not require).
+
+
+def test_post_provision_does_not_reference_agents_table() -> None:
+    """post_provision.py must not contain DDL or references to the\n    `agents` table -- bootstrap stays in postgres.py `_SCHEMA_SQL`."""
+    source = _SCRIPT_PATH.read_text(encoding="utf-8")
+    assert "agents" not in source.lower().split()  # noqa: PLR2004
+    # Tighter check: the verbs we'd see if someone moved DDL here.
+    assert "CREATE TABLE" not in source
+    assert "agent_id" not in source
+
+
+def test_post_provision_does_not_reference_agent_partition() -> None:
+    """post_provision.py must not pre-seed the `_system` partition or\n    write agent items -- the Cosmos client owns that wire shape."""
+    source = _SCRIPT_PATH.read_text(encoding="utf-8")
+    assert "_system" not in source
+    assert "CosmosItemType" not in source
+    assert "upsert_item" not in source
