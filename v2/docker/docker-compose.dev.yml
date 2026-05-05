@@ -38,7 +38,9 @@ services:
       AZURE_STORAGE_QUEUE_URL: http://azurite:10001/devstoreaccount1
       # Telemetry: when APPLICATIONINSIGHTS_CONNECTION_STRING is set in .env.dev,
       # azure-monitor-opentelemetry exports directly to App Insights (matches v1).
-      LOG_LEVEL: INFO
+      # AppSettings reads AZURE_LOG_LEVEL (env_prefix=AZURE_); the bare LOG_LEVEL
+      # used in v1 is silently ignored.
+      AZURE_LOG_LEVEL: INFO
     ports:
       - "8000:8000"
     volumes:

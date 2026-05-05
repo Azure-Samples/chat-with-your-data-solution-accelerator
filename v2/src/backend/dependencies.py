@@ -20,6 +20,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
+from shared.providers.agents.base import BaseAgentsProvider
 from shared.providers.credentials.base import BaseCredentialProvider
 from shared.providers.databases.base import BaseDatabaseClient
 from shared.providers.llm.base import BaseLLMProvider
@@ -103,12 +104,37 @@ def get_database_client(request: Request) -> BaseDatabaseClient:
 DatabaseClientDep = Annotated[BaseDatabaseClient, Depends(get_database_client)]
 
 
+def get_agents_provider(request: Request) -> BaseAgentsProvider:
+    """Return the agents provider stashed on `app.state` at startup.
+
+    Lifespan always constructs a `FoundryAgentsProvider` (the `agents`
+    registry is small and the SDK client is built lazily on first
+    `get_client()` call). Routers that select the `agent_framework`
+    orchestrator pull this provider's client; routers selecting
+    `langgraph` ignore it. Tests can override via
+    `app.dependency_overrides`.
+    """
+    provider = getattr(request.app.state, "agents_provider", None)
+    if provider is None:
+        raise RuntimeError(
+            "agents_provider missing on app.state -- lifespan did not run."
+        )
+    return provider
+
+
+AgentsProviderDep = Annotated[
+    BaseAgentsProvider, Depends(get_agents_provider)
+]
+
+
 __all__ = [
+    "AgentsProviderDep",
     "CredentialProviderDep",
     "DatabaseClientDep",
     "LLMProviderDep",
     "SearchProviderDep",
     "SettingsDep",
+    "get_agents_provider",
     "get_app_settings",
     "get_credential_provider",
     "get_database_client",

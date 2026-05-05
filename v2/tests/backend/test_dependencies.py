@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend.dependencies import (
+    get_agents_provider,
     get_database_client,
     get_search_provider,
 )
@@ -44,3 +45,26 @@ def test_get_database_client_returns_state_instance_when_set() -> None:
     sentinel = MagicMock(name="database_client")
     request = _request_with_state(database_client=sentinel)
     assert get_database_client(request) is sentinel  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# CU-001c: agents provider DI seam (Phase 4 -- agent_framework wiring)
+# ---------------------------------------------------------------------------
+
+
+def test_get_agents_provider_raises_when_missing() -> None:
+    """If lifespan didn't run, DI must surface a clear error so callers
+    don't silently get None and fall through to a NoneType.AttributeError
+    deep inside the orchestrator."""
+    request = _request_with_state()
+    with pytest.raises(RuntimeError, match="agents_provider missing"):
+        get_agents_provider(request)  # type: ignore[arg-type]
+
+
+def test_get_agents_provider_returns_state_instance_when_set() -> None:
+    """When lifespan stashes the FoundryAgentsProvider on app.state, DI
+    hands out the same instance for every request -- one HTTP transport
+    per process (parity with credential_provider, llm_provider)."""
+    sentinel = MagicMock(name="agents_provider")
+    request = _request_with_state(agents_provider=sentinel)
+    assert get_agents_provider(request) is sentinel  # type: ignore[arg-type]

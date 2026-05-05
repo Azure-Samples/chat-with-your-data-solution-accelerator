@@ -26,10 +26,10 @@ Design rules (binding):
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AliasChoices, Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 # ---------------------------------------------------------------------------
@@ -84,8 +84,14 @@ class DatabaseSettings(BaseSettings):
     """Selects the chat-history backend AND the vector index store.
 
     `db_type` is the registry key passed to
-    `providers.chat_history.create(...)`; `index_store` is passed to
+    `providers.databases.create(...)`; `index_store` is passed to
     `providers.search.create(...)` / `providers.embedders.create(...)`.
+
+    Note: the `databases` provider domain owns chat-history CRUD plus
+    any future DB-backed concerns (vector-store metadata, config
+    storage). There is intentionally no separate `chat_history`
+    provider domain -- a single client per backend (cosmosdb /
+    postgresql) keeps the connection pool unified.
     """
 
     model_config = SettingsConfigDict(env_prefix="AZURE_", extra="ignore")
@@ -109,7 +115,7 @@ class DatabaseSettings(BaseSettings):
     def _enforce_mode_consistency(self) -> "DatabaseSettings":
         # Pydantic config-consistency validator. Not provider dispatch (no
         # class instantiation, no behavior branch); registry callers always
-        # go through `chat_history.create(db_type, ...)` / `search.create(
+        # go through `databases.create(db_type, ...)` / `search.create(
         # index_store, ...)` per Hard Rule #4.
         if self.db_type == "cosmosdb":  # noqa: registry-dispatch -- config validator
             if not self.cosmos_endpoint:
@@ -177,6 +183,51 @@ class NetworkSettings(BaseSettings):
     vnet_resource_id: str = ""
     bastion_name: str = ""
 
+    # CORS origins for the backend FastAPI CORSMiddleware. Read from the
+    # bare `BACKEND_CORS_ORIGINS` env var (no `AZURE_` prefix) so it
+    # matches the v1 / Bicep convention and what every operator's
+    # `.env.dev` already uses. The validator accepts:
+    #   - a comma-separated string ("http://a, http://b")  -- env-var shape
+    #   - a JSON-style list (`["http://a","http://b"]`)     -- compose YAML
+    #   - an already-parsed Python list (programmatic tests)
+    # Empty string -> empty list (CORSMiddleware then allows nothing).
+    #
+    # `NoDecode` keeps pydantic-settings from auto-JSON-decoding the env
+    # value before our `mode="before"` validator runs; without it the
+    # comma-separated form raises `SettingsError` because it's not valid
+    # JSON.
+    cors_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("BACKEND_CORS_ORIGINS", "cors_origins"),
+    )
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_cors_origins(cls, raw: object) -> list[str]:
+        if raw is None or raw == "":
+            return []
+        if isinstance(raw, str):
+            stripped = raw.strip()
+            if not stripped:
+                return []
+            # Tolerate JSON-list shape so docker-compose can pass either
+            # form without surprising the operator.
+            if stripped.startswith("[") and stripped.endswith("]"):
+                import json
+
+                try:
+                    parsed = json.loads(stripped)
+                except json.JSONDecodeError:
+                    parsed = None
+                if isinstance(parsed, list):
+                    return [str(item).strip() for item in parsed if str(item).strip()]
+            return [item.strip() for item in stripped.split(",") if item.strip()]
+        if isinstance(raw, (list, tuple)):
+            return [str(item).strip() for item in raw if str(item).strip()]
+        raise ValueError(
+            "BACKEND_CORS_ORIGINS must be a comma-separated string or list."
+        )
+
 
 class OrchestratorSettings(BaseSettings):
     """Runtime-tunable orchestrator selection (registry key).
@@ -184,11 +235,42 @@ class OrchestratorSettings(BaseSettings):
     Distinct namespace (`CWYD_`) because the orchestrator is **not** an
     infra-pinned value -- the admin UI and tests need to flip it
     without redeploying Bicep.
+
+    `agent_id` (CU-001a) is the Foundry-hosted Agent identifier consumed
+    by the `agent_framework` orchestrator. The canonical name lives in
+    the `AZURE_` namespace because the agent is provisioned in Foundry
+    portal/SDK out-of-band and surfaced as a Bicep output
+    (`AZURE_AI_AGENT_ID`) -- the value is infra-pinned. The
+    `CWYD_ORCHESTRATOR_AGENT_ID` alias stays available for runtime
+    overrides via the admin UI.
     """
 
     model_config = SettingsConfigDict(env_prefix="CWYD_ORCHESTRATOR_", extra="ignore")
 
     name: Literal["langgraph", "agent_framework"] = "langgraph"
+    agent_id: str = Field(
+        default="",
+        validation_alias=AliasChoices(
+            "AZURE_AI_AGENT_ID",
+            "CWYD_ORCHESTRATOR_AGENT_ID",
+            "agent_id",
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _require_agent_id_for_agent_framework(self) -> "OrchestratorSettings":
+        # Pydantic config-consistency validator. Not provider dispatch
+        # (no class instantiation, no behavior branch); the registry
+        # caller still goes through `orchestrators.create(name, ...)`
+        # per Hard Rule #4. We just refuse to boot in a state the
+        # orchestrator constructor would `ValueError` on every request.
+        if self.name == "agent_framework" and not self.agent_id:  # noqa: registry-dispatch -- config validator
+            raise ValueError(
+                "CWYD_ORCHESTRATOR_NAME=agent_framework requires "
+                "AZURE_AI_AGENT_ID to be set (the Foundry agent id, "
+                "created out-of-band in the Foundry portal/SDK)."
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------

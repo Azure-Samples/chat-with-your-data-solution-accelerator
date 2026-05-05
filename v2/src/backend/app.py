@@ -5,19 +5,19 @@ Phase: 2
 
 Backend must boot headless (no frontend dependency). Telemetry is
 configured to export *directly* to Application Insights when
-`APPLICATIONINSIGHTS_CONNECTION_STRING` is set; otherwise it is a
-no-op so the backend-only profile boots without any sidecar (per
-v2-backend.instructions.md).
+`ObservabilitySettings.app_insights_connection_string` is set;
+otherwise it is a no-op so the backend-only profile boots without any
+sidecar (per v2-backend.instructions.md).
 
-Lifespan also constructs the credential + LLM provider **once** and
-stashes them on `app.state` (see `backend/dependencies.py`). Closing
-them on shutdown is mandatory: `DefaultAzureCredential` and
-`AIProjectClient` each own an aiohttp transport.
+Lifespan also constructs the credential + LLM provider + agents
+provider **once** and stashes them on `app.state` (see
+`backend/dependencies.py`). Closing them on shutdown is mandatory:
+`DefaultAzureCredential`, `AIProjectClient`, and `AgentsClient` each
+own an aiohttp transport.
 """
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -25,15 +25,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routers import conversation, health, history
-from shared.providers import credentials, databases, llm, search
-from shared.settings import get_settings
+from shared.providers import agents, credentials, databases, llm, search
+from shared.settings import NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-    conn_str = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "").strip()
+    settings = get_settings()
+
+    conn_str = settings.observability.app_insights_connection_string.strip()
     if conn_str:
         # Local import: keeps the backend-only profile importable even
         # if the OTel extras are not yet wheel-resolved in dev.
@@ -42,9 +44,10 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         configure_azure_monitor(connection_string=conn_str)
         logger.info("Application Insights telemetry configured.")
     else:
-        logger.info("APPLICATIONINSIGHTS_CONNECTION_STRING not set; telemetry disabled.")
+        logger.info(
+            "AZURE_APP_INSIGHTS_CONNECTION_STRING not set; telemetry disabled."
+        )
 
-    settings = get_settings()
     cred_key = credentials.select_default(settings.identity.uami_client_id)
     cred_provider = credentials.create(cred_key, settings=settings)
     credential = await cred_provider.get_credential()
@@ -52,11 +55,22 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         "foundry_iq", settings=settings, credential=credential
     )
 
+    # Agents provider: backs the `agent_framework` orchestrator. Always
+    # constructed (the SDK client is lazy -- no HTTP session opened until
+    # the first `get_client()` call), so the `langgraph` orchestrator
+    # incurs zero overhead. Registry-only dispatch (Hard Rule #4); the
+    # only key today is `"foundry"`.
+    agents_provider = agents.create(
+        "foundry", settings=settings, credential=credential
+    )
+
     app.state.credential_provider = cred_provider
     app.state.credential = credential
     app.state.llm_provider = llm_provider
+    app.state.agents_provider = agents_provider
     logger.info(
-        "Providers ready (credentials=%s llm=foundry_iq).", cred_key
+        "Providers ready (credentials=%s llm=foundry_iq agents=foundry).",
+        cred_key,
     )
 
     # Chat-history database. Always wired -- there is no "no-database"
@@ -126,6 +140,10 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception:  # noqa: BLE001 -- shutdown is best-effort
             logger.exception("Error closing database client.")
         try:
+            await agents_provider.aclose()
+        except Exception:  # noqa: BLE001 -- shutdown is best-effort
+            logger.exception("Error closing agents provider.")
+        try:
             await llm_provider.aclose()
         except Exception:  # noqa: BLE001 -- shutdown is best-effort
             logger.exception("Error closing LLM provider.")
@@ -143,8 +161,18 @@ def create_app() -> FastAPI:
         lifespan=_lifespan,
     )
 
-    cors_origins = os.getenv("BACKEND_CORS_ORIGINS", "*")
-    origins = [o.strip() for o in cors_origins.split(",") if o.strip()] or ["*"]
+    # Sourced from typed `NetworkSettings.cors_origins` (CU-002b),
+    # which reads the bare `BACKEND_CORS_ORIGINS` env var via
+    # `validation_alias`. Empty list -> wildcard, matching the legacy
+    # behavior of the previous `os.getenv` default.
+    #
+    # Instantiated standalone (not via `get_settings()`) so module
+    # import time stays cheap and side-effect-free for tools that just
+    # want `from backend.app import app`. The full `AppSettings` tree
+    # validates lazily inside the lifespan, where DB / Foundry env
+    # checks belong.
+    network = NetworkSettings()
+    origins = list(network.cors_origins) or ["*"]
     # CORS spec forbids `Access-Control-Allow-Credentials: true` paired
     # with a wildcard origin. Browsers silently drop credentials in
     # that combo, so flip credentials off when origins is wide-open.

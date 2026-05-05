@@ -43,7 +43,7 @@ def _apply_env(monkeypatch: pytest.MonkeyPatch, env: dict[str, str]) -> None:
 
 
 def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
-    """Stub credentials + llm + databases so lifespan stays offline; let `search.create` run."""
+    """Stub credentials + llm + databases + agents so lifespan stays offline; let `search.create` run."""
     fake_credential = MagicMock(name="credential")
     fake_credential.close = AsyncMock()
     fake_cred_provider = MagicMock()
@@ -54,6 +54,9 @@ def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
 
     fake_db = MagicMock(name="database_client")
     fake_db.aclose = AsyncMock()
+
+    fake_agents = MagicMock(name="agents_provider")
+    fake_agents.aclose = AsyncMock()
 
     monkeypatch.setattr(
         "backend.app.credentials.select_default", lambda *_a, **_kw: "azure_cli"
@@ -67,6 +70,9 @@ def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(
         "backend.app.databases.create", lambda *_a, **_kw: fake_db
+    )
+    monkeypatch.setattr(
+        "backend.app.agents.create", lambda *_a, **_kw: fake_agents
     )
     return fake_credential
 
@@ -276,3 +282,209 @@ async def test_lifespan_pgvector_does_not_require_search_endpoint(
     app = create_app()
     async with app.router.lifespan_context(app):
         assert app.state.search_provider is fake_search
+
+
+# ---------------------------------------------------------------------------
+# CU-002b: typed Application Insights + CORS wiring
+# ---------------------------------------------------------------------------
+
+
+async def test_lifespan_configures_app_insights_from_typed_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Lifespan reads the connection string from
+    `ObservabilitySettings.app_insights_connection_string`, not directly
+    from `os.getenv`.
+
+    The settings field is populated via env var
+    `AZURE_APP_INSIGHTS_CONNECTION_STRING` (env_prefix=AZURE_); the
+    legacy `APPLICATIONINSIGHTS_CONNECTION_STRING` form is intentionally
+    NOT honored at the lifespan layer post-CU-002b -- the operator must
+    use the typed name.
+    """
+    env = {
+        **COSMOS_ENV,
+        "AZURE_APP_INSIGHTS_CONNECTION_STRING": (
+            "InstrumentationKey=00000000-0000-0000-0000-000000000000;"
+            "IngestionEndpoint=https://eastus2.in.applicationinsights.azure.com/"
+        ),
+    }
+    _apply_env(monkeypatch, env)
+    _patched_lifespan(monkeypatch)
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
+
+    captured: dict[str, str] = {}
+
+    def _fake_configure(*, connection_string: str) -> None:
+        captured["connection_string"] = connection_string
+
+    # `azure.monitor.opentelemetry` is imported lazily inside the
+    # lifespan; patch the module that the lifespan resolves to.
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "azure.monitor.opentelemetry",
+        MagicMock(configure_azure_monitor=_fake_configure),
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        pass
+
+    assert captured["connection_string"].startswith("InstrumentationKey=")
+
+
+async def test_lifespan_skips_app_insights_when_typed_setting_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the typed setting is empty, telemetry must stay disabled
+    even if the legacy `APPLICATIONINSIGHTS_CONNECTION_STRING` env var
+    is set -- that legacy alias is not read by AppSettings (CU-007).
+    """
+    env = {
+        **COSMOS_ENV,
+        # Legacy alias intentionally set; must be ignored by the lifespan.
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": (
+            "InstrumentationKey=11111111-1111-1111-1111-111111111111"
+        ),
+    }
+    _apply_env(monkeypatch, env)
+    monkeypatch.delenv("AZURE_APP_INSIGHTS_CONNECTION_STRING", raising=False)
+    _patched_lifespan(monkeypatch)
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
+
+    called = {"count": 0}
+
+    def _fake_configure(**_kw) -> None:
+        called["count"] += 1
+
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "azure.monitor.opentelemetry",
+        MagicMock(configure_azure_monitor=_fake_configure),
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        pass
+
+    assert called["count"] == 0
+
+
+def test_create_app_cors_uses_typed_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`create_app` reads `NetworkSettings.cors_origins` (CU-002a alias
+    on `BACKEND_CORS_ORIGINS`) instead of calling `os.getenv`.
+
+    Asserts on the live `CORSMiddleware` config so a regression that
+    re-introduces `os.getenv` would fail loudly.
+    """
+    env = {
+        **COSMOS_ENV,
+        "BACKEND_CORS_ORIGINS": "http://a.example, https://b.example",
+    }
+    _apply_env(monkeypatch, env)
+
+    app = create_app()
+    cors_layers = [
+        m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware"
+    ]
+    assert cors_layers, "CORS middleware must be installed"
+    cors = cors_layers[0]
+    origins = cors.kwargs.get("allow_origins")
+    assert origins == ["http://a.example", "https://b.example"]
+    # When origins is a non-wildcard list, allow_credentials must be True
+    # (otherwise the browser refuses to send cookies / Authorization).
+    assert cors.kwargs.get("allow_credentials") is True
+
+
+def test_create_app_cors_falls_back_to_wildcard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No `BACKEND_CORS_ORIGINS` -> wildcard origin + credentials disabled
+    (CORS spec forbids credentials with `*`).
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    monkeypatch.delenv("BACKEND_CORS_ORIGINS", raising=False)
+
+    app = create_app()
+    cors = next(
+        m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware"
+    )
+    assert cors.kwargs.get("allow_origins") == ["*"]
+    assert cors.kwargs.get("allow_credentials") is False
+
+
+# ---------------------------------------------------------------------------
+# CU-001c: lifespan constructs FoundryAgentsProvider via registry
+# ---------------------------------------------------------------------------
+
+
+async def test_lifespan_constructs_agents_provider_via_registry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Lifespan must dispatch through `agents.create("foundry", ...)` and
+    stash the provider on `app.state.agents_provider`.
+
+    Asserts the registry key (`"foundry"`) and that `settings` +
+    `credential` are forwarded -- mirrors how `llm` / `databases` are
+    wired (Hard Rule #4: registry-only dispatch).
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
+
+    captured: dict[str, object] = {}
+    fake_agents = MagicMock(name="agents_provider")
+    fake_agents.aclose = AsyncMock()
+
+    def _capture(key, **kwargs):
+        captured["key"] = key
+        captured["settings"] = kwargs.get("settings")
+        captured["credential"] = kwargs.get("credential")
+        return fake_agents
+
+    monkeypatch.setattr("backend.app.agents.create", _capture)
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.agents_provider is fake_agents
+
+    assert captured["key"] == "foundry"
+    assert captured["settings"] is not None
+    assert captured["credential"] is not None
+
+
+async def test_lifespan_closes_agents_provider_on_shutdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reverse-order shutdown: `agents_provider.aclose()` must be awaited
+    on lifespan exit so the cached AgentsClient HTTP transport is freed.
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
+
+    fake_agents = MagicMock(name="agents_provider")
+    fake_agents.aclose = AsyncMock()
+    monkeypatch.setattr(
+        "backend.app.agents.create", lambda *_a, **_kw: fake_agents
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        pass
+
+    fake_agents.aclose.assert_awaited_once()

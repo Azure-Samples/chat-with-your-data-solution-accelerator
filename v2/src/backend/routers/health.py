@@ -52,8 +52,8 @@ def _check_database(settings: AppSettings) -> DependencyCheck:
     db = settings.database
     # Diagnostic display only -- picks which configured endpoint string to
     # surface in the health payload. Not provider dispatch (no class
-    # instantiation, no behavior branch); chat-history provider selection
-    # goes through `chat_history.create(db.db_type, ...)` per Hard Rule #4.
+    # instantiation, no behavior branch); database provider selection
+    # goes through `databases.create(db.db_type, ...)` per Hard Rule #4.
     endpoint = (
         db.cosmos_endpoint if db.db_type == "cosmosdb" else db.postgres_endpoint  # noqa: registry-dispatch -- diagnostic
     )
@@ -69,7 +69,11 @@ def _check_database(settings: AppSettings) -> DependencyCheck:
 
 
 def _check_search(settings: AppSettings) -> DependencyCheck:
-    if settings.database.index_store == "AzureSearch":
+    # Diagnostic display only -- picks which configured search check to
+    # report in the health payload. Not provider dispatch (no class
+    # instantiation, no behavior branch); search provider selection goes
+    # through `search.create(db.index_store, ...)` per Hard Rule #4.
+    if settings.database.index_store == "AzureSearch":  # noqa: registry-dispatch -- diagnostic
         if not settings.search.endpoint:
             return DependencyCheck(
                 name="search",

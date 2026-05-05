@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/pages/chat/chatcontext.tsx","./src/pages/chat/chatpage.tsx","./src/pages/chat/components/messageinput.tsx","./src/pages/chat/components/messagelist.tsx"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/pages/chat/chatcontext.tsx","./src/pages/chat/chatpage.tsx","./src/pages/chat/components/historypanel.tsx","./src/pages/chat/components/messageinput.tsx","./src/pages/chat/components/messagelist.tsx"],"version":"5.9.3"}
