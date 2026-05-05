@@ -26,7 +26,9 @@ class _FakeLLM(BaseLLMProvider):
 
     def __init__(self, reply: str = "hello world") -> None:
         # Deliberately skip BaseLLMProvider.__init__: settings/credential
-        # are unused by the stub and the orchestrator only calls .chat().
+        # are unused by the stub and the orchestrator only calls
+        # ``.complete()`` (overridden below to bypass the inherited
+        # routing, which would otherwise dereference ``self._settings``).
         self._reply = reply
         self.calls: list[Sequence[ChatMessage]] = []
 
@@ -62,19 +64,35 @@ class _FakeLLM(BaseLLMProvider):
         raise NotImplementedError
         yield  # type: ignore[unreachable]
 
-
-class _BlankReplyLLM(_FakeLLM):
-    """LLM that returns a non-assistant role (simulates a malformed reply)."""
-
-    async def chat(
+    async def complete(
         self,
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> ChatMessage:
-        return ChatMessage(role="user", content="not from assistant")
+    ) -> AsyncIterator[OrchestratorEvent]:
+        # Override the base implementation (which would dereference
+        # ``self._settings``) to mirror the non-reasoning path: record
+        # the call and yield a single ``answer`` event with the canned
+        # reply. Subclasses can override this to inject reasoning /
+        # error events for the CU-004b streaming tests.
+        self.calls.append(list(messages))
+        yield OrchestratorEvent(channel="answer", content=self._reply)
+
+
+class _BlankReplyLLM(_FakeLLM):
+    """LLM that returns no answer chunks (simulates an empty response)."""
+
+    async def complete(
+        self,
+        messages: Sequence[ChatMessage],
+        *,
+        deployment: str | None = None,
+    ) -> AsyncIterator[OrchestratorEvent]:
+        # Yield nothing on the answer channel -- triggers the "no
+        # assistant reply" error event in ``run()``.
+        if False:
+            yield  # pragma: no cover - pacify the AsyncIterator return type
+        return
 
 
 def _make_orchestrator(llm: BaseLLMProvider | None = None) -> LangGraphOrchestrator:
@@ -266,3 +284,108 @@ async def test_run_with_search_drops_unreferenced_citations() -> None:
     citation_events = [e for e in events if e.channel == "citation"]
     assert len(citation_events) == 1
     assert citation_events[0].metadata["id"] == "[doc2]"
+
+
+# ---------------------------------------------------------------------------
+# CU-004b: streaming via BaseLLMProvider.complete()
+# ---------------------------------------------------------------------------
+
+
+class _ReasoningLLM(_FakeLLM):
+    """LLM that streams reasoning + answer events (mimics o-series)."""
+
+    def __init__(self, events: list[OrchestratorEvent]) -> None:
+        super().__init__(reply="")
+        self._events = events
+
+    async def complete(
+        self,
+        messages: Sequence[ChatMessage],
+        *,
+        deployment: str | None = None,
+    ) -> AsyncIterator[OrchestratorEvent]:
+        self.calls.append(list(messages))
+        for ev in self._events:
+            yield ev
+
+
+@pytest.mark.asyncio
+async def test_run_streams_reasoning_events_live_then_buffers_answer() -> None:
+    """``reasoning`` events pass through verbatim in order; ``answer``
+    chunks are accumulated into a single trailing event so the SSE
+    single-answer contract (ADR 0007) survives the streaming switch."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _ReasoningLLM(
+        [
+            OrchestratorEvent(channel="reasoning", content="step 1 "),
+            OrchestratorEvent(channel="reasoning", content="step 2"),
+            OrchestratorEvent(channel="answer", content="Final "),
+            OrchestratorEvent(channel="answer", content="answer."),
+        ]
+    )
+    orch = LangGraphOrchestrator(settings=settings, llm=fake_llm)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    channels = [(e.channel, e.content) for e in events]
+    assert channels == [
+        ("reasoning", "step 1 "),
+        ("reasoning", "step 2"),
+        ("answer", "Final answer."),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_propagates_error_events_from_complete() -> None:
+    """An ``error`` event from ``complete()`` short-circuits the run --
+    no synthetic ``no assistant reply`` event is emitted on top of it."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _ReasoningLLM(
+        [
+            OrchestratorEvent(channel="reasoning", content="thinking..."),
+            OrchestratorEvent(
+                channel="error",
+                content="upstream blew up",
+                metadata={"code": "reason_stream_failed"},
+            ),
+        ]
+    )
+    orch = LangGraphOrchestrator(settings=settings, llm=fake_llm)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [e.channel for e in events] == ["reasoning", "error"]
+    assert events[-1].metadata["code"] == "reason_stream_failed"
+    assert events[-1].content == "upstream blew up"
+
+
+@pytest.mark.asyncio
+async def test_run_filters_citations_against_assembled_answer() -> None:
+    """Citation filtering uses the *assembled* answer, so a marker that
+    spans two streamed chunks (e.g. ``[`` + ``doc1]``) still matches."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _ReasoningLLM(
+        [
+            OrchestratorEvent(channel="answer", content="See ["),
+            OrchestratorEvent(channel="answer", content="doc1] for details."),
+        ]
+    )
+    fake_search = _FakeSearch(
+        [{"id": "src-a", "content": "alpha", "title": "A", "url": "http://a"}]
+    )
+    orch = LangGraphOrchestrator(
+        settings=settings, llm=fake_llm, search=fake_search
+    )
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="?")])
+    ]
+
+    channels = [e.channel for e in events]
+    assert channels == ["citation", "answer"]
+    assert events[0].metadata["id"] == "[doc1]"
+    assert events[-1].content == "See [doc1] for details."

@@ -3,17 +3,22 @@
 Pillar: Stable Core
 Phase: 3
 
-Builds a `StateGraph` with a single LLM node today. The graph is
-compiled once per orchestrator instance and re-used across requests
-(no mutable per-request state held on `self`). Tool nodes (`ToolNode`)
-wire in via task #20 once the cross-cutting tool helpers
-(`shared/tools/`) land -- adding them is a `graph.add_node(...)` +
-`add_conditional_edges(...)` change, no rewrite of `run()`.
+Builds a `StateGraph` with a single LLM node, compiled once per
+orchestrator instance and re-used across requests (no mutable
+per-request state held on `self`). The graph is held for tool-node
+wiring (task #20: ``ToolNode`` + ``add_conditional_edges``) and is
+**deliberately bypassed** for the LLM call as of CU-004b
+(2026-05-05): live token + reasoning streaming is incompatible with
+``StateGraph.ainvoke``'s buffer-then-return contract, and the unified
+LLM-layer factory ``BaseLLMProvider.complete()`` (CU-004a) already
+auto-routes between ``chat()`` and ``reason()`` so the orchestrator
+never has to branch on model class.
 
-`run()` invokes the compiled graph with `ainvoke` and surfaces the
-assistant reply as a single `answer` event on the SSE channel
-(ADR 0007). Token-level streaming is a follow-up: it'll move the LLM
-node to `chat_stream` and pump `astream_events` from the graph.
+``run()`` calls ``self._llm.complete(...)`` directly, propagates
+``reasoning`` / ``error`` events to the SSE channel as they arrive,
+accumulates ``answer`` chunks into a single buffered event (ADR 0007
+single-answer contract preserved), then emits ``citation`` events for
+the markers actually referenced in the answer.
 
 Citation wiring (task #23, audit step 6d): when an optional
 ``BaseSearch`` provider is supplied at construction time, ``run()``
@@ -128,20 +133,39 @@ class LangGraphOrchestrator(OrchestratorBase):
                         *messages,
                     ]
 
-        result: _GraphState = await self._graph.ainvoke({"messages": graph_messages})
-        # The LLM node appends the assistant reply as the last message.
-        # Empty input (no messages) would still produce a reply, but a
-        # missing reply is a hard error -- emit a typed error event so
-        # the SSE consumer can surface it.
-        all_messages = result["messages"]
-        if not all_messages or all_messages[-1].role != "assistant":
+        # CU-004b: stream events through the LLM-layer factory
+        # (CU-004a). `complete()` auto-routes to `chat()` / `reason()`
+        # based on the configured deployment, so o-series `reasoning`
+        # tokens flow live to the SSE channel without per-orchestrator
+        # branching. The compiled graph is bypassed for the LLM call --
+        # task #20 (tool-node wiring) reintroduces it for tool routing.
+        answer_parts: list[str] = []
+        saw_error = False
+        async for event in self._llm.complete(graph_messages):
+            if event.channel == "answer":
+                answer_parts.append(event.content)
+            elif event.channel == "error":
+                saw_error = True
+                yield event  # surface upstream LLM errors immediately
+            else:
+                # `reasoning` (and any future LLM-emitted channel) is
+                # passed through verbatim so the FE reasoning panel
+                # lights up while the model is still thinking.
+                yield event
+
+        if saw_error and not answer_parts:
+            # Upstream already emitted a typed error event; nothing
+            # more to assemble.
+            return
+
+        answer = "".join(answer_parts)
+        if not answer:
             yield OrchestratorEvent(
                 channel="error",
                 content="LangGraph run produced no assistant reply.",
             )
             return
 
-        answer = all_messages[-1].content
         for citation in filter_to_referenced(answer, citations):
             yield OrchestratorEvent(
                 channel="citation",
