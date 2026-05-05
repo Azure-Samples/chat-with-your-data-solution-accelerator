@@ -9,7 +9,6 @@ This stub exposes a single anonymous health endpoint so the container
 starts cleanly and ``azd up`` succeeds for the Functions app at the end
 of Phase 1.
 """
-from __future__ import annotations
 
 import json
 

@@ -11,7 +11,6 @@ __init__.py modules eager-import every provider module to trigger registration,
 then expose a thin .create(key, **kwargs) helper. This eliminates the if/else
 factory dispatch and lazy in-function imports that polluted v1.
 """
-from __future__ import annotations
 
 from typing import Callable, Generic, TypeVar
 

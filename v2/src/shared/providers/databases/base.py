@@ -20,23 +20,21 @@ Lifecycle: clients hold an SDK connection (CosmosClient, asyncpg pool).
 Callers invoke `await client.aclose()` during shutdown -- the FastAPI
 lifespan in `backend/app.py` does this for the cached singleton.
 """
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
+from azure.core.credentials_async import AsyncTokenCredential
 
-    from shared.settings import AppSettings
-    from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.settings import AppSettings
+from shared.types import ChatMessage, Conversation, MessageRecord
 
 
 class BaseDatabaseClient(ABC):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
     ) -> None:
         self._settings = settings
         self._credential = credential
@@ -46,7 +44,7 @@ class BaseDatabaseClient(ABC):
     @abstractmethod
     async def list_conversations(
         self, user_id: str
-    ) -> "Sequence[Conversation]":
+    ) -> Sequence[Conversation]:
         """Return all conversations owned by `user_id`, newest first."""
 
     @abstractmethod
@@ -58,13 +56,13 @@ class BaseDatabaseClient(ABC):
     @abstractmethod
     async def create_conversation(
         self, user_id: str, title: str
-    ) -> "Conversation":
+    ) -> Conversation:
         """Create a new empty conversation; returns the stored row."""
 
     @abstractmethod
     async def rename_conversation(
         self, conversation_id: str, user_id: str, title: str
-    ) -> "Conversation":
+    ) -> Conversation:
         """Rename `conversation_id`. Raises `KeyError` if not found."""
 
     @abstractmethod
@@ -78,7 +76,7 @@ class BaseDatabaseClient(ABC):
     @abstractmethod
     async def list_messages(
         self, conversation_id: str, user_id: str
-    ) -> "Sequence[MessageRecord]":
+    ) -> Sequence[MessageRecord]:
         """Return all messages in `conversation_id`, oldest first."""
 
     @abstractmethod
@@ -86,8 +84,8 @@ class BaseDatabaseClient(ABC):
         self,
         conversation_id: str,
         user_id: str,
-        message: "ChatMessage",
-    ) -> "MessageRecord":
+        message: ChatMessage,
+    ) -> MessageRecord:
         """Append `message` to `conversation_id`. Returns the stored row
         (with assigned id + timestamp)."""
 

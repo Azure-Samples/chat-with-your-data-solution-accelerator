@@ -23,7 +23,6 @@ content-safety / post-prompt guards once they are exposed via DI.
 Today both guards default to ``None`` (pipeline streams through
 unchanged), preserving the original router behavior.
 """
-from __future__ import annotations
 
 import json
 import logging

@@ -13,29 +13,25 @@ SDK usage in `v2/src/{shared,providers,pipelines}/**`. We *use* the
 client object returned by Foundry, but never import its type, so the
 ban is structurally enforced (grep stays clean).
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator, Sequence
 
 from azure.ai.projects.aio import AIProjectClient
+from azure.core.credentials_async import AsyncTokenCredential
 
+from shared.settings import AppSettings
 from shared.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent
 
 from . import registry
 from .base import BaseLLMProvider
-
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
-
-    from shared.settings import AppSettings
 
 
 @registry.register("foundry_iq")
 class FoundryIQ(BaseLLMProvider):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
         *,
         project_client: AIProjectClient | None = None,
     ) -> None:

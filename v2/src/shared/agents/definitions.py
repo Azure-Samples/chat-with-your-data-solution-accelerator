@@ -38,7 +38,6 @@ MACAE pattern attribution: TRUE/FALSE classifier prompt shape used by
 RAI_AGENT.instructions (adapted from common/utils/utils_af.py
 `create_RAI_agent`).
 """
-from __future__ import annotations
 
 from typing import Literal
 

@@ -13,26 +13,24 @@ that owns an HTTP transport. Callers are expected to invoke
 `await provider.aclose()` during shutdown -- the FastAPI lifespan in
 `backend/app.py` does this for the cached singleton.
 """
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, AsyncIterator, Sequence
+from typing import AsyncIterator, Sequence
 
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
+from azure.core.credentials_async import AsyncTokenCredential
 
-    from shared.settings import AppSettings
-    from shared.types import (
-        ChatChunk,
-        ChatMessage,
-        EmbeddingResult,
-        OrchestratorEvent,
-    )
+from shared.settings import AppSettings
+from shared.types import (
+    ChatChunk,
+    ChatMessage,
+    EmbeddingResult,
+    OrchestratorEvent,
+)
 
 
 class BaseLLMProvider(ABC):
     def __init__(
-        self, settings: "AppSettings", credential: "AsyncTokenCredential"
+        self, settings: AppSettings, credential: AsyncTokenCredential
     ) -> None:
         self._settings = settings
         self._credential = credential
@@ -40,23 +38,23 @@ class BaseLLMProvider(ABC):
     @abstractmethod
     async def chat(
         self,
-        messages: "Sequence[ChatMessage]",
+        messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
-    ) -> "ChatMessage":
+    ) -> ChatMessage:
         """Single-shot chat completion. Returns the assistant message."""
 
     @abstractmethod
     def chat_stream(
         self,
-        messages: "Sequence[ChatMessage]",
+        messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
-    ) -> "AsyncIterator[ChatChunk]":
+    ) -> AsyncIterator[ChatChunk]:
         """Streamed chat completion. Yields deltas as `ChatChunk`s.
 
         Implementations are typically `async def` with `yield` -- the
@@ -67,19 +65,19 @@ class BaseLLMProvider(ABC):
     @abstractmethod
     async def embed(
         self,
-        inputs: "Sequence[str]",
+        inputs: Sequence[str],
         *,
         deployment: str | None = None,
-    ) -> "EmbeddingResult":
+    ) -> EmbeddingResult:
         """Embed one or more inputs into a dense vector."""
 
     @abstractmethod
     def reason(
         self,
-        messages: "Sequence[ChatMessage]",
+        messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
-    ) -> "AsyncIterator[OrchestratorEvent]":
+    ) -> AsyncIterator[OrchestratorEvent]:
         """Reasoning-model (o-series) completion.
 
         Yields `OrchestratorEvent`s on two channels:

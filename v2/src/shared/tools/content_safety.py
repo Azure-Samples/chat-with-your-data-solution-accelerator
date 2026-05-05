@@ -28,21 +28,15 @@ imported directly:
 
     from shared.tools.content_safety import ContentSafetyGuard, rai_check
 """
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
 
 from azure.ai.agents.models import ListSortOrder, MessageRole
+from azure.ai.contentsafety.aio import ContentSafetyClient
 from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
 from pydantic import BaseModel, Field
 
 from shared.agents import RAI_AGENT
-
-if TYPE_CHECKING:
-    from azure.ai.contentsafety.aio import ContentSafetyClient
-
-    from shared.providers.agents.base import BaseAgentsProvider
-    from shared.providers.databases.base import BaseDatabaseClient
+from shared.providers.agents.base import BaseAgentsProvider
+from shared.providers.databases.base import BaseDatabaseClient
 
 
 # Severity threshold above which content is flagged. Azure Content
@@ -76,7 +70,7 @@ class ContentSafetyVerdict(BaseModel):
 class ContentSafetyGuard:
     def __init__(
         self,
-        client: "ContentSafetyClient",
+        client: ContentSafetyClient,
         *,
         severity_threshold: int = DEFAULT_SEVERITY_THRESHOLD,
     ) -> None:
@@ -114,8 +108,8 @@ class ContentSafetyGuard:
 
 async def rai_check(
     text: str,
-    agents: "BaseAgentsProvider",
-    db: "BaseDatabaseClient",
+    agents: BaseAgentsProvider,
+    db: BaseDatabaseClient,
 ) -> bool:
     """Run `text` through the Responsible AI binary classifier.
 

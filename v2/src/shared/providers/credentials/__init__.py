@@ -14,7 +14,6 @@ Recipe (per §3.5 of v2/docs/development_plan.md):
     async with await cred_provider.get_credential() as cred:
         ...
 """
-from __future__ import annotations
 
 from shared.registry import Registry
 

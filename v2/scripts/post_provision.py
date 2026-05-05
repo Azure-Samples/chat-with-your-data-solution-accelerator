@@ -32,8 +32,6 @@ Notes
   summary. Wire-trace before a real deploy.
 """
 
-from __future__ import annotations
-
 import argparse
 import os
 import sys

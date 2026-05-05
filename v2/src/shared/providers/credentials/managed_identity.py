@@ -10,7 +10,6 @@ client secret, no Key Vault. When `AZURE_UAMI_CLIENT_ID` is set we pin
 DefaultAzureCredential to that specific UAMI so multi-identity hosts
 do not silently fall back to a system-assigned identity.
 """
-from __future__ import annotations
 
 from azure.identity.aio import DefaultAzureCredential
 

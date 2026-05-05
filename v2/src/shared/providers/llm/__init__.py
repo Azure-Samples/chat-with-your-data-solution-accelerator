@@ -13,7 +13,6 @@ Recipe (per ยง3.5 of v2/docs/development_plan.md):
     llm_provider = llm.create("foundry_iq", settings=settings, credential=cred)
     reply = await llm_provider.chat(messages, deployment="gpt-4o")
 """
-from __future__ import annotations
 
 from shared.registry import Registry
 

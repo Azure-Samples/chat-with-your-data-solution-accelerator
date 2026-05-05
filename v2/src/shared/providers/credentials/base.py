@@ -3,15 +3,12 @@
 Pillar: Stable Core
 Phase: 2
 """
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
+from azure.core.credentials_async import AsyncTokenCredential
 
-    from shared.settings import AppSettings
+from shared.settings import AppSettings
 
 
 class BaseCredentialProvider(ABC):
@@ -21,11 +18,11 @@ class BaseCredentialProvider(ABC):
     self-register via `@registry.register("<key>")`.
     """
 
-    def __init__(self, settings: "AppSettings") -> None:
+    def __init__(self, settings: AppSettings) -> None:
         self._settings = settings
 
     @abstractmethod
-    async def get_credential(self) -> "AsyncTokenCredential":
+    async def get_credential(self) -> AsyncTokenCredential:
         """Return an async token credential.
 
         Callers are expected to use the returned credential as an async

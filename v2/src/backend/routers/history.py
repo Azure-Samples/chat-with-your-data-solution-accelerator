@@ -30,7 +30,6 @@ KeyError raised by the database client surfaces as ``404`` -- the
 router never inspects backend-specific exceptions (Cosmos /
 asyncpg) directly, keeping the surface registry-only (Hard Rule #4).
 """
-from __future__ import annotations
 
 import logging
 from typing import Annotated

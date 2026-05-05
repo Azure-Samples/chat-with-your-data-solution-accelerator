@@ -30,26 +30,21 @@ Lifecycle: the underlying `CosmosClient` owns an HTTP session.
 (task #29) caches one client per process and closes it on shutdown
 (`sdk-singleton-client`).
 """
-from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import Any, Sequence
 
-from azure.cosmos.aio import CosmosClient
+from azure.core.credentials_async import AsyncTokenCredential
+from azure.cosmos.aio import ContainerProxy, CosmosClient
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
+from shared.settings import AppSettings
 from shared.types import ChatMessage, Conversation, MessageRecord
 
 from . import registry
 from .base import BaseDatabaseClient
-
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
-    from azure.cosmos.aio import ContainerProxy
-
-    from shared.settings import AppSettings
 
 
 class CosmosItemType(StrEnum):
@@ -97,8 +92,8 @@ def _utcnow_iso() -> str:
 class CosmosDBClient(BaseDatabaseClient):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
         *,
         client: CosmosClient | None = None,
     ) -> None:
@@ -112,7 +107,7 @@ class CosmosDBClient(BaseDatabaseClient):
     # Internals
     # ------------------------------------------------------------------
 
-    def _get_container(self) -> "ContainerProxy":
+    def _get_container(self) -> ContainerProxy:
         if self._container is not None:
             return self._container
         cfg = self._settings.database

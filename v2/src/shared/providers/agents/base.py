@@ -24,28 +24,24 @@ stable. Wrapping would add ceremony without any swap-in benefit
 since every provider in this domain ultimately produces the same
 SDK type.
 """
-from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
 
+from azure.ai.agents.aio import AgentsClient
+from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import ResourceNotFoundError
 
-if TYPE_CHECKING:
-    from azure.ai.agents.aio import AgentsClient
-    from azure.core.credentials_async import AsyncTokenCredential
-
-    from shared.agents.definitions import AgentDefinition
-    from shared.providers.databases.base import BaseDatabaseClient
-    from shared.settings import AppSettings
+from shared.agents.definitions import AgentDefinition
+from shared.providers.databases.base import BaseDatabaseClient
+from shared.settings import AppSettings
 
 
 class BaseAgentsProvider(ABC):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
     ) -> None:
         self._settings = settings
         self._credential = credential
@@ -64,7 +60,7 @@ class BaseAgentsProvider(ABC):
         self._create_locks: dict[str, asyncio.Lock] = {}
 
     @abstractmethod
-    def get_client(self) -> "AgentsClient":
+    def get_client(self) -> AgentsClient:
         """Return the (lazily-constructed, cached) `AgentsClient`."""
 
     @abstractmethod
@@ -73,8 +69,8 @@ class BaseAgentsProvider(ABC):
 
     async def get_or_create_agent(
         self,
-        definition: "AgentDefinition",
-        db: "BaseDatabaseClient",
+        definition: AgentDefinition,
+        db: BaseDatabaseClient,
     ) -> str:
         """Resolve `definition` to a Foundry agent id, creating the
         agent on first call and persisting the id for next time.

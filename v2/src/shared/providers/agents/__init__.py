@@ -24,7 +24,6 @@ Recipe (per development_plan.md ยง3.5):
     )
     client = provider.get_client()  # azure.ai.agents.aio.AgentsClient
 """
-from __future__ import annotations
 
 from shared.registry import Registry
 

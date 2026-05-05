@@ -22,16 +22,13 @@ imported directly:
 
     from shared.tools.post_prompt import PostPromptValidator
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
 from pydantic import BaseModel
 
+from shared.providers.llm.base import BaseLLMProvider
 from shared.types import ChatMessage, SearchResult
-
-if TYPE_CHECKING:
-    from shared.providers.llm.base import BaseLLMProvider
 
 
 # Default validation prompt -- asks the model for a single yes/no token
@@ -67,7 +64,7 @@ class ValidationResult(BaseModel):
 class PostPromptValidator:
     def __init__(
         self,
-        llm: "BaseLLMProvider",
+        llm: BaseLLMProvider,
         *,
         validation_prompt: str = DEFAULT_VALIDATION_PROMPT,
         filter_message: str = DEFAULT_FILTER_MESSAGE,

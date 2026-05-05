@@ -21,7 +21,6 @@ The registry key MUST equal the `settings.database.index_store` Literal
 value (`AzureSearch` / `pgvector`) so dispatch never goes through a
 name-string translation (Hard Rule #4).
 """
-from __future__ import annotations
 
 from shared.registry import Registry
 

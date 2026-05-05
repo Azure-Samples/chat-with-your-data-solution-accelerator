@@ -47,17 +47,13 @@ Behavior contracts
 * **No validator**: ``answer`` events stream through unchanged
   (sub-second perceived latency for the streaming client).
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable, Sequence
+from typing import AsyncIterator, Awaitable, Callable, Sequence
 
-from shared.types import Citation, OrchestratorEvent, SearchResult
-
-if TYPE_CHECKING:
-    from shared.providers.orchestrators.base import OrchestratorBase
-    from shared.tools.content_safety import ContentSafetyGuard
-    from shared.tools.post_prompt import PostPromptValidator
-    from shared.types import ChatMessage
+from shared.providers.orchestrators.base import OrchestratorBase
+from shared.tools.content_safety import ContentSafetyGuard
+from shared.tools.post_prompt import PostPromptValidator
+from shared.types import ChatMessage, Citation, OrchestratorEvent, SearchResult
 
 # Type alias for the RAI screener callable. Returns True when input
 # is safe, False when unsafe. The pipeline never inspects the
@@ -67,7 +63,7 @@ if TYPE_CHECKING:
 RaiScreener = Callable[[str], Awaitable[bool]]
 
 
-def _latest_user_text(messages: Sequence["ChatMessage"]) -> str:
+def _latest_user_text(messages: Sequence[ChatMessage]) -> str:
     """Return the text of the most recent user message (empty string if none)."""
     for message in reversed(messages):
         if message.role == "user":
@@ -88,12 +84,12 @@ def _citation_to_search_result(citation: Citation) -> SearchResult:
 
 
 async def run_chat(
-    messages: "Sequence[ChatMessage]",
+    messages: Sequence[ChatMessage],
     *,
-    orchestrator: "OrchestratorBase",
-    content_safety: "ContentSafetyGuard | None" = None,
+    orchestrator: OrchestratorBase,
+    content_safety: ContentSafetyGuard | None = None,
     rai_check: RaiScreener | None = None,
-    post_prompt: "PostPromptValidator | None" = None,
+    post_prompt: PostPromptValidator | None = None,
 ) -> AsyncIterator[OrchestratorEvent]:
     """Run the configured chat flow and yield typed SSE events."""
     user_text = _latest_user_text(messages)

@@ -20,14 +20,9 @@ imported directly:
 
     from shared.tools.text_processing import TextProcessingHelper
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
+from shared.providers.llm.base import BaseLLMProvider
 from shared.types import ChatMessage
-
-if TYPE_CHECKING:
-    from shared.providers.llm.base import BaseLLMProvider
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -40,7 +35,7 @@ DEFAULT_SYSTEM_PROMPT = (
 class TextProcessingHelper:
     def __init__(
         self,
-        llm: "BaseLLMProvider",
+        llm: BaseLLMProvider,
         *,
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
     ) -> None:

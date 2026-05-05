@@ -27,20 +27,17 @@ shared with the chat-history database client (task #30 contract).
 The lifespan bootstraps the postgres client (`ensure_pool()`) and
 then hands its pool to this provider.
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import Any, Sequence
 
+import asyncpg
+from azure.core.credentials_async import AsyncTokenCredential
+
+from shared.settings import AppSettings
 from shared.types import SearchResult
 
 from . import registry
 from .base import BaseSearch
-
-if TYPE_CHECKING:
-    import asyncpg
-    from azure.core.credentials_async import AsyncTokenCredential
-
-    from shared.settings import AppSettings
 
 
 def _format_vector_literal(vector: Sequence[float]) -> str:
@@ -56,10 +53,10 @@ def _format_vector_literal(vector: Sequence[float]) -> str:
 class PgVector(BaseSearch):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
         *,
-        pool: "asyncpg.Pool",
+        pool: asyncpg.Pool,
         table: str = "documents",
     ) -> None:
         super().__init__(settings, credential)

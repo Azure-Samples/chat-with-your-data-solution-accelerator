@@ -24,7 +24,6 @@ import section below is reserved for the future
 `orchestrators.create("anything")` raises a clear KeyError naming the
 empty registry.
 """
-from __future__ import annotations
 
 from shared.registry import Registry
 

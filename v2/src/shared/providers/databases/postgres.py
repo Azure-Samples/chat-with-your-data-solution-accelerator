@@ -21,24 +21,20 @@ The internal `_pool` is exposed via the `pool` property so the
 per process, no parallel connection management (per development plan
 \u00a74 task #30).
 """
-from __future__ import annotations
 
 import asyncio
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import Any, Sequence
 
 import asyncpg
+from azure.core.credentials_async import AsyncTokenCredential
 
+from shared.settings import AppSettings
 from shared.types import ChatMessage, Conversation, MessageRecord
 
 from . import registry
 from .base import BaseDatabaseClient
-
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
-
-    from shared.settings import AppSettings
 
 
 _POSTGRES_AAD_SCOPE = "https://ossrdbms-aad.database.windows.net/.default"
@@ -114,8 +110,8 @@ def _row_to_message(row: "asyncpg.Record | dict[str, Any]") -> MessageRecord:
 class PostgresClient(BaseDatabaseClient):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
         *,
         pool: "asyncpg.Pool | None" = None,
     ) -> None:

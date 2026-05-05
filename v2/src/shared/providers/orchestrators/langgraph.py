@@ -26,13 +26,15 @@ reply (filtered through ``filter_to_referenced``). When ``search`` is
 no citation events -- so the existing single-answer contract is
 preserved for callers that haven't wired search through DI yet.
 """
-from __future__ import annotations
 
 import operator
-from typing import TYPE_CHECKING, Annotated, Any, AsyncIterator, Sequence, TypedDict
+from typing import Annotated, Any, AsyncIterator, Sequence, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from shared.providers.llm.base import BaseLLMProvider
+from shared.providers.search.base import BaseSearch
+from shared.settings import AppSettings
 from shared.tools.citations import (
     build_citations,
     filter_to_referenced,
@@ -42,11 +44,6 @@ from shared.types import ChatMessage, OrchestratorEvent
 
 from . import registry
 from .base import OrchestratorBase
-
-if TYPE_CHECKING:
-    from shared.providers.llm.base import BaseLLMProvider
-    from shared.providers.search.base import BaseSearch
-    from shared.settings import AppSettings
 
 
 class _GraphState(TypedDict):
@@ -67,9 +64,9 @@ class _GraphState(TypedDict):
 class LangGraphOrchestrator(OrchestratorBase):
     def __init__(
         self,
-        settings: "AppSettings",
-        llm: "BaseLLMProvider",
-        search: "BaseSearch | None" = None,
+        settings: AppSettings,
+        llm: BaseLLMProvider,
+        search: BaseSearch | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every

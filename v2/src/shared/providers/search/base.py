@@ -19,23 +19,21 @@ shape (search documents, pgvector rows) to `SearchResult` so the chat
 pipeline (task #22) and citation extractor (task #23) consume one
 stable type.
 '''
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
+from azure.core.credentials_async import AsyncTokenCredential
 
-    from shared.settings import AppSettings
-    from shared.types import SearchResult
+from shared.settings import AppSettings
+from shared.types import SearchResult
 
 
 class BaseSearch(ABC):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
     ) -> None:
         self._settings = settings
         self._credential = credential
@@ -48,7 +46,7 @@ class BaseSearch(ABC):
         top_k: int | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
-    ) -> "Sequence[SearchResult]":
+    ) -> Sequence[SearchResult]:
         """Return search hits for the given query.
 
         - `query`: free-text query. Required even for pure-vector

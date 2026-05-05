@@ -14,7 +14,6 @@ fresh aiohttp transport on every request (DefaultAzureCredential is
 *not* free to construct) and lets shutdown deterministically close
 both objects.
 """
-from __future__ import annotations
 
 from typing import Annotated
 

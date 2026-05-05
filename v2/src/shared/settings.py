@@ -23,8 +23,6 @@ Design rules (binding):
   between env-var permutations and FastAPI can `Depends(get_settings)`.
 """
 
-from __future__ import annotations
-
 from functools import lru_cache
 from typing import Annotated, Literal
 

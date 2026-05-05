@@ -27,25 +27,21 @@ here so an upgrade-in-place doesn't need a reindex:
 Callers needing custom field names can subclass and override
 `_to_result()`.
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import Any, Sequence
 
+from azure.core.credentials_async import AsyncTokenCredential
 from azure.search.documents.aio import SearchClient
 from azure.search.documents.models import (
     QueryType,
     VectorizedQuery,
 )
 
+from shared.settings import AppSettings
 from shared.types import SearchResult
 
 from . import registry
 from .base import BaseSearch
-
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
-
-    from shared.settings import AppSettings
 
 
 _DEFAULT_SELECT_FIELDS = ("id", "content", "title", "url")
@@ -55,8 +51,8 @@ _DEFAULT_SELECT_FIELDS = ("id", "content", "title", "url")
 class AzureSearch(BaseSearch):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
         *,
         client: SearchClient | None = None,
     ) -> None:

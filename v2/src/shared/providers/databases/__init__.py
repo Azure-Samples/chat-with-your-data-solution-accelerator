@@ -23,7 +23,6 @@ match `DatabaseSettings.db_type` (a `Literal["cosmosdb",
 "postgresql"]`). The mapping is regression-guarded by
 `tests/shared/test_databases_factory.py`.
 """
-from __future__ import annotations
 
 from shared.registry import Registry
 

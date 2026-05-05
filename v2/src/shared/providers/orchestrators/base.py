@@ -20,22 +20,20 @@ Lifecycle: orchestrators that hold long-lived clients (e.g. a
 `aclose()` to release them. The default is a no-op so simple
 orchestrators don't need ceremony.
 """
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator, Sequence
 
-if TYPE_CHECKING:
-    from shared.providers.llm.base import BaseLLMProvider
-    from shared.settings import AppSettings
-    from shared.types import ChatMessage, OrchestratorEvent
+from shared.providers.llm.base import BaseLLMProvider
+from shared.settings import AppSettings
+from shared.types import ChatMessage, OrchestratorEvent
 
 
 class OrchestratorBase(ABC):
     def __init__(
         self,
-        settings: "AppSettings",
-        llm: "BaseLLMProvider",
+        settings: AppSettings,
+        llm: BaseLLMProvider,
     ) -> None:
         self._settings = settings
         self._llm = llm
@@ -43,10 +41,10 @@ class OrchestratorBase(ABC):
     @abstractmethod
     def run(
         self,
-        messages: "Sequence[ChatMessage]",
+        messages: Sequence[ChatMessage],
         *,
         settings_override: dict[str, Any] | None = None,
-    ) -> "AsyncIterator[OrchestratorEvent]":
+    ) -> AsyncIterator[OrchestratorEvent]:
         """Run the orchestrator and yield typed events.
 
         Implementations are typically `async def` with `yield` -- the

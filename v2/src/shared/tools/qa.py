@@ -23,17 +23,14 @@ imported directly:
 
     from shared.tools.qa import QuestionAnsweringHelper
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import Sequence
 
 from pydantic import BaseModel, Field
 
+from shared.providers.llm.base import BaseLLMProvider
+from shared.providers.search.base import BaseSearch
 from shared.types import ChatMessage, SearchResult
-
-if TYPE_CHECKING:
-    from shared.providers.llm.base import BaseLLMProvider
-    from shared.providers.search.base import BaseSearch
 
 
 # Default Azure-OpenAI-On-Your-Data-style prompts. The system message
@@ -66,8 +63,8 @@ class QAResult(BaseModel):
 class QuestionAnsweringHelper:
     def __init__(
         self,
-        llm: "BaseLLMProvider",
-        search: "BaseSearch",
+        llm: BaseLLMProvider,
+        search: BaseSearch,
         *,
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
         user_prompt: str = DEFAULT_USER_PROMPT,

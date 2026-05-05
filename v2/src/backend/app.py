@@ -15,7 +15,6 @@ provider **once** and stashes them on `app.state` (see
 `DefaultAzureCredential`, `AIProjectClient`, and `AgentsClient` each
 own an aiohttp transport.
 """
-from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager

@@ -21,32 +21,28 @@ The `llm` dependency is unused today -- the Agent owns its own model
 deployment in Foundry. We still take it via the ABC contract so
 swapping orchestrators is configuration-only.
 """
-from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator, Sequence
 
+from azure.ai.agents.aio import AgentsClient
 from azure.ai.agents.models import ListSortOrder, MessageRole
 
+from shared.providers.llm.base import BaseLLMProvider
+from shared.settings import AppSettings
 from shared.types import ChatMessage, OrchestratorEvent
 
 from . import registry
 from .base import OrchestratorBase
-
-if TYPE_CHECKING:
-    from azure.ai.agents.aio import AgentsClient
-
-    from shared.providers.llm.base import BaseLLMProvider
-    from shared.settings import AppSettings
 
 
 @registry.register("agent_framework")
 class AgentFrameworkOrchestrator(OrchestratorBase):
     def __init__(
         self,
-        settings: "AppSettings",
-        llm: "BaseLLMProvider",
+        settings: AppSettings,
+        llm: BaseLLMProvider,
         *,
-        agents_client: "AgentsClient",
+        agents_client: AgentsClient,
         agent_id: str,
         **_extras: object,
     ) -> None:

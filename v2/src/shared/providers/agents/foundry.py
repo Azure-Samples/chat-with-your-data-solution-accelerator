@@ -13,29 +13,24 @@ Construction is lazy: no HTTP session is opened at __init__ time,
 so module import stays cheap. The first `get_client()` call builds
 the client; subsequent calls return the cached instance.
 """
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
 
 from azure.ai.agents.aio import AgentsClient
+from azure.core.credentials_async import AsyncTokenCredential
+
+from shared.settings import AppSettings
 
 from . import registry
 from .base import BaseAgentsProvider
-
-if TYPE_CHECKING:
-    from azure.core.credentials_async import AsyncTokenCredential
-
-    from shared.settings import AppSettings
 
 
 @registry.register("foundry")
 class FoundryAgentsProvider(BaseAgentsProvider):
     def __init__(
         self,
-        settings: "AppSettings",
-        credential: "AsyncTokenCredential",
+        settings: AppSettings,
+        credential: AsyncTokenCredential,
         *,
-        client: "AgentsClient | None" = None,
+        client: AgentsClient | None = None,
     ) -> None:
         super().__init__(settings, credential)
         # Allow tests to inject a fake AgentsClient. Production path
@@ -43,7 +38,7 @@ class FoundryAgentsProvider(BaseAgentsProvider):
         self._client_override = client
         self._client: "AgentsClient | None" = client
 
-    def get_client(self) -> "AgentsClient":
+    def get_client(self) -> AgentsClient:
         if self._client is not None:
             return self._client
         endpoint = self._settings.foundry.project_endpoint

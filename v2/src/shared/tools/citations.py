@@ -24,7 +24,6 @@ Caller pattern (Phase 3 wiring)::
     # citation yields OrchestratorEvent(channel="citation",
     # metadata=c.model_dump()).
 """
-from __future__ import annotations
 
 import re
 from typing import Sequence

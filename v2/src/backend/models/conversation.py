@@ -3,7 +3,6 @@
 Pillar: Stable Core
 Phase: 3 (task #22a)
 """
-from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
