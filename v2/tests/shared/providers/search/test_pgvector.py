@@ -9,7 +9,6 @@ so dispatch is registry-only (Hard Rule #4), (b) hybrid SQL shape
 fallback when no vector is supplied, (d) row -> SearchResult mapping,
 (e) the provider does NOT close the injected pool.
 """
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock

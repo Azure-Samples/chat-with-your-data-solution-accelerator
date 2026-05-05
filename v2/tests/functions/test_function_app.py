@@ -1,5 +1,4 @@
 """Pillar: Stable Core / Phase: 1 (debt #7) — tests for v2/src/functions/function_app.py."""
-from __future__ import annotations
 
 import json
 

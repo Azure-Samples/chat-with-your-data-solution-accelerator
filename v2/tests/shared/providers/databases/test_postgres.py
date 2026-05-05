@@ -9,7 +9,6 @@ shape (no string interpolation), (b) tenant-isolation (user_id always
 in the WHERE clause), (c) lazy schema bootstrap exactly once, and
 (d) FK-violation -> KeyError translation in `add_message`.
 """
-from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from typing import Any

@@ -8,7 +8,6 @@ Single-runtime container: FastAPI + StaticFiles (`html=True`) serves
 proxy. The dev profile keeps using Vite's HMR server unchanged; this
 module is only loaded by the `prod` stage of `docker/Dockerfile.frontend`.
 """
-from __future__ import annotations
 
 import os
 from pathlib import Path

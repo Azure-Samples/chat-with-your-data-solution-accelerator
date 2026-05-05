@@ -1,5 +1,4 @@
 """Pillar: Stable Core / Phase: 3 (#23) — tests for shared/tools/citations.py."""
-from __future__ import annotations
 
 import pytest
 

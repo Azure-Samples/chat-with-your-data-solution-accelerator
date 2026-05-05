@@ -14,7 +14,6 @@ first request and persisted in the chat-history DB. Both the
 container-app env binding **must remain absent**; restoring either
 re-creates the dead-config drift CU-008..CU-012 was opened to remove.
 """
-from __future__ import annotations
 
 from pathlib import Path
 

@@ -2,7 +2,6 @@
 
 Tests for v2/src/shared/pipelines/chat.py.
 """
-from __future__ import annotations
 
 from typing import Any, AsyncIterator, Sequence
 

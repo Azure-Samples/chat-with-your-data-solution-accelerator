@@ -3,7 +3,6 @@
 Pillar: Stable Core
 Phase: 2
 """
-from __future__ import annotations
 
 import pytest
 from azure.identity.aio import AzureCliCredential, DefaultAzureCredential

@@ -3,7 +3,6 @@
 Pillar: Stable Core
 Phase: 1
 """
-from __future__ import annotations
 
 import importlib
 import sys

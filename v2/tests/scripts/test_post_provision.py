@@ -3,7 +3,6 @@ Pillar: Stable Core
 Phase: 3 (Conversation + RAG, task #26)
 Purpose: Validate post_provision.py search-index bootstrap and CLI flags.
 """
-from __future__ import annotations
 
 import importlib.util
 import sys

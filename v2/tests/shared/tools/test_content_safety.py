@@ -4,7 +4,6 @@
 Pillar: Stable Core
 Phase: 3 + Cleanup audit batch 2
 """
-from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any

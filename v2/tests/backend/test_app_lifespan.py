@@ -1,5 +1,4 @@
 """Pillar: Stable Core / Phase: 3.5 (debt #Q6b) — lifespan wires search provider."""
-from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch

@@ -117,16 +117,6 @@ def _imports_type_checking_symbol(tree: ast.Module) -> bool:
 _ALL_FILES = _iter_v2_python_files()
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "CU-013 sweep is in progress. CU-013a lands the rule + this "
-        "invariant test (intentionally red across ~74 files). "
-        "CU-013b/c/d sweep the codebase. CU-013e removes this xfail "
-        "marker so any future re-introduction of the banned constructs "
-        "is caught immediately."
-    ),
-)
 @pytest.mark.parametrize(
     "py_file",
     _ALL_FILES,

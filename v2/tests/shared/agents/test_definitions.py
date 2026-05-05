@@ -15,7 +15,6 @@ Validates:
   (catches typos like "gpt_deplyment" at definition-load time, not
   at first-request time).
 """
-from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError

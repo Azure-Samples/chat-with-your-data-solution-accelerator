@@ -14,7 +14,6 @@ CU-006 (cleanup_audit) freezes two invariants:
    `BaseDatabaseClient` (Hard Rule #4: registry-only dispatch, no
    `if/elif` provider branching elsewhere in the codebase).
 """
-from __future__ import annotations
 
 from typing import get_args
 from unittest.mock import MagicMock

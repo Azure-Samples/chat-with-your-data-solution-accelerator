@@ -15,7 +15,6 @@ Coverage:
   * cold start -> create + persist + cache
   * concurrent first-requests serialize on a per-key lock (single create)
 """
-from __future__ import annotations
 
 import asyncio
 from typing import Sequence

@@ -1,5 +1,4 @@
 """Pillar: Stable Core / Phase: 3.5 (debt #Q6a) — DI provider tests."""
-from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock

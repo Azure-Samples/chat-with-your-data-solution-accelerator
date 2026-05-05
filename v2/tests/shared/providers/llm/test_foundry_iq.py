@@ -3,7 +3,6 @@
 Pillar: Stable Core
 Phase: 2
 """
-from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
@@ -405,3 +404,200 @@ async def test_aclose_does_not_close_injected_client(
     provider = FoundryIQ(settings, fake_credential, project_client=project)
     await provider.aclose()
     project.close.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# complete() -- ABC-level auto-routing (CU-004a)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_chat_for_default_deployment(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """No explicit deployment + default gpt deployment != reasoning ->
+    chat() path, single answer event."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("hi back")
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "hi back")]
+    # Confirms chat() (non-streaming) was called, not reason() (streaming).
+    assert openai.chat.completions.create.await_args.kwargs["model"] == "gpt-4o"
+    assert "stream" not in openai.chat.completions.create.await_args.kwargs
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """Explicit deployment == reasoning_deployment -> reason() path,
+    propagates reasoning + answer events in order."""
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(
+        return_value=_build_reason_stream(
+            [
+                ("step a ", ""),
+                ("step b", ""),
+                ("", "Answer."),
+            ]
+        )
+    )
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        )
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [
+        ("reasoning", "step a "),
+        ("reasoning", "step b"),
+        ("answer", "Answer."),
+    ]
+    assert chat_completions.create.await_args.kwargs["model"] == "o4-mini"
+    assert chat_completions.create.await_args.kwargs["stream"] is True
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_reason_when_default_chat_equals_reasoning(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    """Edge case: gpt_deployment and reasoning_deployment configured to
+    the same value -> default routes to reason()."""
+    for key, value in COSMOS_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("AZURE_OPENAI_GPT_DEPLOYMENT", "o4-mini")
+    s = AppSettings()
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(
+        return_value=_build_reason_stream([("", "ok")])
+    )
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        s,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "ok")]
+    assert chat_completions.create.await_args.kwargs["stream"] is True
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_chat_when_no_reasoning_deployment_configured(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    """Empty reasoning_deployment -> always chat() regardless of
+    explicit deployment override."""
+    for key, value in COSMOS_ENV.items():
+        if key != "AZURE_OPENAI_REASONING_DEPLOYMENT":
+            monkeypatch.setenv(key, value)
+    monkeypatch.delenv("AZURE_OPENAI_REASONING_DEPLOYMENT", raising=False)
+    s = AppSettings()
+
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("plain")
+    )
+    provider = FoundryIQ(
+        s, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+
+    events = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        )
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "plain")]
+    # chat() was called with the explicit override even though it would
+    # have been the reasoning deployment if one were configured.
+    assert openai.chat.completions.create.await_args.kwargs["model"] == "o4-mini"
+
+
+@pytest.mark.asyncio
+async def test_complete_emits_error_event_on_chat_failure(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """chat() raising -> single error event with the documented code,
+    no exception escapes the iterator."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(side_effect=RuntimeError("boom"))
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert len(events) == 1
+    assert events[0].channel == "error"
+    assert events[0].metadata["code"] == "complete_chat_failed"
+    assert "boom" in events[0].content
+
+
+@pytest.mark.asyncio
+async def test_complete_propagates_reason_error_events(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """reason() emits its own error event mid-stream -> complete()
+    propagates it unchanged (does NOT wrap with complete_chat_failed)."""
+    async def _boom():
+        yield SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(reasoning_content="thinking", content=""),
+                    finish_reason=None,
+                )
+            ]
+        )
+        raise RuntimeError("reason upstream blew up")
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(return_value=_boom())
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        )
+    ]
+
+    assert [e.channel for e in events] == ["reasoning", "error"]
+    # error event came from reason(), not from complete()'s wrapper.
+    assert events[-1].metadata["code"] == "reason_stream_failed"

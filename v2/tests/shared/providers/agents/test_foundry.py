@@ -12,7 +12,6 @@ same `BaseAgentsProvider` ABC -- callers always go through
 `agents.create("foundry", ...)`, never new the concrete class
 directly (Hard Rule #4).
 """
-from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 

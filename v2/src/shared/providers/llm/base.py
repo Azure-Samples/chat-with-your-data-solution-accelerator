@@ -91,5 +91,55 @@ class BaseLLMProvider(ABC):
         (Phase 7).
         """
 
+    async def complete(
+        self,
+        messages: Sequence[ChatMessage],
+        *,
+        deployment: str | None = None,
+    ) -> AsyncIterator[OrchestratorEvent]:
+        """Unified streaming completion with auto-routing.
+
+        Concrete on the ABC (not abstract) so every provider gets it
+        for free without re-implementing the routing logic. Orchestrators
+        and pipelines call THIS method instead of ``chat()`` or
+        ``reason()`` directly so adding a new orchestrator library
+        never grows per-library reasoning-vs-chat dispatch (CU-004a,
+        2026-05-05 user direction).
+
+        Routing rule:
+
+        * When the resolved deployment matches
+          ``settings.openai.reasoning_deployment`` (and the latter is
+          non-empty), delegate to ``self.reason()`` and propagate every
+          event it yields (``reasoning`` / ``answer`` / ``error``
+          channels).
+        * Otherwise, delegate to ``self.chat()`` and yield a single
+          ``answer``-channel event with the assistant content. ``chat``
+          failures are surfaced as a single ``error`` event with
+          ``metadata.code == "complete_chat_failed"`` so the SSE
+          consumer never crashes mid-stream.
+
+        A provider MAY override this method to add provider-specific
+        step-trace ``reasoning`` events (e.g. tool-call traces). The
+        contract is "yields ``OrchestratorEvent`` on the locked channel
+        set" with no other guarantees.
+        """
+        reasoning_deployment = self._settings.openai.reasoning_deployment
+        chosen = deployment or self._settings.openai.gpt_deployment
+        if reasoning_deployment and chosen == reasoning_deployment:
+            async for event in self.reason(messages, deployment=chosen):
+                yield event
+            return
+        try:
+            reply = await self.chat(messages, deployment=deployment)
+        except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
+            yield OrchestratorEvent(
+                channel="error",
+                content=str(exc),
+                metadata={"code": "complete_chat_failed"},
+            )
+            return
+        yield OrchestratorEvent(channel="answer", content=reply.content)
+
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default implementation is a no-op."""

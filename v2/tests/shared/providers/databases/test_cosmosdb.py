@@ -10,7 +10,6 @@ single-partition query parameters (no cross-partition fan-out), and
 (c) the type-discriminator gating that prevents a message id from
 being mistaken for a conversation id.
 """
-from __future__ import annotations
 
 from typing import Any, AsyncIterator, Iterable
 from unittest.mock import AsyncMock, MagicMock

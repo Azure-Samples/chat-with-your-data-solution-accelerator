@@ -3,7 +3,6 @@
 Pillar: Stable Core
 Phase: 3
 """
-from __future__ import annotations
 
 import os
 from typing import Any

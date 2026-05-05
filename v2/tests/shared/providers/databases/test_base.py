@@ -3,7 +3,6 @@
 Pillar: Stable Core
 Phase: 4
 """
-from __future__ import annotations
 
 from typing import Sequence
 from unittest.mock import MagicMock

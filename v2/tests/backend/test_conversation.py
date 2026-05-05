@@ -1,5 +1,4 @@
 """Pillar: Stable Core / Phase: 3 (task #22a) — tests for the conversation router."""
-from __future__ import annotations
 
 import json
 from typing import Any, AsyncIterator, Sequence

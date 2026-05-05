@@ -1,5 +1,4 @@
 """Tests for shared.registry.Registry. Pillar: Stable Core. Phase: 1."""
-from __future__ import annotations
 
 import pytest
 
