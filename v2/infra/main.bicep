@@ -149,6 +149,9 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
+@description('Optional. Foundry-hosted agent id consumed by the Agent Framework orchestrator (e.g. `asst_abc123`). Default empty: the LangGraph orchestrator does not require it, and the runtime validator only fails when ORCHESTRATOR is switched to `agent_framework` without an id (see OrchestratorSettings._require_agent_id_for_agent_framework). Operators pin a specific agent post-deployment via `azd env set AZURE_AI_AGENT_ID asst_xxx` then `azd provision`.')
+param azureAiAgentId string = ''
+
 // ===================== //
 // WAF flags             //
 // ===================== //
@@ -228,8 +231,9 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-03-01' = {
 // User-Assigned Managed Identity used by every workload (backend Container
 // App, frontend Web App, Function App). All RBAC role assignments target
 // this single principal so there is one identity to audit and rotate.
-// Reference: MACAE solution accelerator (managed-identity + RBAC + no Key
-// Vault for app secrets).
+// Reference: Multi-Agent Custom Automation Engine (MACAE) sample
+// (github.com/microsoft/Multi-Agent-Custom-Automation-Engine-Solution-Accelerator):
+// managed-identity + RBAC + no Key Vault for app secrets.
 module userAssignedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
   name: take('avm.res.managed-identity.user-assigned-identity.${solutionSuffix}', 64)
   params: {
@@ -1166,6 +1170,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
+            // Foundry agent id (Agent Framework orchestrator). Empty
+            // by default; runtime validator on OrchestratorSettings
+            // (CU-001a) only requires non-empty when ORCHESTRATOR is
+            // switched to `agent_framework`.
+            { name: 'AZURE_AI_AGENT_ID', value: azureAiAgentId }
             // Model deployment names
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
             { name: 'AZURE_OPENAI_REASONING_DEPLOYMENT', value: reasoningModelName }

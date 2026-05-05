@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "18326821564241374524"
+      "templateHash": "13019182102167118941"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -196,6 +196,13 @@
       "defaultValue": "2025-05-01",
       "metadata": {
         "description": "Optional. Azure AI Agent API version (used by the Agent Framework orchestrator)."
+      }
+    },
+    "azureAiAgentId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Foundry-hosted agent id consumed by the Agent Framework orchestrator (e.g. `asst_abc123`). Default empty: the LangGraph orchestrator does not require it, and the runtime validator only fails when ORCHESTRATOR is switched to `agent_framework` without an id (see OrchestratorSettings._require_agent_id_for_agent_framework). Operators pin a specific agent post-deployment via `azd env set AZURE_AI_AGENT_ID asst_xxx` then `azd provision`."
       }
     },
     "enableMonitoring": {
@@ -14951,9 +14958,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServicesProject)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServicesProject)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "logAnalyticsWorkspace",
         "userAssignedIdentity",
         "virtualNetwork"
@@ -25523,9 +25530,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').file)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').queue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
         "logAnalyticsWorkspace",
         "userAssignedIdentity",
         "virtualNetwork"
@@ -38942,7 +38949,7 @@
                   "cpu": "[if(parameters('enableScalability'), '1.0', '0.5')]",
                   "memory": "[if(parameters('enableScalability'), '2.0Gi', '1.0Gi')]"
                 },
-                "env": "[union(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_REASONING_DEPLOYMENT', 'value', parameters('reasoningModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'ORCHESTRATOR', 'value', 'agent_framework')), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
+                "env": "[union(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_AI_AGENT_ID', 'value', parameters('azureAiAgentId')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_REASONING_DEPLOYMENT', 'value', parameters('reasoningModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'ORCHESTRATOR', 'value', 'agent_framework')), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
               }
             ]
           }

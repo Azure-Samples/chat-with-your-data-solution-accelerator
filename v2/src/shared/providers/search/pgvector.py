@@ -81,7 +81,7 @@ class PgVector(BaseSearch):
     ) -> Sequence[SearchResult]:
         cfg = self._settings.search
         effective_top_k = top_k if top_k is not None else cfg.top_k
-        # Table name is whitelisted at construction (`self._table`),
+        # Table name is allow-listed at construction (`self._table`),
         # never user-supplied -- safe to interpolate. All values are
         # parameterized.
         if vector is not None:

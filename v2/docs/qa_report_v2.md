@@ -4,7 +4,7 @@ Date: April 28, 2026
 
 Scope: current `v2/` code, tests, infrastructure, Docker assets, scripts, and relevant agent/workflow guidance. The legacy v1 `code/` tree was treated as out of scope except for banned/removed-feature regression checks.
 
-QA integrity note: after this report was first drafted, a local uncommitted edit was made to [Dockerfile.backend](../docker/Dockerfile.backend) during follow-up work. This report keeps the Dockerfile finding open until that implementation change is either accepted through the normal one-unit workflow and validated with a real Docker build, or reverted outside the QA report flow. No production code changes are required to maintain this report.
+Note: [Dockerfile.backend](../docker/Dockerfile.backend) has an uncommitted local edit; verify the build before relying on this report. The Dockerfile finding stays open until that change is either accepted through the one-unit workflow with a real Docker build, or reverted.
 
 ## Project Consistency Blocker Addendum - 2026-04-29
 
