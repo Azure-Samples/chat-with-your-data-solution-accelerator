@@ -30,63 +30,84 @@ param logAnalyticsWorkspaceResourceId string = ''
 @description('Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = {
-  name: take('avm.res.event-grid.system-topic.${name}', 64)
-  params: {
-    name: name
-    source: storageAccountId
-    topicType: 'Microsoft.Storage.StorageAccounts'
-    location: location
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            name: 'diagnosticSettings'
-            workspaceResourceId: logAnalyticsWorkspaceResourceId
-            metricCategories: [
-              {
-                category: 'AllMetrics'
-              }
-            ]
-          }
-        ]
-      : []
-    eventSubscriptions: [
-      {
-        name: name
-        deliveryWithResourceIdentity: {
-          identity: {
-            type: 'UserAssigned'
-            userAssignedIdentity: userAssignedResourceId
-          }
-          destination: {
-            endpointType: 'StorageQueue'
-            properties: {
-              queueName: queueName
-              resourceId: storageAccountId
-            }
-          }
-        }
-        eventDeliverySchema: 'EventGridSchema'
-        filter: {
-          includedEventTypes: [
-            'Microsoft.Storage.BlobCreated'
-            'Microsoft.Storage.BlobDeleted'
-          ]
-          enableAdvancedFilteringOnArrays: true
-          subjectBeginsWith: '/blobServices/default/containers/${blobContainerName}/blobs/'
-        }
-        retryPolicy: {
-          maxDeliveryAttempts: 30
-          eventTimeToLiveInMinutes: 1440
-        }
-        expirationTimeUtc: empty(expirationTimeUtc) ? null : expirationTimeUtc
-      }
-    ]
-    // Use only user-assigned identity
-    managedIdentities: { systemAssigned: false, userAssignedResourceIds: [userAssignedResourceId] }
-    tags: tags
-    enableTelemetry: enableTelemetry
+var userAssignedIdentities = {
+  '${userAssignedResourceId}': {}
+}
+
+#disable-next-line no-deployments-resources
+resource telemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
+  name: 'eventgrid.${substring(uniqueString(deployment().name, location), 0, 6)}'
+  properties: {
+    mode: 'Incremental'
+    template: {
+      '$schema': 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
+      contentVersion: '1.0.0.0'
+      resources: []
+    }
   }
 }
 
-output name string = avmEventGridSystemTopic.outputs.name
+resource systemTopic 'Microsoft.EventGrid/systemTopics@2025-02-15' = {
+  name: name
+  location: location
+  tags: tags
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: userAssignedIdentities
+  }
+  properties: {
+    source: storageAccountId
+    topicType: 'Microsoft.Storage.StorageAccounts'
+  }
+}
+
+resource eventSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2025-02-15' = {
+  parent: systemTopic
+  name: name
+  properties: {
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'UserAssigned'
+        userAssignedIdentity: userAssignedResourceId
+      }
+      destination: {
+        endpointType: 'StorageQueue'
+        properties: {
+          queueName: queueName
+          resourceId: storageAccountId
+        }
+      }
+    }
+    eventDeliverySchema: 'EventGridSchema'
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Storage.BlobCreated'
+        'Microsoft.Storage.BlobDeleted'
+      ]
+      enableAdvancedFilteringOnArrays: true
+      subjectBeginsWith: '/blobServices/default/containers/${blobContainerName}/blobs/'
+    }
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+    expirationTimeUtc: empty(expirationTimeUtc) ? null : expirationTimeUtc
+  }
+}
+
+#disable-next-line use-recent-api-versions
+resource systemTopic_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableMonitoring && !empty(logAnalyticsWorkspaceResourceId)) {
+  name: 'diagnosticSettings'
+  properties: {
+    workspaceId: logAnalyticsWorkspaceResourceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+  scope: systemTopic
+}
+
+output name string = systemTopic.name

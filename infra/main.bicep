@@ -857,7 +857,6 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
     enableVaultForDeployment: true
     enableVaultForDiskEncryption: true
     enableVaultForTemplateDeployment: true
-    enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
     diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId }] : null

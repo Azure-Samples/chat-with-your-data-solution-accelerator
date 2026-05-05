@@ -52,7 +52,7 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
     httpsOnly: true
     siteConfig: {
       alwaysOn: true
-      minTlsVersion: '1.2'
+      minTlsVersion: '1.3'
       appSettings: [
         {
           name: 'WEBSITE_RUN_FROM_PACKAGE'

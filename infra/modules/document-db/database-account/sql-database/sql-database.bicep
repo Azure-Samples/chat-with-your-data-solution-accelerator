@@ -19,19 +19,16 @@ param autoscaleSettingsMaxThroughput int?
 @description('Optional. Tags of the SQL database resource.')
 param tags object?
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
-  name: databaseAccountName
-}
+var databaseAccountResourceId = resourceId('Microsoft.DocumentDB/databaseAccounts', databaseAccountName)
 
 resource sqlDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-10-15' = {
-  name: name
-  parent: databaseAccount
-  tags: tags
+  name: '${databaseAccountName}/${name}'
+  tags: tags ?? {}
   properties: {
     resource: {
       id: name
     }
-    options: contains(databaseAccount.properties.capabilities, { name: 'EnableServerless' })
+    options: contains(reference(databaseAccountResourceId, '2025-10-15', 'Full').properties.capabilities, { name: 'EnableServerless' })
       ? null
       : {
           throughput: autoscaleSettingsMaxThroughput == null ? throughput : null

@@ -86,20 +86,12 @@ var identity = !empty(managedIdentities)
     }
   : null
 
-// ============================= //
-// Existing resources references //
-// ============================= //
-
-resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@2025-12-01' existing = {
-  name: machineLearningWorkspaceName
-}
-
 // ============ //
 // Deployments  //
 // ============ //
 
 resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2025-12-01' = if (deployCompute == true) {
-  name: name
+  name: '${machineLearningWorkspaceName}/${name}'
   location: location
   tags: empty(resourceId) ? tags : any(null)
   sku: empty(resourceId)
@@ -108,7 +100,6 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2025-12-
         tier: sku
       }
     : any(null)
-  parent: machineLearningWorkspace
   identity: empty(resourceId) ? identity : any(null)
   properties: union(
     {

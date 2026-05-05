@@ -76,14 +76,11 @@ param enableTelemetry bool = true
 import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @sys.description('Optional. The managed identity definition for this resource. At least one identity type is required.')
 param managedIdentities managedIdentityAllType = {
-  systemAssigned: true
+  systemAssigned: false
 }
 
 // @sys.description('Conditional. Settings for feature store type workspaces. Required if \'kind\' is set to \'FeatureStore\'.')
 // param featureStoreSettings featureStoreSettingType?
-
-@sys.description('Optional. List of IPv4 addresse ranges that are allowed to access the workspace.')
-param ipAllowlist string[]?
 
 // @sys.description('Optional. Managed Network settings for a machine learning workspace.')
 // param managedNetworkSettings managedNetworkSettingType?
@@ -151,12 +148,14 @@ var formattedUserAssignedIdentities = reduce(
   (cur, next) => union(cur, next)
 ) // Converts the flat array to an object like { '${id1}': {}, '${id2}': {} }
 
+var effectiveUserAssignedIdentities = !empty(formattedUserAssignedIdentities)
+  ? formattedUserAssignedIdentities
+  : (!empty(primaryUserAssignedIdentity ?? '') ? { '${primaryUserAssignedIdentity!}': {} } : {})
+
 var identity = !empty(managedIdentities)
   ? {
-      type: (managedIdentities.?systemAssigned ?? false)
-        ? (!empty(managedIdentities.?userAssignedResourceIds ?? {}) ? 'SystemAssigned,UserAssigned' : 'SystemAssigned')
-        : (!empty(managedIdentities.?userAssignedResourceIds ?? {}) ? 'UserAssigned' : 'None')
-      userAssignedIdentities: !empty(formattedUserAssignedIdentities) ? formattedUserAssignedIdentities : null
+      type: !empty(effectiveUserAssignedIdentities) ? 'UserAssigned' : 'None'
+      userAssignedIdentities: !empty(effectiveUserAssignedIdentities) ? effectiveUserAssignedIdentities : null
     }
   : null
 
@@ -282,7 +281,6 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2025-12-01' = {
     primaryUserAssignedIdentity: primaryUserAssignedIdentity
     systemDatastoresAuthMode: systemDatastoresAuthMode
     publicNetworkAccess: publicNetworkAccess
-    ipAllowlist: ipAllowlist
     serviceManagedResourcesSettings: serviceManagedResourcesSettings
     // featureStoreSettings: featureStoreSettings
     hubResourceId: hubResourceId

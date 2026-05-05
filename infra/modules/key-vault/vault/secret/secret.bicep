@@ -100,14 +100,9 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableT
   }
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' existing = {
-  name: keyVaultName
-}
-
 resource secret 'Microsoft.KeyVault/vaults/secrets@2026-02-01' = {
-  name: name
-  parent: keyVault
-  tags: tags
+  name: '${keyVaultName}/${name}'
+  tags: tags ?? {}
   properties: {
     contentType: contentType
     attributes: {

@@ -78,21 +78,14 @@ var containerResourceParams = union(
     : {}
 )
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
-  name: databaseAccountName
-
-  resource sqlDatabase 'sqlDatabases@2024-11-15' existing = {
-    name: sqlDatabaseName
-  }
-}
+var databaseAccountResourceId = resourceId('Microsoft.DocumentDB/databaseAccounts', databaseAccountName)
 
 resource container 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2025-10-15' = {
-  name: name
-  parent: databaseAccount::sqlDatabase
-  tags: tags
+  name: '${databaseAccountName}/${sqlDatabaseName}/${name}'
+  tags: tags ?? {}
   properties: {
     resource: containerResourceParams
-    options: contains(databaseAccount.properties.capabilities, { name: 'EnableServerless' })
+    options: contains(reference(databaseAccountResourceId, '2025-10-15', 'Full').properties.capabilities, { name: 'EnableServerless' })
       ? null
       : {
           throughput: autoscaleSettingsMaxThroughput == null && throughput != -1 ? throughput : null

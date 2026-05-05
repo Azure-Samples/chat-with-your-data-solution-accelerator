@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "16421140691716802279"
+      "templateHash": "7533883162278803194"
     }
   },
   "parameters": {
@@ -15813,7 +15813,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "12039526113103781187"
+              "templateHash": "14073168990473635535"
             },
             "name": "Azure Cosmos DB account",
             "description": "This module deploys an Azure Cosmos DB account. The API used for the account is determined by the child resources that are deployed."
@@ -17116,7 +17116,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "13352054205095829621"
+                      "templateHash": "12977215007377359018"
                     },
                     "name": "DocumentDB Database Account SQL Databases",
                     "description": "This module deploys a SQL Database in a CosmosDB Account."
@@ -17166,27 +17166,21 @@
                       }
                     }
                   },
+                  "variables": {
+                    "databaseAccountResourceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))]"
+                  },
                   "resources": {
-                    "databaseAccount": {
-                      "existing": true,
-                      "type": "Microsoft.DocumentDB/databaseAccounts",
-                      "apiVersion": "2025-10-15",
-                      "name": "[parameters('databaseAccountName')]"
-                    },
                     "sqlDatabase": {
                       "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
                       "apiVersion": "2025-10-15",
                       "name": "[format('{0}/{1}', parameters('databaseAccountName'), parameters('name'))]",
-                      "tags": "[parameters('tags')]",
+                      "tags": "[coalesce(parameters('tags'), createObject())]",
                       "properties": {
                         "resource": {
                           "id": "[parameters('name')]"
                         },
-                        "options": "[if(contains(reference('databaseAccount').capabilities, createObject('name', 'EnableServerless')), null(), createObject('throughput', if(equals(parameters('autoscaleSettingsMaxThroughput'), null()), parameters('throughput'), null()), 'autoscaleSettings', if(not(equals(parameters('autoscaleSettingsMaxThroughput'), null())), createObject('maxThroughput', parameters('autoscaleSettingsMaxThroughput')), null())))]"
-                      },
-                      "dependsOn": [
-                        "databaseAccount"
-                      ]
+                        "options": "[if(contains(reference(variables('databaseAccountResourceId'), '2025-10-15', 'Full').properties.capabilities, createObject('name', 'EnableServerless')), null(), createObject('throughput', if(equals(parameters('autoscaleSettingsMaxThroughput'), null()), parameters('throughput'), null()), 'autoscaleSettings', if(not(equals(parameters('autoscaleSettingsMaxThroughput'), null())), createObject('maxThroughput', parameters('autoscaleSettingsMaxThroughput')), null())))]"
+                      }
                     },
                     "container": {
                       "copy": {
@@ -17195,7 +17189,7 @@
                       },
                       "type": "Microsoft.Resources/deployments",
                       "apiVersion": "2025-04-01",
-                      "name": "[format('{0}-sqldb-{1}', uniqueString(deployment().name, parameters('name')), coalesce(parameters('containers'), createArray())[copyIndex()].name)]",
+                      "name": "[format('{0}-sqldb-{1}', uniqueString(deployment().name, format('{0}/{1}', parameters('databaseAccountName'), parameters('name'))), coalesce(parameters('containers'), createArray())[copyIndex()].name)]",
                       "properties": {
                         "expressionEvaluationOptions": {
                           "scope": "inner"
@@ -17248,7 +17242,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.42.1.51946",
-                              "templateHash": "16555966889887032659"
+                              "templateHash": "1526913574885949129"
                             },
                             "name": "DocumentDB Database Account SQL Database Containers",
                             "description": "This module deploys a SQL Database Container in a CosmosDB Account."
@@ -17373,33 +17367,19 @@
                                 "input": "[if(startsWith(parameters('paths')[copyIndex('partitionKeyPaths')], '/'), parameters('paths')[copyIndex('partitionKeyPaths')], format('/{0}', parameters('paths')[copyIndex('partitionKeyPaths')]))]"
                               }
                             ],
-                            "containerResourceParams": "[union(createObject('conflictResolutionPolicy', parameters('conflictResolutionPolicy'), 'defaultTtl', parameters('defaultTtl'), 'id', parameters('name'), 'indexingPolicy', if(not(empty(parameters('indexingPolicy'))), parameters('indexingPolicy'), null()), 'partitionKey', createObject('paths', variables('partitionKeyPaths'), 'kind', parameters('kind'), 'version', if(equals(parameters('kind'), 'MultiHash'), 2, parameters('version'))), 'uniqueKeyPolicy', if(not(empty(parameters('uniqueKeyPolicyKeys'))), createObject('uniqueKeys', parameters('uniqueKeyPolicyKeys')), null())), if(not(equals(parameters('analyticalStorageTtl'), 0)), createObject('analyticalStorageTtl', parameters('analyticalStorageTtl')), createObject()))]"
+                            "containerResourceParams": "[union(createObject('conflictResolutionPolicy', parameters('conflictResolutionPolicy'), 'defaultTtl', parameters('defaultTtl'), 'id', parameters('name'), 'indexingPolicy', if(not(empty(parameters('indexingPolicy'))), parameters('indexingPolicy'), null()), 'partitionKey', createObject('paths', variables('partitionKeyPaths'), 'kind', parameters('kind'), 'version', if(equals(parameters('kind'), 'MultiHash'), 2, parameters('version'))), 'uniqueKeyPolicy', if(not(empty(parameters('uniqueKeyPolicyKeys'))), createObject('uniqueKeys', parameters('uniqueKeyPolicyKeys')), null())), if(not(equals(parameters('analyticalStorageTtl'), 0)), createObject('analyticalStorageTtl', parameters('analyticalStorageTtl')), createObject()))]",
+                            "databaseAccountResourceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))]"
                           },
                           "resources": {
-                            "databaseAccount::sqlDatabase": {
-                              "existing": true,
-                              "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
-                              "apiVersion": "2024-11-15",
-                              "name": "[format('{0}/{1}', parameters('databaseAccountName'), parameters('sqlDatabaseName'))]"
-                            },
-                            "databaseAccount": {
-                              "existing": true,
-                              "type": "Microsoft.DocumentDB/databaseAccounts",
-                              "apiVersion": "2025-10-15",
-                              "name": "[parameters('databaseAccountName')]"
-                            },
                             "container": {
                               "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
                               "apiVersion": "2025-10-15",
                               "name": "[format('{0}/{1}/{2}', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name'))]",
-                              "tags": "[parameters('tags')]",
+                              "tags": "[coalesce(parameters('tags'), createObject())]",
                               "properties": {
                                 "resource": "[variables('containerResourceParams')]",
-                                "options": "[if(contains(reference('databaseAccount').capabilities, createObject('name', 'EnableServerless')), null(), createObject('throughput', if(and(equals(parameters('autoscaleSettingsMaxThroughput'), null()), not(equals(parameters('throughput'), -1))), parameters('throughput'), null()), 'autoscaleSettings', if(not(equals(parameters('autoscaleSettingsMaxThroughput'), null())), createObject('maxThroughput', parameters('autoscaleSettingsMaxThroughput')), null())))]"
-                              },
-                              "dependsOn": [
-                                "databaseAccount"
-                              ]
+                                "options": "[if(contains(reference(variables('databaseAccountResourceId'), '2025-10-15', 'Full').properties.capabilities, createObject('name', 'EnableServerless')), null(), createObject('throughput', if(and(equals(parameters('autoscaleSettingsMaxThroughput'), null()), not(equals(parameters('throughput'), -1))), parameters('throughput'), null()), 'autoscaleSettings', if(not(equals(parameters('autoscaleSettingsMaxThroughput'), null())), createObject('maxThroughput', parameters('autoscaleSettingsMaxThroughput')), null())))]"
+                              }
                             }
                           },
                           "outputs": {
@@ -17408,14 +17388,14 @@
                               "metadata": {
                                 "description": "The name of the container."
                               },
-                              "value": "[parameters('name')]"
+                              "value": "[format('{0}/{1}/{2}', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name'))]"
                             },
                             "resourceId": {
                               "type": "string",
                               "metadata": {
                                 "description": "The resource ID of the container."
                               },
-                              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name'))]"
+                              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers', split(format('{0}/{1}/{2}', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name')), '/')[0], split(format('{0}/{1}/{2}', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name')), '/')[1], split(format('{0}/{1}/{2}', parameters('databaseAccountName'), parameters('sqlDatabaseName'), parameters('name')), '/')[2])]"
                             },
                             "resourceGroupName": {
                               "type": "string",
@@ -17438,14 +17418,14 @@
                       "metadata": {
                         "description": "The name of the SQL database."
                       },
-                      "value": "[parameters('name')]"
+                      "value": "[format('{0}/{1}', parameters('databaseAccountName'), parameters('name'))]"
                     },
                     "resourceId": {
                       "type": "string",
                       "metadata": {
                         "description": "The resource ID of the SQL database."
                       },
-                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', parameters('databaseAccountName'), parameters('name'))]"
+                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', split(format('{0}/{1}', parameters('databaseAccountName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('databaseAccountName'), parameters('name')), '/')[1])]"
                     },
                     "resourceGroupName": {
                       "type": "string",
@@ -17502,7 +17482,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "9598707287469411691"
+                      "templateHash": "7404075629941014762"
                     },
                     "name": "DocumentDB Database Account SQL Role Definitions.",
                     "description": "This module deploys a SQL Role Definision in a CosmosDB Account."
@@ -17582,19 +17562,16 @@
                       }
                     }
                   },
+                  "variables": {
+                    "databaseAccountResourceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))]"
+                  },
                   "resources": {
-                    "databaseAccount": {
-                      "existing": true,
-                      "type": "Microsoft.DocumentDB/databaseAccounts",
-                      "apiVersion": "2025-10-15",
-                      "name": "[parameters('databaseAccountName')]"
-                    },
                     "sqlRoleDefinition": {
                       "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions",
                       "apiVersion": "2025-10-15",
-                      "name": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')), parameters('databaseAccountName'), 'sql-role')))]",
+                      "name": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(variables('databaseAccountResourceId'), parameters('databaseAccountName'), 'sql-role')))]",
                       "properties": {
-                        "assignableScopes": "[coalesce(parameters('assignableScopes'), createArray(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))))]",
+                        "assignableScopes": "[coalesce(parameters('assignableScopes'), createArray(variables('databaseAccountResourceId')))]",
                         "permissions": [
                           {
                             "dataActions": "[parameters('dataActions')]"
@@ -17622,7 +17599,7 @@
                             "value": "[parameters('databaseAccountName')]"
                           },
                           "roleDefinitionId": {
-                            "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('databaseAccountName'), coalesce(parameters('name'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')), parameters('databaseAccountName'), 'sql-role')))]"
+                            "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', split(format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(variables('databaseAccountResourceId'), parameters('databaseAccountName'), 'sql-role'))), '/')[0], split(format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(variables('databaseAccountResourceId'), parameters('databaseAccountName'), 'sql-role'))), '/')[1])]"
                           },
                           "principalId": {
                             "value": "[coalesce(parameters('sqlRoleAssignments'), createArray())[copyIndex()].principalId]"
@@ -17639,7 +17616,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.42.1.51946",
-                              "templateHash": "10029786433134868749"
+                              "templateHash": "11699182453339443207"
                             },
                             "name": "DocumentDB Database Account SQL Role Assignments.",
                             "description": "This module deploys a SQL Role Assignment in a CosmosDB Account."
@@ -17671,21 +17648,18 @@
                               }
                             }
                           },
+                          "variables": {
+                            "databaseAccountResourceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))]"
+                          },
                           "resources": {
-                            "databaseAccount": {
-                              "existing": true,
-                              "type": "Microsoft.DocumentDB/databaseAccounts",
-                              "apiVersion": "2025-10-15",
-                              "name": "[parameters('databaseAccountName')]"
-                            },
                             "sqlRoleAssignment": {
                               "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
                               "apiVersion": "2025-10-15",
-                              "name": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')))))]",
+                              "name": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), variables('databaseAccountResourceId'))))]",
                               "properties": {
                                 "principalId": "[parameters('principalId')]",
                                 "roleDefinitionId": "[parameters('roleDefinitionId')]",
-                                "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))]"
+                                "scope": "[variables('databaseAccountResourceId')]"
                               }
                             }
                           },
@@ -17695,14 +17669,14 @@
                               "metadata": {
                                 "description": "The name of the SQL Role Assignment."
                               },
-                              "value": "[coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName'))))]"
+                              "value": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), variables('databaseAccountResourceId'))))]"
                             },
                             "resourceId": {
                               "type": "string",
                               "metadata": {
                                 "description": "The resource ID of the SQL Role Assignment."
                               },
-                              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')))))]"
+                              "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments', split(format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), variables('databaseAccountResourceId')))), '/')[0], split(format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(parameters('roleDefinitionId'), parameters('principalId'), variables('databaseAccountResourceId')))), '/')[1])]"
                             },
                             "resourceGroupName": {
                               "type": "string",
@@ -17725,14 +17699,14 @@
                       "metadata": {
                         "description": "The name of the SQL Role Definition."
                       },
-                      "value": "[coalesce(parameters('name'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')), parameters('databaseAccountName'), 'sql-role'))]"
+                      "value": "[format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(variables('databaseAccountResourceId'), parameters('databaseAccountName'), 'sql-role')))]"
                     },
                     "resourceId": {
                       "type": "string",
                       "metadata": {
                         "description": "The resource ID of the SQL Role Definition."
                       },
-                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', parameters('databaseAccountName'), coalesce(parameters('name'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('databaseAccountName')), parameters('databaseAccountName'), 'sql-role')))]"
+                      "value": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', split(format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(variables('databaseAccountResourceId'), parameters('databaseAccountName'), 'sql-role'))), '/')[0], split(format('{0}/{1}', parameters('databaseAccountName'), coalesce(parameters('name'), guid(variables('databaseAccountResourceId'), parameters('databaseAccountName'), 'sql-role'))), '/')[1])]"
                     },
                     "resourceGroupName": {
                       "type": "string",
@@ -21127,9 +21101,6 @@
           "enableVaultForTemplateDeployment": {
             "value": true
           },
-          "enableRbacAuthorization": {
-            "value": true
-          },
           "enableSoftDelete": {
             "value": true
           },
@@ -21161,7 +21132,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "16114385039249482228"
+              "templateHash": "1327350709761450047"
             },
             "name": "Key Vaults",
             "description": "This module deploys a Key Vault."
@@ -21865,13 +21836,6 @@
                 "description": "Optional. softDelete data retention days. It accepts >=7 and <=90."
               }
             },
-            "enableRbacAuthorization": {
-              "type": "bool",
-              "defaultValue": true,
-              "metadata": {
-                "description": "Optional. Property that controls how data actions are authorized. When true, the key vault will use Role Based Access Control (RBAC) for authorization of data actions, and the access policies specified in vault properties will be ignored. When false, the key vault will use the access policies specified in vault properties, and any policy stored on Azure Resource Manager will be ignored. Note that management actions are always authorized with RBAC."
-              }
-            },
             "createMode": {
               "type": "string",
               "defaultValue": "default",
@@ -22027,14 +21991,14 @@
               "apiVersion": "2026-02-01",
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
+              "tags": "[coalesce(parameters('tags'), createObject())]",
               "properties": {
                 "enabledForDeployment": "[parameters('enableVaultForDeployment')]",
                 "enabledForTemplateDeployment": "[parameters('enableVaultForTemplateDeployment')]",
                 "enabledForDiskEncryption": "[parameters('enableVaultForDiskEncryption')]",
                 "enableSoftDelete": "[parameters('enableSoftDelete')]",
                 "softDeleteRetentionInDays": "[parameters('softDeleteRetentionInDays')]",
-                "enableRbacAuthorization": "[parameters('enableRbacAuthorization')]",
+                "enableRbacAuthorization": true,
                 "createMode": "[parameters('createMode')]",
                 "enablePurgeProtection": "[if(parameters('enablePurgeProtection'), parameters('enablePurgeProtection'), null())]",
                 "tenantId": "[subscription().tenantId]",
@@ -22176,7 +22140,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "15877477910363801375"
+                      "templateHash": "2874171223457444677"
                     },
                     "name": "Key Vault Secrets",
                     "description": "This module deploys a Key Vault Secret."
@@ -22377,17 +22341,11 @@
                         }
                       }
                     },
-                    "keyVault": {
-                      "existing": true,
-                      "type": "Microsoft.KeyVault/vaults",
-                      "apiVersion": "2026-02-01",
-                      "name": "[parameters('keyVaultName')]"
-                    },
                     "secret": {
                       "type": "Microsoft.KeyVault/vaults/secrets",
                       "apiVersion": "2026-02-01",
                       "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('name'))]",
-                      "tags": "[parameters('tags')]",
+                      "tags": "[coalesce(parameters('tags'), createObject())]",
                       "properties": {
                         "contentType": "[parameters('contentType')]",
                         "attributes": {
@@ -22405,8 +22363,8 @@
                       },
                       "type": "Microsoft.Authorization/roleAssignments",
                       "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), parameters('name'))]",
-                      "name": "[coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'name'), guid(resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), parameters('name')), coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId, coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId))]",
+                      "scope": "[resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/{1}', parameters('keyVaultName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('keyVaultName'), parameters('name')), '/')[1])]",
+                      "name": "[coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'name'), guid(resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/{1}', parameters('keyVaultName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('keyVaultName'), parameters('name')), '/')[1]), coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId, coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId))]",
                       "properties": {
                         "roleDefinitionId": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId]",
                         "principalId": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId]",
@@ -22427,14 +22385,14 @@
                       "metadata": {
                         "description": "The name of the secret."
                       },
-                      "value": "[parameters('name')]"
+                      "value": "[format('{0}/{1}', parameters('keyVaultName'), parameters('name'))]"
                     },
                     "resourceId": {
                       "type": "string",
                       "metadata": {
                         "description": "The resource ID of the secret."
                       },
-                      "value": "[resourceId('Microsoft.KeyVault/vaults/secrets', parameters('keyVaultName'), parameters('name'))]"
+                      "value": "[resourceId('Microsoft.KeyVault/vaults/secrets', split(format('{0}/{1}', parameters('keyVaultName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('keyVaultName'), parameters('name')), '/')[1])]"
                     },
                     "secretUri": {
                       "type": "string",
@@ -33297,7 +33255,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "8683679294545259497"
+              "templateHash": "1889407168906547192"
             }
           },
           "parameters": {
@@ -33474,7 +33432,7 @@
               "cors": {
                 "allowedOrigins": "[parameters('allowedOrigins')]"
               },
-              "minTlsVersion": "1.2"
+              "minTlsVersion": "1.3"
             },
             "appConfigs": [
               {
@@ -33555,7 +33513,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "18244225806211036789"
+                      "templateHash": "3609744334871522027"
                     }
                   },
                   "definitions": {
@@ -34186,6 +34144,9 @@
                     "httpsOnly": {
                       "type": "bool",
                       "defaultValue": true,
+                      "allowedValues": [
+                        true
+                      ],
                       "metadata": {
                         "description": "Optional. Configures a site to accept only HTTPS requests. Issues redirect for HTTP requests."
                       }
@@ -34206,9 +34167,11 @@
                     },
                     "managedIdentities": {
                       "$ref": "#/definitions/managedIdentityAllType",
-                      "nullable": true,
+                      "defaultValue": {
+                        "systemAssigned": true
+                      },
                       "metadata": {
-                        "description": "Optional. The managed identity definition for this resource."
+                        "description": "Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity."
                       }
                     },
                     "keyVaultAccessIdentityResourceId": {
@@ -34264,11 +34227,11 @@
                       "type": "object",
                       "defaultValue": {
                         "alwaysOn": true,
-                        "minTlsVersion": "1.2",
+                        "minTlsVersion": "1.3",
                         "ftpsState": "FtpsOnly"
                       },
                       "metadata": {
-                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
+                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.3', ftpsState: 'FtpsOnly'."
                       }
                     },
                     "configs": {
@@ -34442,7 +34405,8 @@
                   },
                   "variables": {
                     "formattedUserAssignedIdentities": "[reduce(map(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createArray()), lambda('id', createObject(format('{0}', lambdaVariables('id')), createObject()))), createObject(), lambda('cur', 'next', union(lambdaVariables('cur'), lambdaVariables('next'))))]",
-                    "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]"
+                    "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]",
+                    "enforcedSiteConfig": "[union(parameters('siteConfig'), createObject('ftpsState', 'FtpsOnly', 'minTlsVersion', '1.3'))]"
                   },
                   "resources": {
                     "app": {
@@ -34462,7 +34426,7 @@
                         "storageAccountRequired": "[parameters('storageAccountRequired')]",
                         "keyVaultReferenceIdentity": "[parameters('keyVaultAccessIdentityResourceId')]",
                         "virtualNetworkSubnetId": "[parameters('virtualNetworkSubnetId')]",
-                        "siteConfig": "[parameters('siteConfig')]",
+                        "siteConfig": "[variables('enforcedSiteConfig')]",
                         "functionAppConfig": "[parameters('functionAppConfig')]",
                         "clientCertEnabled": "[parameters('clientCertEnabled')]",
                         "clientCertExclusionPaths": "[parameters('clientCertExclusionPaths')]",
@@ -34567,7 +34531,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.42.1.51946",
-                              "templateHash": "5299306268844702277"
+                              "templateHash": "8526884930094645746"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -34641,6 +34605,9 @@
                               }
                             }
                           },
+                          "variables": {
+                            "webConfigSecurityDefaults": "[if(equals(parameters('name'), 'web'), createObject('ftpsState', 'FtpsOnly', 'minTlsVersion', '1.3', 'httpsOnly', true()), createObject())]"
+                          },
                           "resources": {
                             "applicationInsights": {
                               "condition": "[not(empty(parameters('applicationInsightResourceId')))]",
@@ -34660,17 +34627,11 @@
                               "resourceGroup": "[split(parameters('storageAccountResourceId'), '/')[4]]",
                               "name": "[last(split(parameters('storageAccountResourceId'), '/'))]"
                             },
-                            "app": {
-                              "existing": true,
-                              "type": "Microsoft.Web/sites",
-                              "apiVersion": "2024-04-01",
-                              "name": "[parameters('appName')]"
-                            },
                             "config": {
                               "type": "Microsoft.Web/sites/config",
                               "apiVersion": "2024-04-01",
                               "name": "[format('{0}/{1}', parameters('appName'), parameters('name'))]",
-                              "properties": "[union(parameters('currentAppSettings'), parameters('properties'), if(and(not(empty(parameters('storageAccountResourceId'))), not(parameters('storageAccountUseIdentityAuthentication'))), createObject('AzureWebJobsStorage', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', last(split(parameters('storageAccountResourceId'), '/')), listKeys('storageAccount', '2024-01-01').keys[0].value, environment().suffixes.storage)), if(and(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountUseIdentityAuthentication')), createObject('AzureWebJobsStorage__accountName', last(split(parameters('storageAccountResourceId'), '/')), 'AzureWebJobsStorage__blobServiceUri', reference('storageAccount').primaryEndpoints.blob, 'AzureWebJobsStorage__queueServiceUri', reference('storageAccount').primaryEndpoints.queue, 'AzureWebJobsStorage__tableServiceUri', reference('storageAccount').primaryEndpoints.table), createObject())), if(not(empty(parameters('applicationInsightResourceId'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference('applicationInsights').ConnectionString), createObject()))]",
+                              "properties": "[union(parameters('currentAppSettings'), parameters('properties'), if(and(not(empty(parameters('storageAccountResourceId'))), not(parameters('storageAccountUseIdentityAuthentication'))), createObject('AzureWebJobsStorage', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', last(split(parameters('storageAccountResourceId'), '/')), listKeys('storageAccount', '2024-01-01').keys[0].value, environment().suffixes.storage)), if(and(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountUseIdentityAuthentication')), createObject('AzureWebJobsStorage__accountName', last(split(parameters('storageAccountResourceId'), '/')), 'AzureWebJobsStorage__blobServiceUri', reference('storageAccount').primaryEndpoints.blob, 'AzureWebJobsStorage__queueServiceUri', reference('storageAccount').primaryEndpoints.queue, 'AzureWebJobsStorage__tableServiceUri', reference('storageAccount').primaryEndpoints.table), createObject())), if(not(empty(parameters('applicationInsightResourceId'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference('applicationInsights').ConnectionString), createObject()), variables('webConfigSecurityDefaults'))]",
                               "dependsOn": [
                                 "applicationInsights",
                                 "storageAccount"
@@ -34683,14 +34644,14 @@
                               "metadata": {
                                 "description": "The name of the site config."
                               },
-                              "value": "[parameters('name')]"
+                              "value": "[format('{0}/{1}', parameters('appName'), parameters('name'))]"
                             },
                             "resourceId": {
                               "type": "string",
                               "metadata": {
                                 "description": "The resource ID of the site config."
                               },
-                              "value": "[resourceId('Microsoft.Web/sites/config', parameters('appName'), parameters('name'))]"
+                              "value": "[resourceId('Microsoft.Web/sites/config', split(format('{0}/{1}', parameters('appName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('appName'), parameters('name')), '/')[1])]"
                             },
                             "resourceGroupName": {
                               "type": "string",
@@ -35516,7 +35477,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9592410913633598971"
+              "templateHash": "16464685189855445833"
             }
           },
           "parameters": {
@@ -35693,7 +35654,7 @@
               "cors": {
                 "allowedOrigins": "[parameters('allowedOrigins')]"
               },
-              "minTlsVersion": "1.2"
+              "minTlsVersion": "1.3"
             },
             "appConfigs": [
               {
@@ -35774,7 +35735,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "18244225806211036789"
+                      "templateHash": "3609744334871522027"
                     }
                   },
                   "definitions": {
@@ -36405,6 +36366,9 @@
                     "httpsOnly": {
                       "type": "bool",
                       "defaultValue": true,
+                      "allowedValues": [
+                        true
+                      ],
                       "metadata": {
                         "description": "Optional. Configures a site to accept only HTTPS requests. Issues redirect for HTTP requests."
                       }
@@ -36425,9 +36389,11 @@
                     },
                     "managedIdentities": {
                       "$ref": "#/definitions/managedIdentityAllType",
-                      "nullable": true,
+                      "defaultValue": {
+                        "systemAssigned": true
+                      },
                       "metadata": {
-                        "description": "Optional. The managed identity definition for this resource."
+                        "description": "Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity."
                       }
                     },
                     "keyVaultAccessIdentityResourceId": {
@@ -36483,11 +36449,11 @@
                       "type": "object",
                       "defaultValue": {
                         "alwaysOn": true,
-                        "minTlsVersion": "1.2",
+                        "minTlsVersion": "1.3",
                         "ftpsState": "FtpsOnly"
                       },
                       "metadata": {
-                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
+                        "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.3', ftpsState: 'FtpsOnly'."
                       }
                     },
                     "configs": {
@@ -36661,7 +36627,8 @@
                   },
                   "variables": {
                     "formattedUserAssignedIdentities": "[reduce(map(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createArray()), lambda('id', createObject(format('{0}', lambdaVariables('id')), createObject()))), createObject(), lambda('cur', 'next', union(lambdaVariables('cur'), lambdaVariables('next'))))]",
-                    "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]"
+                    "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]",
+                    "enforcedSiteConfig": "[union(parameters('siteConfig'), createObject('ftpsState', 'FtpsOnly', 'minTlsVersion', '1.3'))]"
                   },
                   "resources": {
                     "app": {
@@ -36681,7 +36648,7 @@
                         "storageAccountRequired": "[parameters('storageAccountRequired')]",
                         "keyVaultReferenceIdentity": "[parameters('keyVaultAccessIdentityResourceId')]",
                         "virtualNetworkSubnetId": "[parameters('virtualNetworkSubnetId')]",
-                        "siteConfig": "[parameters('siteConfig')]",
+                        "siteConfig": "[variables('enforcedSiteConfig')]",
                         "functionAppConfig": "[parameters('functionAppConfig')]",
                         "clientCertEnabled": "[parameters('clientCertEnabled')]",
                         "clientCertExclusionPaths": "[parameters('clientCertExclusionPaths')]",
@@ -36786,7 +36753,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.42.1.51946",
-                              "templateHash": "5299306268844702277"
+                              "templateHash": "8526884930094645746"
                             },
                             "name": "Site App Settings",
                             "description": "This module deploys a Site App Setting."
@@ -36860,6 +36827,9 @@
                               }
                             }
                           },
+                          "variables": {
+                            "webConfigSecurityDefaults": "[if(equals(parameters('name'), 'web'), createObject('ftpsState', 'FtpsOnly', 'minTlsVersion', '1.3', 'httpsOnly', true()), createObject())]"
+                          },
                           "resources": {
                             "applicationInsights": {
                               "condition": "[not(empty(parameters('applicationInsightResourceId')))]",
@@ -36879,17 +36849,11 @@
                               "resourceGroup": "[split(parameters('storageAccountResourceId'), '/')[4]]",
                               "name": "[last(split(parameters('storageAccountResourceId'), '/'))]"
                             },
-                            "app": {
-                              "existing": true,
-                              "type": "Microsoft.Web/sites",
-                              "apiVersion": "2024-04-01",
-                              "name": "[parameters('appName')]"
-                            },
                             "config": {
                               "type": "Microsoft.Web/sites/config",
                               "apiVersion": "2024-04-01",
                               "name": "[format('{0}/{1}', parameters('appName'), parameters('name'))]",
-                              "properties": "[union(parameters('currentAppSettings'), parameters('properties'), if(and(not(empty(parameters('storageAccountResourceId'))), not(parameters('storageAccountUseIdentityAuthentication'))), createObject('AzureWebJobsStorage', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', last(split(parameters('storageAccountResourceId'), '/')), listKeys('storageAccount', '2024-01-01').keys[0].value, environment().suffixes.storage)), if(and(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountUseIdentityAuthentication')), createObject('AzureWebJobsStorage__accountName', last(split(parameters('storageAccountResourceId'), '/')), 'AzureWebJobsStorage__blobServiceUri', reference('storageAccount').primaryEndpoints.blob, 'AzureWebJobsStorage__queueServiceUri', reference('storageAccount').primaryEndpoints.queue, 'AzureWebJobsStorage__tableServiceUri', reference('storageAccount').primaryEndpoints.table), createObject())), if(not(empty(parameters('applicationInsightResourceId'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference('applicationInsights').ConnectionString), createObject()))]",
+                              "properties": "[union(parameters('currentAppSettings'), parameters('properties'), if(and(not(empty(parameters('storageAccountResourceId'))), not(parameters('storageAccountUseIdentityAuthentication'))), createObject('AzureWebJobsStorage', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', last(split(parameters('storageAccountResourceId'), '/')), listKeys('storageAccount', '2024-01-01').keys[0].value, environment().suffixes.storage)), if(and(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountUseIdentityAuthentication')), createObject('AzureWebJobsStorage__accountName', last(split(parameters('storageAccountResourceId'), '/')), 'AzureWebJobsStorage__blobServiceUri', reference('storageAccount').primaryEndpoints.blob, 'AzureWebJobsStorage__queueServiceUri', reference('storageAccount').primaryEndpoints.queue, 'AzureWebJobsStorage__tableServiceUri', reference('storageAccount').primaryEndpoints.table), createObject())), if(not(empty(parameters('applicationInsightResourceId'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference('applicationInsights').ConnectionString), createObject()), variables('webConfigSecurityDefaults'))]",
                               "dependsOn": [
                                 "applicationInsights",
                                 "storageAccount"
@@ -36902,14 +36866,14 @@
                               "metadata": {
                                 "description": "The name of the site config."
                               },
-                              "value": "[parameters('name')]"
+                              "value": "[format('{0}/{1}', parameters('appName'), parameters('name'))]"
                             },
                             "resourceId": {
                               "type": "string",
                               "metadata": {
                                 "description": "The resource ID of the site config."
                               },
-                              "value": "[resourceId('Microsoft.Web/sites/config', parameters('appName'), parameters('name'))]"
+                              "value": "[resourceId('Microsoft.Web/sites/config', split(format('{0}/{1}', parameters('appName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('appName'), parameters('name')), '/')[1])]"
                             },
                             "resourceGroupName": {
                               "type": "string",
@@ -37739,7 +37703,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "8808083120540867501"
+              "templateHash": "9869416956481574868"
             }
           },
           "parameters": {
@@ -37980,7 +37944,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "7809134250369709392"
+                      "templateHash": "885057377919992782"
                     }
                   },
                   "parameters": {
@@ -38291,7 +38255,7 @@
                                 "allowedOrigins": "[parameters('allowedOrigins')]"
                               },
                               "healthCheckPath": "[parameters('healthCheckPath')]",
-                              "minTlsVersion": "1.2",
+                              "minTlsVersion": "1.3",
                               "ftpsState": "FtpsOnly"
                             }
                           },
@@ -38346,7 +38310,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.42.1.51946",
-                              "templateHash": "18244225806211036789"
+                              "templateHash": "3609744334871522027"
                             }
                           },
                           "definitions": {
@@ -38977,6 +38941,9 @@
                             "httpsOnly": {
                               "type": "bool",
                               "defaultValue": true,
+                              "allowedValues": [
+                                true
+                              ],
                               "metadata": {
                                 "description": "Optional. Configures a site to accept only HTTPS requests. Issues redirect for HTTP requests."
                               }
@@ -38997,9 +38964,11 @@
                             },
                             "managedIdentities": {
                               "$ref": "#/definitions/managedIdentityAllType",
-                              "nullable": true,
+                              "defaultValue": {
+                                "systemAssigned": true
+                              },
                               "metadata": {
-                                "description": "Optional. The managed identity definition for this resource."
+                                "description": "Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity."
                               }
                             },
                             "keyVaultAccessIdentityResourceId": {
@@ -39055,11 +39024,11 @@
                               "type": "object",
                               "defaultValue": {
                                 "alwaysOn": true,
-                                "minTlsVersion": "1.2",
+                                "minTlsVersion": "1.3",
                                 "ftpsState": "FtpsOnly"
                               },
                               "metadata": {
-                                "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.2', ftpsState: 'FtpsOnly'."
+                                "description": "Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: '1.3', ftpsState: 'FtpsOnly'."
                               }
                             },
                             "configs": {
@@ -39233,7 +39202,8 @@
                           },
                           "variables": {
                             "formattedUserAssignedIdentities": "[reduce(map(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createArray()), lambda('id', createObject(format('{0}', lambdaVariables('id')), createObject()))), createObject(), lambda('cur', 'next', union(lambdaVariables('cur'), lambdaVariables('next'))))]",
-                            "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]"
+                            "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned, UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]",
+                            "enforcedSiteConfig": "[union(parameters('siteConfig'), createObject('ftpsState', 'FtpsOnly', 'minTlsVersion', '1.3'))]"
                           },
                           "resources": {
                             "app": {
@@ -39253,7 +39223,7 @@
                                 "storageAccountRequired": "[parameters('storageAccountRequired')]",
                                 "keyVaultReferenceIdentity": "[parameters('keyVaultAccessIdentityResourceId')]",
                                 "virtualNetworkSubnetId": "[parameters('virtualNetworkSubnetId')]",
-                                "siteConfig": "[parameters('siteConfig')]",
+                                "siteConfig": "[variables('enforcedSiteConfig')]",
                                 "functionAppConfig": "[parameters('functionAppConfig')]",
                                 "clientCertEnabled": "[parameters('clientCertEnabled')]",
                                 "clientCertExclusionPaths": "[parameters('clientCertExclusionPaths')]",
@@ -39358,7 +39328,7 @@
                                     "_generator": {
                                       "name": "bicep",
                                       "version": "0.42.1.51946",
-                                      "templateHash": "5299306268844702277"
+                                      "templateHash": "8526884930094645746"
                                     },
                                     "name": "Site App Settings",
                                     "description": "This module deploys a Site App Setting."
@@ -39432,6 +39402,9 @@
                                       }
                                     }
                                   },
+                                  "variables": {
+                                    "webConfigSecurityDefaults": "[if(equals(parameters('name'), 'web'), createObject('ftpsState', 'FtpsOnly', 'minTlsVersion', '1.3', 'httpsOnly', true()), createObject())]"
+                                  },
                                   "resources": {
                                     "applicationInsights": {
                                       "condition": "[not(empty(parameters('applicationInsightResourceId')))]",
@@ -39451,17 +39424,11 @@
                                       "resourceGroup": "[split(parameters('storageAccountResourceId'), '/')[4]]",
                                       "name": "[last(split(parameters('storageAccountResourceId'), '/'))]"
                                     },
-                                    "app": {
-                                      "existing": true,
-                                      "type": "Microsoft.Web/sites",
-                                      "apiVersion": "2024-04-01",
-                                      "name": "[parameters('appName')]"
-                                    },
                                     "config": {
                                       "type": "Microsoft.Web/sites/config",
                                       "apiVersion": "2024-04-01",
                                       "name": "[format('{0}/{1}', parameters('appName'), parameters('name'))]",
-                                      "properties": "[union(parameters('currentAppSettings'), parameters('properties'), if(and(not(empty(parameters('storageAccountResourceId'))), not(parameters('storageAccountUseIdentityAuthentication'))), createObject('AzureWebJobsStorage', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', last(split(parameters('storageAccountResourceId'), '/')), listKeys('storageAccount', '2024-01-01').keys[0].value, environment().suffixes.storage)), if(and(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountUseIdentityAuthentication')), createObject('AzureWebJobsStorage__accountName', last(split(parameters('storageAccountResourceId'), '/')), 'AzureWebJobsStorage__blobServiceUri', reference('storageAccount').primaryEndpoints.blob, 'AzureWebJobsStorage__queueServiceUri', reference('storageAccount').primaryEndpoints.queue, 'AzureWebJobsStorage__tableServiceUri', reference('storageAccount').primaryEndpoints.table), createObject())), if(not(empty(parameters('applicationInsightResourceId'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference('applicationInsights').ConnectionString), createObject()))]",
+                                      "properties": "[union(parameters('currentAppSettings'), parameters('properties'), if(and(not(empty(parameters('storageAccountResourceId'))), not(parameters('storageAccountUseIdentityAuthentication'))), createObject('AzureWebJobsStorage', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', last(split(parameters('storageAccountResourceId'), '/')), listKeys('storageAccount', '2024-01-01').keys[0].value, environment().suffixes.storage)), if(and(not(empty(parameters('storageAccountResourceId'))), parameters('storageAccountUseIdentityAuthentication')), createObject('AzureWebJobsStorage__accountName', last(split(parameters('storageAccountResourceId'), '/')), 'AzureWebJobsStorage__blobServiceUri', reference('storageAccount').primaryEndpoints.blob, 'AzureWebJobsStorage__queueServiceUri', reference('storageAccount').primaryEndpoints.queue, 'AzureWebJobsStorage__tableServiceUri', reference('storageAccount').primaryEndpoints.table), createObject())), if(not(empty(parameters('applicationInsightResourceId'))), createObject('APPLICATIONINSIGHTS_CONNECTION_STRING', reference('applicationInsights').ConnectionString), createObject()), variables('webConfigSecurityDefaults'))]",
                                       "dependsOn": [
                                         "applicationInsights",
                                         "storageAccount"
@@ -39474,14 +39441,14 @@
                                       "metadata": {
                                         "description": "The name of the site config."
                                       },
-                                      "value": "[parameters('name')]"
+                                      "value": "[format('{0}/{1}', parameters('appName'), parameters('name'))]"
                                     },
                                     "resourceId": {
                                       "type": "string",
                                       "metadata": {
                                         "description": "The resource ID of the site config."
                                       },
-                                      "value": "[resourceId('Microsoft.Web/sites/config', parameters('appName'), parameters('name'))]"
+                                      "value": "[resourceId('Microsoft.Web/sites/config', split(format('{0}/{1}', parameters('appName'), parameters('name')), '/')[0], split(format('{0}/{1}', parameters('appName'), parameters('name')), '/')[1])]"
                                     },
                                     "resourceGroupName": {
                                       "type": "string",
@@ -53872,9 +53839,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]

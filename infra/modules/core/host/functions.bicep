@@ -182,7 +182,7 @@ module functions 'appservice.bicep' = {
         allowedOrigins: allowedOrigins
       }
       healthCheckPath: healthCheckPath
-      minTlsVersion: '1.2'
+      minTlsVersion: '1.3'
       ftpsState: 'FtpsOnly'
     }
     serverFarmResourceId: serverFarmResourceId
