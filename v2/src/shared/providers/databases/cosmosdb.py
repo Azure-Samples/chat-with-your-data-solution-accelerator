@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Sequence
 
 from azure.cosmos.aio import CosmosClient
@@ -51,8 +52,35 @@ if TYPE_CHECKING:
     from shared.settings import AppSettings
 
 
-_TYPE_CONVERSATION = "conversation"
-_TYPE_MESSAGE = "message"
+class CosmosItemType(StrEnum):
+    """Closed set of `type=` discriminator values stored on every
+    item in the chat-history container.
+
+    Per `.github/copilot-instructions.md` Hard Rule #11 (Python
+    bullet) and `.github/instructions/v2-shared.instructions.md`
+    §Constants: closed-set string literals must be `StrEnum`, not
+    bare `_FOO = "foo"` module constants. `StrEnum` subclasses
+    `str`, so the wire shape stays exactly `"conversation"` /
+    `"message"` / `"agent"` -- existing tests asserting on raw
+    strings continue to pass without modification.
+
+    Agent rows (CU-010b) live in the same container as conversations
+    + messages, differentiated by `type="agent"`. They are not
+    user-scoped, so they pin to a synthetic `_system` partition
+    key. Cardinality is bounded by `BUILTIN_AGENTS` (~2 rows today)
+    so the usual "avoid low-cardinality partitions" guidance does
+    not apply -- there is no hot-partition risk on a read-mostly
+    two-row partition.
+    """
+
+    CONVERSATION = "conversation"
+    MESSAGE = "message"
+    AGENT = "agent"
+
+
+# Single-value sentinel for the agent-registry partition. Exempt from
+# the StrEnum rule per Hard Rule #11 -- no siblings, no closed set.
+_AGENT_PARTITION = "_system"
 
 
 def _utcnow_iso() -> str:
@@ -145,7 +173,7 @@ class CosmosDBClient(BaseDatabaseClient):
             "SELECT * FROM c WHERE c.type = @type "
             "ORDER BY c.updatedAt DESC"
         )
-        params = [{"name": "@type", "value": _TYPE_CONVERSATION}]
+        params = [{"name": "@type", "value": CosmosItemType.CONVERSATION}]
         items = container.query_items(
             query=query,
             parameters=params,
@@ -160,7 +188,7 @@ class CosmosDBClient(BaseDatabaseClient):
         self, conversation_id: str, user_id: str
     ) -> Conversation | None:
         item = await self._read_item(conversation_id, user_id)
-        if item is None or item.get("type") != _TYPE_CONVERSATION:
+        if item is None or item.get("type") != CosmosItemType.CONVERSATION:
             return None
         return self._to_conversation(item)
 
@@ -172,7 +200,7 @@ class CosmosDBClient(BaseDatabaseClient):
         item = {
             "id": str(uuid.uuid4()),
             "userId": user_id,
-            "type": _TYPE_CONVERSATION,
+            "type": CosmosItemType.CONVERSATION,
             "title": title,
             "createdAt": now,
             "updatedAt": now,
@@ -185,7 +213,7 @@ class CosmosDBClient(BaseDatabaseClient):
     ) -> Conversation:
         container = self._get_container()
         existing = await self._read_item(conversation_id, user_id)
-        if existing is None or existing.get("type") != _TYPE_CONVERSATION:
+        if existing is None or existing.get("type") != CosmosItemType.CONVERSATION:
             raise KeyError(conversation_id)
         existing["title"] = title
         existing["updatedAt"] = _utcnow_iso()
@@ -206,7 +234,7 @@ class CosmosDBClient(BaseDatabaseClient):
             "AND c.conversationId = @cid"
         )
         params = [
-            {"name": "@type", "value": _TYPE_MESSAGE},
+            {"name": "@type", "value": CosmosItemType.MESSAGE},
             {"name": "@cid", "value": conversation_id},
         ]
         async for row in container.query_items(
@@ -239,7 +267,7 @@ class CosmosDBClient(BaseDatabaseClient):
             "ORDER BY c.createdAt ASC"
         )
         params = [
-            {"name": "@type", "value": _TYPE_MESSAGE},
+            {"name": "@type", "value": CosmosItemType.MESSAGE},
             {"name": "@cid", "value": conversation_id},
         ]
         items = container.query_items(
@@ -262,7 +290,7 @@ class CosmosDBClient(BaseDatabaseClient):
             "id": str(uuid.uuid4()),
             "userId": user_id,
             "conversationId": conversation_id,
-            "type": _TYPE_MESSAGE,
+            "type": CosmosItemType.MESSAGE,
             "role": message.role,
             "content": message.content,
             "createdAt": now,
@@ -273,17 +301,62 @@ class CosmosDBClient(BaseDatabaseClient):
         # silently ignored -- the message persists and a follow-up
         # `list_conversations` will simply not surface it.
         parent = await self._read_item(conversation_id, user_id)
-        if parent is not None and parent.get("type") == _TYPE_CONVERSATION:
+        if parent is not None and parent.get("type") == CosmosItemType.CONVERSATION:
             parent["updatedAt"] = now
             await container.replace_item(item=conversation_id, body=parent)
         return self._to_message(stored)
+
+    # ------------------------------------------------------------------
+    # Agent registry (CU-010b)
+    # ------------------------------------------------------------------
+
+    async def get_agent_id(self, name: str) -> str | None:
+        container = self._get_container()
+        # Direct point-read on (id=name, partition=_system) -- single-RU
+        # lookup, no cross-partition fan-out, no query-engine cost.
+        # Defensive type check: if a future refactor accidentally writes
+        # a non-agent item under the same id, refuse to return its
+        # `agentId` rather than silently mis-resolving.
+        try:
+            item = await container.read_item(
+                item=name, partition_key=_AGENT_PARTITION
+            )
+        except CosmosResourceNotFoundError:
+            return None
+        if item.get("type") != CosmosItemType.AGENT:
+            return None
+        agent_id = item.get("agentId")
+        return str(agent_id) if agent_id else None
+
+    async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+        container = self._get_container()
+        now = _utcnow_iso()
+        # `upsert_item` does CREATE-or-REPLACE atomically on (id,
+        # partition_key). No read-then-write race on a stale id (the
+        # lazy resolver in CU-010c writes a new id when Foundry 404s
+        # the persisted one). `userId` is the partition key value;
+        # `_system` keeps agent rows out of every per-tenant
+        # partition. `createdAt` is set on every write -- on REPLACE
+        # paths it gets clobbered, which is acceptable for a
+        # registry row whose lifecycle event we care about is
+        # `updatedAt` (kept distinct so a future audit can sort by
+        # "most recently re-created").
+        item = {
+            "id": name,
+            "userId": _AGENT_PARTITION,
+            "type": CosmosItemType.AGENT,
+            "agentId": agent_id,
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        await container.upsert_item(body=item)
 
     async def set_feedback(
         self, message_id: str, user_id: str, feedback: str
     ) -> None:
         container = self._get_container()
         existing = await self._read_item(message_id, user_id)
-        if existing is None or existing.get("type") != _TYPE_MESSAGE:
+        if existing is None or existing.get("type") != CosmosItemType.MESSAGE:
             raise KeyError(message_id)
         existing["feedback"] = feedback
         await container.replace_item(item=message_id, body=existing)

@@ -60,6 +60,7 @@ def _make_client(
     container = MagicMock()
     container.create_item = AsyncMock(side_effect=lambda body: body)
     container.replace_item = AsyncMock(side_effect=lambda item, body: body)
+    container.upsert_item = AsyncMock(side_effect=lambda body: body)
     container.delete_item = AsyncMock(return_value=None)
     container.read_item = AsyncMock(
         side_effect=CosmosResourceNotFoundError(message="not found")
@@ -351,3 +352,128 @@ async def test_get_container_raises_without_endpoint() -> None:
     client = CosmosDBClient(settings=settings, credential=MagicMock())
     with pytest.raises(RuntimeError, match="AZURE_COSMOS_ENDPOINT"):
         await client.list_conversations("u1")
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (CU-010b1 -- get_agent_id)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_returns_none_when_item_missing() -> None:
+    """Cold start -- no row written yet. Must return None, not raise."""
+    client, container = _make_client()
+    # Default `read_item` already raises CosmosResourceNotFoundError.
+    assert await client.get_agent_id("cwyd") is None
+    container.read_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_uses_synthetic_system_partition() -> None:
+    """Agents are not user-scoped -- the lookup must pin to the
+    `_system` partition so it does not fan out across user partitions
+    (which would multiply RU cost by user count)."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "cwyd",
+            "userId": "_system",
+            "type": "agent",
+            "agentId": "asst_abc123",
+        }
+    )
+    out = await client.get_agent_id("cwyd")
+    assert out == "asst_abc123"
+    kwargs = container.read_item.await_args.kwargs
+    assert kwargs["item"] == "cwyd"
+    assert kwargs["partition_key"] == "_system"
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_refuses_non_agent_typed_item() -> None:
+    """Defensive type check: if the same id ever collides with a
+    conversation or message id, the resolver must NOT return its
+    payload as an agent id (that would cross-wire the orchestrator
+    onto a random Foundry agent)."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "cwyd",
+            "userId": "u1",
+            "type": "conversation",
+            "title": "definitely not an agent",
+        }
+    )
+    assert await client.get_agent_id("cwyd") is None
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_returns_none_when_agent_id_field_missing() -> None:
+    """Malformed row (right type, missing payload) must read as
+    'not bootstrapped' so the resolver re-creates rather than raising
+    a KeyError mid-request."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={"id": "cwyd", "userId": "_system", "type": "agent"}
+    )
+    assert await client.get_agent_id("cwyd") is None
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (CU-010b2 -- upsert_agent_id)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_writes_canonical_shape() -> None:
+    """Wire shape: id=name, userId=_system synthetic partition,
+    type=CosmosItemType.AGENT (StrEnum -> serializes as the bare
+    string `"agent"`), agentId carries the Foundry id, and both
+    timestamps are present so an audit query can sort either way.
+    """
+    from shared.providers.databases.cosmosdb import CosmosItemType
+
+    client, container = _make_client()
+    await client.upsert_agent_id("cwyd", "asst_abc123")
+
+    container.upsert_item.assert_awaited_once()
+    body = container.upsert_item.await_args.kwargs["body"]
+    assert body["id"] == "cwyd"
+    assert body["userId"] == "_system"
+    # `StrEnum` member compares equal to its string value; the wire
+    # serialization is just `"agent"` (validates the new Hard Rule
+    # #11 sub-rule end-to-end).
+    assert body["type"] == CosmosItemType.AGENT
+    assert body["type"] == "agent"
+    assert body["agentId"] == "asst_abc123"
+    assert "createdAt" in body and "updatedAt" in body
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_uses_upsert_not_create() -> None:
+    """Must use `upsert_item` (atomic CREATE-or-REPLACE) rather than
+    `create_item` -- otherwise the lazy resolver in CU-010c would
+    raise CosmosResourceExistsError on its second-and-later writes
+    (e.g. when Foundry 404s a stale id and we rewrite it).
+    """
+    client, container = _make_client()
+    await client.upsert_agent_id("cwyd", "asst_abc123")
+    container.upsert_item.assert_awaited_once()
+    container.create_item.assert_not_awaited()
+    container.replace_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_is_idempotent_on_repeat_call() -> None:
+    """Two writes with the same (name, agent_id) must not raise
+    (the fake `upsert_item` echoes the body, mirroring the SDK's
+    REPLACE-on-conflict semantics). New `agent_id` for an existing
+    `name` must overwrite the prior `agentId` value -- this is the
+    rewrite path the CU-010c resolver depends on.
+    """
+    client, container = _make_client()
+    await client.upsert_agent_id("cwyd", "asst_old")
+    await client.upsert_agent_id("cwyd", "asst_new")
+    assert container.upsert_item.await_count == 2
+    second_body = container.upsert_item.await_args_list[1].kwargs["body"]
+    assert second_body["agentId"] == "asst_new"

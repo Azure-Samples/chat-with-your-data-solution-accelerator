@@ -101,6 +101,30 @@ class BaseDatabaseClient(ABC):
         """Attach / overwrite feedback (e.g. ``"positive"``,
         ``"negative"``) on `message_id`."""
 
+    # ---- Agent registry (CU-010b) ---------------------------------------
+    #
+    # `name` is the `AgentDefinition.name` (e.g. "cwyd", "rai"). The
+    # value persisted is the Foundry-side agent id returned by
+    # `client.create_agent(...)`. Used by the lazy resolver added in
+    # CU-010c (`BaseAgentsProvider.get_or_create_agent`) so agent
+    # identity survives container restarts without an env-var seam
+    # (see ADR 0008).
+
+    @abstractmethod
+    async def get_agent_id(self, name: str) -> str | None:
+        """Return the persisted Foundry agent id for `name`, or
+        `None` if no row has been written yet (cold start). Must be
+        idempotent and side-effect free."""
+
+    @abstractmethod
+    async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+        """Persist `agent_id` against `name`. Idempotent: a second
+        call with the same `(name, agent_id)` must not raise, and a
+        call with a new `agent_id` for an existing `name` must
+        replace the prior value (the lazy resolver in CU-010c does
+        this when Foundry returns 404 for a stale persisted id).
+        """
+
     # ---- Lifecycle ------------------------------------------------------
 
     async def aclose(self) -> None:

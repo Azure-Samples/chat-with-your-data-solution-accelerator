@@ -70,6 +70,12 @@ class _StubDatabaseClient(BaseDatabaseClient):
     ) -> None:
         return None
 
+    async def get_agent_id(self, name: str) -> str | None:
+        return None
+
+    async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+        return None
+
 
 # ---------------------------------------------------------------------------
 # Registry shape (task #27 deliverable -- ABC + registry, no concrete clients
@@ -109,7 +115,7 @@ def test_subclass_must_implement_all_abstract_methods() -> None:
     """A subclass that omits any chat-history method must remain abstract."""
 
     class _Partial(BaseDatabaseClient):
-        # Implements only one of the eight abstract methods on purpose.
+        # Implements only one of the abstract methods on purpose.
         async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
             return []
 
@@ -148,3 +154,166 @@ async def test_stub_aclose_is_noop_by_default() -> None:
         credential=MagicMock(),
     )
     assert await client.aclose() is None
+
+
+# ---------------------------------------------------------------------------
+# Agent registry contract (CU-010b1 -- get_agent_id)
+# ---------------------------------------------------------------------------
+
+
+def test_subclass_missing_get_agent_id_remains_abstract() -> None:
+    """`get_agent_id` is part of the ABC contract (CU-010b). A subclass
+    that implements every chat-history method but omits the agent
+    registry method must still fail to instantiate, otherwise the
+    lazy resolver in CU-010c could call into a NotImplementedError at
+    runtime.
+    """
+
+    class _MissingAgentRegistry(BaseDatabaseClient):
+        # Re-implements every chat-history method from `_StubDatabaseClient`
+        # but deliberately omits `get_agent_id`.
+        async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
+            return []
+
+        async def get_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> Conversation | None:
+            return None
+
+        async def create_conversation(
+            self, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id="c1", user_id=user_id, title=title)
+
+        async def rename_conversation(
+            self, conversation_id: str, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id=conversation_id, user_id=user_id, title=title)
+
+        async def delete_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> None:
+            return None
+
+        async def list_messages(
+            self, conversation_id: str, user_id: str
+        ) -> Sequence[MessageRecord]:
+            return []
+
+        async def add_message(
+            self,
+            conversation_id: str,
+            user_id: str,
+            message: ChatMessage,
+        ) -> MessageRecord:
+            return MessageRecord(
+                id="m1",
+                conversation_id=conversation_id,
+                role=message.role,
+                content=message.content,
+            )
+
+        async def set_feedback(
+            self, message_id: str, user_id: str, feedback: str
+        ) -> None:
+            return None
+
+    with pytest.raises(TypeError):
+        _MissingAgentRegistry(  # type: ignore[abstract]
+            settings=MagicMock(spec=AppSettings),
+            credential=MagicMock(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_stub_get_agent_id_returns_none_for_missing_name() -> None:
+    """The default stub returns None -- this validates the contract
+    return type (`str | None`) rather than the storage semantics
+    (covered per backend in test_cosmosdb / test_postgres)."""
+    client = _StubDatabaseClient(
+        settings=MagicMock(spec=AppSettings),
+        credential=MagicMock(),
+    )
+    assert await client.get_agent_id("cwyd") is None
+
+
+# ---------------------------------------------------------------------------
+# Agent registry contract (CU-010b2 -- upsert_agent_id)
+# ---------------------------------------------------------------------------
+
+
+def test_subclass_missing_upsert_agent_id_remains_abstract() -> None:
+    """`upsert_agent_id` is part of the ABC contract (CU-010b2). A
+    subclass that implements `get_agent_id` (and every chat-history
+    method) but omits the writer must still fail to instantiate --
+    otherwise the lazy resolver in CU-010c could read a stale id,
+    fail to persist a fresh one, and silently re-create on every
+    request."""
+
+    class _MissingUpsert(BaseDatabaseClient):
+        async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
+            return []
+
+        async def get_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> Conversation | None:
+            return None
+
+        async def create_conversation(
+            self, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id="c1", user_id=user_id, title=title)
+
+        async def rename_conversation(
+            self, conversation_id: str, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id=conversation_id, user_id=user_id, title=title)
+
+        async def delete_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> None:
+            return None
+
+        async def list_messages(
+            self, conversation_id: str, user_id: str
+        ) -> Sequence[MessageRecord]:
+            return []
+
+        async def add_message(
+            self,
+            conversation_id: str,
+            user_id: str,
+            message: ChatMessage,
+        ) -> MessageRecord:
+            return MessageRecord(
+                id="m1",
+                conversation_id=conversation_id,
+                role=message.role,
+                content=message.content,
+            )
+
+        async def set_feedback(
+            self, message_id: str, user_id: str, feedback: str
+        ) -> None:
+            return None
+
+        async def get_agent_id(self, name: str) -> str | None:
+            return None
+
+    with pytest.raises(TypeError):
+        _MissingUpsert(  # type: ignore[abstract]
+            settings=MagicMock(spec=AppSettings),
+            credential=MagicMock(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_stub_upsert_agent_id_returns_none_and_does_not_raise() -> None:
+    """The default stub is a no-op -- this validates the contract
+    return type (`None`) rather than the storage semantics (covered
+    per backend in test_cosmosdb / test_postgres)."""
+    client = _StubDatabaseClient(
+        settings=MagicMock(spec=AppSettings),
+        credential=MagicMock(),
+    )
+    assert await client.upsert_agent_id("cwyd", "asst_abc123") is None

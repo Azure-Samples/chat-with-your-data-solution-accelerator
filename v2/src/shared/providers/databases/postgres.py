@@ -65,6 +65,18 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conv_created
     ON messages (conversation_id, created_at);
+
+-- Agent registry (CU-010b). `name` is the AgentDefinition.name
+-- ("cwyd", "rai"). Used by the lazy resolver in CU-010c so agent
+-- identity survives container restarts without an env-var seam
+-- (see ADR 0008). Lazy-bootstrapped here alongside conversations +
+-- messages so a fresh deployment needs no separate migration.
+CREATE TABLE IF NOT EXISTS agents (
+    name        TEXT PRIMARY KEY,
+    agent_id    TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 """
 
 
@@ -342,3 +354,35 @@ class PostgresClient(BaseDatabaseClient):
         # asyncpg returns the command tag like "UPDATE 1" / "UPDATE 0".
         if isinstance(result, str) and result.endswith(" 0"):
             raise KeyError(message_id)
+
+    # ------------------------------------------------------------------
+    # Agent registry (CU-010b)
+    # ------------------------------------------------------------------
+
+    async def get_agent_id(self, name: str) -> str | None:
+        pool = await self._ensure_pool()
+        # Parameterized; never interpolate `name` into SQL. PK lookup
+        # is a single index probe (~one disk page worst case).
+        row = await pool.fetchrow(
+            "SELECT agent_id FROM agents WHERE name = $1",
+            name,
+        )
+        return str(row["agent_id"]) if row else None
+
+    async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+        pool = await self._ensure_pool()
+        # `ON CONFLICT (name) DO UPDATE` makes this an atomic
+        # CREATE-or-REPLACE in a single round-trip. `EXCLUDED.agent_id`
+        # references the value the INSERT would have written, so the
+        # update path picks up the new id when the lazy resolver in
+        # CU-010c rewrites a stale Foundry agent id. `updated_at` is
+        # bumped on every conflict; `created_at` keeps its original
+        # value so an audit can distinguish "first bootstrapped at"
+        # from "most recently rewritten".
+        await pool.execute(
+            "INSERT INTO agents (name, agent_id) VALUES ($1, $2) "
+            "ON CONFLICT (name) DO UPDATE SET "
+            "agent_id = EXCLUDED.agent_id, updated_at = NOW()",
+            name,
+            agent_id,
+        )

@@ -104,6 +104,16 @@ Every concrete orchestrator (`langgraph.py`, `agent_framework.py`):
 - Single root `AppSettings` in `v2/src/shared/settings.py` (Pydantic-Settings, nested per Azure service). Reads every Bicep output env var.
 - Cached `get_settings()` accessor. Never read env vars directly outside this module.
 
+## Constants — closed sets use `enum.StrEnum`
+
+Per `.github/copilot-instructions.md` Hard Rule #11 (Python bullet): whenever ≥2 related string literals form a closed set (type discriminators, modes, channels, status values, sibling partition keys), define a `class Foo(StrEnum)` (Python 3.11+) at module scope and reference members instead of bare `_FOO = "foo"` / `_BAR = "bar"` constants.
+
+- `StrEnum` subclasses `str`, so the wire shape is unchanged: `json.dumps(MyEnum.X) == '"x"'`, `cursor.execute("…", (MyEnum.X,))` binds as `"x"`, `dict[MyEnum.X]` indexes the same as `dict["x"]`, and `MyEnum.X == "x"` is `True`. Existing tests asserting on raw strings keep passing.
+- Naming: `PascalCase` class even when the symbol is module-internal (PEP 8 — class names are `PascalCase` regardless of visibility). Prefix with `_` only if the class itself is private to the module.
+- **Exempt** (stay as `UPPER_SNAKE_CASE` constants): single-value sentinels with no siblings (e.g. `_AGENT_PARTITION = "_system"`), URLs (`_POSTGRES_AAD_SCOPE`), SQL templates (`_SCHEMA_SQL`), or any literal that does not have at least one sibling forming a closed set.
+- **Not affected**: Pydantic `Literal[...]` *type annotations* on model fields (`name: Literal["langgraph", "agent_framework"]`). Those are types, not runtime values; they already constrain the closed set at validation time.
+- **In v2 today**: Cosmos item-type discriminator (`CosmosItemType.CONVERSATION | MESSAGE | AGENT`) follows this pattern; SSE channel literals (`reasoning|tool|answer|citation|error` on `OrchestratorEvent.channel`) are in the debt queue (Q12) for a directed sweep — do not refactor opportunistically.
+
 ## Banned
 
 - `from openai import …` anywhere in `v2/src/shared/**`.

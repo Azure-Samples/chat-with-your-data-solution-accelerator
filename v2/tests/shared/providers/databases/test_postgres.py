@@ -424,3 +424,109 @@ async def test_ensure_pool_raises_without_admin_principal() -> None:
     client._settings.database.postgres_admin_principal_name = ""  # type: ignore[attr-defined]
     with pytest.raises(RuntimeError, match="AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME"):
         await client.list_conversations("u1")
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (CU-010b1 -- get_agent_id)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_returns_none_when_row_missing() -> None:
+    """Cold start -- no row written yet. fetchrow returns None on miss
+    and the wrapper must surface that as None, not raise."""
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(return_value=None)
+    client = _make_client(pool=pool)
+    assert await client.get_agent_id("cwyd") is None
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_returns_persisted_id_on_hit() -> None:
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(return_value={"agent_id": "asst_abc123"})
+    client = _make_client(pool=pool)
+    assert await client.get_agent_id("cwyd") == "asst_abc123"
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_uses_parameterized_sql() -> None:
+    """`name` must never be string-interpolated -- a malicious agent
+    name (operator-controlled in a future admin UI) could otherwise
+    inject SQL. Asserts a $1 placeholder + bound argument."""
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(return_value=None)
+    client = _make_client(pool=pool)
+    await client.get_agent_id("cwyd")
+    sql, *args = pool.fetchrow.await_args.args
+    assert "FROM agents" in sql
+    assert "WHERE name = $1" in sql
+    assert args == ["cwyd"]
+
+
+@pytest.mark.asyncio
+async def test_schema_sql_creates_agents_table() -> None:
+    """The lazy bootstrap (`_SCHEMA_SQL`) must include the agents
+    table -- otherwise the very first `get_agent_id` against a fresh
+    deployment raises `UndefinedTable`. CU-010b1 keeps schema
+    bootstrap lazy (no post_provision change required)."""
+    from shared.providers.databases.postgres import _SCHEMA_SQL
+
+    assert "CREATE TABLE IF NOT EXISTS agents" in _SCHEMA_SQL
+    assert "name        TEXT PRIMARY KEY" in _SCHEMA_SQL
+    assert "agent_id    TEXT NOT NULL" in _SCHEMA_SQL
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (CU-010b2 -- upsert_agent_id)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_emits_upsert_sql_with_on_conflict() -> None:
+    """Single-round-trip atomic CREATE-or-REPLACE -- the CU-010c lazy
+    resolver depends on this so a stale Foundry id can be rewritten
+    without first deleting the old row. Asserts the canonical
+    `INSERT ... ON CONFLICT (name) DO UPDATE` shape and that the
+    update path picks up `EXCLUDED.agent_id` (not the stale value)."""
+    pool, _ = _make_pool()
+    client = _make_client(pool=pool)
+    await client.upsert_agent_id("cwyd", "asst_abc123")
+
+    pool.execute.assert_awaited_once()
+    sql, *args = pool.execute.await_args.args
+    assert "INSERT INTO agents" in sql
+    assert "ON CONFLICT (name) DO UPDATE" in sql
+    assert "agent_id = EXCLUDED.agent_id" in sql
+    assert args == ["cwyd", "asst_abc123"]
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_uses_parameterized_sql() -> None:
+    """`name` and `agent_id` must be bound via $1/$2 -- never
+    interpolated. A malicious agent name (operator-controlled in a
+    future admin UI) could otherwise inject SQL via either column."""
+    pool, _ = _make_pool()
+    client = _make_client(pool=pool)
+    await client.upsert_agent_id("cwyd'; DROP TABLE agents;--", "asst_x")
+    sql, *args = pool.execute.await_args.args
+    assert "$1" in sql and "$2" in sql
+    # No echoed-into-SQL substring of the bound name -- proves binding,
+    # not interpolation.
+    assert "DROP TABLE" not in sql
+    assert args == ["cwyd'; DROP TABLE agents;--", "asst_x"]
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_is_idempotent_on_repeat_call() -> None:
+    """Two writes with the same key must not raise (the ON CONFLICT
+    branch fires); a subsequent write with a new agent_id must be
+    forwarded through to the SQL bind args so the UPDATE path picks
+    it up. Validates the rewrite path the CU-010c resolver relies on."""
+    pool, _ = _make_pool()
+    client = _make_client(pool=pool)
+    await client.upsert_agent_id("cwyd", "asst_old")
+    await client.upsert_agent_id("cwyd", "asst_new")
+    assert pool.execute.await_count == 2
+    _sql, *second_bound = pool.execute.await_args_list[1].args
+    assert second_bound == ["cwyd", "asst_new"]
