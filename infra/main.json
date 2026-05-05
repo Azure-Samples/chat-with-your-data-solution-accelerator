@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "16421140691716802279"
+      "templateHash": "2865368762062690430"
     }
   },
   "parameters": {
@@ -33297,7 +33297,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "8683679294545259497"
+              "templateHash": "12023450024382758542"
             }
           },
           "parameters": {
@@ -33555,7 +33555,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "18244225806211036789"
+                      "templateHash": "656002339826408723"
                     }
                   },
                   "definitions": {
@@ -34206,9 +34206,11 @@
                     },
                     "managedIdentities": {
                       "$ref": "#/definitions/managedIdentityAllType",
-                      "nullable": true,
+                      "defaultValue": {
+                        "systemAssigned": true
+                      },
                       "metadata": {
-                        "description": "Optional. The managed identity definition for this resource."
+                        "description": "Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity."
                       }
                     },
                     "keyVaultAccessIdentityResourceId": {
@@ -35516,7 +35518,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9592410913633598971"
+              "templateHash": "10022781742228828033"
             }
           },
           "parameters": {
@@ -35774,7 +35776,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "18244225806211036789"
+                      "templateHash": "656002339826408723"
                     }
                   },
                   "definitions": {
@@ -36425,9 +36427,11 @@
                     },
                     "managedIdentities": {
                       "$ref": "#/definitions/managedIdentityAllType",
-                      "nullable": true,
+                      "defaultValue": {
+                        "systemAssigned": true
+                      },
                       "metadata": {
-                        "description": "Optional. The managed identity definition for this resource."
+                        "description": "Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity."
                       }
                     },
                     "keyVaultAccessIdentityResourceId": {
@@ -37739,7 +37743,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "8808083120540867501"
+              "templateHash": "6476245838086949816"
             }
           },
           "parameters": {
@@ -37980,7 +37984,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.42.1.51946",
-                      "templateHash": "7809134250369709392"
+                      "templateHash": "11099357621474543190"
                     }
                   },
                   "parameters": {
@@ -38346,7 +38350,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.42.1.51946",
-                              "templateHash": "18244225806211036789"
+                              "templateHash": "656002339826408723"
                             }
                           },
                           "definitions": {
@@ -38997,9 +39001,11 @@
                             },
                             "managedIdentities": {
                               "$ref": "#/definitions/managedIdentityAllType",
-                              "nullable": true,
+                              "defaultValue": {
+                                "systemAssigned": true
+                              },
                               "metadata": {
-                                "description": "Optional. The managed identity definition for this resource."
+                                "description": "Optional. The managed identity definition for this resource. Defaults to system-assigned managed identity."
                               }
                             },
                             "keyVaultAccessIdentityResourceId": {

@@ -58,16 +58,7 @@ var appInsightsValues = !empty(applicationInsightResourceId)
     }
   : {}
 
-// Ensure FTPS enforcement and other security settings for 'web' config
-var webConfigSecurityDefaults = name == 'web'
-  ? {
-      ftpsState: 'FtpsOnly'
-      minTlsVersion: '1.3'
-      httpsOnly: true
-    }
-  : {}
-
-var expandedProperties = union(currentAppSettings, properties, azureWebJobsValues, appInsightsValues, webConfigSecurityDefaults)
+var expandedProperties = union(currentAppSettings, properties, azureWebJobsValues, appInsightsValues)
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = if (!empty(applicationInsightResourceId)) {
   name: last(split(applicationInsightResourceId!, '/'))
