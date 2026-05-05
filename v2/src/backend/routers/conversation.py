@@ -32,7 +32,12 @@ from typing import AsyncIterator
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
-from backend.dependencies import LLMProviderDep, SearchProviderDep, SettingsDep
+from backend.dependencies import (
+    AgentsProviderDep,
+    LLMProviderDep,
+    SearchProviderDep,
+    SettingsDep,
+)
 from backend.models.conversation import ConversationRequest, ConversationResponse
 from shared.pipelines.chat import run_chat
 from shared.providers import orchestrators
@@ -118,14 +123,28 @@ async def conversation(
     settings: SettingsDep,
     llm: LLMProviderDep,
     search: SearchProviderDep,
+    agents: AgentsProviderDep,
     accept: str | None = Header(default=None),
 ) -> ConversationResponse | StreamingResponse:
     """Run the configured orchestrator and stream / buffer the result."""
+    # Forward `agents_client` + `agent_id` *uniformly* to every
+    # orchestrator. The `agent_framework` orchestrator binds them as
+    # explicit kwargs; `langgraph` (and any future provider that
+    # doesn't need them) swallows them via `**_extras`. This keeps
+    # dispatch registry-only -- the router never branches on
+    # `settings.orchestrator.name` (Hard Rule #4).
+    #
+    # `agents.get_client()` is lazy: the first call constructs the
+    # AgentsClient against `settings.foundry.project_endpoint` and
+    # caches it on the provider; subsequent requests reuse the same
+    # HTTP transport for the lifetime of the process.
     orchestrator = orchestrators.create(
         settings.orchestrator.name,
         settings=settings,
         llm=llm,
         search=search,
+        agents_client=agents.get_client(),
+        agent_id=settings.orchestrator.agent_id,
     )
 
     events = run_chat(body.messages, orchestrator=orchestrator)
