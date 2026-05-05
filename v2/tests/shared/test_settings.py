@@ -141,79 +141,59 @@ def test_orchestrator_validation_rejects_unknown(monkeypatch: pytest.MonkeyPatch
 def test_orchestrator_can_be_set_to_agent_framework(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Selecting `agent_framework` no longer requires any agent-id env
+    var. CU-009b (2026-05-05) removed the `OrchestratorSettings.agent_id`
+    field per ADR 0008 -- the orchestrator resolves the Foundry agent
+    lazily on first request via the registry-backed `agents` provider.
+    Settings-load must succeed cleanly.
+    """
     _set(monkeypatch, COSMOS_ENV)
     monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", "agent_framework")
-    # Agent id must be supplied when the agent_framework backend is
-    # selected; the validator rejects the configuration otherwise
-    # (CU-001a). Use the canonical Bicep-output name.
-    monkeypatch.setenv("AZURE_AI_AGENT_ID", "asst_test_001")
+    monkeypatch.delenv("AZURE_AI_AGENT_ID", raising=False)
+    monkeypatch.delenv("CWYD_ORCHESTRATOR_AGENT_ID", raising=False)
     settings = AppSettings()
     assert settings.orchestrator.name == "agent_framework"
-    assert settings.orchestrator.agent_id == "asst_test_001"
 
 
 # ---------------------------------------------------------------------------
-# CU-001a: agent_id field + cross-field validator
+# CU-009b: agent_id removal (reversal of CU-001a)
 # ---------------------------------------------------------------------------
 
 
-def test_agent_id_defaults_to_empty_under_langgraph(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Default orchestrator (`langgraph`) must boot without `agent_id` --
-    the field is only required when the agent_framework branch is live.
+def test_orchestrator_settings_no_agent_id_field() -> None:
+    """`OrchestratorSettings` must NOT declare an `agent_id` field.
+
+    CU-009b (2026-05-05) reversed CU-001a per ADR 0008
+    (lazy-foundry-agent-bootstrap). Restoring the field here would
+    re-introduce the dead-config drift the cleanup audit batch was
+    opened to remove. Pin specific Foundry agents through the
+    registry-backed `agents` provider (CU-010a), not via settings.
     """
-    _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.delenv("AZURE_AI_AGENT_ID", raising=False)
-    monkeypatch.delenv("CWYD_ORCHESTRATOR_AGENT_ID", raising=False)
-    settings = AppSettings()
-    assert settings.orchestrator.agent_id == ""
+    from shared.settings import OrchestratorSettings
+
+    assert "agent_id" not in OrchestratorSettings.model_fields, (
+        "OrchestratorSettings.agent_id must remain absent (CU-009b reversal "
+        "of CU-001a). Foundry agent identity is now DB-backed via the agents "
+        "provider; see ADR 0008."
+    )
 
 
-def test_agent_framework_without_agent_id_raises(
+def test_agent_framework_loads_without_any_agent_id_env_var(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Selecting `agent_framework` without an agent id is misconfiguration
-    -- the orchestrator's constructor would `ValueError` on every request,
-    so we fail fast at settings-load.
+    """Settings-load under `agent_framework` must succeed even when both
+    legacy env aliases are explicitly cleared. The previous
+    cross-field validator (`_require_agent_id_for_agent_framework`,
+    CU-001a) is gone; the runtime resolver in
+    `agents.get_or_create_agent` (CU-010c) replaces it.
     """
     _set(monkeypatch, COSMOS_ENV)
     monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", "agent_framework")
     monkeypatch.delenv("AZURE_AI_AGENT_ID", raising=False)
     monkeypatch.delenv("CWYD_ORCHESTRATOR_AGENT_ID", raising=False)
-    with pytest.raises(ValidationError, match="AZURE_AI_AGENT_ID"):
-        AppSettings()
-
-
-def test_agent_id_accepts_cwyd_prefixed_alias(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """`CWYD_ORCHESTRATOR_AGENT_ID` is the secondary alias (matches the
-    `OrchestratorSettings` env_prefix). Useful for admin-UI overrides
-    that stay in the runtime-tunable namespace.
-    """
-    _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", "agent_framework")
-    monkeypatch.delenv("AZURE_AI_AGENT_ID", raising=False)
-    monkeypatch.setenv("CWYD_ORCHESTRATOR_AGENT_ID", "asst_admin_override")
+    # No ValidationError expected.
     settings = AppSettings()
-    assert settings.orchestrator.agent_id == "asst_admin_override"
-
-
-def test_agent_id_ignored_when_name_is_langgraph(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Setting `AZURE_AI_AGENT_ID` while `langgraph` is selected must NOT
-    raise -- the validator only enforces presence when agent_framework
-    is the active orchestrator. (Otherwise rolling back from
-    agent_framework -> langgraph would require unsetting the env var.)
-    """
-    _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", "langgraph")
-    monkeypatch.setenv("AZURE_AI_AGENT_ID", "asst_unused_001")
-    settings = AppSettings()
-    assert settings.orchestrator.name == "langgraph"
-    assert settings.orchestrator.agent_id == "asst_unused_001"
+    assert settings.orchestrator.name == "agent_framework"
 
 
 def test_model_validator_cosmosdb_requires_cosmos_endpoint(
@@ -394,13 +374,11 @@ _ENV_EXAMPLE_EXEMPTIONS: dict[str, str] = {
     "BACKEND_CORS_ORIGINS": (
         "NetworkSettings.cors_origins via validation_alias (CU-002a)"
     ),
-    # Consumed by OrchestratorSettings.agent_id via validation_alias
-    # (CU-001a). The canonical Bicep-output name lives in the AZURE_
-    # namespace (it's an infra-pinned Foundry resource id), even though
-    # the settings model lives in the CWYD_ORCHESTRATOR_ namespace.
-    "AZURE_AI_AGENT_ID": (
-        "OrchestratorSettings.agent_id via validation_alias (CU-001a)"
-    ),
+    # CU-009b (2026-05-05) removed the previous AZURE_AI_AGENT_ID
+    # exemption: the OrchestratorSettings.agent_id field that consumed
+    # it via validation_alias was deleted per ADR 0008. Do not re-add
+    # an exemption for an env var no settings field reads -- that's
+    # exactly the dead-config drift this test guards against.
 }
 
 

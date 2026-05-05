@@ -236,41 +236,21 @@ class OrchestratorSettings(BaseSettings):
     infra-pinned value -- the admin UI and tests need to flip it
     without redeploying Bicep.
 
-    `agent_id` (CU-001a) is the Foundry-hosted Agent identifier consumed
-    by the `agent_framework` orchestrator. The canonical name lives in
-    the `AZURE_` namespace because the agent is provisioned in Foundry
-    portal/SDK out-of-band and surfaced as a Bicep output
-    (`AZURE_AI_AGENT_ID`) -- the value is infra-pinned. The
-    `CWYD_ORCHESTRATOR_AGENT_ID` alias stays available for runtime
-    overrides via the admin UI.
+    CU-009b (2026-05-05) removed the previous `agent_id` field +
+    cross-field validator (originally added in CU-001a). Per ADR 0008
+    (lazy-foundry-agent-bootstrap), the Foundry agent identity is no
+    longer settings-driven -- the `agent_framework` orchestrator must
+    call the registry-backed `agents` provider's
+    `get_or_create_agent(CWYD_AGENT, ...)` on first request and let it
+    persist the resolved id in the chat-history database (Cosmos in
+    cosmosdb-mode, Postgres in postgresql-mode). Restoring an
+    `agent_id` field here would re-introduce the dead-config drift the
+    cleanup audit batch was opened to remove.
     """
 
     model_config = SettingsConfigDict(env_prefix="CWYD_ORCHESTRATOR_", extra="ignore")
 
     name: Literal["langgraph", "agent_framework"] = "langgraph"
-    agent_id: str = Field(
-        default="",
-        validation_alias=AliasChoices(
-            "AZURE_AI_AGENT_ID",
-            "CWYD_ORCHESTRATOR_AGENT_ID",
-            "agent_id",
-        ),
-    )
-
-    @model_validator(mode="after")
-    def _require_agent_id_for_agent_framework(self) -> "OrchestratorSettings":
-        # Pydantic config-consistency validator. Not provider dispatch
-        # (no class instantiation, no behavior branch); the registry
-        # caller still goes through `orchestrators.create(name, ...)`
-        # per Hard Rule #4. We just refuse to boot in a state the
-        # orchestrator constructor would `ValueError` on every request.
-        if self.name == "agent_framework" and not self.agent_id:  # noqa: registry-dispatch -- config validator
-            raise ValueError(
-                "CWYD_ORCHESTRATOR_NAME=agent_framework requires "
-                "AZURE_AI_AGENT_ID to be set (the Foundry agent id, "
-                "created out-of-band in the Foundry portal/SDK)."
-            )
-        return self
 
 
 # ---------------------------------------------------------------------------

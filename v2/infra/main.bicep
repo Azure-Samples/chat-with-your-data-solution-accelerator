@@ -149,8 +149,14 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
-@description('Optional. Foundry-hosted agent id consumed by the Agent Framework orchestrator (e.g. `asst_abc123`). Default empty: the LangGraph orchestrator does not require it, and the runtime validator only fails when ORCHESTRATOR is switched to `agent_framework` without an id (see OrchestratorSettings._require_agent_id_for_agent_framework). Operators pin a specific agent post-deployment via `azd env set AZURE_AI_AGENT_ID asst_xxx` then `azd provision`.')
-param azureAiAgentId string = ''
+// CU-009a (2026-05-05): a previous Bicep param + container-app env
+// binding for the Foundry agent identity were removed. Per ADR 0008
+// (lazy-foundry-agent-bootstrap), agent identity is no longer an
+// operator-supplied env value -- the runtime resolves it lazily on
+// first request and persists the id in the chat-history database
+// (Cosmos in cosmosdb-mode, Postgres in postgresql-mode). Restoring
+// the env path would re-introduce dead-config drift; pin specific
+// agents through the registry-backed agents provider instead.
 
 // ===================== //
 // WAF flags             //
@@ -1170,11 +1176,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
-            // Foundry agent id (Agent Framework orchestrator). Empty
-            // by default; runtime validator on OrchestratorSettings
-            // (CU-001a) only requires non-empty when ORCHESTRATOR is
-            // switched to `agent_framework`.
-            { name: 'AZURE_AI_AGENT_ID', value: azureAiAgentId }
+            // Foundry agent id is intentionally NOT bound here.
+            // CU-009a (2026-05-05) removed the env-var path; the
+            // runtime resolves CWYD + RAI agent ids lazily on first
+            // request and caches them in the chat-history DB (see
+            // ADR 0008 -- lazy-foundry-agent-bootstrap).
             // Model deployment names
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
             { name: 'AZURE_OPENAI_REASONING_DEPLOYMENT', value: reasoningModelName }

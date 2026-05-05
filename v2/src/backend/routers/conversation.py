@@ -138,13 +138,21 @@ async def conversation(
     # AgentsClient against `settings.foundry.project_endpoint` and
     # caches it on the provider; subsequent requests reuse the same
     # HTTP transport for the lifetime of the process.
+    #
+    # CU-009b (2026-05-05) removed `OrchestratorSettings.agent_id` per
+    # ADR 0008. Until CU-010d wires the lazy resolver, the router
+    # forwards an empty `agent_id` literal -- the `agent_framework`
+    # orchestrator's existing config-validation will raise on first
+    # request, exactly the same fail-fast behavior as before. CU-010d
+    # replaces this literal with `await agents.get_or_create_agent(
+    # CWYD_AGENT, settings=settings).id`.
     orchestrator = orchestrators.create(
         settings.orchestrator.name,
         settings=settings,
         llm=llm,
         search=search,
         agents_client=agents.get_client(),
-        agent_id=settings.orchestrator.agent_id,
+        agent_id="",  # TODO(CU-010d): replace with lazy DB-backed resolver
     )
 
     events = run_chat(body.messages, orchestrator=orchestrator)

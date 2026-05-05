@@ -177,13 +177,14 @@ async def test_sse_mode_emits_one_frame_per_event(app_with_fakes) -> None:
 
 async def test_sse_mode_surfaces_orchestrator_exception_as_error_event(app_with_fakes) -> None:
     # Use the boom orchestrator instead of the scripted fake. The ad-hoc
-    # settings type still mirrors `OrchestratorSettings` so the router's
-    # CU-001d kwarg forwarding (`agent_id=settings.orchestrator.agent_id`)
-    # works.
+    # settings type only needs `orchestrator.name` -- after CU-009b the
+    # router forwards `agent_id=""` literally (CU-010d will replace
+    # with a lazy DB-backed resolver), so the fake settings no longer
+    # need to expose an `agent_id` attribute.
     app_with_fakes.dependency_overrides[get_app_settings] = lambda: type(
         "S",
         (),
-        {"orchestrator": type("O", (), {"name": "boom", "agent_id": ""})()},
+        {"orchestrator": type("O", (), {"name": "boom"})()},
     )()
 
     async with _client(app_with_fakes) as client:
@@ -288,23 +289,26 @@ async def test_router_forwards_agents_client_and_agent_id_to_orchestrator(
     app_with_fakes,
 ) -> None:
     """Router must (a) call `agents_provider.get_client()` and pass the
-    returned client as `agents_client=`, and (b) pass
-    `agent_id=settings.orchestrator.agent_id` -- both forwarded
-    *uniformly* into `orchestrators.create(...)` so dispatch stays
-    name-free (Hard Rule #4).
+    returned client as `agents_client=`, and (b) forward an `agent_id`
+    kwarg *uniformly* into `orchestrators.create(...)` so dispatch
+    stays name-free (Hard Rule #4).
+
+    CU-009b (2026-05-05): the kwarg value is now an empty literal
+    until CU-010d wires the lazy DB-backed resolver. The forwarding
+    contract (uniform kwargs to every orchestrator) is unchanged --
+    only the value source moved from settings to the agents provider.
     """
     sentinel_client = object()
     fake_provider = _FakeAgentsProvider(client=sentinel_client)
     app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
 
-    class _SettingsWithAgentId:
+    class _SettingsWithoutAgentId:
         class _O:
             name = "fake"
-            agent_id = "asst_abc123"
 
         orchestrator = _O()
 
-    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _SettingsWithAgentId()
+    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _SettingsWithoutAgentId()
 
     _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
     _FakeOrchestrator.last_kwargs = {}
@@ -317,7 +321,11 @@ async def test_router_forwards_agents_client_and_agent_id_to_orchestrator(
 
     assert resp.status_code == 200
     assert _FakeOrchestrator.last_kwargs.get("agents_client") is sentinel_client
-    assert _FakeOrchestrator.last_kwargs.get("agent_id") == "asst_abc123"
+    # CU-009b: empty-literal pass-through (CU-010d will replace with
+    # lazy resolver). The point of this assertion is the *forwarding*
+    # contract -- the kwarg is always present even when no settings
+    # field exists.
+    assert _FakeOrchestrator.last_kwargs.get("agent_id") == ""
     # The router resolves the client through the provider's lazy seam,
     # not by pulling a private attribute -- preserves the Stable Core
     # invariant that the AgentsClient lifecycle is provider-owned.
@@ -356,7 +364,9 @@ async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
             orchestrator = _O()
 
         _S.orchestrator.name = name  # type: ignore[attr-defined]
-        _S.orchestrator.agent_id = "asst_xyz"  # type: ignore[attr-defined]
+        # CU-009b removed `OrchestratorSettings.agent_id`; the router
+        # forwards an empty literal until CU-010d wires the lazy
+        # resolver. We no longer set agent_id on the fake settings.
         app_with_fakes.dependency_overrides[get_app_settings] = lambda s=_S: s()
 
         _FakeOrchestrator.scripted = [
@@ -374,5 +384,6 @@ async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
         assert resp.json()["content"] == name
         # Same kwargs forwarded regardless of orchestrator key.
         assert _FakeOrchestrator.last_kwargs.get("agents_client") is sentinel_client
-        assert _FakeOrchestrator.last_kwargs.get("agent_id") == "asst_xyz"
+        # CU-009b: empty-literal pass-through (CU-010d wires resolver).
+        assert _FakeOrchestrator.last_kwargs.get("agent_id") == ""
         assert "search" in _FakeOrchestrator.last_kwargs
