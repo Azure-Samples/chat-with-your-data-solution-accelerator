@@ -20,3 +20,4 @@ Architectural decisions for CWYD v2. Each ADR captures a single decision, the co
 | [0005](0005-credential-and-llm-singleton-via-lifespan.md) | Per-app credential + LLM provider singleton via FastAPI lifespan | Accepted | 2 |
 | [0006](0006-health-endpoint-split.md) | Split `/api/health` (always 200) from `/api/health/ready` (503 on fail) | Accepted | 2 |
 | [0007](0007-orchestrator-event-typed-sse-channel.md) | `OrchestratorEvent` typed SSE channel — `reasoning` separate from `answer` | Accepted | 2 |
+| [0008](0008-lazy-foundry-agent-bootstrap.md) | Foundry agents bootstrapped lazily on first request, cached in app DB; supersedes CU-001a/e | Accepted | Cleanup audit batch 2 (Phase 4 prep) |

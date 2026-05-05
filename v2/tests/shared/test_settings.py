@@ -348,7 +348,7 @@ def test_cors_origins_empty_string_yields_empty_list(
 
 
 # ---------------------------------------------------------------------------
-# .env.dev.example consistency (CU-007)
+# .env.sample consistency (CU-007 -> CU-008a relocation)
 # ---------------------------------------------------------------------------
 
 
@@ -404,23 +404,23 @@ _ENV_EXAMPLE_EXEMPTIONS: dict[str, str] = {
 }
 
 
-def test_env_dev_example_keys_round_trip_through_appsettings() -> None:
-    """Every non-comment key in .env.dev.example must be consumed by
+def test_env_sample_keys_round_trip_through_appsettings() -> None:
+    """Every non-comment key in v2/.env.sample must be consumed by
     AppSettings (or be an explicitly documented exemption).
 
     Guards against the v1->v2 alias drift that CU-007 cleaned up. New
-    keys added to the example without a matching AppSettings field will
-    fail this test loudly so the operator's `.env.dev` does not silently
-    do nothing.
+    keys added to the sample without a matching AppSettings field will
+    fail this test loudly so the operator's `v2/.env` does not silently
+    do nothing. Path moved from v2/docker/.env.dev.example to v2/.env.sample
+    in CU-008a (single source of truth at v2/ root).
     """
     from pathlib import Path
 
     example = (
         Path(__file__).resolve().parents[2]
-        / "docker"
-        / ".env.dev.example"
+        / ".env.sample"
     )
-    assert example.exists(), f"missing example file: {example}"
+    assert example.exists(), f"missing sample file: {example}"
 
     declared: set[str] = set()
     for raw_line in example.read_text(encoding="utf-8").splitlines():
@@ -443,7 +443,7 @@ def test_env_dev_example_keys_round_trip_through_appsettings() -> None:
         unknown.add(key)
 
     assert not unknown, (
-        ".env.dev.example contains keys that AppSettings does not consume "
+        "v2/.env.sample contains keys that AppSettings does not consume "
         "and that are not in the documented exemption list: "
         f"{sorted(unknown)}. Either add the field to shared/settings.py "
         "or document the exemption in _ENV_EXAMPLE_EXEMPTIONS with a "

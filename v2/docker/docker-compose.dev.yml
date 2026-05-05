@@ -22,11 +22,13 @@ services:
       dockerfile: v2/docker/Dockerfile.backend
     image: cwyd-v2-backend:dev
     container_name: cwyd-v2-backend
-    # `.env.dev` is operator-supplied (copy from .env.dev.example). Marked
+    # Loads v2/.env (operator-supplied; copy from v2/.env.sample). Marked
     # `required: false` (compose v2.24+) so a clean checkout can boot the
-    # backend-only profile without first creating the file. Debt #Q5.
+    # backend-only profile without first creating the file. Single source
+    # of truth at v2/ root (CU-008a); the previous v2/docker/.env.dev was
+    # deleted. Debt #Q5.
     env_file:
-      - path: .env.dev
+      - path: ../.env
         required: false
     environment:
       AZURE_DB_TYPE: postgresql
@@ -36,7 +38,7 @@ services:
       AZURE_INDEX_STORE: pgvector
       AZURE_STORAGE_BLOB_URL: http://azurite:10000/devstoreaccount1
       AZURE_STORAGE_QUEUE_URL: http://azurite:10001/devstoreaccount1
-      # Telemetry: when APPLICATIONINSIGHTS_CONNECTION_STRING is set in .env.dev,
+      # Telemetry: when AZURE_APP_INSIGHTS_CONNECTION_STRING is set in v2/.env,
       # azure-monitor-opentelemetry exports directly to App Insights (matches v1).
       # AppSettings reads AZURE_LOG_LEVEL (env_prefix=AZURE_); the bare LOG_LEVEL
       # used in v1 is silently ignored.
@@ -80,9 +82,9 @@ services:
       dockerfile: v2/docker/Dockerfile.functions
     image: cwyd-v2-functions:dev
     container_name: cwyd-v2-functions
-    # See backend service note on `required: false` (debt #Q5).
+    # See backend service note on `required: false` + v2/.env path (debt #Q5, CU-008a).
     env_file:
-      - path: .env.dev
+      - path: ../.env
         required: false
     environment:
       AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"

@@ -186,7 +186,7 @@ class NetworkSettings(BaseSettings):
     # CORS origins for the backend FastAPI CORSMiddleware. Read from the
     # bare `BACKEND_CORS_ORIGINS` env var (no `AZURE_` prefix) so it
     # matches the v1 / Bicep convention and what every operator's
-    # `.env.dev` already uses. The validator accepts:
+    # `v2/.env` already uses. The validator accepts:
     #   - a comma-separated string ("http://a, http://b")  -- env-var shape
     #   - a JSON-style list (`["http://a","http://b"]`)     -- compose YAML
     #   - an already-parsed Python list (programmatic tests)
