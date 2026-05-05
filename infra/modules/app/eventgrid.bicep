@@ -54,10 +54,6 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4'
       {
         name: name
         deliveryWithResourceIdentity: {
-          identity: {
-            type: 'UserAssigned'
-            userAssignedIdentity: userAssignedResourceId
-          }
           destination: {
             endpointType: 'StorageQueue'
             properties: {
