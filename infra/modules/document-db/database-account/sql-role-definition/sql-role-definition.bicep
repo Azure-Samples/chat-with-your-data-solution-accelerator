@@ -19,11 +19,11 @@ param assignableScopes string[]?
 @description('Optional. An array of SQL Role Assignments to be created for the SQL Role Definition.')
 param sqlRoleAssignments sqlRoleAssignmentType[]?
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = {
+resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
   name: databaseAccountName
 }
 
-resource sqlRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2024-11-15' = {
+resource sqlRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' = {
   parent: databaseAccount
   name: name ?? guid(databaseAccount.id, databaseAccountName, 'sql-role')
   properties: {

@@ -60,22 +60,22 @@ param networkAcls networkAclsType?
 ])
 param publicNetworkAccess string = ''
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
-import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointSingleServiceType[]?
 
 @description('Optional. Resource tags.')
-param tags resourceInput<'Microsoft.KeyVault/vaults@2024-11-01'>.tags?
+param tags resourceInput<'Microsoft.KeyVault/vaults@2026-02-01'>.tags?
 
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
@@ -165,7 +165,7 @@ var formattedRoleAssignments = [
 // ============ //
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.keyvault-vault.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name, location), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -183,7 +183,7 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' = {
   name: name
   location: location
   tags: tags
@@ -274,7 +274,7 @@ module keyVault_secrets 'secret/secret.bicep' = [
   }
 ]
 
-module keyVault_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.11.0' = [
+module keyVault_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.12.0' = [
   for (privateEndpoint, index) in (privateEndpoints ?? []): {
     name: '${uniqueString(deployment().name, location)}-keyVault-PrivateEndpoint-${index}'
     scope: resourceGroup(

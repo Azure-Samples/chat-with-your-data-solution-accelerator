@@ -36,7 +36,7 @@ param clientAffinityEnabled bool = true
 @description('Optional. The resource ID of the app service environment to use for this resource.')
 param appServiceEnvironmentResourceId string?
 
-import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { managedIdentityAllType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The managed identity definition for this resource.')
 param managedIdentities managedIdentityAllType?
 
@@ -62,7 +62,7 @@ param vnetRouteAllEnabled bool = false
 param scmSiteAlsoStopped bool = false
 
 @description('Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: \'1.2\', ftpsState: \'FtpsOnly\'.')
-param siteConfig resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.siteConfig = {
+param siteConfig object = {
   alwaysOn: true
   minTlsVersion: '1.2'
   ftpsState: 'FtpsOnly'
@@ -72,16 +72,16 @@ param siteConfig resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.site
 param configs appSettingsConfigType[]?
 
 @description('Optional. The Function App configuration object.')
-param functionAppConfig resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.functionAppConfig?
+param functionAppConfig object?
 
-import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
 param privateEndpoints privateEndpointSingleServiceType[]?
 
 @description('Optional. Tags of the resource.')
 param tags object?
 param allTags object = {}
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
@@ -105,7 +105,7 @@ Optional. This composes with ClientCertEnabled setting.
 param clientCertMode string = 'Optional'
 
 @description('Optional. If specified during app creation, the app is cloned from a source app.')
-param cloningInfo resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.cloningInfo?
+param cloningInfo object?
 
 @description('Optional. Size of the function container.')
 param containerSize int?
@@ -117,7 +117,7 @@ param dailyMemoryTimeQuota int?
 param enabled bool = true
 
 @description('Optional. Hostname SSL states are used to manage the SSL bindings for app\'s hostnames.')
-param hostNameSslStates resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.hostNameSslStates?
+param hostNameSslStates array?
 
 @description('Optional. Hyper-V sandbox.')
 param hyperV bool = false
@@ -143,7 +143,7 @@ param publicNetworkAccess string?
 param e2eEncryptionEnabled bool?
 
 @description('Optional. Property to configure various DNS related settings for a site.')
-param dnsConfiguration resourceInput<'Microsoft.Web/sites@2024-04-01'>.properties.dnsConfiguration?
+param dnsConfiguration object?
 
 @description('Optional. Specifies the scope of uniqueness for the default hostname during resource creation.')
 @allowed([
@@ -260,7 +260,7 @@ resource app_diagnosticSettings 'Microsoft.Insights/diagnosticSettings@2021-05-0
   }
 ]
 
-module app_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.11.0' = [
+module app_privateEndpoints 'br/public:avm/res/network/private-endpoint:0.12.0' = [
   for (privateEndpoint, index) in (privateEndpoints ?? []): {
     name: '${uniqueString(deployment().name, location)}-app-PrivateEndpoint-${index}'
     scope: resourceGroup(

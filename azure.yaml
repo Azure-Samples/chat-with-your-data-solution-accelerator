@@ -6,7 +6,6 @@ metadata:
 
 requiredVersions:
   azd: '>= 1.18.0 != 1.23.9'
-  bicep: '>= 0.33.0'
 
 hooks:
   postprovision:

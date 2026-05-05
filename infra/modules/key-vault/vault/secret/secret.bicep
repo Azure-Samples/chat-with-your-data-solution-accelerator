@@ -10,7 +10,7 @@ param keyVaultName string
 param name string
 
 @description('Optional. Resource tags.')
-param tags resourceInput<'Microsoft.KeyVault/vaults/secrets@2024-11-01'>.tags?
+param tags resourceInput<'Microsoft.KeyVault/vaults/secrets@2026-02-01'>.tags?
 
 @description('Optional. Determines whether the object is enabled.')
 param attributesEnabled bool = true
@@ -29,7 +29,7 @@ param contentType string?
 @secure()
 param value string
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.6.1'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
@@ -82,7 +82,7 @@ var formattedRoleAssignments = [
 ]
 
 #disable-next-line no-deployments-resources
-resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableTelemetry) {
+resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableTelemetry) {
   name: '46d3xbcp.res.keyvault-secret.${replace('-..--..-', '.', '-')}.${substring(uniqueString(deployment().name), 0, 4)}'
   properties: {
     mode: 'Incremental'
@@ -100,11 +100,11 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2024-03-01' = if (enableT
   }
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
+resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' existing = {
   name: keyVaultName
 }
 
-resource secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = {
+resource secret 'Microsoft.KeyVault/vaults/secrets@2026-02-01' = {
   name: name
   parent: keyVault
   tags: tags

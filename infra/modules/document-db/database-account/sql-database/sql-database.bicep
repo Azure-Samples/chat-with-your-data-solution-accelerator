@@ -19,11 +19,11 @@ param autoscaleSettingsMaxThroughput int?
 @description('Optional. Tags of the SQL database resource.')
 param tags object?
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = {
+resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
   name: databaseAccountName
 }
 
-resource sqlDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = {
+resource sqlDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2025-10-15' = {
   name: name
   parent: databaseAccount
   tags: tags
