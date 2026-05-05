@@ -67,6 +67,10 @@ dev = [
     "black>=25.12,<26.0",
     "flake8>=7.3,<8.0",
     "trustme>=1.2,<2.0",
+    # Q13 (2026-05-05): CI-enforced static type checking. Pinned to a
+    # known-good minor; bump deliberately so a pyright minor release
+    # cannot silently change the diagnostic surface between PRs.
+    "pyright>=1.1.380,<2.0",
 ]
 
 [tool.uv]
@@ -89,6 +93,36 @@ omit = ["**/tests/*", "**/__init__.py"]
 [tool.coverage.report]
 skip_empty = true
 show_missing = true
+
+# ---------------------------------------------------------------------------
+# Static type checking (Q13, 2026-05-05).
+#
+# Strict mode is scoped to the production packages owned by Stable Core
+# (`src/shared/**`) and the FastAPI backend (`src/backend/**`). Functions
+# (`src/functions/**`) and tests (`tests/**`) stay on basic mode for now
+# -- promoting them is a follow-up CU triggered by the first errors-or-
+# zero pyright run after this turn. Files NOT listed in `include` are
+# excluded entirely; `strict` then promotes the listed globs from basic
+# to strict (full reporting + treat-warnings-as-errors).
+#
+# `reportMissingTypeStubs = "warning"` keeps third-party libraries
+# without bundled stubs (pgvector, asyncpg in some versions, etc.) from
+# turning the whole run red while still surfacing them in the report.
+# ---------------------------------------------------------------------------
+[tool.pyright]
+pythonVersion = "3.13"
+include = ["src/shared", "src/backend"]
+exclude = [
+    "**/__pycache__",
+    "**/.venv",
+    "**/node_modules",
+    "src/shared/**/tests",
+    "src/backend/**/tests",
+]
+strict = ["src/shared/**", "src/backend/**"]
+reportMissingTypeStubs = "warning"
+venvPath = "."
+venv = ".venv"
 
 [build-system]
 requires = ["hatchling"]

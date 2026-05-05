@@ -20,7 +20,13 @@ from azure.ai.projects.aio import AIProjectClient
 from azure.core.credentials_async import AsyncTokenCredential
 
 from shared.settings import AppSettings
-from shared.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent
+from shared.types import (
+    ChatChunk,
+    ChatMessage,
+    EmbeddingResult,
+    OrchestratorChannel,
+    OrchestratorEvent,
+)
 
 from . import registry
 from .base import BaseLLMProvider
@@ -184,14 +190,16 @@ class FoundryIQ(BaseLLMProvider):
                 reasoning = getattr(delta, "reasoning_content", None) or ""
                 if reasoning:
                     yield OrchestratorEvent(
-                        channel="reasoning", content=reasoning
+                        channel=OrchestratorChannel.REASONING, content=reasoning
                     )
                 answer = getattr(delta, "content", None) or ""
                 if answer:
-                    yield OrchestratorEvent(channel="answer", content=answer)
+                    yield OrchestratorEvent(
+                        channel=OrchestratorChannel.ANSWER, content=answer
+                    )
         except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content=str(exc),
                 metadata={"code": "reason_stream_failed"},
             )

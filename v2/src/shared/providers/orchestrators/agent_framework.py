@@ -46,7 +46,7 @@ from azure.ai.agents.models import ListSortOrder, MessageRole
 
 from shared.providers.llm.base import BaseLLMProvider
 from shared.settings import AppSettings
-from shared.types import ChatMessage, OrchestratorEvent
+from shared.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
 from . import registry
 from .base import OrchestratorBase
@@ -105,7 +105,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         )
         if getattr(run, "status", None) == "failed":
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content=f"Agent run failed: {getattr(run, 'last_error', 'unknown')}",
             )
             return
@@ -133,10 +133,12 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             if not content:
                 continue
             seen_assistant = True
-            yield OrchestratorEvent(channel="answer", content=content)
+            yield OrchestratorEvent(
+                channel=OrchestratorChannel.ANSWER, content=content
+            )
         if not seen_assistant:
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content="Agent produced no assistant reply.",
             )
 
@@ -196,7 +198,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             )
             if reasoning:
                 yield OrchestratorEvent(
-                    channel="reasoning", content=str(reasoning)
+                    channel=OrchestratorChannel.REASONING, content=str(reasoning)
                 )
             details_type = getattr(details, "type", None)
             if details_type == "tool_calls":
@@ -214,7 +216,9 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                     if arguments:
                         metadata["arguments"] = arguments
                     yield OrchestratorEvent(
-                        channel="tool", content=str(name), metadata=metadata
+                        channel=OrchestratorChannel.TOOL,
+                        content=str(name),
+                        metadata=metadata,
                     )
 
     @staticmethod

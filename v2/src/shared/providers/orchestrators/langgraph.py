@@ -45,7 +45,7 @@ from shared.tools.citations import (
     filter_to_referenced,
     format_sources_block,
 )
-from shared.types import ChatMessage, OrchestratorEvent
+from shared.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
 from . import registry
 from .base import OrchestratorBase
@@ -142,9 +142,9 @@ class LangGraphOrchestrator(OrchestratorBase):
         answer_parts: list[str] = []
         saw_error = False
         async for event in self._llm.complete(graph_messages):
-            if event.channel == "answer":
+            if event.channel == OrchestratorChannel.ANSWER:
                 answer_parts.append(event.content)
-            elif event.channel == "error":
+            elif event.channel == OrchestratorChannel.ERROR:
                 saw_error = True
                 yield event  # surface upstream LLM errors immediately
             else:
@@ -161,14 +161,14 @@ class LangGraphOrchestrator(OrchestratorBase):
         answer = "".join(answer_parts)
         if not answer:
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content="LangGraph run produced no assistant reply.",
             )
             return
 
         for citation in filter_to_referenced(answer, citations):
             yield OrchestratorEvent(
-                channel="citation",
+                channel=OrchestratorChannel.CITATION,
                 metadata=citation.model_dump(),
             )
-        yield OrchestratorEvent(channel="answer", content=answer)
+        yield OrchestratorEvent(channel=OrchestratorChannel.ANSWER, content=answer)

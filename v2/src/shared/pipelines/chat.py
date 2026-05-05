@@ -53,7 +53,13 @@ from typing import AsyncIterator, Awaitable, Callable, Sequence
 from shared.providers.orchestrators.base import OrchestratorBase
 from shared.tools.content_safety import ContentSafetyGuard
 from shared.tools.post_prompt import PostPromptValidator
-from shared.types import ChatMessage, Citation, OrchestratorEvent, SearchResult
+from shared.types import (
+    ChatMessage,
+    Citation,
+    OrchestratorChannel,
+    OrchestratorEvent,
+    SearchResult,
+)
 
 # Type alias for the RAI screener callable. Returns True when input
 # is safe, False when unsafe. The pipeline never inspects the
@@ -98,7 +104,7 @@ async def run_chat(
         verdict = await content_safety.screen(user_text)
         if verdict.flagged:
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content="Input was blocked by the content safety guard.",
                 metadata={"code": "content_safety", "triggered": verdict.triggered},
             )
@@ -113,7 +119,7 @@ async def run_chat(
         is_safe = await rai_check(user_text)
         if not is_safe:
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content="Input was blocked by the RAI safety classifier.",
                 metadata={"code": "rai_blocked"},
             )
@@ -125,10 +131,10 @@ async def run_chat(
     buffering_answer = post_prompt is not None
 
     async for event in orchestrator.run(messages):
-        if event.channel == "answer" and buffering_answer:
+        if event.channel == OrchestratorChannel.ANSWER and buffering_answer:
             answer_buffer.append(event.content)
             continue
-        if event.channel == "citation":
+        if event.channel == OrchestratorChannel.CITATION:
             cid = event.metadata.get("id")
             if isinstance(cid, str) and cid not in seen_citation_ids:
                 seen_citation_ids.add(cid)
@@ -150,11 +156,11 @@ async def run_chat(
     )
     if not result.grounded:
         yield OrchestratorEvent(
-            channel="reasoning",
+            channel=OrchestratorChannel.REASONING,
             content="Post-prompt groundedness check failed; replacing answer with filter message.",
             metadata={"code": "post_prompt_filtered"},
         )
-    yield OrchestratorEvent(channel="answer", content=result.answer)
+    yield OrchestratorEvent(channel=OrchestratorChannel.ANSWER, content=result.answer)
 
 
 __all__ = ["RaiScreener", "run_chat"]

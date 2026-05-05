@@ -42,7 +42,7 @@ from backend.models.conversation import ConversationRequest, ConversationRespons
 from shared.agents import CWYD_AGENT
 from shared.pipelines.chat import run_chat
 from shared.providers import orchestrators
-from shared.types import Citation, OrchestratorEvent
+from shared.types import Citation, OrchestratorChannel, OrchestratorEvent
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["conversation"])
@@ -80,7 +80,7 @@ async def _sse_stream(
     except Exception as exc:  # noqa: BLE001 -- surfaced to the client channel
         logger.exception("Orchestrator failed during SSE stream.")
         yield _format_sse(
-            OrchestratorEvent(channel="error", content=str(exc))
+            OrchestratorEvent(channel=OrchestratorChannel.ERROR, content=str(exc))
         )
 
 
@@ -95,14 +95,14 @@ async def _collect(
     seen_citation_ids: set[str] = set()
 
     async for event in events:
-        if event.channel == "answer":
+        if event.channel == OrchestratorChannel.ANSWER:
             answer_chunks.append(event.content)
-        elif event.channel == "citation":
+        elif event.channel == OrchestratorChannel.CITATION:
             cid = event.metadata.get("id")
             if isinstance(cid, str) and cid not in seen_citation_ids:
                 citations.append(Citation(**event.metadata))
                 seen_citation_ids.add(cid)
-        elif event.channel == "error":
+        elif event.channel == OrchestratorChannel.ERROR:
             # Bubble orchestrator failures to the caller verbatim; the
             # FastAPI default handler turns this into a 500.
             raise RuntimeError(event.content)

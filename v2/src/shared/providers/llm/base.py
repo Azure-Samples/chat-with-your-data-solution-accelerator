@@ -24,6 +24,7 @@ from shared.types import (
     ChatChunk,
     ChatMessage,
     EmbeddingResult,
+    OrchestratorChannel,
     OrchestratorEvent,
 )
 
@@ -82,9 +83,9 @@ class BaseLLMProvider(ABC):
 
         Yields `OrchestratorEvent`s on two channels:
 
-        - `channel="reasoning"` -- chain-of-thought tokens (rendered in
-          the frontend's collapsible reasoning panel).
-        - `channel="answer"` -- the final answer tokens.
+        - `OrchestratorChannel.REASONING` -- chain-of-thought tokens
+          (rendered in the frontend's collapsible reasoning panel).
+        - `OrchestratorChannel.ANSWER` -- the final answer tokens.
 
         Implementations route to the configured reasoning deployment.
         Wired end-to-end by task #25 in v2/docs/development_plan.md
@@ -134,12 +135,14 @@ class BaseLLMProvider(ABC):
             reply = await self.chat(messages, deployment=deployment)
         except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
             yield OrchestratorEvent(
-                channel="error",
+                channel=OrchestratorChannel.ERROR,
                 content=str(exc),
                 metadata={"code": "complete_chat_failed"},
             )
             return
-        yield OrchestratorEvent(channel="answer", content=reply.content)
+        yield OrchestratorEvent(
+            channel=OrchestratorChannel.ANSWER, content=reply.content
+        )
 
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default implementation is a no-op."""

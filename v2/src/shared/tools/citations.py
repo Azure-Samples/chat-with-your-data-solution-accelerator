@@ -21,7 +21,7 @@ Caller pattern (Phase 3 wiring)::
     block = format_sources_block(sources)              # → str for prompt
     citations = build_citations(sources)               # → list[Citation]
     # orchestrator injects `block` as system context, then for each
-    # citation yields OrchestratorEvent(channel="citation",
+    # citation yields OrchestratorEvent(channel=OrchestratorChannel.CITATION,
     # metadata=c.model_dump()).
 """
 

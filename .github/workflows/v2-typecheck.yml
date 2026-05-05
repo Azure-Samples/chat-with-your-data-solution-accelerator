@@ -1,0 +1,75 @@
+name: v2 typecheck (pyright)
+
+# Q13 (2026-05-05): CI-enforced static type checking for v2.
+#
+# Runs `uv run pyright` against `src/shared/**` + `src/backend/**`
+# (strict mode, configured in `v2/pyproject.toml [tool.pyright]`).
+#
+# Currently REPORT-ONLY: the pyright step is marked `continue-on-error:
+# true` because the baseline at Q13 wiring time was 156 pre-existing
+# errors concentrated in dynamic-SDK callsites (foundry_iq.py,
+# postgres.py, cosmosdb.py). Q14 (logged in development_plan.md §0.1)
+# will drive the count to zero and remove the `continue-on-error`
+# escape hatch -- DO NOT remove it before then or the gate becomes a
+# permanent red merge-blocker on every PR. The error count is uploaded
+# as a build artifact so reviewers can see it on every run.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "v2/src/**/*.py"
+      - "v2/pyproject.toml"
+      - "v2/uv.lock"
+      - ".github/workflows/v2-typecheck.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "v2/src/**/*.py"
+      - "v2/pyproject.toml"
+      - "v2/uv.lock"
+      - ".github/workflows/v2-typecheck.yml"
+  workflow_dispatch:
+
+jobs:
+  pyright:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up uv (pins Python via pyproject)
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "v2/uv.lock"
+
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Run pyright (report-only until Q14 closes)
+        id: pyright
+        continue-on-error: true
+        run: |
+          set +e
+          uv run pyright --outputjson > pyright-report.json
+          echo "exitcode=$?" >> "$GITHUB_OUTPUT"
+          # Pretty-print summary for the run log.
+          uv run python -c "import json,sys; r=json.load(open('pyright-report.json')); s=r['summary']; print(f\"errors={s['errorCount']} warnings={s['warningCount']} informations={s['informationCount']} files={s['filesAnalyzed']}\")"
+
+      - name: Upload pyright report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pyright-report
+          path: v2/pyright-report.json
+
+      - name: Note any regression vs baseline
+        if: steps.pyright.outputs.exitcode != '0'
+        run: |
+          echo "::warning ::pyright reported errors. Baseline at Q13 wiring (2026-05-05) was 156. Once Q14 closes, this workflow's continue-on-error flag is removed and pyright becomes a hard gate."

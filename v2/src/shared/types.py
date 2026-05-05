@@ -8,20 +8,40 @@ domain objects) -- not behavior. Provider classes live under
 `providers/`. Cross-cutting helpers live under `shared/tools/`.
 """
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 Role = Literal["system", "user", "assistant", "tool"]
 
-# Channels exposed by orchestrators on the SSE reasoning feed (see
-# v2-workflow.instructions.md). Defined here -- not in
-# providers/orchestrators/ -- so providers like FoundryIQ.reason()
-# can yield events without reaching across packages. Phase 5 brings
-# the orchestrator base class itself.
-OrchestratorChannel = Literal[
-    "reasoning", "tool", "answer", "citation", "error"
-]
+
+class OrchestratorChannel(StrEnum):
+    """SSE channels exposed by orchestrators on the reasoning feed.
+
+    Defined as a `StrEnum` (Python 3.11+) per Hard Rule #11: any
+    closed-set string discriminator must be an enum so the wire
+    contract is centrally enumerable. Subclassing `str` keeps every
+    existing producer that passes a bare string to
+    `OrchestratorEvent(channel="answer", ...)` working unchanged --
+    Pydantic coerces the string to the matching enum member, and
+    `event.channel == "answer"` keeps holding because `StrEnum`
+    members are strings. New producer code MUST use the enum members
+    (`OrchestratorChannel.ANSWER` etc.) so the closed set stays
+    grep-able. Frontend renders `REASONING` events in a collapsible
+    panel and `ANSWER` events as the final response (per
+    v2-workflow.instructions.md).
+
+    Defined here -- not in `providers/orchestrators/` -- so providers
+    like `FoundryIQ.reason()` can yield events without reaching across
+    packages.
+    """
+
+    REASONING = "reasoning"
+    TOOL = "tool"
+    ANSWER = "answer"
+    CITATION = "citation"
+    ERROR = "error"
 
 
 class ChatMessage(BaseModel):
