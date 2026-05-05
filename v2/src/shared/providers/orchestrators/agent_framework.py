@@ -14,12 +14,29 @@ with a fake client.
 
     1. create a thread seeded with the inbound messages
     2. process a run against the configured agent
-    3. read back the assistant message(s) added to the thread
-    4. yield a single `answer` event per assistant message (ADR 0007)
+    3. walk the run's ``run_steps`` and emit ``tool`` /
+       ``reasoning`` events for any tool invocations or model
+       reasoning traces produced during the run (CU-004c)
+    4. read back the assistant message(s) added to the thread
+    5. yield a single ``answer`` event per assistant message
+       (ADR 0007)
 
-The `llm` dependency is unused today -- the Agent owns its own model
-deployment in Foundry. We still take it via the ABC contract so
+The ``llm`` dependency is unused today -- the Agent owns its own
+model deployment in Foundry. We still take it via the ABC contract so
 swapping orchestrators is configuration-only.
+
+Reasoning + tool visibility (CU-004c, 2026-05-05): unlike the
+LangGraph orchestrator (CU-004b), the agent owns its own model and
+its own tool-routing loop, so we can't call
+``BaseLLMProvider.complete()`` and inherit reasoning streaming. The
+equivalent visibility comes from ``run_steps.list(thread_id, run_id)``
+after the run finishes: each ``RunStep`` carries a ``step_details``
+union -- ``tool_calls`` steps surface the tools the agent invoked
+(emitted on the ``tool`` channel as the agent equivalent of
+LangGraph's reasoning panel), ``message_creation`` steps are skipped
+(``messages.list`` already covers them), and any ``reasoning_content``
+field on the step details is emitted on the ``reasoning`` channel for
+o-series-backed agents.
 """
 
 from typing import Any, AsyncIterator, Sequence
@@ -92,6 +109,14 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 content=f"Agent run failed: {getattr(run, 'last_error', 'unknown')}",
             )
             return
+        # CU-004c: surface reasoning + tool visibility from the run's
+        # steps before the final answer events. Yielded in chronological
+        # order (matches the SSE consumer's expectation of "reasoning
+        # then answer").
+        async for step_event in self._emit_run_step_events(
+            thread_id=thread.id, run_id=run.id
+        ):
+            yield step_event
         # Filter by `run_id` so we only surface messages produced by
         # *this* run, not any prior assistant turns that may exist on
         # a reused thread. Defensive: today the wiring uses a fresh
@@ -125,6 +150,95 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    async def _emit_run_step_events(
+        self, *, thread_id: str, run_id: str
+    ) -> AsyncIterator[OrchestratorEvent]:
+        """Walk a run's steps and emit reasoning / tool events.
+
+        Iterates ``run_steps.list(thread_id, run_id, ASCENDING)`` and
+        translates each ``RunStep`` into ``OrchestratorEvent``s on the
+        locked channel set:
+
+        * ``step.step_details.type == "tool_calls"`` -> one ``tool``
+          event per tool call (the agent equivalent of LangGraph's
+          ``reasoning`` panel: shows what the agent decided to do).
+          Content is the tool name; ``metadata`` carries the tool
+          ``id``, ``type`` and a serialized ``arguments`` snippet.
+        * ``step.step_details.type == "message_creation"`` -> skipped
+          (the assistant message is surfaced by the subsequent
+          ``messages.list`` walk as an ``answer`` event).
+        * Any ``reasoning_content`` string surfaced by the SDK on the
+          step or its details is emitted on the ``reasoning`` channel
+          (o-series-backed agents).
+
+        Defensive about SDK shape: every attribute access goes through
+        ``getattr(..., default)`` because the Agents SDK occasionally
+        renames union discriminators between minor versions and we
+        don't want a missing field to crash a successful run -- worst
+        case we emit fewer events than ideal, never more.
+        """
+        run_steps = getattr(self._agents, "run_steps", None)
+        if run_steps is None:
+            return  # SDK older than the run_steps surface; skip silently.
+        async for step in run_steps.list(
+            thread_id=thread_id,
+            run_id=run_id,
+            order=ListSortOrder.ASCENDING,
+        ):
+            details = getattr(step, "step_details", None)
+            if details is None:
+                continue
+            # Reasoning trace (o-series-backed agents). Surface first so
+            # the FE panel updates before any tool-call traces.
+            reasoning = getattr(details, "reasoning_content", None) or getattr(
+                step, "reasoning_content", None
+            )
+            if reasoning:
+                yield OrchestratorEvent(
+                    channel="reasoning", content=str(reasoning)
+                )
+            details_type = getattr(details, "type", None)
+            if details_type == "tool_calls":
+                for call in getattr(details, "tool_calls", None) or []:
+                    name = (
+                        getattr(call, "type", None)
+                        or getattr(call, "name", None)
+                        or "tool"
+                    )
+                    metadata: dict[str, Any] = {
+                        "id": getattr(call, "id", ""),
+                        "type": getattr(call, "type", ""),
+                    }
+                    arguments = self._extract_tool_arguments(call)
+                    if arguments:
+                        metadata["arguments"] = arguments
+                    yield OrchestratorEvent(
+                        channel="tool", content=str(name), metadata=metadata
+                    )
+
+    @staticmethod
+    def _extract_tool_arguments(tool_call: Any) -> str:
+        """Pull a printable arguments string out of a tool-call union.
+
+        The SDK's tool-call detail shape varies by tool kind
+        (``function`` carries ``function.arguments``; built-in tools
+        like ``code_interpreter`` / ``file_search`` carry their own
+        sub-objects). We only need a short trace here, so we try the
+        common ``function.arguments`` path and fall back to ``str()``
+        of any nested detail object so the trace is non-empty for
+        every tool kind.
+        """
+        function = getattr(tool_call, "function", None)
+        if function is not None:
+            args = getattr(function, "arguments", None)
+            if args:
+                return str(args)
+        for attr in ("code_interpreter", "file_search", "bing_grounding"):
+            sub = getattr(tool_call, attr, None)
+            if sub is not None:
+                return str(sub)
+        return ""
 
     @staticmethod
     def _to_agent_role(role: str) -> MessageRole | None:

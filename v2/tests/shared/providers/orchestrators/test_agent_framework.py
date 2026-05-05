@@ -49,6 +49,7 @@ def _make_agents_client(
     run_status: str = "completed",
     run_last_error: str = "",
     run_id: str = "run-1",
+    run_steps: list[Any] | None = None,
 ) -> MagicMock:
     client = MagicMock()
     thread = SimpleNamespace(id="thread-1")
@@ -61,6 +62,12 @@ def _make_agents_client(
     )
     client.messages.list = MagicMock(
         return_value=_FakeAsyncIter(list_messages or [])
+    )
+    # CU-004c: every successful run walks `run_steps.list(...)` to
+    # surface tool / reasoning visibility. Default to an empty iterator
+    # so existing tests (written before CU-004c) stay green.
+    client.run_steps.list = MagicMock(
+        return_value=_FakeAsyncIter(run_steps or [])
     )
     return client
 
@@ -222,3 +229,173 @@ async def test_aclose_does_not_close_injected_client() -> None:
     orch = _make_orchestrator(agents_client=client)
     await orch.aclose()
     client.close.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# CU-004c: run_steps -> reasoning + tool events
+# ---------------------------------------------------------------------------
+
+
+def _function_tool_call(
+    *, call_id: str, name: str, arguments: str
+) -> SimpleNamespace:
+    """Build a `RunStepFunctionToolCall`-shaped SimpleNamespace."""
+    return SimpleNamespace(
+        id=call_id,
+        type="function",
+        function=SimpleNamespace(name=name, arguments=arguments),
+    )
+
+
+def _tool_calls_step(*, calls: list[Any]) -> SimpleNamespace:
+    return SimpleNamespace(
+        step_details=SimpleNamespace(type="tool_calls", tool_calls=calls)
+    )
+
+
+def _message_creation_step(*, message_id: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        step_details=SimpleNamespace(
+            type="message_creation",
+            message_creation=SimpleNamespace(message_id=message_id),
+        )
+    )
+
+
+def _reasoning_step(text: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        step_details=SimpleNamespace(
+            type="message_creation", reasoning_content=text
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_emits_tool_events_for_tool_calls_steps() -> None:
+    """Each tool call in a `tool_calls` step yields one `tool` event."""
+    client = _make_agents_client(
+        list_messages=[_thread_msg("assistant", "done")],
+        run_steps=[
+            _tool_calls_step(
+                calls=[
+                    _function_tool_call(
+                        call_id="call_1",
+                        name="search_documents",
+                        arguments='{"q":"foundry"}',
+                    ),
+                    _function_tool_call(
+                        call_id="call_2",
+                        name="fetch_url",
+                        arguments='{"url":"https://x"}',
+                    ),
+                ]
+            ),
+        ],
+    )
+    orch = _make_orchestrator(agents_client=client)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    channels = [(e.channel, e.content) for e in events]
+    assert channels == [
+        ("tool", "function"),
+        ("tool", "function"),
+        ("answer", "done"),
+    ]
+    # Metadata carries id + arguments for the FE to render.
+    assert events[0].metadata == {
+        "id": "call_1",
+        "type": "function",
+        "arguments": '{"q":"foundry"}',
+    }
+    assert events[1].metadata["id"] == "call_2"
+    # The run_steps walk was scoped to the current run id.
+    list_kwargs = client.run_steps.list.call_args.kwargs
+    assert list_kwargs["thread_id"] == "thread-1"
+    assert list_kwargs["run_id"] == "run-1"
+
+
+@pytest.mark.asyncio
+async def test_run_skips_message_creation_steps() -> None:
+    """`message_creation` steps must NOT yield events -- the assistant
+    message is surfaced as an `answer` by the subsequent messages.list
+    walk; emitting a duplicate would double-bill the FE."""
+    client = _make_agents_client(
+        list_messages=[_thread_msg("assistant", "the answer")],
+        run_steps=[_message_creation_step(message_id="msg-1")],
+    )
+    orch = _make_orchestrator(agents_client=client)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "the answer")]
+
+
+@pytest.mark.asyncio
+async def test_run_emits_reasoning_events_before_answer() -> None:
+    """Reasoning content on a step is emitted on the `reasoning`
+    channel BEFORE the trailing answer events (FE ordering)."""
+    client = _make_agents_client(
+        list_messages=[_thread_msg("assistant", "Final answer.")],
+        run_steps=[_reasoning_step("step 1: looked up docs")],
+    )
+    orch = _make_orchestrator(agents_client=client)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [
+        ("reasoning", "step 1: looked up docs"),
+        ("answer", "Final answer."),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_handles_sdk_without_run_steps_attribute() -> None:
+    """Older SDK versions may not expose `agents.run_steps`; we must
+    silently skip the step walk and still produce the answer event."""
+    client = _make_agents_client(
+        list_messages=[_thread_msg("assistant", "ok")]
+    )
+    # Strip the surface entirely (older SDK).
+    del client.run_steps
+    orch = _make_orchestrator(agents_client=client)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "ok")]
+
+
+@pytest.mark.asyncio
+async def test_run_steps_walk_skipped_when_run_failed() -> None:
+    """A failed run short-circuits before reaching the run_steps walk
+    (no point surfacing partial reasoning when the user already saw an
+    error event)."""
+    client = _make_agents_client(
+        run_status="failed",
+        run_last_error="quota exceeded",
+        run_steps=[
+            _tool_calls_step(
+                calls=[
+                    _function_tool_call(
+                        call_id="call_x", name="any", arguments="{}"
+                    )
+                ]
+            )
+        ],
+    )
+    orch = _make_orchestrator(agents_client=client)
+
+    events = [
+        e async for e in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [e.channel for e in events] == ["error"]
+    client.run_steps.list.assert_not_called()
