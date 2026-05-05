@@ -19,16 +19,13 @@ param assignableScopes string[]?
 @description('Optional. An array of SQL Role Assignments to be created for the SQL Role Definition.')
 param sqlRoleAssignments sqlRoleAssignmentType[]?
 
-resource databaseAccount 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = {
-  name: databaseAccountName
-}
+var databaseAccountResourceId = resourceId('Microsoft.DocumentDB/databaseAccounts', databaseAccountName)
 
 resource sqlRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' = {
-  parent: databaseAccount
-  name: name ?? guid(databaseAccount.id, databaseAccountName, 'sql-role')
+  name: '${databaseAccountName}/${name ?? guid(databaseAccountResourceId, databaseAccountName, 'sql-role')}'
   properties: {
     assignableScopes: assignableScopes ?? [
-      databaseAccount.id
+      databaseAccountResourceId
     ]
     permissions: [
       {
@@ -44,7 +41,7 @@ module databaseAccount_sqlRoleAssignments '../sql-role-assignment/sql-role-assig
   for (sqlRoleAssignment, index) in (sqlRoleAssignments ?? []): {
     name: '${uniqueString(deployment().name)}-sqlra-${index}'
     params: {
-      databaseAccountName: databaseAccount.name
+      databaseAccountName: databaseAccountName
       roleDefinitionId: sqlRoleDefinition.id
       principalId: sqlRoleAssignment.principalId
       name: sqlRoleAssignment.?name

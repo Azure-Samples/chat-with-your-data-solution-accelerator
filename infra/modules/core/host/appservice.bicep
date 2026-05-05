@@ -28,6 +28,9 @@ param serverFarmResourceId string
 param managedEnvironmentId string?
 
 @description('Optional. Configures a site to accept only HTTPS requests. Issues redirect for HTTP requests.')
+@allowed([
+  true
+])
 param httpsOnly bool = true
 
 @description('Optional. If client affinity is enabled.')
@@ -63,10 +66,10 @@ param vnetRouteAllEnabled bool = false
 @description('Optional. Stop SCM (KUDU) site when the app is stopped.')
 param scmSiteAlsoStopped bool = false
 
-@description('Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: \'1.2\', ftpsState: \'FtpsOnly\'.')
+@description('Optional. The site config object. The defaults are set to the following values: alwaysOn: true, minTlsVersion: \'1.3\', ftpsState: \'FtpsOnly\'.')
 param siteConfig object = {
   alwaysOn: true
-  minTlsVersion: '1.2'
+  minTlsVersion: '1.3'
   ftpsState: 'FtpsOnly'
 }
 
@@ -171,6 +174,12 @@ var identity = !empty(managedIdentities)
     }
   : null
 
+// Enforce security-critical web settings regardless of caller-provided siteConfig.
+var enforcedSiteConfig = union(siteConfig, {
+  ftpsState: 'FtpsOnly'
+  minTlsVersion: '1.3'
+})
+
 resource app 'Microsoft.Web/sites@2024-04-01' = {
   name: name
   location: location
@@ -190,7 +199,7 @@ resource app 'Microsoft.Web/sites@2024-04-01' = {
     storageAccountRequired: storageAccountRequired
     keyVaultReferenceIdentity: keyVaultAccessIdentityResourceId
     virtualNetworkSubnetId: virtualNetworkSubnetId
-    siteConfig: siteConfig
+    siteConfig: enforcedSiteConfig
     functionAppConfig: functionAppConfig
     clientCertEnabled: clientCertEnabled
     clientCertExclusionPaths: clientCertExclusionPaths

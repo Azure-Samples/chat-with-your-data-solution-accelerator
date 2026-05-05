@@ -35,21 +35,12 @@ param value string?
 @description('Required. The properties of the connection, specific to the auth type.')
 param connectionProperties connectionPropertyType
 
-// ============================= //
-// Existing resources references //
-// ============================= //
-
-resource machineLearningWorkspace 'Microsoft.MachineLearningServices/workspaces@2025-12-01' existing = {
-  name: machineLearningWorkspaceName
-}
-
 // ============== //
 // Resources      //
 // ============== //
 
 resource connection 'Microsoft.MachineLearningServices/workspaces/connections@2025-12-01' = {
-  name: name
-  parent: machineLearningWorkspace
+  name: '${machineLearningWorkspaceName}/${name}'
   properties: union(
     {
       category: category

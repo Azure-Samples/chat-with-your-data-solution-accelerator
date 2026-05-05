@@ -83,7 +83,7 @@ var siteConfig = {
   cors: {
     allowedOrigins: allowedOrigins
   }
-  minTlsVersion: '1.2'
+  minTlsVersion: '1.3'
 }
 
 // Build the configs array expected by the child module (appsettings config)

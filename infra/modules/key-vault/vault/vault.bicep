@@ -29,9 +29,6 @@ param enableSoftDelete bool = true
 @description('Optional. softDelete data retention days. It accepts >=7 and <=90.')
 param softDeleteRetentionInDays int = 90
 
-@description('Optional. Property that controls how data actions are authorized. When true, the key vault will use Role Based Access Control (RBAC) for authorization of data actions, and the access policies specified in vault properties will be ignored. When false, the key vault will use the access policies specified in vault properties, and any policy stored on Azure Resource Manager will be ignored. Note that management actions are always authorized with RBAC.')
-param enableRbacAuthorization bool = true
-
 @description('Optional. The vault\'s create mode to indicate whether the vault need to be recovered or not.')
 @allowed([
   'default'
@@ -186,14 +183,14 @@ resource avmTelemetry 'Microsoft.Resources/deployments@2025-04-01' = if (enableT
 resource keyVault 'Microsoft.KeyVault/vaults@2026-02-01' = {
   name: name
   location: location
-  tags: tags
+  tags: tags ?? {}
   properties: {
     enabledForDeployment: enableVaultForDeployment
     enabledForTemplateDeployment: enableVaultForTemplateDeployment
     enabledForDiskEncryption: enableVaultForDiskEncryption
     enableSoftDelete: enableSoftDelete
     softDeleteRetentionInDays: softDeleteRetentionInDays
-    enableRbacAuthorization: enableRbacAuthorization
+    enableRbacAuthorization: true
     createMode: createMode
     enablePurgeProtection: enablePurgeProtection ? enablePurgeProtection : null
     tenantId: subscription().tenantId
