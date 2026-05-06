@@ -91,6 +91,43 @@ def test_cosmosdb_registers_under_expected_key() -> None:
 
 
 # ---------------------------------------------------------------------------
+# CosmosItemType discriminator (#35c-1 adds CONFIG; AGENT shipped in CU-010b)
+# ---------------------------------------------------------------------------
+
+
+def test_cosmos_item_type_membership_is_frozen() -> None:
+    """The `type=` discriminator is part of the wire contract --
+    every persisted item has one, and every read-back path filters
+    on it. A new value is a deliberate cross-cutting decision (new
+    persistence model in the shared chat-history container), so
+    membership is locked here. #35c-1 adds `CONFIG` for the
+    runtime-config row added in this turn; CU-010b1 added `AGENT`
+    for the agent-id registry."""
+    from shared.providers.databases.cosmosdb import CosmosItemType
+
+    assert {member.value for member in CosmosItemType} == {
+        "conversation",
+        "message",
+        "agent",
+        "config",
+    }
+
+
+def test_cosmos_item_type_config_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    the wire serialization stays exactly `"config"` -- existing
+    code that reads `body["type"] == "config"` keeps working
+    without coupling to the enum import (mirrors the
+    `CosmosItemType.AGENT` precedent locked in
+    `test_upsert_agent_id_writes_canonical_shape`)."""
+    from shared.providers.databases.cosmosdb import CosmosItemType
+
+    assert CosmosItemType.CONFIG == "config"
+    assert CosmosItemType.CONFIG.value == "config"
+    assert str(CosmosItemType.CONFIG) == "config"
+
+
+# ---------------------------------------------------------------------------
 # Conversations
 # ---------------------------------------------------------------------------
 

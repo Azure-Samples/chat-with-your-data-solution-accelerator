@@ -56,21 +56,23 @@ class CosmosItemType(StrEnum):
     §Constants: closed-set string literals must be `StrEnum`, not
     bare `_FOO = "foo"` module constants. `StrEnum` subclasses
     `str`, so the wire shape stays exactly `"conversation"` /
-    `"message"` / `"agent"` -- existing tests asserting on raw
-    strings continue to pass without modification.
+    `"message"` / `"agent"` / `"config"` -- existing tests asserting
+    on raw strings continue to pass without modification.
 
-    Agent rows (CU-010b) live in the same container as conversations
-    + messages, differentiated by `type="agent"`. They are not
-    user-scoped, so they pin to a synthetic `_system` partition
-    key. Cardinality is bounded by `BUILTIN_AGENTS` (~2 rows today)
-    so the usual "avoid low-cardinality partitions" guidance does
-    not apply -- there is no hot-partition risk on a read-mostly
-    two-row partition.
+    Agent rows (CU-010b) and runtime-config rows (#35c-1) live in
+    the same container as conversations + messages, differentiated
+    by their `type=` value. Neither is user-scoped, so both pin to
+    the synthetic `_system` partition key. Cardinality is bounded
+    by `BUILTIN_AGENTS` (~2 rows today) plus a single runtime-config
+    row, so the usual "avoid low-cardinality partitions" guidance
+    does not apply -- there is no hot-partition risk on a
+    read-mostly handful-of-rows partition.
     """
 
     CONVERSATION = "conversation"
     MESSAGE = "message"
     AGENT = "agent"
+    CONFIG = "config"
 
 
 # Single-value sentinel for the agent-registry partition. Exempt from
