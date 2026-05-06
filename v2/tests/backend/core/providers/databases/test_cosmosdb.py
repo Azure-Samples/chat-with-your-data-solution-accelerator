@@ -305,6 +305,41 @@ async def test_delete_conversation_is_idempotent_on_missing_parent() -> None:
     await client.delete_conversation("missing", "u1")
 
 
+@pytest.mark.asyncio
+async def test_delete_conversation_logs_when_message_already_gone(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Per v2/docs/exception_handling_policy.md, the inner per-message
+    `CosmosResourceNotFoundError` catch must log via `logger.debug`
+    (not silently `pass`) so the idempotent skip is visible.
+
+    Drives the path where the message-list query returns rows but
+    `delete_item` raises NotFound for one of them (e.g., another
+    caller already cleaned it up). The outer `delete_item` for the
+    conversation parent succeeds.
+    """
+    client, container = _make_client(container_items=[{"id": "m1"}])
+    # First call (message m1) raises NotFound; second call (conversation
+    # parent) succeeds with a normal return.
+    container.delete_item = AsyncMock(
+        side_effect=[
+            CosmosResourceNotFoundError(message="message m1 gone"),
+            None,
+        ]
+    )
+    with caplog.at_level("DEBUG", logger="backend.core.providers.databases.cosmosdb"):
+        await client.delete_conversation("c1", "u1")
+
+    # Both deletes were attempted (the NotFound did not abort the loop).
+    assert container.delete_item.await_count == 2
+    # The idempotent skip was logged with both ids in the message.
+    assert any(
+        "message m1 already gone" in rec.getMessage()
+        and "conversation c1 purge" in rec.getMessage()
+        for rec in caplog.records
+    ), f"expected idempotent-skip debug log, got: {[r.getMessage() for r in caplog.records]}"
+
+
 # ---------------------------------------------------------------------------
 # Messages
 # ---------------------------------------------------------------------------

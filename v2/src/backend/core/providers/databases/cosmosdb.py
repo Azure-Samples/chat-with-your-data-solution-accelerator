@@ -31,6 +31,7 @@ Lifecycle: the underlying `CosmosClient` owns an HTTP session.
 (`sdk-singleton-client`).
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from enum import StrEnum
@@ -45,6 +46,8 @@ from backend.core.types import ChatMessage, Conversation, MessageRecord, Runtime
 
 from . import registry
 from .base import BaseDatabaseClient
+
+logger = logging.getLogger(__name__)
 
 
 class CosmosItemType(StrEnum):
@@ -286,12 +289,28 @@ class CosmosDBClient(BaseDatabaseClient):
                     item=str(row["id"]), partition_key=user_id
                 )
             except CosmosResourceNotFoundError:
-                pass
+                # Idempotent: another caller (or a prior failed sweep) may
+                # have already removed this message. Per
+                # v2/docs/exception_handling_policy.md, log + continue
+                # instead of swallowing silently.
+                logger.debug(
+                    "cosmos delete_item: message %s already gone "
+                    "(idempotent skip during conversation %s purge)",
+                    row["id"],
+                    conversation_id,
+                )
         try:
             await container.delete_item(
                 item=conversation_id, partition_key=user_id
             )
         except CosmosResourceNotFoundError:
+            # Parent already gone -- delete is idempotent at the
+            # conversation level too. Log so the no-op is visible.
+            logger.debug(
+                "cosmos delete_item: conversation %s already gone "
+                "(idempotent skip)",
+                conversation_id,
+            )
             return None
 
     # ------------------------------------------------------------------
