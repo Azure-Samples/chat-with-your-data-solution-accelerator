@@ -530,7 +530,7 @@ async def test_patch_config_persists_single_field_override(
     `RuntimeConfig`, and (b) return 200 with the merged config in the
     response body. Locks the storage call -- without it, the override
     would be ack'd to the operator but lost on container restart."""
-    from shared.types import RuntimeConfig
+    from backend.core.types import RuntimeConfig
 
     db = _fake_db(current=None)
     app = admin_app_factory(_settings(), db=db)
@@ -595,7 +595,7 @@ async def test_patch_config_explicit_null_clears_override(
     of `app.state.settings` will then fall through to the env default
     for that field. This is the operator UX for 'undo my override'
     without restarting the container or deleting the row."""
-    from shared.types import RuntimeConfig
+    from backend.core.types import RuntimeConfig
 
     db = _fake_db(current=RuntimeConfig(openai_temperature=0.5))
     app = admin_app_factory(_settings(), db=db)
@@ -620,7 +620,7 @@ async def test_patch_config_sparse_update_preserves_other_overrides(
     flipping `openai_temperature` would silently wipe their previous
     `openai_max_tokens` override (because the persisted shape is the
     full RuntimeConfig, not a per-field key)."""
-    from shared.types import RuntimeConfig
+    from backend.core.types import RuntimeConfig
 
     db = _fake_db(
         current=RuntimeConfig(
@@ -674,7 +674,7 @@ async def test_patch_config_response_body_matches_persisted_runtime_config(
     follow-up GET. Asserts shape symmetry: every key on the persisted
     RuntimeConfig appears in the response, nothing extra (no leaked
     settings, no internal fields)."""
-    from shared.types import RuntimeConfig
+    from backend.core.types import RuntimeConfig
 
     db = _fake_db()
     app = admin_app_factory(_settings(), db=db)

@@ -38,7 +38,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, ValidationError
 
 from backend.dependencies import DatabaseClientDep, SettingsDep
-from shared.types import RuntimeConfig
+from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])

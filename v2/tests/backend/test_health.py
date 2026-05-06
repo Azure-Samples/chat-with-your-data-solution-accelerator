@@ -15,9 +15,9 @@ from backend.dependencies import (
     get_credential_provider,
     get_llm_provider,
 )
-from shared.providers.credentials.base import BaseCredentialProvider
-from shared.providers.llm.base import BaseLLMProvider
-from shared.settings import AppSettings, get_settings
+from backend.core.providers.credentials.base import BaseCredentialProvider
+from backend.core.providers.llm.base import BaseLLMProvider
+from backend.core.settings import AppSettings, get_settings
 
 
 COSMOS_ENV: dict[str, str] = {

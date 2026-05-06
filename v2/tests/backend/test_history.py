@@ -9,7 +9,7 @@ import pytest
 from backend.app import create_app
 from backend.dependencies import get_app_settings, get_database_client
 from backend.routers.history import get_user_id
-from shared.types import ChatMessage, Conversation, MessageRecord
+from backend.core.types import ChatMessage, Conversation, MessageRecord
 
 
 # ---------------------------------------------------------------------------

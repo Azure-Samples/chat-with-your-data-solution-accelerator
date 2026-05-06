@@ -24,8 +24,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.routers import conversation, health, history
-from shared.providers import agents, credentials, databases, llm, search
-from shared.settings import NetworkSettings, get_settings
+from backend.core.providers import agents, credentials, databases, llm, search
+from backend.core.settings import NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
 

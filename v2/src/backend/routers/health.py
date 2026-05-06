@@ -25,7 +25,7 @@ from fastapi import APIRouter, Response, status
 
 from backend.dependencies import SettingsDep
 from backend.models.health import DependencyCheck, HealthResponse, OverallStatus
-from shared.settings import AppSettings
+from backend.core.settings import AppSettings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["health"])

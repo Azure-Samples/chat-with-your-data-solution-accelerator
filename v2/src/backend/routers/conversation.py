@@ -39,10 +39,10 @@ from backend.dependencies import (
     SettingsDep,
 )
 from backend.models.conversation import ConversationRequest, ConversationResponse
-from shared.agents import CWYD_AGENT
-from shared.pipelines.chat import run_chat
-from shared.providers import orchestrators
-from shared.types import Citation, OrchestratorChannel, OrchestratorEvent
+from backend.core.agents import CWYD_AGENT
+from backend.core.pipelines.chat import run_chat
+from backend.core.providers import orchestrators
+from backend.core.types import Citation, OrchestratorChannel, OrchestratorEvent
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["conversation"])

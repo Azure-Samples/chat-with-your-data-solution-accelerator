@@ -19,12 +19,12 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
-from shared.providers.agents.base import BaseAgentsProvider
-from shared.providers.credentials.base import BaseCredentialProvider
-from shared.providers.databases.base import BaseDatabaseClient
-from shared.providers.llm.base import BaseLLMProvider
-from shared.providers.search.base import BaseSearch
-from shared.settings import AppSettings, get_settings
+from backend.core.providers.agents.base import BaseAgentsProvider
+from backend.core.providers.credentials.base import BaseCredentialProvider
+from backend.core.providers.databases.base import BaseDatabaseClient
+from backend.core.providers.llm.base import BaseLLMProvider
+from backend.core.providers.search.base import BaseSearch
+from backend.core.settings import AppSettings, get_settings
 
 
 def get_app_settings() -> AppSettings:

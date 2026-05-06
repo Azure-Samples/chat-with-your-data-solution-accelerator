@@ -1,0 +1,608 @@
+"""Tests for the LLM provider domain (Phase 2 task #12).
+
+Pillar: Stable Core
+Phase: 2
+"""
+
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from backend.core.providers import llm
+from backend.core.providers.llm.base import BaseLLMProvider
+from backend.core.providers.llm.foundry_iq import FoundryIQ
+from backend.core.settings import AppSettings
+from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+COSMOS_ENV: dict[str, str] = {
+    "AZURE_SOLUTION_SUFFIX": "cwyd001",
+    "AZURE_RESOURCE_GROUP": "rg-cwyd-001",
+    "AZURE_LOCATION": "eastus2",
+    "AZURE_TENANT_ID": "00000000-0000-0000-0000-000000000001",
+    "AZURE_DB_TYPE": "cosmosdb",
+    "AZURE_INDEX_STORE": "AzureSearch",
+    "AZURE_COSMOS_ENDPOINT": "https://cosmos-cwyd001.documents.azure.com:443/",
+    "AZURE_AI_PROJECT_ENDPOINT": "https://foundry-cwyd001.services.ai.azure.com/api/projects/p1",
+    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-4o",
+    "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-small",
+    "AZURE_OPENAI_REASONING_DEPLOYMENT": "o4-mini",
+}
+
+
+@pytest.fixture
+def settings(monkeypatch: pytest.MonkeyPatch) -> AppSettings:
+    for key, value in COSMOS_ENV.items():
+        monkeypatch.setenv(key, value)
+    return AppSettings()
+
+
+@pytest.fixture
+def fake_credential() -> MagicMock:
+    cred = MagicMock(name="AsyncTokenCredential")
+    cred.close = AsyncMock()
+    return cred
+
+
+def _build_openai_chat_response(content: str) -> Any:
+    return SimpleNamespace(
+        choices=[
+            SimpleNamespace(message=SimpleNamespace(content=content), finish_reason="stop")
+        ]
+    )
+
+
+async def _async_iter(items: list[Any]):
+    for item in items:
+        yield item
+
+
+def _build_openai_chat_stream(deltas: list[str]):
+    events = [
+        SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(content=delta),
+                    finish_reason=None if i < len(deltas) - 1 else "stop",
+                )
+            ]
+        )
+        for i, delta in enumerate(deltas)
+    ]
+    return _async_iter(events)
+
+
+def _build_openai_embedding_response(vectors: list[list[float]]) -> Any:
+    return SimpleNamespace(
+        data=[SimpleNamespace(embedding=v) for v in vectors]
+    )
+
+
+def _build_fake_project_client(openai_client: Any) -> MagicMock:
+    project = MagicMock(name="AIProjectClient")
+    # `AIProjectClient.get_openai_client()` is async (returns
+    # `Awaitable[AsyncOpenAI]`); fix landed in Q14a (2026-05-05) when
+    # pyright --strict surfaced the missing `await` at every call site.
+    # Mirror the SDK shape with `AsyncMock` so the production `await`
+    # resolves to `openai_client` instead of an unawaited coroutine.
+    project.get_openai_client = AsyncMock(return_value=openai_client)
+    return project
+
+
+# ---------------------------------------------------------------------------
+# Registry wiring
+# ---------------------------------------------------------------------------
+
+
+def test_registry_contains_foundry_iq() -> None:
+    assert "foundry_iq" in llm.registry
+
+
+def test_create_returns_foundry_iq(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    provider = llm.create("foundry_iq", settings=settings, credential=fake_credential)
+    assert isinstance(provider, FoundryIQ)
+    assert isinstance(provider, BaseLLMProvider)
+
+
+def test_unknown_key_raises(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    with pytest.raises(KeyError):
+        llm.create("vllm", settings=settings, credential=fake_credential)
+
+
+# ---------------------------------------------------------------------------
+# chat()
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_chat_calls_openai_with_resolved_deployment(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("hello world")
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    reply = await provider.chat([ChatMessage(role="user", content="hi")])
+    assert isinstance(reply, ChatMessage)
+    assert reply.role == "assistant"
+    assert reply.content == "hello world"
+    call = openai.chat.completions.create.await_args
+    assert call.kwargs["model"] == "gpt-4o"
+    assert call.kwargs["messages"] == [{"role": "user", "content": "hi"}]
+
+
+@pytest.mark.asyncio
+async def test_chat_passes_temperature_and_max_tokens(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("ok")
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    await provider.chat(
+        [ChatMessage(role="user", content="hi")],
+        deployment="gpt-4o-mini",
+        temperature=0.2,
+        max_tokens=128,
+    )
+    call = openai.chat.completions.create.await_args
+    assert call.kwargs["model"] == "gpt-4o-mini"
+    assert call.kwargs["temperature"] == 0.2
+    assert call.kwargs["max_tokens"] == 128
+
+
+@pytest.mark.asyncio
+async def test_chat_raises_when_no_deployment_configured(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    for key, value in COSMOS_ENV.items():
+        if key != "AZURE_OPENAI_GPT_DEPLOYMENT":
+            monkeypatch.setenv(key, value)
+    monkeypatch.delenv("AZURE_OPENAI_GPT_DEPLOYMENT", raising=False)
+    s = AppSettings()
+    openai = MagicMock()
+    provider = FoundryIQ(
+        s, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    with pytest.raises(RuntimeError, match="chat deployment"):
+        await provider.chat([ChatMessage(role="user", content="hi")])
+
+
+# ---------------------------------------------------------------------------
+# chat_stream()
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_yields_chunks(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_stream(["hel", "lo"])
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    chunks: list[ChatChunk] = []
+    async for chunk in provider.chat_stream([ChatMessage(role="user", content="hi")]):
+        chunks.append(chunk)
+    assert [c.content for c in chunks] == ["hel", "lo"]
+    assert chunks[-1].finish_reason == "stop"
+    assert openai.chat.completions.create.await_args.kwargs["stream"] is True
+
+
+# ---------------------------------------------------------------------------
+# embed()
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_embed_returns_vectors(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    openai = MagicMock()
+    openai.embeddings.create = AsyncMock(
+        return_value=_build_openai_embedding_response([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    result = await provider.embed(["foo", "bar"])
+    assert isinstance(result, EmbeddingResult)
+    assert result.model == "text-embedding-3-small"
+    assert result.dimensions == 3
+    assert result.vectors == [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+    call = openai.embeddings.create.await_args
+    assert call.kwargs["input"] == ["foo", "bar"]
+
+
+# ---------------------------------------------------------------------------
+# reason() -- o-series streaming (task #25)
+# ---------------------------------------------------------------------------
+
+
+def _build_reason_stream(
+    chunks: list[tuple[str, str]],
+):
+    """Build an async-iterable mimicking an o-series streamed response.
+
+    Each tuple is ``(reasoning_content, content)``. Either side may be
+    empty to assert the channel-routing logic.
+    """
+    events = [
+        SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(
+                        reasoning_content=reasoning,
+                        content=answer,
+                    ),
+                    finish_reason=None,
+                )
+            ]
+        )
+        for reasoning, answer in chunks
+    ]
+    return _async_iter(events)
+
+
+@pytest.mark.asyncio
+async def test_reason_routes_to_reasoning_deployment_and_streams(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(
+        return_value=_build_reason_stream(
+            [
+                ("thinking step 1 ", ""),
+                ("step 2", ""),
+                ("", "Final "),
+                ("", "answer."),
+            ]
+        )
+    )
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    project = _build_fake_project_client(openai_client)
+    provider = FoundryIQ(settings, fake_credential, project_client=project)
+
+    events = [
+        ev async for ev in provider.reason([ChatMessage(role="user", content="hi")])
+    ]
+
+    # Routes to the reasoning deployment.
+    call = chat_completions.create.await_args
+    assert call.kwargs["model"] == "o4-mini"
+    assert call.kwargs["stream"] is True
+    # No temperature / max_tokens for o-series.
+    assert "temperature" not in call.kwargs
+    assert "max_tokens" not in call.kwargs
+
+    channels = [(e.channel, e.content) for e in events]
+    assert channels == [
+        ("reasoning", "thinking step 1 "),
+        ("reasoning", "step 2"),
+        ("answer", "Final "),
+        ("answer", "answer."),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_reason_uses_explicit_deployment_override(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(return_value=_build_reason_stream([]))
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    _ = [
+        ev
+        async for ev in provider.reason(
+            [ChatMessage(role="user", content="hi")], deployment="o3-mini"
+        )
+    ]
+    assert chat_completions.create.await_args.kwargs["model"] == "o3-mini"
+
+
+@pytest.mark.asyncio
+async def test_reason_emits_error_event_on_stream_failure(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    async def _boom():
+        yield SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(reasoning_content="t1", content=""),
+                    finish_reason=None,
+                )
+            ]
+        )
+        raise RuntimeError("upstream blew up")
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(return_value=_boom())
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev async for ev in provider.reason([ChatMessage(role="user", content="hi")])
+    ]
+    assert events[0].channel == "reasoning"
+    assert events[-1].channel == "error"
+    assert events[-1].metadata["code"] == "reason_stream_failed"
+    assert "upstream blew up" in events[-1].content
+
+
+@pytest.mark.asyncio
+async def test_reason_raises_when_deployment_missing(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    for key, value in COSMOS_ENV.items():
+        if key != "AZURE_OPENAI_REASONING_DEPLOYMENT":
+            monkeypatch.setenv(key, value)
+    monkeypatch.delenv("AZURE_OPENAI_REASONING_DEPLOYMENT", raising=False)
+    s = AppSettings()
+    provider = FoundryIQ(s, fake_credential, project_client=MagicMock())
+    iterator = provider.reason([ChatMessage(role="user", content="hi")])
+    with pytest.raises(RuntimeError, match="reason deployment"):
+        async for _ in iterator:
+            pass
+
+
+# ---------------------------------------------------------------------------
+# Lazy AIProjectClient construction
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_project_client_raises_when_endpoint_missing(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    for key, value in COSMOS_ENV.items():
+        if key != "AZURE_AI_PROJECT_ENDPOINT":
+            monkeypatch.setenv(key, value)
+    monkeypatch.delenv("AZURE_AI_PROJECT_ENDPOINT", raising=False)
+    s = AppSettings()
+    provider = FoundryIQ(s, fake_credential)
+    with pytest.raises(RuntimeError, match="AZURE_AI_PROJECT_ENDPOINT"):
+        await provider.chat([ChatMessage(role="user", content="hi")])
+
+
+@pytest.mark.asyncio
+async def test_aclose_does_not_close_injected_client(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    project = MagicMock()
+    project.close = AsyncMock()
+    provider = FoundryIQ(settings, fake_credential, project_client=project)
+    await provider.aclose()
+    project.close.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# complete() -- ABC-level auto-routing (CU-004a)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_chat_for_default_deployment(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """No explicit deployment + default gpt deployment != reasoning ->
+    chat() path, single answer event."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("hi back")
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "hi back")]
+    # Confirms chat() (non-streaming) was called, not reason() (streaming).
+    assert openai.chat.completions.create.await_args.kwargs["model"] == "gpt-4o"
+    assert "stream" not in openai.chat.completions.create.await_args.kwargs
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """Explicit deployment == reasoning_deployment -> reason() path,
+    propagates reasoning + answer events in order."""
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(
+        return_value=_build_reason_stream(
+            [
+                ("step a ", ""),
+                ("step b", ""),
+                ("", "Answer."),
+            ]
+        )
+    )
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        )
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [
+        ("reasoning", "step a "),
+        ("reasoning", "step b"),
+        ("answer", "Answer."),
+    ]
+    assert chat_completions.create.await_args.kwargs["model"] == "o4-mini"
+    assert chat_completions.create.await_args.kwargs["stream"] is True
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_reason_when_default_chat_equals_reasoning(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    """Edge case: gpt_deployment and reasoning_deployment configured to
+    the same value -> default routes to reason()."""
+    for key, value in COSMOS_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("AZURE_OPENAI_GPT_DEPLOYMENT", "o4-mini")
+    s = AppSettings()
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(
+        return_value=_build_reason_stream([("", "ok")])
+    )
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        s,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "ok")]
+    assert chat_completions.create.await_args.kwargs["stream"] is True
+
+
+@pytest.mark.asyncio
+async def test_complete_routes_to_chat_when_no_reasoning_deployment_configured(
+    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+) -> None:
+    """Empty reasoning_deployment -> always chat() regardless of
+    explicit deployment override."""
+    for key, value in COSMOS_ENV.items():
+        if key != "AZURE_OPENAI_REASONING_DEPLOYMENT":
+            monkeypatch.setenv(key, value)
+    monkeypatch.delenv("AZURE_OPENAI_REASONING_DEPLOYMENT", raising=False)
+    s = AppSettings()
+
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("plain")
+    )
+    provider = FoundryIQ(
+        s, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+
+    events = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        )
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "plain")]
+    # chat() was called with the explicit override even though it would
+    # have been the reasoning deployment if one were configured.
+    assert openai.chat.completions.create.await_args.kwargs["model"] == "o4-mini"
+
+
+@pytest.mark.asyncio
+async def test_complete_emits_error_event_on_chat_failure(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """chat() raising -> single error event with the documented code,
+    no exception escapes the iterator."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(side_effect=RuntimeError("boom"))
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert len(events) == 1
+    assert events[0].channel == "error"
+    assert events[0].metadata["code"] == "complete_chat_failed"
+    assert "boom" in events[0].content
+
+
+@pytest.mark.asyncio
+async def test_complete_propagates_reason_error_events(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """reason() emits its own error event mid-stream -> complete()
+    propagates it unchanged (does NOT wrap with complete_chat_failed)."""
+    async def _boom():
+        yield SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(reasoning_content="thinking", content=""),
+                    finish_reason=None,
+                )
+            ]
+        )
+        raise RuntimeError("reason upstream blew up")
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(return_value=_boom())
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions)
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        )
+    ]
+
+    assert [e.channel for e in events] == ["reasoning", "error"]
+    # error event came from reason(), not from complete()'s wrapper.
+    assert events[-1].metadata["code"] == "reason_stream_failed"

@@ -13,10 +13,10 @@ from backend.dependencies import (
     get_database_client,
     get_llm_provider,
 )
-from shared.agents import CWYD_AGENT
-from shared.providers import orchestrators
-from shared.providers.orchestrators.base import OrchestratorBase
-from shared.types import ChatMessage, OrchestratorEvent
+from backend.core.agents import CWYD_AGENT
+from backend.core.providers import orchestrators
+from backend.core.providers.orchestrators.base import OrchestratorBase
+from backend.core.types import ChatMessage, OrchestratorEvent
 
 # ---------------------------------------------------------------------------
 # Fakes
@@ -316,7 +316,7 @@ async def test_router_routes_through_chat_pipeline(
     calls: list[dict[str, Any]] = []
 
     from backend.routers import conversation as conv_module
-    from shared.pipelines import chat as chat_pipeline
+    from backend.core.pipelines import chat as chat_pipeline
 
     real_run_chat = chat_pipeline.run_chat
 

@@ -38,7 +38,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from backend.dependencies import DatabaseClientDep, SettingsDep
-from shared.types import ChatMessage, Conversation, MessageRecord, Role
+from backend.core.types import ChatMessage, Conversation, MessageRecord, Role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/history", tags=["history"])

@@ -6,7 +6,7 @@ Phase: 3 (task #22a)
 
 from pydantic import BaseModel, Field
 
-from shared.types import ChatMessage, Citation
+from backend.core.types import ChatMessage, Citation
 
 
 class ConversationRequest(BaseModel):

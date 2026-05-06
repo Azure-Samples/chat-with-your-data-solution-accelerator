@@ -1,0 +1,799 @@
+"""Tests for the Cosmos DB chat-history client (Phase 4 task #27).
+
+Pillar: Stable Core
+Phase: 4
+
+The async iterator + replace/read/delete surface of `azure.cosmos.aio`
+is faked end-to-end -- no Cosmos emulator required. Tests assert on
+(a) the wire shape (item dict shape sent to the SDK), (b) the
+single-partition query parameters (no cross-partition fan-out), and
+(c) the type-discriminator gating that prevents a message id from
+being mistaken for a conversation id.
+"""
+
+from typing import Any, AsyncIterator, Iterable
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from azure.cosmos.exceptions import CosmosResourceNotFoundError
+
+from backend.core.providers import databases
+from backend.core.providers.databases.cosmosdb import CosmosDBClient
+from backend.core.settings import AppSettings, DatabaseSettings
+from backend.core.types import ChatMessage
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+class _FakeAsyncIter:
+    def __init__(self, items: Iterable[dict[str, Any]]) -> None:
+        self._items = list(items)
+
+    def __aiter__(self) -> AsyncIterator[dict[str, Any]]:
+        async def gen() -> AsyncIterator[dict[str, Any]]:
+            for it in self._items:
+                yield it
+
+        return gen()
+
+
+def _make_client(
+    *,
+    container_items: list[dict[str, Any]] | None = None,
+) -> tuple[CosmosDBClient, MagicMock]:
+    """Build a `CosmosDBClient` whose container is a hand-rolled mock.
+
+    Returns (client, container_mock) so individual tests can assert on
+    `container_mock.create_item.await_args` etc.
+    """
+    settings = MagicMock(spec=AppSettings)
+    settings.database = DatabaseSettings(
+        db_type="cosmosdb",
+        index_store="AzureSearch",
+        cosmos_endpoint="https://example.documents.azure.com:443/",
+        cosmos_account_name="cosno-test",
+    )
+    container = MagicMock()
+    container.create_item = AsyncMock(side_effect=lambda body: body)
+    container.replace_item = AsyncMock(side_effect=lambda item, body: body)
+    container.upsert_item = AsyncMock(side_effect=lambda body: body)
+    container.delete_item = AsyncMock(return_value=None)
+    container.read_item = AsyncMock(
+        side_effect=CosmosResourceNotFoundError(message="not found")
+    )
+    container.query_items = MagicMock(
+        return_value=_FakeAsyncIter(container_items or [])
+    )
+
+    fake_cosmos_client = MagicMock()
+    fake_cosmos_client.close = AsyncMock(return_value=None)
+
+    client = CosmosDBClient(
+        settings=settings, credential=MagicMock(), client=fake_cosmos_client
+    )
+    # Skip lazy bootstrap so tests don't poke into private internals via
+    # the database/container chain.
+    client._container = container  # type: ignore[attr-defined]
+    return client, container
+
+
+# ---------------------------------------------------------------------------
+# Registry
+# ---------------------------------------------------------------------------
+
+
+def test_cosmosdb_registers_under_expected_key() -> None:
+    assert "cosmosdb" in databases.registry.keys()
+    assert databases.registry.get("cosmosdb") is CosmosDBClient
+
+
+# ---------------------------------------------------------------------------
+# CosmosItemType discriminator (#35c-1 adds CONFIG; AGENT shipped in CU-010b)
+# ---------------------------------------------------------------------------
+
+
+def test_cosmos_item_type_membership_is_frozen() -> None:
+    """The `type=` discriminator is part of the wire contract --
+    every persisted item has one, and every read-back path filters
+    on it. A new value is a deliberate cross-cutting decision (new
+    persistence model in the shared chat-history container), so
+    membership is locked here. #35c-1 adds `CONFIG` for the
+    runtime-config row added in this turn; CU-010b1 added `AGENT`
+    for the agent-id registry."""
+    from backend.core.providers.databases.cosmosdb import CosmosItemType
+
+    assert {member.value for member in CosmosItemType} == {
+        "conversation",
+        "message",
+        "agent",
+        "config",
+    }
+
+
+def test_cosmos_item_type_config_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    the wire serialization stays exactly `"config"` -- existing
+    code that reads `body["type"] == "config"` keeps working
+    without coupling to the enum import (mirrors the
+    `CosmosItemType.AGENT` precedent locked in
+    `test_upsert_agent_id_writes_canonical_shape`)."""
+    from backend.core.providers.databases.cosmosdb import CosmosItemType
+
+    assert CosmosItemType.CONFIG == "config"
+    assert CosmosItemType.CONFIG.value == "config"
+    assert str(CosmosItemType.CONFIG) == "config"
+
+
+def test_cosmos_system_partition_membership_is_frozen() -> None:
+    """The `_system` synthetic partition is part of the wire
+    contract: every non-user-scoped row (agents CU-010b1, runtime
+    config #35c-2) is pinned to it, and `BUILTIN_AGENTS` cardinality
+    + the runtime-config singleton both live in this one partition.
+    A new member is a deliberate cross-cutting decision (a second
+    non-user-scoped surface), so membership is locked here -- the
+    Hard Rule #11 sweep that introduced this enum (#35c-2-followup)
+    relied on it staying a closed set."""
+    from backend.core.providers.databases.cosmosdb import CosmosSystemPartition
+
+    assert {member.value for member in CosmosSystemPartition} == {"_system"}
+
+
+def test_cosmos_system_partition_default_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    `partition_key=CosmosSystemPartition.DEFAULT` reaches the SDK
+    as the bare string `"_system"` -- the wire shape and every
+    existing assertion (e.g. `body["userId"] == "_system"` in the
+    agent-registry tests) keep working without coupling to the
+    enum import."""
+    from backend.core.providers.databases.cosmosdb import CosmosSystemPartition
+
+    assert CosmosSystemPartition.DEFAULT == "_system"
+    assert CosmosSystemPartition.DEFAULT.value == "_system"
+    assert str(CosmosSystemPartition.DEFAULT) == "_system"
+
+
+def test_cosmos_fixed_item_id_membership_is_frozen() -> None:
+    """`CosmosFixedItemId` enumerates only the truly-fixed sentinel
+    item ids that live under `CosmosSystemPartition.DEFAULT`. Agent
+    rows use the agent `name` as their id and so are deliberately
+    NOT in this enum -- adding a member here is a deliberate new
+    singleton row, not a generic id container. Locked at one
+    member (`RUNTIME_CONFIG`) by #35c-2-followup; CU-010b1 added no
+    member because agent ids are caller-supplied."""
+    from backend.core.providers.databases.cosmosdb import CosmosFixedItemId
+
+    assert {member.value for member in CosmosFixedItemId} == {"runtime"}
+
+
+def test_cosmos_fixed_item_id_runtime_config_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    `item=CosmosFixedItemId.RUNTIME_CONFIG` reaches the Cosmos
+    SDK as the bare string `"runtime"` -- the wire shape stays
+    exactly the documented singleton id (#35c-2)."""
+    from backend.core.providers.databases.cosmosdb import CosmosFixedItemId
+
+    assert CosmosFixedItemId.RUNTIME_CONFIG == "runtime"
+    assert CosmosFixedItemId.RUNTIME_CONFIG.value == "runtime"
+    assert str(CosmosFixedItemId.RUNTIME_CONFIG) == "runtime"
+
+
+# ---------------------------------------------------------------------------
+# Conversations
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_conversation_writes_discriminated_item() -> None:
+    client, container = _make_client()
+
+    conv = await client.create_conversation(user_id="u1", title="hi")
+
+    assert conv.user_id == "u1"
+    assert conv.title == "hi"
+    assert conv.id  # uuid assigned
+    assert conv.created_at and conv.updated_at
+    body = container.create_item.await_args.kwargs["body"]
+    assert body["type"] == "conversation"
+    assert body["userId"] == "u1"
+    assert body["title"] == "hi"
+    assert body["createdAt"] == body["updatedAt"]
+
+
+@pytest.mark.asyncio
+async def test_list_conversations_uses_single_partition_query() -> None:
+    client, container = _make_client(
+        container_items=[
+            {
+                "id": "c1",
+                "userId": "u1",
+                "type": "conversation",
+                "title": "first",
+                "createdAt": "2026-04-28T00:00:00+00:00",
+                "updatedAt": "2026-04-28T00:01:00+00:00",
+            }
+        ]
+    )
+
+    convs = await client.list_conversations(user_id="u1")
+
+    assert len(convs) == 1
+    assert convs[0].id == "c1"
+    assert convs[0].title == "first"
+    call = container.query_items.call_args
+    # Single-partition query (no cross-partition flag) and parameterized
+    # type filter (no string interpolation).
+    assert call.kwargs["partition_key"] == "u1"
+    assert {"name": "@type", "value": "conversation"} in call.kwargs["parameters"]
+
+
+@pytest.mark.asyncio
+async def test_get_conversation_returns_none_when_missing() -> None:
+    client, _ = _make_client()
+    # Default fake `read_item` raises NotFound -> get returns None.
+    assert await client.get_conversation("missing", "u1") is None
+
+
+@pytest.mark.asyncio
+async def test_get_conversation_ignores_message_typed_items() -> None:
+    """A message id must NOT be returned as a conversation."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "m1",
+            "userId": "u1",
+            "type": "message",
+            "conversationId": "c1",
+            "role": "user",
+            "content": "hi",
+        }
+    )
+    assert await client.get_conversation("m1", "u1") is None
+
+
+@pytest.mark.asyncio
+async def test_rename_conversation_raises_keyerror_when_missing() -> None:
+    client, _ = _make_client()
+    with pytest.raises(KeyError):
+        await client.rename_conversation("missing", "u1", "new title")
+
+
+@pytest.mark.asyncio
+async def test_rename_conversation_bumps_updated_at_and_title() -> None:
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "c1",
+            "userId": "u1",
+            "type": "conversation",
+            "title": "old",
+            "createdAt": "2026-04-28T00:00:00+00:00",
+            "updatedAt": "2026-04-28T00:00:00+00:00",
+        }
+    )
+    out = await client.rename_conversation("c1", "u1", "new")
+
+    assert out.title == "new"
+    body = container.replace_item.await_args.kwargs["body"]
+    assert body["title"] == "new"
+    assert body["updatedAt"] != "2026-04-28T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_delete_conversation_purges_messages_then_parent() -> None:
+    client, container = _make_client(
+        container_items=[{"id": "m1"}, {"id": "m2"}]
+    )
+
+    await client.delete_conversation("c1", "u1")
+
+    # 2 messages + 1 conversation = 3 deletes, all in user partition.
+    assert container.delete_item.await_count == 3
+    for call in container.delete_item.await_args_list:
+        assert call.kwargs["partition_key"] == "u1"
+
+
+@pytest.mark.asyncio
+async def test_delete_conversation_is_idempotent_on_missing_parent() -> None:
+    client, container = _make_client(container_items=[])
+    container.delete_item = AsyncMock(
+        side_effect=CosmosResourceNotFoundError(message="gone")
+    )
+    # Must not raise.
+    await client.delete_conversation("missing", "u1")
+
+
+# ---------------------------------------------------------------------------
+# Messages
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_add_message_writes_message_and_bumps_parent() -> None:
+    client, container = _make_client()
+    # Parent exists for the second `read_item` call inside add_message.
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "c1",
+            "userId": "u1",
+            "type": "conversation",
+            "title": "t",
+            "createdAt": "2026-04-28T00:00:00+00:00",
+            "updatedAt": "2026-04-28T00:00:00+00:00",
+        }
+    )
+
+    rec = await client.add_message(
+        conversation_id="c1",
+        user_id="u1",
+        message=ChatMessage(role="user", content="hi"),
+    )
+
+    assert rec.conversation_id == "c1"
+    assert rec.role == "user"
+    assert rec.content == "hi"
+    assert rec.id  # uuid assigned
+
+    msg_body = container.create_item.await_args.kwargs["body"]
+    assert msg_body["type"] == "message"
+    assert msg_body["conversationId"] == "c1"
+    # Parent bump replaced the parent doc.
+    parent_body = container.replace_item.await_args.kwargs["body"]
+    assert parent_body["id"] == "c1"
+    assert parent_body["updatedAt"] != "2026-04-28T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_add_message_silently_skips_parent_bump_when_missing() -> None:
+    client, container = _make_client()
+    # Default read_item raises NotFound -> parent bump skipped, message
+    # still persisted.
+    rec = await client.add_message(
+        conversation_id="missing",
+        user_id="u1",
+        message=ChatMessage(role="user", content="hi"),
+    )
+    assert rec.content == "hi"
+    container.replace_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_list_messages_orders_by_created_at_asc() -> None:
+    client, container = _make_client(
+        container_items=[
+            {
+                "id": "m1",
+                "userId": "u1",
+                "type": "message",
+                "conversationId": "c1",
+                "role": "user",
+                "content": "a",
+                "createdAt": "2026-04-28T00:00:00+00:00",
+            },
+            {
+                "id": "m2",
+                "userId": "u1",
+                "type": "message",
+                "conversationId": "c1",
+                "role": "assistant",
+                "content": "b",
+                "createdAt": "2026-04-28T00:00:01+00:00",
+            },
+        ]
+    )
+
+    msgs = await client.list_messages(conversation_id="c1", user_id="u1")
+    assert [m.id for m in msgs] == ["m1", "m2"]
+    query = container.query_items.call_args.kwargs["query"]
+    assert "ORDER BY c.createdAt ASC" in query
+
+
+@pytest.mark.asyncio
+async def test_set_feedback_raises_keyerror_when_message_missing() -> None:
+    client, _ = _make_client()
+    with pytest.raises(KeyError):
+        await client.set_feedback("missing", "u1", "positive")
+
+
+@pytest.mark.asyncio
+async def test_set_feedback_writes_value_back() -> None:
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "m1",
+            "userId": "u1",
+            "type": "message",
+            "conversationId": "c1",
+            "role": "user",
+            "content": "hi",
+        }
+    )
+    await client.set_feedback("m1", "u1", "positive")
+    body = container.replace_item.await_args.kwargs["body"]
+    assert body["feedback"] == "positive"
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_aclose_closes_underlying_client() -> None:
+    client, _ = _make_client()
+    inner = client._client  # type: ignore[attr-defined]
+    await client.aclose()
+    inner.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_container_raises_without_endpoint() -> None:
+    settings = MagicMock(spec=AppSettings)
+    settings.database = DatabaseSettings(
+        db_type="cosmosdb",
+        index_store="AzureSearch",
+        cosmos_endpoint="https://x.documents.azure.com:443/",
+    )
+    # Force the missing-endpoint guard by clearing post-construction.
+    settings.database.cosmos_endpoint = ""
+    client = CosmosDBClient(settings=settings, credential=MagicMock())
+    with pytest.raises(RuntimeError, match="AZURE_COSMOS_ENDPOINT"):
+        await client.list_conversations("u1")
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (CU-010b1 -- get_agent_id)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_returns_none_when_item_missing() -> None:
+    """Cold start -- no row written yet. Must return None, not raise."""
+    client, container = _make_client()
+    # Default `read_item` already raises CosmosResourceNotFoundError.
+    assert await client.get_agent_id("cwyd") is None
+    container.read_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_uses_synthetic_system_partition() -> None:
+    """Agents are not user-scoped -- the lookup must pin to the
+    `_system` partition so it does not fan out across user partitions
+    (which would multiply RU cost by user count)."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "cwyd",
+            "userId": "_system",
+            "type": "agent",
+            "agentId": "asst_abc123",
+        }
+    )
+    out = await client.get_agent_id("cwyd")
+    assert out == "asst_abc123"
+    kwargs = container.read_item.await_args.kwargs
+    assert kwargs["item"] == "cwyd"
+    assert kwargs["partition_key"] == "_system"
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_refuses_non_agent_typed_item() -> None:
+    """Defensive type check: if the same id ever collides with a
+    conversation or message id, the resolver must NOT return its
+    payload as an agent id (that would cross-wire the orchestrator
+    onto a random Foundry agent)."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "cwyd",
+            "userId": "u1",
+            "type": "conversation",
+            "title": "definitely not an agent",
+        }
+    )
+    assert await client.get_agent_id("cwyd") is None
+
+
+@pytest.mark.asyncio
+async def test_get_agent_id_returns_none_when_agent_id_field_missing() -> None:
+    """Malformed row (right type, missing payload) must read as
+    'not bootstrapped' so the resolver re-creates rather than raising
+    a KeyError mid-request."""
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={"id": "cwyd", "userId": "_system", "type": "agent"}
+    )
+    assert await client.get_agent_id("cwyd") is None
+
+
+# ---------------------------------------------------------------------------
+# Agent registry (CU-010b2 -- upsert_agent_id)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_writes_canonical_shape() -> None:
+    """Wire shape: id=name, userId=_system synthetic partition,
+    type=CosmosItemType.AGENT (StrEnum -> serializes as the bare
+    string `"agent"`), agentId carries the Foundry id, and both
+    timestamps are present so an audit query can sort either way.
+    """
+    from backend.core.providers.databases.cosmosdb import CosmosItemType
+
+    client, container = _make_client()
+    await client.upsert_agent_id("cwyd", "asst_abc123")
+
+    container.upsert_item.assert_awaited_once()
+    body = container.upsert_item.await_args.kwargs["body"]
+    assert body["id"] == "cwyd"
+    assert body["userId"] == "_system"
+    # `StrEnum` member compares equal to its string value; the wire
+    # serialization is just `"agent"` (validates the new Hard Rule
+    # #11 sub-rule end-to-end).
+    assert body["type"] == CosmosItemType.AGENT
+    assert body["type"] == "agent"
+    assert body["agentId"] == "asst_abc123"
+    assert "createdAt" in body and "updatedAt" in body
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_uses_upsert_not_create() -> None:
+    """Must use `upsert_item` (atomic CREATE-or-REPLACE) rather than
+    `create_item` -- otherwise the lazy resolver in CU-010c would
+    raise CosmosResourceExistsError on its second-and-later writes
+    (e.g. when Foundry 404s a stale id and we rewrite it).
+    """
+    client, container = _make_client()
+    await client.upsert_agent_id("cwyd", "asst_abc123")
+    container.upsert_item.assert_awaited_once()
+    container.create_item.assert_not_awaited()
+    container.replace_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_is_idempotent_on_repeat_call() -> None:
+    """Two writes with the same (name, agent_id) must not raise
+    (the fake `upsert_item` echoes the body, mirroring the SDK's
+    REPLACE-on-conflict semantics). New `agent_id` for an existing
+    `name` must overwrite the prior `agentId` value -- this is the
+    rewrite path the CU-010c resolver depends on.
+    """
+    client, container = _make_client()
+    await client.upsert_agent_id("cwyd", "asst_old")
+    await client.upsert_agent_id("cwyd", "asst_new")
+    assert container.upsert_item.await_count == 2
+    second_body = container.upsert_item.await_args_list[1].kwargs["body"]
+    assert second_body["agentId"] == "asst_new"
+
+
+# ---------------------------------------------------------------------------
+# Runtime config (#35c-2 -- get_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_returns_none_when_row_missing() -> None:
+    """Cold start -- no override row written yet. The Cosmos point-read
+    raises `CosmosResourceNotFoundError` and `get_runtime_config()`
+    must surface that as `None` (not raise), so the admin router
+    falls through to env defaults instead of returning a 500."""
+    client, _container = _make_client()
+    # Default `read_item` already raises CosmosResourceNotFoundError
+    # (set in `_make_client`); no override needed.
+    assert await client.get_runtime_config() is None
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_point_read_uses_system_partition() -> None:
+    """The runtime-config row is not user-scoped, so the point-read
+    must target the synthetic `_system` partition (mirrors the
+    AGENT row precedent in CU-010b1). Reading from a per-user
+    partition would silently miss the row and force the resolver
+    to over-provision RU on a cross-partition fan-out scan."""
+    from backend.core.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosSystemPartition,
+    )
+
+    client, container = _make_client()
+    await client.get_runtime_config()
+    container.read_item.assert_awaited_once_with(
+        item=CosmosFixedItemId.RUNTIME_CONFIG,
+        partition_key=CosmosSystemPartition.DEFAULT,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_round_trips_persisted_payload() -> None:
+    """Hit path: the stored item carries `payload` as a Pydantic JSON
+    dump; `get_runtime_config()` must re-hydrate it into a
+    `RuntimeConfig` instance with every field round-tripping
+    (booleans included -- explicit False must not collapse into
+    None)."""
+    from backend.core.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from backend.core.types import RuntimeConfig
+
+    persisted = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2048,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-06T12:00:00+00:00",
+        updated_by="alice@example.com",
+    )
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.CONFIG,
+            "payload": persisted.model_dump(mode="json"),
+        }
+    )
+
+    rebuilt = await client.get_runtime_config()
+    assert rebuilt == persisted
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_rejects_wrong_type_discriminator() -> None:
+    """Defensive type check: if a future refactor accidentally writes
+    a non-config item under the same id, refuse to deserialize its
+    `payload` rather than mis-resolving as a `RuntimeConfig`. Same
+    invariant `get_agent_id` enforces (CU-010b1)."""
+    from backend.core.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.AGENT,  # wrong discriminator
+            "payload": {"orchestrator_name": "langgraph"},
+        }
+    )
+    assert await client.get_runtime_config() is None
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_returns_empty_runtime_config_for_empty_payload() -> None:
+    """Boundary: a persisted row with an empty payload (every
+    override cleared) must rehydrate as a `RuntimeConfig()` with
+    every field `None` -- the merge in #35c-7 then falls through
+    to env defaults across the board. Asserting this guards the
+    'cleared all overrides' UX path against silently returning
+    None (cold start) instead."""
+    from backend.core.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from backend.core.types import RuntimeConfig
+
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.CONFIG,
+            "payload": {},
+        }
+    )
+    rebuilt = await client.get_runtime_config()
+    assert rebuilt == RuntimeConfig()
+
+
+# ---------------------------------------------------------------------------
+# Runtime config (#35c-3 -- upsert_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_writes_canonical_shape() -> None:
+    """Wire shape: id=CosmosFixedItemId.RUNTIME_CONFIG, userId =
+    CosmosSystemPartition.DEFAULT (the synthetic `_system`
+    partition), type=CosmosItemType.CONFIG (StrEnum -> serializes as
+    bare string `"config"`), payload carries the Pydantic JSON dump
+    of the RuntimeConfig (mode="json" so `datetime`-shaped strings
+    round-trip), and both timestamps are present so an audit query
+    can sort either way. Mirrors the `upsert_agent_id` precedent.
+    """
+    from backend.core.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from backend.core.types import RuntimeConfig
+
+    config = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2048,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-06T12:00:00+00:00",
+        updated_by="alice@example.com",
+    )
+    client, container = _make_client()
+    await client.upsert_runtime_config(config)
+
+    container.upsert_item.assert_awaited_once()
+    body = container.upsert_item.await_args.kwargs["body"]
+    assert body["id"] == CosmosFixedItemId.RUNTIME_CONFIG
+    assert body["id"] == "runtime"
+    assert body["userId"] == CosmosSystemPartition.DEFAULT
+    assert body["userId"] == "_system"
+    assert body["type"] == CosmosItemType.CONFIG
+    assert body["type"] == "config"
+    assert body["payload"] == config.model_dump(mode="json")
+    assert "createdAt" in body and "updatedAt" in body
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_uses_upsert_not_create() -> None:
+    """Must use `upsert_item` (atomic CREATE-or-REPLACE) rather than
+    `create_item` -- otherwise the second-and-later writes (every
+    PATCH after the first) would raise CosmosResourceExistsError
+    against the singleton id. Mirrors the `upsert_agent_id`
+    invariant locked in `test_upsert_agent_id_uses_upsert_not_create`.
+    """
+    from backend.core.types import RuntimeConfig
+
+    client, container = _make_client()
+    await client.upsert_runtime_config(RuntimeConfig())
+    container.upsert_item.assert_awaited_once()
+    container.create_item.assert_not_awaited()
+    container.replace_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_is_idempotent_on_repeat_call() -> None:
+    """Two writes with overlapping fields must not raise (the fake
+    `upsert_item` echoes the body, mirroring the SDK's
+    REPLACE-on-conflict semantics). The second call's payload must
+    win -- this is the rewrite path the PATCH route in #35c-4
+    relies on so an operator can change `openai_temperature` from
+    0.5 to 0.9 without first clearing the row.
+    """
+    from backend.core.types import RuntimeConfig
+
+    client, container = _make_client()
+    first = RuntimeConfig(openai_temperature=0.5)
+    second = RuntimeConfig(openai_temperature=0.9)
+    await client.upsert_runtime_config(first)
+    await client.upsert_runtime_config(second)
+    assert container.upsert_item.await_count == 2
+    second_body = container.upsert_item.await_args_list[1].kwargs["body"]
+    assert second_body["payload"]["openai_temperature"] == 0.9
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_serializes_empty_payload_for_cleared_overrides() -> None:
+    """Boundary: a `RuntimeConfig()` with every field `None`
+    serializes to a JSON object whose keys are all `null` (NOT an
+    empty `{}`) because Pydantic v2's default `model_dump`
+    includes Optional fields. This locks the wire shape so the
+    next `get_runtime_config` round-trips back to `RuntimeConfig()`
+    exactly (validated by the matching get test). The 'cleared all
+    overrides' UX path stays a first-class state distinct from
+    'no row at all' (cold start).
+    """
+    from backend.core.types import RuntimeConfig
+
+    client, container = _make_client()
+    await client.upsert_runtime_config(RuntimeConfig())
+    body = container.upsert_item.await_args.kwargs["body"]
+    assert body["payload"] == RuntimeConfig().model_dump(mode="json")

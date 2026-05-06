@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend.app import create_app
-from shared.settings import get_settings
+from backend.core.settings import get_settings
 
 
 COSMOS_ENV: dict[str, str] = {
