@@ -14,7 +14,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from backend.dependencies import get_app_settings
+from backend.dependencies import get_app_settings, get_database_client
 from backend.routers.admin import admin_user_id, router as admin_router
 
 
@@ -93,13 +93,15 @@ def admin_app_factory():
     tests do not depend on lifespan-built providers.
     """
 
-    def _make(settings: Any) -> FastAPI:
+    def _make(settings: Any, db: Any = None) -> FastAPI:
         app = FastAPI()
         app.include_router(admin_router)
         app.dependency_overrides[get_app_settings] = lambda: settings
         # Pin admin_user_id so route tests that don't probe auth gating
         # can run without forging the Easy Auth header.
         app.dependency_overrides[admin_user_id] = lambda: "u-1"
+        if db is not None:
+            app.dependency_overrides[get_database_client] = lambda: db
         return app
 
     return _make
@@ -480,3 +482,229 @@ async def test_config_endpoint_requires_easy_auth_in_production() -> None:
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config")
     assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/admin/config -- runtime overrides (#35c-4)
+#
+# RFC 7396 JSON Merge Patch over the same 6-field surface as GET:
+#   * absent JSON key  -> override unchanged
+#   * explicit `null`  -> override cleared (falls through to env default
+#                          on next live-reload; live-reload itself is
+#                          deferred -- see dev_plan #35c "Excluded")
+#   * explicit value   -> override set
+#   * unknown JSON key -> 422 (field allow-list lock-in -- catches a
+#                          future settings drift where someone adds a
+#                          new RuntimeConfig field but forgets to wire
+#                          its validator)
+#   * wrong-type value -> 422 (Pydantic validation on the merged shape)
+#
+# The route MUST persist via `db.upsert_runtime_config(merged)` so the
+# override survives container restarts; effective-config GET (which
+# would overlay this on env defaults) is deferred to a separate row.
+# ---------------------------------------------------------------------------
+
+
+def _fake_db(
+    *, current: Any = None, upsert: Any = None
+) -> Any:
+    """Build a minimal fake `BaseDatabaseClient` exposing only the two
+    runtime-config methods the PATCH route consumes (#35c-2 +
+    #35c-3). `current` is the value `get_runtime_config` returns;
+    `upsert` lets a test pin a custom AsyncMock to capture the
+    write argument for assertion."""
+    from unittest.mock import AsyncMock
+
+    db = NS()
+    db.get_runtime_config = AsyncMock(return_value=current)
+    db.upsert_runtime_config = upsert or AsyncMock(return_value=None)
+    return db
+
+
+@pytest.mark.asyncio
+async def test_patch_config_persists_single_field_override(
+    admin_app_factory,
+) -> None:
+    """Happy path: a single-field PATCH must (a) call
+    `db.upsert_runtime_config` exactly once with that field set on a
+    `RuntimeConfig`, and (b) return 200 with the merged config in the
+    response body. Locks the storage call -- without it, the override
+    would be ack'd to the operator but lost on container restart."""
+    from shared.types import RuntimeConfig
+
+    db = _fake_db(current=None)
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.7}
+        )
+    assert resp.status_code == 200
+    db.upsert_runtime_config.assert_awaited_once()
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert isinstance(persisted, RuntimeConfig)
+    assert persisted.openai_temperature == 0.7
+    body = resp.json()
+    assert body["openai_temperature"] == 0.7
+
+
+@pytest.mark.asyncio
+async def test_patch_config_rejects_unknown_field_with_422(
+    admin_app_factory,
+) -> None:
+    """Unknown JSON keys must 422 (not silently ignored). Locks the
+    field allow-list at the route boundary so a future settings drift
+    (someone adds `RuntimeConfig.new_toggle` but forgets to wire its
+    validator) cannot accept stale-shape PATCH bodies that the GET
+    side has no contract for."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"bogus_field": "x"}
+        )
+    assert resp.status_code == 422
+    db.upsert_runtime_config.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_patch_config_rejects_wrong_type_with_422(
+    admin_app_factory,
+) -> None:
+    """Type mismatch must 422 -- Pydantic validation on the merged
+    `RuntimeConfig`. Without this guard a string-shaped temperature
+    would round-trip through Cosmos JSON / Postgres JSONB cleanly
+    and only crash the LLM call hours later when the wrong type
+    reached `openai_chat.create(temperature=...)`."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"openai_temperature": "not-a-float"},
+        )
+    assert resp.status_code == 422
+    db.upsert_runtime_config.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_patch_config_explicit_null_clears_override(
+    admin_app_factory,
+) -> None:
+    """RFC 7396 explicit `null` semantics: the field is *cleared* (set
+    to `None` on the persisted RuntimeConfig). The next live-reload
+    of `app.state.settings` will then fall through to the env default
+    for that field. This is the operator UX for 'undo my override'
+    without restarting the container or deleting the row."""
+    from shared.types import RuntimeConfig
+
+    db = _fake_db(current=RuntimeConfig(openai_temperature=0.5))
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": None}
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.openai_temperature is None
+    body = resp.json()
+    assert body["openai_temperature"] is None
+
+
+@pytest.mark.asyncio
+async def test_patch_config_sparse_update_preserves_other_overrides(
+    admin_app_factory,
+) -> None:
+    """RFC 7396 sparse semantics: an absent JSON key leaves the
+    existing override untouched. Validates the merge reads
+    `db.get_runtime_config()` first -- without this an operator
+    flipping `openai_temperature` would silently wipe their previous
+    `openai_max_tokens` override (because the persisted shape is the
+    full RuntimeConfig, not a per-field key)."""
+    from shared.types import RuntimeConfig
+
+    db = _fake_db(
+        current=RuntimeConfig(
+            openai_temperature=0.5, openai_max_tokens=2048
+        )
+    )
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.9}
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.openai_temperature == 0.9
+    # Untouched override survives.
+    assert persisted.openai_max_tokens == 2048
+
+
+@pytest.mark.asyncio
+async def test_patch_config_records_caller_id_and_timestamp(
+    admin_app_factory,
+) -> None:
+    """Audit trail: every persisted RuntimeConfig must carry the
+    admin caller's user id (from `admin_user_id`, pinned to "u-1"
+    in this fixture) and an ISO-8601 `updated_at` so a future query
+    can answer 'who flipped temperature to 0.9 and when?'. Without
+    these, the override row is anonymous and undateable."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.7}
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.updated_by == "u-1"
+    # ISO-8601 with timezone -- not just "now()" formatted weirdly.
+    assert persisted.updated_at
+    from datetime import datetime
+
+    parsed = datetime.fromisoformat(persisted.updated_at)
+    assert parsed.tzinfo is not None
+
+
+@pytest.mark.asyncio
+async def test_patch_config_response_body_matches_persisted_runtime_config(
+    admin_app_factory,
+) -> None:
+    """The response body MUST be the just-persisted RuntimeConfig so
+    the operator UI can render the new override-state without a
+    follow-up GET. Asserts shape symmetry: every key on the persisted
+    RuntimeConfig appears in the response, nothing extra (no leaked
+    settings, no internal fields)."""
+    from shared.types import RuntimeConfig
+
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"search_top_k": 10}
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert set(resp.json().keys()) == set(
+        RuntimeConfig.model_fields.keys()
+    )
+    assert resp.json()["search_top_k"] == persisted.search_top_k
+
+
+@pytest.mark.asyncio
+async def test_patch_config_requires_easy_auth_in_production() -> None:
+    """H1 hardening parity with GET: anonymous callers must be
+    rejected in production. Without this, an unauthenticated PATCH
+    could mutate the persisted runtime config indefinitely."""
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings(
+        environment="production"
+    )
+    db = _fake_db()
+    app.dependency_overrides[get_database_client] = lambda: db
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.7}
+        )
+    assert resp.status_code == 401
+    db.upsert_runtime_config.assert_not_awaited()

@@ -127,6 +127,59 @@ def test_cosmos_item_type_config_serializes_as_bare_string() -> None:
     assert str(CosmosItemType.CONFIG) == "config"
 
 
+def test_cosmos_system_partition_membership_is_frozen() -> None:
+    """The `_system` synthetic partition is part of the wire
+    contract: every non-user-scoped row (agents CU-010b1, runtime
+    config #35c-2) is pinned to it, and `BUILTIN_AGENTS` cardinality
+    + the runtime-config singleton both live in this one partition.
+    A new member is a deliberate cross-cutting decision (a second
+    non-user-scoped surface), so membership is locked here -- the
+    Hard Rule #11 sweep that introduced this enum (#35c-2-followup)
+    relied on it staying a closed set."""
+    from shared.providers.databases.cosmosdb import CosmosSystemPartition
+
+    assert {member.value for member in CosmosSystemPartition} == {"_system"}
+
+
+def test_cosmos_system_partition_default_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    `partition_key=CosmosSystemPartition.DEFAULT` reaches the SDK
+    as the bare string `"_system"` -- the wire shape and every
+    existing assertion (e.g. `body["userId"] == "_system"` in the
+    agent-registry tests) keep working without coupling to the
+    enum import."""
+    from shared.providers.databases.cosmosdb import CosmosSystemPartition
+
+    assert CosmosSystemPartition.DEFAULT == "_system"
+    assert CosmosSystemPartition.DEFAULT.value == "_system"
+    assert str(CosmosSystemPartition.DEFAULT) == "_system"
+
+
+def test_cosmos_fixed_item_id_membership_is_frozen() -> None:
+    """`CosmosFixedItemId` enumerates only the truly-fixed sentinel
+    item ids that live under `CosmosSystemPartition.DEFAULT`. Agent
+    rows use the agent `name` as their id and so are deliberately
+    NOT in this enum -- adding a member here is a deliberate new
+    singleton row, not a generic id container. Locked at one
+    member (`RUNTIME_CONFIG`) by #35c-2-followup; CU-010b1 added no
+    member because agent ids are caller-supplied."""
+    from shared.providers.databases.cosmosdb import CosmosFixedItemId
+
+    assert {member.value for member in CosmosFixedItemId} == {"runtime"}
+
+
+def test_cosmos_fixed_item_id_runtime_config_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    `item=CosmosFixedItemId.RUNTIME_CONFIG` reaches the Cosmos
+    SDK as the bare string `"runtime"` -- the wire shape stays
+    exactly the documented singleton id (#35c-2)."""
+    from shared.providers.databases.cosmosdb import CosmosFixedItemId
+
+    assert CosmosFixedItemId.RUNTIME_CONFIG == "runtime"
+    assert CosmosFixedItemId.RUNTIME_CONFIG.value == "runtime"
+    assert str(CosmosFixedItemId.RUNTIME_CONFIG) == "runtime"
+
+
 # ---------------------------------------------------------------------------
 # Conversations
 # ---------------------------------------------------------------------------
@@ -513,3 +566,234 @@ async def test_upsert_agent_id_is_idempotent_on_repeat_call() -> None:
     assert container.upsert_item.await_count == 2
     second_body = container.upsert_item.await_args_list[1].kwargs["body"]
     assert second_body["agentId"] == "asst_new"
+
+
+# ---------------------------------------------------------------------------
+# Runtime config (#35c-2 -- get_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_returns_none_when_row_missing() -> None:
+    """Cold start -- no override row written yet. The Cosmos point-read
+    raises `CosmosResourceNotFoundError` and `get_runtime_config()`
+    must surface that as `None` (not raise), so the admin router
+    falls through to env defaults instead of returning a 500."""
+    client, _container = _make_client()
+    # Default `read_item` already raises CosmosResourceNotFoundError
+    # (set in `_make_client`); no override needed.
+    assert await client.get_runtime_config() is None
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_point_read_uses_system_partition() -> None:
+    """The runtime-config row is not user-scoped, so the point-read
+    must target the synthetic `_system` partition (mirrors the
+    AGENT row precedent in CU-010b1). Reading from a per-user
+    partition would silently miss the row and force the resolver
+    to over-provision RU on a cross-partition fan-out scan."""
+    from shared.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosSystemPartition,
+    )
+
+    client, container = _make_client()
+    await client.get_runtime_config()
+    container.read_item.assert_awaited_once_with(
+        item=CosmosFixedItemId.RUNTIME_CONFIG,
+        partition_key=CosmosSystemPartition.DEFAULT,
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_round_trips_persisted_payload() -> None:
+    """Hit path: the stored item carries `payload` as a Pydantic JSON
+    dump; `get_runtime_config()` must re-hydrate it into a
+    `RuntimeConfig` instance with every field round-tripping
+    (booleans included -- explicit False must not collapse into
+    None)."""
+    from shared.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from shared.types import RuntimeConfig
+
+    persisted = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2048,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-06T12:00:00+00:00",
+        updated_by="alice@example.com",
+    )
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.CONFIG,
+            "payload": persisted.model_dump(mode="json"),
+        }
+    )
+
+    rebuilt = await client.get_runtime_config()
+    assert rebuilt == persisted
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_rejects_wrong_type_discriminator() -> None:
+    """Defensive type check: if a future refactor accidentally writes
+    a non-config item under the same id, refuse to deserialize its
+    `payload` rather than mis-resolving as a `RuntimeConfig`. Same
+    invariant `get_agent_id` enforces (CU-010b1)."""
+    from shared.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.AGENT,  # wrong discriminator
+            "payload": {"orchestrator_name": "langgraph"},
+        }
+    )
+    assert await client.get_runtime_config() is None
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_returns_empty_runtime_config_for_empty_payload() -> None:
+    """Boundary: a persisted row with an empty payload (every
+    override cleared) must rehydrate as a `RuntimeConfig()` with
+    every field `None` -- the merge in #35c-7 then falls through
+    to env defaults across the board. Asserting this guards the
+    'cleared all overrides' UX path against silently returning
+    None (cold start) instead."""
+    from shared.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from shared.types import RuntimeConfig
+
+    client, container = _make_client()
+    container.read_item = AsyncMock(
+        return_value={
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.CONFIG,
+            "payload": {},
+        }
+    )
+    rebuilt = await client.get_runtime_config()
+    assert rebuilt == RuntimeConfig()
+
+
+# ---------------------------------------------------------------------------
+# Runtime config (#35c-3 -- upsert_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_writes_canonical_shape() -> None:
+    """Wire shape: id=CosmosFixedItemId.RUNTIME_CONFIG, userId =
+    CosmosSystemPartition.DEFAULT (the synthetic `_system`
+    partition), type=CosmosItemType.CONFIG (StrEnum -> serializes as
+    bare string `"config"`), payload carries the Pydantic JSON dump
+    of the RuntimeConfig (mode="json" so `datetime`-shaped strings
+    round-trip), and both timestamps are present so an audit query
+    can sort either way. Mirrors the `upsert_agent_id` precedent.
+    """
+    from shared.providers.databases.cosmosdb import (
+        CosmosFixedItemId,
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from shared.types import RuntimeConfig
+
+    config = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2048,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-06T12:00:00+00:00",
+        updated_by="alice@example.com",
+    )
+    client, container = _make_client()
+    await client.upsert_runtime_config(config)
+
+    container.upsert_item.assert_awaited_once()
+    body = container.upsert_item.await_args.kwargs["body"]
+    assert body["id"] == CosmosFixedItemId.RUNTIME_CONFIG
+    assert body["id"] == "runtime"
+    assert body["userId"] == CosmosSystemPartition.DEFAULT
+    assert body["userId"] == "_system"
+    assert body["type"] == CosmosItemType.CONFIG
+    assert body["type"] == "config"
+    assert body["payload"] == config.model_dump(mode="json")
+    assert "createdAt" in body and "updatedAt" in body
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_uses_upsert_not_create() -> None:
+    """Must use `upsert_item` (atomic CREATE-or-REPLACE) rather than
+    `create_item` -- otherwise the second-and-later writes (every
+    PATCH after the first) would raise CosmosResourceExistsError
+    against the singleton id. Mirrors the `upsert_agent_id`
+    invariant locked in `test_upsert_agent_id_uses_upsert_not_create`.
+    """
+    from shared.types import RuntimeConfig
+
+    client, container = _make_client()
+    await client.upsert_runtime_config(RuntimeConfig())
+    container.upsert_item.assert_awaited_once()
+    container.create_item.assert_not_awaited()
+    container.replace_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_is_idempotent_on_repeat_call() -> None:
+    """Two writes with overlapping fields must not raise (the fake
+    `upsert_item` echoes the body, mirroring the SDK's
+    REPLACE-on-conflict semantics). The second call's payload must
+    win -- this is the rewrite path the PATCH route in #35c-4
+    relies on so an operator can change `openai_temperature` from
+    0.5 to 0.9 without first clearing the row.
+    """
+    from shared.types import RuntimeConfig
+
+    client, container = _make_client()
+    first = RuntimeConfig(openai_temperature=0.5)
+    second = RuntimeConfig(openai_temperature=0.9)
+    await client.upsert_runtime_config(first)
+    await client.upsert_runtime_config(second)
+    assert container.upsert_item.await_count == 2
+    second_body = container.upsert_item.await_args_list[1].kwargs["body"]
+    assert second_body["payload"]["openai_temperature"] == 0.9
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_serializes_empty_payload_for_cleared_overrides() -> None:
+    """Boundary: a `RuntimeConfig()` with every field `None`
+    serializes to a JSON object whose keys are all `null` (NOT an
+    empty `{}`) because Pydantic v2's default `model_dump`
+    includes Optional fields. This locks the wire shape so the
+    next `get_runtime_config` round-trips back to `RuntimeConfig()`
+    exactly (validated by the matching get test). The 'cleared all
+    overrides' UX path stays a first-class state distinct from
+    'no row at all' (cold start).
+    """
+    from shared.types import RuntimeConfig
+
+    client, container = _make_client()
+    await client.upsert_runtime_config(RuntimeConfig())
+    body = container.upsert_item.await_args.kwargs["body"]
+    assert body["payload"] == RuntimeConfig().model_dump(mode="json")

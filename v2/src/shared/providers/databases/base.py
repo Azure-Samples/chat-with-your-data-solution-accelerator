@@ -27,7 +27,7 @@ from typing import Sequence
 from azure.core.credentials_async import AsyncTokenCredential
 
 from shared.settings import AppSettings
-from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
 
 
 class BaseDatabaseClient(ABC):
@@ -121,6 +121,31 @@ class BaseDatabaseClient(ABC):
         call with a new `agent_id` for an existing `name` must
         replace the prior value (the lazy resolver in CU-010c does
         this when Foundry returns 404 for a stale persisted id).
+        """
+
+    # ---- Runtime config (#35c) ------------------------------------------
+    #
+    # The admin API (`PATCH /api/admin/config`, #35c-7) persists a
+    # singleton `RuntimeConfig` row that overrides selected env
+    # defaults at request time. The reader returns `None` on cold
+    # start (no row yet) so the admin merge falls through to env
+    # defaults rather than raising. The writer (#35c-3) is
+    # idempotent and overwrites any prior payload.
+
+    @abstractmethod
+    async def get_runtime_config(self) -> RuntimeConfig | None:
+        """Return the persisted singleton `RuntimeConfig`, or `None`
+        if no override row has been written yet (cold start). Must
+        be idempotent and side-effect free."""
+
+    @abstractmethod
+    async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
+        """Persist `config` as the singleton runtime-config row.
+        Idempotent: a second call with the same `config` must not
+        raise, and a call with a new `config` must replace the
+        prior payload (the PATCH route in #35c-4 does this on
+        every operator update). The full payload is overwritten --
+        merge semantics belong in the route, not the storage layer.
         """
 
     # ---- Lifecycle ------------------------------------------------------

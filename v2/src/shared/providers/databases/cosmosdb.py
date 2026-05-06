@@ -41,7 +41,7 @@ from azure.cosmos.aio import ContainerProxy, CosmosClient
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
 from shared.settings import AppSettings
-from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
 
 from . import registry
 from .base import BaseDatabaseClient
@@ -75,9 +75,40 @@ class CosmosItemType(StrEnum):
     CONFIG = "config"
 
 
-# Single-value sentinel for the agent-registry partition. Exempt from
-# the StrEnum rule per Hard Rule #11 -- no siblings, no closed set.
-_AGENT_PARTITION = "_system"
+class CosmosSystemPartition(StrEnum):
+    """Synthetic partition keys for non-user-scoped rows in the
+    chat-history container.
+
+    Per Hard Rule #11 (Python bullet -- "sibling partition keys" are
+    explicitly called out as a closed set requiring `StrEnum`, not
+    bare module constants). Currently a single member because every
+    non-user-scoped surface (agent registry CU-010b1, runtime config
+    #35c-2) shares the same `_system` partition; declaring it as an
+    enum (a) groups the concept under a named type so a future second
+    partition (e.g. tenant-scoped overrides) is a one-line addition
+    rather than a fresh module constant, and (b) keeps the wire shape
+    stable -- `CosmosSystemPartition.DEFAULT` serializes as the bare
+    string `"_system"` because `StrEnum` subclasses `str`. The prior
+    `_AGENT_PARTITION` lone-sentinel carve-out no longer applies once
+    `_CONFIG_PARTITION` was added in #35c-2 (it created the sibling).
+    """
+
+    DEFAULT = "_system"
+
+
+class CosmosFixedItemId(StrEnum):
+    """Closed-set fixed item ids for singleton rows under
+    `CosmosSystemPartition.DEFAULT`.
+
+    Agent-registry rows use the agent `name` as their id and so are
+    NOT enumerated here -- only truly-fixed sentinel ids belong in
+    this enum. Per Hard Rule #11 (Python bullet) closed-set string
+    literals must be `StrEnum`; a future second sentinel (e.g. a
+    feature-flag singleton) joins this enum rather than landing as
+    a fresh module constant.
+    """
+
+    RUNTIME_CONFIG = "runtime"
 
 
 def _utcnow_iso() -> str:
@@ -332,7 +363,7 @@ class CosmosDBClient(BaseDatabaseClient):
         # `agentId` rather than silently mis-resolving.
         try:
             item = await container.read_item(
-                item=name, partition_key=_AGENT_PARTITION
+                item=name, partition_key=CosmosSystemPartition.DEFAULT
             )
         except CosmosResourceNotFoundError:
             return None
@@ -356,13 +387,59 @@ class CosmosDBClient(BaseDatabaseClient):
         # "most recently re-created").
         item = {
             "id": name,
-            "userId": _AGENT_PARTITION,
+            "userId": CosmosSystemPartition.DEFAULT,
             "type": CosmosItemType.AGENT,
             "agentId": agent_id,
             "createdAt": now,
             "updatedAt": now,
         }
         await container.upsert_item(body=item)
+
+    async def get_runtime_config(self) -> RuntimeConfig | None:
+        container = self._get_container()
+        # Direct point-read on (id="runtime", partition="_system") --
+        # single-RU lookup, mirrors the `get_agent_id` shape. Cold
+        # start (no row written yet) returns None so the admin
+        # router's merge falls through to env defaults rather than
+        # raising. Defensive type check: a non-config item under the
+        # same id (impossible today, future-proofing) refuses to
+        # deserialize as a `RuntimeConfig`. Empty `payload` rehydrates
+        # as `RuntimeConfig()` (every override cleared) -- distinct
+        # from None (no row at all), see test
+        # `test_get_runtime_config_returns_empty_runtime_config_for_empty_payload`.
+        try:
+            item = await container.read_item(
+                item=CosmosFixedItemId.RUNTIME_CONFIG,
+                partition_key=CosmosSystemPartition.DEFAULT,
+            )
+        except CosmosResourceNotFoundError:
+            return None
+        if item.get("type") != CosmosItemType.CONFIG:
+            return None
+        # `item` is `dict[str, Any]` -- pyright surfaces `payload` as
+        # `Any | dict[Unknown, Unknown]` without an explicit cast.
+        payload = cast(dict[str, Any], item.get("payload") or {})
+        return RuntimeConfig.model_validate(payload)
+
+    async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
+        container = self._get_container()
+        now = _utcnow_iso()
+        # `upsert_item` does CREATE-or-REPLACE atomically on (id,
+        # partition_key) -- mirrors `upsert_agent_id`. The full
+        # payload is overwritten on every call; merge semantics
+        # (RFC 7396) live in the PATCH route (#35c-4), not here.
+        # `payload` uses `mode="json"` so any future non-string
+        # field types (datetime, UUID, ...) round-trip through the
+        # Cosmos JSON wire shape without custom encoders.
+        body = {
+            "id": CosmosFixedItemId.RUNTIME_CONFIG,
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.CONFIG,
+            "payload": config.model_dump(mode="json"),
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        await container.upsert_item(body=body)
 
     async def set_feedback(
         self, message_id: str, user_id: str, feedback: str

@@ -12,7 +12,7 @@ import pytest
 from shared.providers import databases
 from shared.providers.databases.base import BaseDatabaseClient
 from shared.settings import AppSettings
-from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +73,12 @@ class _StubDatabaseClient(BaseDatabaseClient):
         return None
 
     async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+        return None
+
+    async def get_runtime_config(self) -> RuntimeConfig | None:
+        return None
+
+    async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
         return None
 
 
@@ -316,3 +322,182 @@ async def test_stub_upsert_agent_id_returns_none_and_does_not_raise() -> None:
         credential=MagicMock(),
     )
     assert await client.upsert_agent_id("cwyd", "asst_abc123") is None
+
+
+# ---------------------------------------------------------------------------
+# Runtime config contract (#35c-2 -- get_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+def test_subclass_missing_get_runtime_config_remains_abstract() -> None:
+    """`get_runtime_config` is part of the ABC contract (#35c-2). A
+    subclass that implements every prior method (chat-history +
+    agent registry) but omits the runtime-config reader must still
+    fail to instantiate -- otherwise the PATCH route in #35c-7 would
+    end up calling NotImplementedError at request time and the admin
+    UI would surface a 500 instead of a clean 'not configured' state.
+    """
+
+    class _MissingGetRuntimeConfig(BaseDatabaseClient):
+        async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
+            return []
+
+        async def get_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> Conversation | None:
+            return None
+
+        async def create_conversation(
+            self, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id="c1", user_id=user_id, title=title)
+
+        async def rename_conversation(
+            self, conversation_id: str, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id=conversation_id, user_id=user_id, title=title)
+
+        async def delete_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> None:
+            return None
+
+        async def list_messages(
+            self, conversation_id: str, user_id: str
+        ) -> Sequence[MessageRecord]:
+            return []
+
+        async def add_message(
+            self,
+            conversation_id: str,
+            user_id: str,
+            message: ChatMessage,
+        ) -> MessageRecord:
+            return MessageRecord(
+                id="m1",
+                conversation_id=conversation_id,
+                role=message.role,
+                content=message.content,
+            )
+
+        async def set_feedback(
+            self, message_id: str, user_id: str, feedback: str
+        ) -> None:
+            return None
+
+        async def get_agent_id(self, name: str) -> str | None:
+            return None
+
+        async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+            return None
+
+        async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
+            return None
+
+    with pytest.raises(TypeError):
+        _MissingGetRuntimeConfig(  # type: ignore[abstract]
+            settings=MagicMock(spec=AppSettings),
+            credential=MagicMock(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_stub_get_runtime_config_returns_none_for_cold_start() -> None:
+    """The default stub returns None -- this validates the contract
+    return type (`RuntimeConfig | None`) rather than the storage
+    semantics (covered per backend in test_cosmosdb /
+    test_postgres). `None` means 'no override row persisted yet'
+    (cold start); the admin router falls through to env defaults."""
+    client = _StubDatabaseClient(
+        settings=MagicMock(spec=AppSettings),
+        credential=MagicMock(),
+    )
+    assert await client.get_runtime_config() is None
+
+
+# ---------------------------------------------------------------------------
+# Runtime config contract (#35c-3 -- upsert_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+def test_subclass_missing_upsert_runtime_config_remains_abstract() -> None:
+    """`upsert_runtime_config` is part of the ABC contract (#35c-3).
+    A subclass that implements `get_runtime_config` (and every prior
+    method) but omits the writer must still fail to instantiate --
+    otherwise the PATCH route in #35c-4 could read a stale config,
+    fail to persist the merged update, and silently drop every
+    operator override."""
+
+    class _MissingUpsertRuntimeConfig(BaseDatabaseClient):
+        async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
+            return []
+
+        async def get_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> Conversation | None:
+            return None
+
+        async def create_conversation(
+            self, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id="c1", user_id=user_id, title=title)
+
+        async def rename_conversation(
+            self, conversation_id: str, user_id: str, title: str
+        ) -> Conversation:
+            return Conversation(id=conversation_id, user_id=user_id, title=title)
+
+        async def delete_conversation(
+            self, conversation_id: str, user_id: str
+        ) -> None:
+            return None
+
+        async def list_messages(
+            self, conversation_id: str, user_id: str
+        ) -> Sequence[MessageRecord]:
+            return []
+
+        async def add_message(
+            self,
+            conversation_id: str,
+            user_id: str,
+            message: ChatMessage,
+        ) -> MessageRecord:
+            return MessageRecord(
+                id="m1",
+                conversation_id=conversation_id,
+                role=message.role,
+                content=message.content,
+            )
+
+        async def set_feedback(
+            self, message_id: str, user_id: str, feedback: str
+        ) -> None:
+            return None
+
+        async def get_agent_id(self, name: str) -> str | None:
+            return None
+
+        async def upsert_agent_id(self, name: str, agent_id: str) -> None:
+            return None
+
+        async def get_runtime_config(self) -> RuntimeConfig | None:
+            return None
+
+    with pytest.raises(TypeError):
+        _MissingUpsertRuntimeConfig(  # type: ignore[abstract]
+            settings=MagicMock(spec=AppSettings),
+            credential=MagicMock(),
+        )
+
+
+@pytest.mark.asyncio
+async def test_stub_upsert_runtime_config_returns_none_and_does_not_raise() -> None:
+    """The default stub is a no-op -- this validates the contract
+    return type (`None`) rather than the storage semantics (covered
+    per backend in test_cosmosdb / test_postgres)."""
+    client = _StubDatabaseClient(
+        settings=MagicMock(spec=AppSettings),
+        credential=MagicMock(),
+    )
+    assert await client.upsert_runtime_config(RuntimeConfig()) is None

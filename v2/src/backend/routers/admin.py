@@ -30,13 +30,15 @@ caller is accepted.
 """
 
 import logging
-from typing import Annotated
+from datetime import UTC, datetime
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field, ValidationError
 
-from backend.dependencies import SettingsDep
+from backend.dependencies import DatabaseClientDep, SettingsDep
+from shared.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -193,6 +195,107 @@ async def config_endpoint(
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
     )
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/admin/config -- runtime overrides (#35c-4)
+#
+# RFC 7396 JSON Merge Patch over the same 6-field surface as GET. The
+# merge is computed at the route layer (NOT pushed into the storage
+# layer) so the storage contract stays a dumb full-payload overwrite
+# (`upsert_runtime_config` writes whatever it's given) -- mirrors the
+# `upsert_agent_id` precedent and keeps merge semantics tested in one
+# place. Live-reload of `app.state.settings` is **deliberately
+# deferred** -- see dev_plan #35c "Excluded" section. Operators
+# observe their PATCHes immediately in the response body and on the
+# next container restart; an effective-config GET that overlays the
+# overrides on env defaults lands in a separate row.
+# ---------------------------------------------------------------------------
+
+
+# Allow-list of writable RuntimeConfig fields (the 6 mutable ones --
+# `updated_at` / `updated_by` are server-set and rejected on input).
+# Computed once at module import so request validation is O(1).
+_WRITABLE_FIELDS: frozenset[str] = frozenset(
+    name
+    for name in RuntimeConfig.model_fields
+    if name not in {"updated_at", "updated_by"}
+)
+
+
+def _utcnow_iso() -> str:
+    """ISO-8601 UTC timestamp with timezone suffix. Matches the
+    `_utcnow_iso` shape in `shared/providers/databases/cosmosdb.py`
+    so persisted RuntimeConfig rows are comparable across providers.
+    """
+    return datetime.now(UTC).isoformat()
+
+
+@router.patch("/config", response_model=RuntimeConfig)
+async def patch_config_endpoint(
+    db: DatabaseClientDep,
+    user_id: AdminUserIdDep,
+    payload: Annotated[dict[str, Any], Body(...)],
+) -> RuntimeConfig:
+    """Apply an RFC 7396 JSON Merge Patch to the persisted
+    `RuntimeConfig` and return the merged shape.
+
+    Semantics:
+
+    * Absent JSON key -> existing override unchanged.
+    * Explicit ``null`` -> override cleared (the field reverts to its
+      `AppSettings` env default on the next live-reload).
+    * Explicit value -> override set / replaced.
+    * Unknown JSON key -> 422 (allow-list lock-in).
+    * Wrong-type value -> 422 (Pydantic validation on the merged
+      `RuntimeConfig`).
+
+    The body is read as a raw `dict[str, Any]` -- not bound to a
+    Pydantic model with all-optional fields -- so the route can
+    distinguish 'absent' from 'explicit null' (RFC 7396 §1). A
+    Pydantic-bound body would silently coerce both into `None`,
+    breaking the 'undo my override' UX.
+    """
+    # --- Allow-list lock-in (rejects unknown fields with 422) -------------
+    unknown = set(payload) - _WRITABLE_FIELDS
+    if unknown:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={
+                "msg": "Unknown field(s) in PATCH body",
+                "unknown_fields": sorted(unknown),
+                "allowed_fields": sorted(_WRITABLE_FIELDS),
+            },
+        )
+
+    # --- Read current overrides; default to a fresh RuntimeConfig on cold
+    # start so the first-ever PATCH still goes through the merge path.
+    current = await db.get_runtime_config() or RuntimeConfig()
+    merged_data: dict[str, Any] = current.model_dump()
+
+    # --- Apply the patch (overwrites None when key is `null`, sets when
+    # key carries a value, leaves field untouched when key is absent).
+    for key, value in payload.items():
+        merged_data[key] = value
+
+    # --- Server-set audit fields -- always overwritten on every PATCH so
+    # an operator probing 'what's the latest override state?' can sort
+    # by `updated_at` deterministically.
+    merged_data["updated_at"] = _utcnow_iso()
+    merged_data["updated_by"] = user_id
+
+    # --- Type validation on the merged shape (turns wrong-type values
+    # into 422 with Pydantic's structured error detail).
+    try:
+        merged = RuntimeConfig.model_validate(merged_data)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=exc.errors(),
+        ) from exc
+
+    await db.upsert_runtime_config(merged)
+    return merged
 
 
 __all__ = ["AdminConfig", "AdminStatus", "admin_user_id", "router"]

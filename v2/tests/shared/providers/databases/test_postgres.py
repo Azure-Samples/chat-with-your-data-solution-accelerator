@@ -529,3 +529,172 @@ async def test_upsert_agent_id_is_idempotent_on_repeat_call() -> None:
     assert pool.execute.await_count == 2
     _sql, *second_bound = pool.execute.await_args_list[1].args
     assert second_bound == ["cwyd", "asst_new"]
+
+
+# ---------------------------------------------------------------------------
+# Runtime config (#35c-2 -- get_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_returns_none_when_row_missing() -> None:
+    """Cold start -- no override row written yet. fetchrow returns
+    None on miss and the wrapper must surface that as None, not
+    raise. The admin router then falls through to env defaults."""
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(return_value=None)
+    client = _make_client(pool=pool)
+    assert await client.get_runtime_config() is None
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_round_trips_persisted_payload() -> None:
+    """Hit path: the JSONB column carries the Pydantic dump as a
+    string (asyncpg returns JSONB as `str` by default unless a
+    custom codec is registered). `get_runtime_config()` must
+    `model_validate_json` it back into a `RuntimeConfig` with
+    every field round-tripping (booleans included -- explicit
+    False must not collapse into None)."""
+    from shared.types import RuntimeConfig
+
+    persisted = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2048,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-06T12:00:00+00:00",
+        updated_by="alice@example.com",
+    )
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(
+        return_value={"payload": persisted.model_dump_json()}
+    )
+    client = _make_client(pool=pool)
+    rebuilt = await client.get_runtime_config()
+    assert rebuilt == persisted
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_uses_singleton_id_filter() -> None:
+    """The runtime-config table is single-row by construction
+    (PRIMARY KEY DEFAULT 1, CHECK (id = 1) -- see schema test).
+    The SELECT must filter on `id = 1` so a future schema where
+    the table accidentally accumulates extra rows still picks up
+    the canonical singleton, never an arbitrary row."""
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(return_value=None)
+    client = _make_client(pool=pool)
+    await client.get_runtime_config()
+    sql, *args = pool.fetchrow.await_args.args
+    assert "FROM runtime_config" in sql
+    assert "WHERE id = 1" in sql
+    # No bound args -- the singleton id is hard-coded, not
+    # operator-controlled, so binding adds no security value.
+    assert args == []
+
+
+@pytest.mark.asyncio
+async def test_get_runtime_config_returns_empty_runtime_config_for_empty_payload() -> None:
+    """Boundary: a persisted row with an empty payload (every
+    override cleared) must rehydrate as a `RuntimeConfig()` with
+    every field `None` -- the merge in #35c-7 then falls through
+    to env defaults across the board. Asserting this guards the
+    'cleared all overrides' UX path against silently returning
+    None (cold start) instead."""
+    from shared.types import RuntimeConfig
+
+    pool, _ = _make_pool()
+    pool.fetchrow = AsyncMock(return_value={"payload": "{}"})
+    client = _make_client(pool=pool)
+    rebuilt = await client.get_runtime_config()
+    assert rebuilt == RuntimeConfig()
+
+
+# ---------------------------------------------------------------------------
+# Runtime config (#35c-3 -- upsert_runtime_config)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_emits_canonical_upsert_sql() -> None:
+    """Single-round-trip atomic CREATE-or-REPLACE keyed on the
+    singleton `id = 1`. `EXCLUDED.payload` lets the PATCH route in
+    #35c-4 rewrite the row without first reading + deleting it.
+    `updated_at = NOW()` is bumped on every write so an audit can
+    distinguish "first written" from "most recently overridden".
+    """
+    from shared.types import RuntimeConfig
+
+    pool, _ = _make_pool()
+    client = _make_client(pool=pool)
+    await client.upsert_runtime_config(RuntimeConfig(openai_temperature=0.7))
+
+    pool.execute.assert_awaited_once()
+    sql, *args = pool.execute.await_args.args
+    assert "INSERT INTO runtime_config" in sql
+    assert "ON CONFLICT (id) DO UPDATE" in sql
+    assert "payload = EXCLUDED.payload" in sql
+    assert "updated_at = NOW()" in sql
+    # Singleton id is hard-coded in the SQL (not bound) -- only the
+    # JSONB payload is parameterized via $1, mirroring
+    # `test_get_runtime_config_uses_singleton_id_filter`.
+    assert len(args) == 1
+    assert args[0] == RuntimeConfig(openai_temperature=0.7).model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_uses_parameterized_jsonb_binding() -> None:
+    """`payload` must be bound via $1 -- never interpolated. A
+    malicious string sneaked into a future RuntimeConfig field
+    (e.g. `log_level="'); DROP TABLE runtime_config;--"`) could
+    otherwise inject SQL via the JSON serialization. Asserts the
+    $1 placeholder + bound argument pattern."""
+    from shared.types import RuntimeConfig
+
+    pool, _ = _make_pool()
+    client = _make_client(pool=pool)
+    payload = RuntimeConfig(
+        log_level="'); DROP TABLE runtime_config;--"
+    )
+    await client.upsert_runtime_config(payload)
+    sql, *args = pool.execute.await_args.args
+    assert "$1" in sql
+    assert "DROP TABLE" not in sql
+    assert args == [payload.model_dump_json()]
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_is_idempotent_on_repeat_call() -> None:
+    """Two writes with overlapping fields must not raise (the
+    ON CONFLICT branch fires); a subsequent write with a new
+    payload must be forwarded through to the SQL bind args so
+    the UPDATE path picks it up. Validates the rewrite path the
+    PATCH route in #35c-4 relies on."""
+    from shared.types import RuntimeConfig
+
+    pool, _ = _make_pool()
+    client = _make_client(pool=pool)
+    first = RuntimeConfig(openai_temperature=0.5)
+    second = RuntimeConfig(openai_temperature=0.9)
+    await client.upsert_runtime_config(first)
+    await client.upsert_runtime_config(second)
+    assert pool.execute.await_count == 2
+    _sql, *second_bound = pool.execute.await_args_list[1].args
+    assert second_bound == [second.model_dump_json()]
+
+
+@pytest.mark.asyncio
+async def test_schema_sql_creates_runtime_config_table() -> None:
+    """Lazy bootstrap (`_SCHEMA_SQL`) must include the
+    runtime_config table -- otherwise the very first
+    `get_runtime_config` against a fresh deployment raises
+    `UndefinedTable`. #35c keeps schema bootstrap lazy (no
+    post_provision change required)."""
+    from shared.providers.databases.postgres import _SCHEMA_SQL
+
+    assert "CREATE TABLE IF NOT EXISTS runtime_config" in _SCHEMA_SQL
+    assert "id          INTEGER PRIMARY KEY DEFAULT 1" in _SCHEMA_SQL
+    assert "CHECK (id = 1)" in _SCHEMA_SQL
+    assert "payload     JSONB NOT NULL" in _SCHEMA_SQL

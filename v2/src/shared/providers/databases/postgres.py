@@ -31,7 +31,7 @@ import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 
 from shared.settings import AppSettings
-from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
 
 from . import registry
 from .base import BaseDatabaseClient
@@ -71,6 +71,21 @@ CREATE TABLE IF NOT EXISTS agents (
     name        TEXT PRIMARY KEY,
     agent_id    TEXT NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Runtime config (#35c-2). Single-row table -- the admin API
+-- (`PATCH /api/admin/config`, #35c-7) overrides selected env defaults
+-- at request time, and there is exactly one override document. The
+-- `CHECK (id = 1)` constraint enforces the singleton at the DB layer
+-- so a future bug in the writer cannot accumulate stray rows. The
+-- payload is stored as JSONB rather than per-column scalars so the
+-- `RuntimeConfig` Pydantic model can grow new optional overrides
+-- without a DDL migration. Lazy-bootstrapped alongside the other
+-- tables so a fresh deployment needs no separate post_provision step.
+CREATE TABLE IF NOT EXISTS runtime_config (
+    id          INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    payload     JSONB NOT NULL,
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 """
@@ -431,4 +446,47 @@ class PostgresClient(BaseDatabaseClient):
             "agent_id = EXCLUDED.agent_id, updated_at = NOW()",
             name,
             agent_id,
+        )
+
+    # ------------------------------------------------------------------
+    # Runtime config (#35c-2)
+    # ------------------------------------------------------------------
+
+    async def get_runtime_config(self) -> RuntimeConfig | None:
+        pool = await self._ensure_pool()
+        # Hard-coded `id = 1` filter: the runtime_config table is
+        # single-row by construction (PRIMARY KEY DEFAULT 1, CHECK
+        # (id = 1) -- see _SCHEMA_SQL). The id is not
+        # operator-controlled, so binding adds no security value;
+        # asserted in the test
+        # `test_get_runtime_config_uses_singleton_id_filter`.
+        # asyncpg returns JSONB columns as `str` by default (no codec
+        # registered); `model_validate_json` round-trips it back into
+        # a `RuntimeConfig`. Cold start (no row) returns None so the
+        # admin merge falls through to env defaults.
+        row = await pool.fetchrow(
+            "SELECT payload FROM runtime_config WHERE id = 1"
+        )
+        if row is None:
+            return None
+        return RuntimeConfig.model_validate_json(row["payload"])
+
+    async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
+        pool = await self._ensure_pool()
+        # Single-round-trip atomic CREATE-or-REPLACE on the singleton
+        # `id = 1` row (CHECK constraint enforces the singleton at
+        # the DB layer). `EXCLUDED.payload` lets the PATCH route in
+        # #35c-4 rewrite the row without first reading + deleting it.
+        # The id is hard-coded in the SQL (not bound) -- it is not
+        # operator-controlled, so binding adds no security value;
+        # only the JSONB payload is parameterized via $1. asyncpg
+        # accepts a JSON-shaped `str` for JSONB columns out of the
+        # box (no codec registration); `model_dump_json()` produces
+        # exactly that shape and round-trips through `model_validate_json`
+        # in `get_runtime_config`.
+        await pool.execute(
+            "INSERT INTO runtime_config (id, payload) VALUES (1, $1) "
+            "ON CONFLICT (id) DO UPDATE SET "
+            "payload = EXCLUDED.payload, updated_at = NOW()",
+            config.model_dump_json(),
         )

@@ -27,7 +27,7 @@ from shared.agents.definitions import AgentDefinition
 from shared.providers.agents.base import BaseAgentsProvider
 from shared.providers.databases.base import BaseDatabaseClient
 from shared.settings import AppSettings
-from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +122,12 @@ class _StubDB(BaseDatabaseClient):
     async def upsert_agent_id(self, name: str, agent_id: str) -> None:
         self.upsert_calls.append((name, agent_id))
         self._rows[name] = agent_id
+
+    async def get_runtime_config(self) -> RuntimeConfig | None:
+        return None
+
+    async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
+        return None
 
 
 def _definition(name: str = "cwyd") -> AgentDefinition:
