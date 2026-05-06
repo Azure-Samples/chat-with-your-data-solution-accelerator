@@ -45,6 +45,7 @@ class SemanticKernelOrchestrator(OrchestratorBase):
         system_message = self.env_helper.SEMANTIC_KERNEL_SYSTEM_PROMPT
         if not system_message:
             system_message = """You help employees to navigate only private information sources.
+You **must always** call the search_documents function first for any user question before deciding if the information is available or not. Never decide a question is out of domain without searching first.
 You should prioritize the function call over your general knowledge for any question by calling the search_documents function.
 Call the text_processing function when the user requests an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
 When directly replying to the user, always reply in the language the user is speaking.

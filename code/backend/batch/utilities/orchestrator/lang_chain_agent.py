@@ -63,7 +63,7 @@ class LangChainAgent(OrchestratorBase):
                 return response
 
         # Call function to determine route
-        prefix = """Have a conversation with a human, answering the following questions as best you can. You have access to the following tools:"""
+        prefix = """Have a conversation with a human, answering the following questions as best you can. You **must always** use the Question Answering tool first for any user question before attempting to answer on your own. Never answer a question directly without using the Question Answering tool first. You have access to the following tools:"""
         suffix = """Begin!"
 
         {chat_history}
