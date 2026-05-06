@@ -23,20 +23,20 @@ The scope is `v2/src/**` only (NOT tests / scripts):
 - Scripts are one-off automation and not part of the production
   surface this policy protects.
 
-Per-file exemption list (`_EXEMPTIONS`) currently holds 1 known
-site that pre-dates this policy. It is intentional non-fatal
-swallow but per policy must log via `logger.debug(...)` instead of
-bare `pass`. Scheduled for fix in its owning sub-unit:
+Per-file exemption list (`_EXEMPTIONS`) is now **empty**. Phase C
+closed every pre-policy site:
 
-- `v2/src/backend/core/pipelines/chat.py` line 143 --> fixed in
-  Phase C sub-unit C3 (pipeline sweep).
+- C2 closure removed `cosmosdb.py` (idempotent-skip site now logs
+  via `logger.debug` with message id + conversation id).
+- C3 closure removed `backend/core/pipelines/chat.py` line 143 --
+  malformed-citation `pass` replaced with
+  `logger.debug("ignoring malformed citation metadata", extra={...})`
+  carrying `operation="citation_parse"`, `pipeline="chat"`,
+  `citation_id`, and `error` for App Insights triage.
 
-When C3 lands, the entry comes out of `_EXEMPTIONS`. The list
-returns to empty by C3 close. After that, the two constructs are
-unconditionally banned in v2/src/.
-
-(C2 closure: cosmosdb.py L288 fix landed; logged via
-`logger.debug` per policy with idempotent-skip context.)
+Adding a new entry here is **not the right escape hatch**: fix the
+construct (log via `logger.debug(...)` if the swallow is genuinely
+intentional, otherwise narrow the catch and surface the failure).
 
 Companion to [v2/tests/shared/test_no_legacy_shared_imports.py] and
 [v2/tests/shared/test_no_type_checking_or_future_annotations.py],
@@ -55,18 +55,11 @@ _V2_ROOT = Path(__file__).resolve().parents[1]
 # excluded (see module docstring).
 _SCAN_ROOT = _V2_ROOT / "src"
 
-# Per-file exemption list. Holds known pre-policy sites whose fix
-# belongs to a later C sub-unit (see module docstring). Each entry
-# MUST come out as the owning sub-unit lands. C3 closure verifies
-# this list is empty again.
-_EXEMPTIONS: frozenset[Path] = frozenset(
-    {
-        # Non-fatal malformed-citation metadata; fix in C3 (pipeline
-        # sweep) by replacing `pass` with
-        # `logger.debug("ignoring malformed citation metadata: %s", exc)`.
-        _V2_ROOT / "src" / "backend" / "core" / "pipelines" / "chat.py",
-    }
-)
+# Per-file exemption list. Empty by design after Phase C3 closure --
+# every pre-policy silent-swallow site has been migrated to
+# `logger.debug(...)` per the exception_handling_policy. Adding a
+# new entry here is not the right escape hatch; fix the construct.
+_EXEMPTIONS: frozenset[Path] = frozenset()
 
 
 def _iter_v2_src_python_files() -> list[Path]:

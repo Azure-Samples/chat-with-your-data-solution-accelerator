@@ -48,6 +48,7 @@ Behavior contracts
   (sub-second perceived latency for the streaming client).
 """
 
+import logging
 from typing import AsyncIterator, Awaitable, Callable, Sequence
 
 from backend.core.providers.orchestrators.base import OrchestratorBase
@@ -60,6 +61,8 @@ from backend.core.types import (
     OrchestratorEvent,
     SearchResult,
 )
+
+logger = logging.getLogger(__name__)
 
 # Type alias for the RAI screener callable. Returns True when input
 # is safe, False when unsafe. The pipeline never inspects the
@@ -140,8 +143,24 @@ async def run_chat(
                 seen_citation_ids.add(cid)
                 try:
                     citations.append(Citation(**event.metadata))
-                except Exception:  # noqa: BLE001 -- malformed metadata is non-fatal
-                    pass
+                except Exception as exc:  # noqa: BLE001 -- malformed metadata is non-fatal
+                    # Per v2/docs/exception_handling_policy.md "Pipelines" row:
+                    # the citation metadata schema can drift across orchestrator
+                    # versions (extra keys, wrong types). The cited document is
+                    # already streaming through the SSE channel as the original
+                    # event below, so dropping the structured `Citation` for
+                    # post-prompt grounding is non-fatal -- log at DEBUG so the
+                    # decision is visible in App Insights without spamming
+                    # WARN/ERROR for routine schema drift.
+                    logger.debug(
+                        "ignoring malformed citation metadata",
+                        extra={
+                            "operation": "citation_parse",
+                            "pipeline": "chat",
+                            "citation_id": cid,
+                            "error": str(exc),
+                        },
+                    )
         yield event
 
     if not buffering_answer:

@@ -289,6 +289,104 @@ async def test_rai_check_latest_user_message_is_screened_not_assistant() -> None
     assert rai.calls == ["latest"]
 
 
+# ---------------------------------------------------------------------------
+# Malformed citation metadata (Phase C3 -- pipeline sweep)
+# ---------------------------------------------------------------------------
+#
+# Per v2/docs/exception_handling_policy.md "Pipelines" row + cross-cutting
+# rules: `Citation(**event.metadata)` parsing failure is non-fatal --
+# the cited document still streams to the SSE consumer as the original
+# orchestrator event, only post-prompt grounding loses one source. The
+# original `pass` was a silent swallow (banned); the C3 fix logs at
+# DEBUG with structured extras so the decision is visible in App
+# Insights without alerting on routine schema drift.
+
+
+_CHAT_LOGGER_NAME = "backend.core.pipelines.chat"
+
+
+async def test_malformed_citation_metadata_is_logged_and_pipeline_keeps_streaming(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A citation event whose metadata fails `Citation(**...)` validation
+    must (a) NOT abort the SSE stream, (b) still propagate the original
+    orchestrator event to the consumer, (c) emit a single DEBUG log
+    with the canonical structured extras so the swallow is visible in
+    App Insights, and (d) not crash post-prompt grounding -- the bad
+    citation is simply dropped from the structured `sources` list.
+    """
+    bad_citation = OrchestratorEvent(
+        channel="citation",
+        # `score` typed as float on Citation; passing a non-coercible
+        # string forces a Pydantic ValidationError on construction.
+        metadata={
+            "id": "doc-bad",
+            "title": "Bad Doc",
+            "snippet": "oops",
+            "score": "not-a-float",
+        },
+    )
+    good_citation = OrchestratorEvent(
+        channel="citation",
+        metadata={
+            "id": "doc-good",
+            "title": "Good Doc",
+            "snippet": "clean source",
+            "score": 0.91,
+        },
+    )
+    events = [
+        OrchestratorEvent(channel="reasoning", content="thinking"),
+        bad_citation,
+        OrchestratorEvent(channel="answer", content="Hello, "),
+        good_citation,
+        OrchestratorEvent(channel="answer", content="world!"),
+    ]
+    orch = _ScriptedOrchestrator(events)
+    validator = _FakePostPrompt(
+        ValidationResult(grounded=True, answer="Hello, world!")
+    )
+
+    with caplog.at_level("DEBUG", logger=_CHAT_LOGGER_NAME):
+        out = await _drain(
+            run_chat(
+                [ChatMessage(role="user", content="say hi")],
+                orchestrator=orch,
+                post_prompt=validator,
+            )
+        )
+
+    # (a)+(b) Stream did not abort; both citation events were forwarded
+    # to the SSE consumer (the malformed event MUST still surface so
+    # the FE can render the snippet -- only the structured Citation is
+    # dropped from post-prompt's sources list).
+    channels = [e.channel for e in out]
+    assert channels == ["reasoning", "citation", "citation", "answer"]
+
+    # (c) Exactly one DEBUG record for the malformed citation, with the
+    # canonical extras laid down by the C3 fix.
+    debug_records = [
+        r
+        for r in caplog.records
+        if r.levelname == "DEBUG"
+        and getattr(r, "operation", None) == "citation_parse"
+    ]
+    assert len(debug_records) == 1, (
+        f"expected exactly 1 DEBUG citation_parse record, got "
+        f"{len(debug_records)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    record = debug_records[0]
+    assert record.pipeline == "chat"
+    assert record.citation_id == "doc-bad"
+    assert isinstance(record.error, str) and record.error  # non-empty
+
+    # (d) Post-prompt grounding ran on the surviving good citation only.
+    assert len(validator.calls) == 1
+    sources = validator.calls[0]["sources"]
+    assert len(sources) == 1
+    assert sources[0].id == "doc-good"
+
+
 async def test_content_safety_short_circuits_before_rai_check() -> None:
     """Order-of-operations lock-down: when both guards are configured
     and content_safety flags the input, the more expensive `rai_check`

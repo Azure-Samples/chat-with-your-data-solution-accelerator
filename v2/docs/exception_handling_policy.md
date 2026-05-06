@@ -40,11 +40,12 @@ These apply to every layer and are enforced by [v2/tests/no_silent_excepts.py](.
 
 ### Known pending exemptions (cleared during Phase C sweep)
 
-The AST invariant test ([v2/tests/no_silent_excepts.py](../tests/no_silent_excepts.py)) currently holds **1 known pre-policy exemption** that the remaining sweep removes:
+The AST invariant test ([v2/tests/no_silent_excepts.py](../tests/no_silent_excepts.py)) now holds **0 exemptions**. Phase C closed both pre-policy sites:
 
-- `v2/src/backend/core/pipelines/chat.py` line 143 — non-fatal malformed citation metadata. Fixed in **C3** (pipeline sweep): capture `exc` and replace `pass` with `logger.debug("ignoring malformed citation metadata: %s", exc)`.
+- C2 closure removed `v2/src/backend/core/providers/databases/cosmosdb.py` -- inner per-message `CosmosResourceNotFoundError` catch now logs the idempotent skip via `logger.debug` with both message id and conversation id in the structured payload.
+- C3 closure removed `v2/src/backend/core/pipelines/chat.py` line 143 -- malformed-citation `pass` replaced with `logger.debug("ignoring malformed citation metadata", extra={"operation": "citation_parse", "pipeline": "chat", "citation_id": cid, "error": str(exc)})`. The cited document still streams to the SSE consumer as the original orchestrator event (only post-prompt grounding loses that one source).
 
-C2 (provider sweep) closure already removed `v2/src/backend/core/providers/databases/cosmosdb.py` from the list — its inner per-message `CosmosResourceNotFoundError` catch now logs the idempotent skip via `logger.debug` with both message id and conversation id in the structured payload. After C3 closure the `_EXEMPTIONS` set in the invariant test is empty.
+After C3, silent swallow and `except BaseException` are unconditionally banned across `v2/src/**`. Adding a new entry to `_EXEMPTIONS` is **not the right escape hatch** -- fix the construct.
 
 ## Required pattern
 
@@ -92,7 +93,7 @@ The following 9 broad `except Exception` blocks are intentional and pre-date thi
 
 - `v2/src/backend/app.py` lines 142, 146, 150, 154, 158 — best-effort cleanup paths in `_lifespan` shutdown branch.
 - `v2/src/backend/routers/conversation.py` line 80 — top-level handler safety net (surfaced to client SSE channel).
-- `v2/src/backend/core/pipelines/chat.py` line 143 — malformed metadata is non-fatal; pipeline keeps streaming.
+- `v2/src/backend/core/pipelines/chat.py` line 146 — malformed citation metadata is non-fatal; pipeline keeps streaming and the failure is logged at DEBUG via `logger.debug("ignoring malformed citation metadata", extra={...})` (Phase C3 closure).
 - `v2/src/backend/core/providers/llm/foundry_iq.py` line 321 — surfaces to SSE error channel.
 - `v2/src/backend/core/providers/llm/base.py` line 136 — surfaces to SSE error channel.
 
