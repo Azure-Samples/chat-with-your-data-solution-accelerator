@@ -27,6 +27,10 @@ Write-Host " Post-Deployment Setup"
 Write-Host " Resource Group: $ResourceGroupName"
 Write-Host "=============================================="
 
+$env:PG_ACCESS_TOKEN = az account get-access-token `
+    --resource "https://ossrdbms-aad.database.windows.net" `
+    --query accessToken -o tsv 2>$null
+
 # Remove rdbms-connect extension if present (it conflicts with built-in admin commands)
 az extension remove --name rdbms-connect 2>$null | Out-Null
 
@@ -315,12 +319,27 @@ else {
             pip install --user -r $requirementsFile 2>&1 | Out-Null
         }
 
+        if ([string]::IsNullOrEmpty($env:PG_ACCESS_TOKEN)) {
+            Write-Host "✓ Acquiring PostgreSQL access token..."
+            $env:PG_ACCESS_TOKEN = az account get-access-token `
+                --resource "https://ossrdbms-aad.database.windows.net" `
+                --query accessToken -o tsv 2>$null
+            if ([string]::IsNullOrEmpty($env:PG_ACCESS_TOKEN)) {
+                Write-Warning "Failed to acquire PostgreSQL access token via az CLI. Falling back to DefaultAzureCredential inside Python (may fail for federated SPs)."
+            }
+        }
+
         Write-Host "✓ Creating tables..."
         $pythonScript = Join-Path $scriptDir "data_scripts" "setup_postgres_tables.py"
-        python $pythonScript $serverFqdn $currentUserUpn
+        try {
+            python $pythonScript $serverFqdn $currentUserUpn
 
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "✗ Failed to create PostgreSQL tables."
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "✗ Failed to create PostgreSQL tables."
+            }
+        }
+        finally {
+            Remove-Item Env:PG_ACCESS_TOKEN -ErrorAction SilentlyContinue
         }
     }
     finally {

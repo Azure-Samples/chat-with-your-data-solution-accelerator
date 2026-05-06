@@ -2,13 +2,11 @@
 
 Usage:
     python setup_postgres_tables.py <server_fqdn> <user>
-
-Authenticates using DefaultAzureCredential (requires 'az login').
 """
 
+import os
 import sys
 import psycopg2
-from azure.identity import DefaultAzureCredential
 
 if len(sys.argv) != 3:
     print("Usage: python setup_postgres_tables.py <server_fqdn> <user>")
@@ -18,12 +16,17 @@ host = sys.argv[1]
 user = sys.argv[2]
 dbname = "postgres"
 
-# Acquire the access token
-cred = DefaultAzureCredential()
-access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.default")
+token = os.environ.get("PG_ACCESS_TOKEN")
+if not token:
+    from azure.identity import DefaultAzureCredential
+
+    cred = DefaultAzureCredential()
+    token = cred.get_token(
+        "https://ossrdbms-aad.database.windows.net/.default"
+    ).token
 
 conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format(
-    host, user, dbname, access_token.token
+    host, user, dbname, token
 )
 conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
