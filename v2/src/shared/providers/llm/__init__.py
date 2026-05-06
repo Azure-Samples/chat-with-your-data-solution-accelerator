@@ -14,6 +14,13 @@ Recipe (per ยง3.5 of v2/docs/development_plan.md):
     reply = await llm_provider.chat(messages, deployment="gpt-4o")
 """
 
+# pyright: reportUnusedImport=false
+# `from . import foundry_iq` below is an intentional side-effect
+# import that triggers `@registry.register("foundry_iq")`; pyright
+# cannot see the side-effect and would flag it as unused (Hard Rule #4).
+
+from typing import Any
+
 from shared.registry import Registry
 
 from .base import BaseLLMProvider
@@ -24,7 +31,7 @@ registry: Registry[type[BaseLLMProvider]] = Registry("llm")
 from . import foundry_iq  # noqa: E402, F401
 
 
-def create(key: str, **kwargs: object) -> BaseLLMProvider:
+def create(key: str, **kwargs: Any) -> BaseLLMProvider:
     """Instantiate the LLM provider registered under `key`."""
     return registry.get(key)(**kwargs)
 

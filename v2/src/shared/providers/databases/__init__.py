@@ -24,6 +24,13 @@ match `DatabaseSettings.db_type` (a `Literal["cosmosdb",
 `tests/shared/test_databases_factory.py`.
 """
 
+# pyright: reportUnusedImport=false
+# `from . import <module>` lines below are intentional side-effect
+# imports that trigger `@registry.register(...)`; pyright cannot see
+# the side-effect and would flag them as unused (Hard Rule #4).
+
+from typing import Any
+
 from shared.registry import Registry
 
 from .base import BaseDatabaseClient
@@ -36,7 +43,7 @@ from . import cosmosdb  # noqa: E402, F401
 from . import postgres  # noqa: E402, F401
 
 
-def create(key: str, **kwargs: object) -> BaseDatabaseClient:
+def create(key: str, **kwargs: Any) -> BaseDatabaseClient:
     """Instantiate the database client registered under `key`."""
     return registry.get(key)(**kwargs)
 

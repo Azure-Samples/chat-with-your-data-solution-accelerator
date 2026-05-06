@@ -15,6 +15,13 @@ Recipe (per §3.5 of v2/docs/development_plan.md):
         ...
 """
 
+# pyright: reportUnusedImport=false
+# `from . import cli, managed_identity` below is an intentional
+# side-effect import that triggers `@registry.register(...)`; pyright
+# cannot see the side-effect and would flag it as unused (Hard Rule #4).
+
+from typing import Any
+
 from shared.registry import Registry
 
 from .base import BaseCredentialProvider
@@ -27,7 +34,7 @@ registry: Registry[type[BaseCredentialProvider]] = Registry("credentials")
 from . import cli, managed_identity  # noqa: E402, F401  (side-effect imports)
 
 
-def create(key: str, **kwargs: object) -> BaseCredentialProvider:
+def create(key: str, **kwargs: Any) -> BaseCredentialProvider:
     """Instantiate the provider registered under `key`.
 
     `key` is case-insensitive (handled by `Registry`).

@@ -25,6 +25,13 @@ Recipe (per development_plan.md ยง3.5):
     client = provider.get_client()  # azure.ai.agents.aio.AgentsClient
 """
 
+# pyright: reportUnusedImport=false
+# `from . import <module>` lines below are intentional side-effect
+# imports that trigger `@registry.register(...)`; pyright cannot see
+# the side-effect and would flag them as unused (Hard Rule #4).
+
+from typing import Any
+
 from shared.registry import Registry
 
 from .base import BaseAgentsProvider
@@ -35,7 +42,7 @@ registry: Registry[type[BaseAgentsProvider]] = Registry("agents")
 from . import foundry  # noqa: E402, F401
 
 
-def create(key: str, **kwargs: object) -> BaseAgentsProvider:
+def create(key: str, **kwargs: Any) -> BaseAgentsProvider:
     """Instantiate the agents provider registered under `key`."""
     return registry.get(key)(**kwargs)
 

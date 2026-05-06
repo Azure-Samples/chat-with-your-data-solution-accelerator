@@ -25,6 +25,13 @@ import section below is reserved for the future
 empty registry.
 """
 
+# pyright: reportUnusedImport=false
+# `from . import <module>` lines below are intentional side-effect
+# imports that trigger `@registry.register(...)`; pyright cannot see
+# the side-effect and would flag them as unused (Hard Rule #4).
+
+from typing import Any
+
 from shared.registry import Registry
 
 from .base import OrchestratorBase
@@ -36,7 +43,7 @@ from . import agent_framework  # noqa: E402, F401
 from . import langgraph  # noqa: E402, F401
 
 
-def create(key: str, **kwargs: object) -> OrchestratorBase:
+def create(key: str, **kwargs: Any) -> OrchestratorBase:
     """Instantiate the orchestrator registered under `key`."""
     return registry.get(key)(**kwargs)
 

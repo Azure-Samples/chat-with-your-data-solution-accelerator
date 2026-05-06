@@ -21,7 +21,12 @@ The registry key MUST equal the `settings.database.index_store` Literal
 value (`AzureSearch` / `pgvector`) so dispatch never goes through a
 name-string translation (Hard Rule #4).
 """
+# pyright: reportUnusedImport=false
+# `from . import <module>` lines below are intentional side-effect
+# imports that trigger `@registry.register(...)`; pyright cannot see
+# the side-effect and would flag them as unused (Hard Rule #4).
 
+from typing import Any
 from shared.registry import Registry
 
 from .base import BaseSearch
@@ -33,7 +38,7 @@ from . import azure_search  # noqa: E402, F401
 from . import pgvector  # noqa: E402, F401
 
 
-def create(key: str, **kwargs: object) -> BaseSearch:
+def create(key: str, **kwargs: Any) -> BaseSearch:
     """Instantiate the search provider registered under `key`."""
     return registry.get(key)(**kwargs)
 
