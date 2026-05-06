@@ -25,9 +25,9 @@ per process, no parallel connection management (per development plan
 import asyncio
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Sequence
+from typing import Any, Protocol, Sequence, cast
 
-import asyncpg
+import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 
 from shared.settings import AppSettings
@@ -76,6 +76,52 @@ CREATE TABLE IF NOT EXISTS agents (
 """
 
 
+# ---------------------------------------------------------------------------
+# Narrow asyncpg Protocols (Q14b).
+#
+# `asyncpg` ships no type stubs, so every method call would otherwise leak
+# `Unknown` through pyright `--strict`. Rather than scattering `cast()`
+# calls across every CRUD method, we cast the resolved pool ONCE inside
+# `_ensure_pool()` to the protocols below; every downstream call site
+# inherits a fully-typed surface. The protocols intentionally describe
+# only the methods this module uses -- the real classes carry many more.
+#
+# Test fakes (`_make_pool`, `_FakeConnection`, `_FakeTransaction` in
+# `tests/shared/providers/databases/test_postgres.py`) already match
+# this shape structurally; Protocol is structural so no test edit is
+# required.
+# ---------------------------------------------------------------------------
+
+
+class _Record(Protocol):
+    def __getitem__(self, key: str) -> Any: ...
+
+
+class _Transaction(Protocol):
+    async def __aenter__(self) -> "_Transaction": ...
+    async def __aexit__(self, *exc: object) -> None: ...
+
+
+class _Connection(Protocol):
+    async def execute(self, query: str, *args: Any) -> str: ...
+    async def fetchrow(self, query: str, *args: Any) -> _Record | None: ...
+    async def fetch(self, query: str, *args: Any) -> list[_Record]: ...
+    def transaction(self) -> _Transaction: ...
+
+
+class _AcquireCtx(Protocol):
+    async def __aenter__(self) -> _Connection: ...
+    async def __aexit__(self, *exc: object) -> None: ...
+
+
+class _Pool(Protocol):
+    def acquire(self) -> _AcquireCtx: ...
+    async def execute(self, query: str, *args: Any) -> str: ...
+    async def fetchrow(self, query: str, *args: Any) -> _Record | None: ...
+    async def fetch(self, query: str, *args: Any) -> list[_Record]: ...
+    async def close(self) -> None: ...
+
+
 def _to_iso(dt: datetime | None) -> str:
     if dt is None:
         return ""
@@ -84,7 +130,7 @@ def _to_iso(dt: datetime | None) -> str:
     return dt.isoformat()
 
 
-def _row_to_conversation(row: "asyncpg.Record | dict[str, Any]") -> Conversation:
+def _row_to_conversation(row: _Record) -> Conversation:
     return Conversation(
         id=str(row["id"]),
         user_id=str(row["user_id"]),
@@ -94,7 +140,7 @@ def _row_to_conversation(row: "asyncpg.Record | dict[str, Any]") -> Conversation
     )
 
 
-def _row_to_message(row: "asyncpg.Record | dict[str, Any]") -> MessageRecord:
+def _row_to_message(row: _Record) -> MessageRecord:
     feedback = row["feedback"]
     return MessageRecord(
         id=str(row["id"]),
@@ -150,7 +196,10 @@ class PostgresClient(BaseDatabaseClient):
         calls this from `lifespan` so it can DI-inject a single pool
         per process (per development plan \u00a74 task #30).
         """
-        return await self._ensure_pool()
+        await self._ensure_pool()
+        # Cast the protocol back to the public asyncpg.Pool surface for
+        # pgvector consumers; storage type is the same object either way.
+        return cast("asyncpg.Pool", self._pool)
 
     async def _password_provider(self) -> str:
         """asyncpg-compatible async callable that returns a fresh AAD
@@ -159,10 +208,10 @@ class PostgresClient(BaseDatabaseClient):
         token = await self._credential.get_token(_POSTGRES_AAD_SCOPE)
         return token.token
 
-    async def _ensure_pool(self) -> "asyncpg.Pool":
+    async def _ensure_pool(self) -> _Pool:
         # Fast path: pool already built and schema applied.
         if self._pool is not None and self._schema_ready:
-            return self._pool
+            return cast(_Pool, self._pool)
         # Slow path: serialize pool creation + schema bootstrap behind a
         # single lock so concurrent first-use callers cannot race
         # `asyncpg.create_pool` (TOCTOU) and leak a pool.
@@ -182,18 +231,19 @@ class PostgresClient(BaseDatabaseClient):
                         "PostgresClient requires the Entra principal name "
                         "to connect as."
                     )
-                self._pool = await asyncpg.create_pool(
+                self._pool = await asyncpg.create_pool(  # pyright: ignore[reportUnknownMemberType]
                     dsn=endpoint,
                     user=user,
                     password=self._password_provider,
                     min_size=1,
                     max_size=10,
                 )
+            typed_pool = cast(_Pool, self._pool)
             if not self._schema_ready:
-                async with self._pool.acquire() as conn:
+                async with typed_pool.acquire() as conn:
                     await conn.execute(_SCHEMA_SQL)
                 self._schema_ready = True
-        return self._pool
+        return typed_pool
 
     async def _ensure_schema(self) -> None:
         # Retained as a thin wrapper for callers that already hold a
@@ -348,7 +398,7 @@ class PostgresClient(BaseDatabaseClient):
             user_id,
         )
         # asyncpg returns the command tag like "UPDATE 1" / "UPDATE 0".
-        if isinstance(result, str) and result.endswith(" 0"):
+        if result.endswith(" 0"):
             raise KeyError(message_id)
 
     # ------------------------------------------------------------------
