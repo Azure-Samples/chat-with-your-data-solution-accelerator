@@ -17,8 +17,8 @@ This test walks every `*.py` under `v2/{src,tests,scripts}` and asserts:
 
 Phase 5.5 lifecycle:
 
-- B1 (this turn): land the test marked `@pytest.mark.xfail(strict=False)` so
-  the existing ~155 violation surface stays *visible* (xfailed, not green) but
+- B1: land the test marked `@pytest.mark.xfail(strict=False)` so the
+  existing ~155 violation surface stays *visible* (xfailed, not green) but
   does not break the suite during the sweep.
 - B2: `git mv v2/src/shared v2/src/backend/core` + `git mv v2/tests/shared
   v2/tests/backend/core` + create empty `v2/src/functions/core/__init__.py`.
@@ -27,8 +27,8 @@ Phase 5.5 lifecycle:
 - B4: config + docs sweep (pyproject pyright/hatch, docker-compose mounts,
   Dockerfile.functions, .env.sample, agents.md, env-vars.md, ADR 0008,
   copilot-instructions, instruction file rename, memory).
-- B5: validate (uv sync, pytest 547/547, pyright 0, compose config) +
-  flip the `xfail` decorator off so future re-introduction goes red
+- B5 (this revision): `xfail` decorator removed -- future re-introduction
+  of `from shared.` anywhere in `v2/{src,tests,scripts}` goes red
   immediately.
 
 If a future PR introduces `from shared.` somewhere, the failure points at
@@ -98,14 +98,6 @@ def _has_legacy_shared_import(tree: ast.Module) -> tuple[bool, str | None]:
 _ALL_FILES = _iter_v2_python_files()
 
 
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "REFACTOR-B in flight: legacy `from shared.` imports persist until "
-        "B3 sweep lands. xfail decorator removed in B5 once the sweep is "
-        "complete + validated; future regressions then go red immediately."
-    ),
-)
 @pytest.mark.parametrize(
     "py_file",
     _ALL_FILES,
