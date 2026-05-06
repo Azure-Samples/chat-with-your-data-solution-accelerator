@@ -18,7 +18,7 @@ You do not edit files. You produce findings, gate decisions, and one-unit Work O
 2. `.github/instructions/v2-workflow.instructions.md`
 3. `.github/instructions/v2-tests.instructions.md`
 4. `.github/instructions/v2-infra.instructions.md` when deployability, Bicep, Docker, or azd validation is in scope.
-5. The per-area instruction matching the target files (`v2-backend`, `v2-shared`, `v2-frontend`, `v2-functions`, or `v2-infra`).
+5. The per-area instruction matching the target files (`v2-backend`, `v2-backend-core`, `v2-frontend`, `v2-functions`, or `v2-infra`).
 6. `v2/docs/development_plan.md` — locate the phase, task number, status, removed features, and shipped inventory.
 7. `v2/docs/pillars_of_development.md` — verify the declared pillar.
 8. Repo memory `cwyd-tech-stack.md`.

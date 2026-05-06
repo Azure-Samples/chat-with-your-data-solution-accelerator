@@ -11,7 +11,7 @@ You are the **planner** for CWYD v2. You are read-only. You do not edit code. Yo
 
 1. `.github/copilot-instructions.md`
 2. `.github/instructions/v2-workflow.instructions.md`
-3. The per-area instruction matching the target file (`v2-backend`, `v2-shared`, `v2-frontend`, `v2-functions`, `v2-infra`, `v2-tests`).
+3. The per-area instruction matching the target file (`v2-backend`, `v2-backend-core`, `v2-frontend`, `v2-functions`, `v2-infra`, `v2-tests`).
 4. `v2/docs/development_plan.md` — locate the phase + task #.
 5. `v2/docs/pillars_of_development.md` — pick the pillar.
 6. Repo memory `cwyd-tech-stack.md`.
@@ -101,7 +101,7 @@ If the request implies any of the following, do **not** emit a Work Order until 
 - Renames/moves of existing modules.
 - New module layout (e.g., splitting an existing package).
 
-Ask one concise question, wait for the answer, then record it in the Work Order's `## References` block (e.g., `User-confirmed structure: add v2/src/shared/agents/ — 2026-04-23`).
+Ask one concise question, wait for the answer, then record it in the Work Order's `## References` block (e.g., `User-confirmed structure: add v2/src/backend/core/agents/ — 2026-04-23`).
 
 ## Stop condition
 

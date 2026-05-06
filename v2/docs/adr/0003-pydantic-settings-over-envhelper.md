@@ -31,7 +31,7 @@ v2 has 37 verified Bicep-output env vars (Phase 1.2 audit) plus a small `CWYD_*`
 
 ## Decision
 
-**Replace `EnvHelper` with a composed Pydantic v2 `BaseSettings` tree** in [`v2/src/shared/settings.py`](../../src/shared/settings.py).
+**Replace `EnvHelper` with a composed Pydantic v2 `BaseSettings` tree** in [`v2/src/backend/core/settings.py`](../../src/backend/core/settings.py).
 
 ### Shape
 
@@ -111,8 +111,8 @@ Callers always go through `get_settings()`. Tests call `get_settings.cache_clear
 
 ## References
 
-- [`v2/src/shared/settings.py`](../../src/shared/settings.py) — `AppSettings` and the 9 per-subsystem models.
-- [`v2/tests/shared/test_settings.py`](../../tests/shared/test_settings.py) — 13 tests covering env-var coverage, type coercion, validator failure modes, cache behavior.
+- [`v2/src/backend/core/settings.py`](../../src/backend/core/settings.py) — `AppSettings` and the 9 per-subsystem models.
+- [`v2/tests/backend/core/test_settings.py`](../../tests/backend/core/test_settings.py) — 13 tests covering env-var coverage, type coercion, validator failure modes, cache behavior.
 - [`v2/infra/main.bicep`](../../infra/main.bicep) — outputs section; the surface `AppSettings` mirrors.
 - [ADR 0001](0001-registry-over-factory-dispatch.md) — the registry recipe; providers receive `AppSettings` (or a slice of it) by constructor injection.
 - [ADR 0002](0002-no-key-vault-uami-rbac.md) — why no fields hold secrets.

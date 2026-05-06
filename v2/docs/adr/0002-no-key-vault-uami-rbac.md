@@ -75,7 +75,7 @@ Adding Key Vault back for *any other reason* is a breaking change to this ADR an
 
 - [`v2/infra/main.bicep`](../../infra/main.bicep) — UAMI definition, role assignments, Bicep outputs.
 - [`v2/src/providers/credentials/`](../../src/providers/credentials/) — `managed_identity` and `cli` providers.
-- [`v2/src/shared/settings.py`](../../src/shared/settings.py) — `AppSettings` (every field maps to a Bicep output env var, no secrets).
+- [`v2/src/backend/core/settings.py`](../../src/backend/core/settings.py) — `AppSettings` (every field maps to a Bicep output env var, no secrets).
 - [`copilot-instructions.md` Hard Rule #7](../../../.github/copilot-instructions.md) — bans Key Vault for app secrets in v2.
 - [`development_plan.md` §2.1](../development_plan.md#21-removals) — removal entry; §3.6.2 — PostgreSQL Entra-ID guard.
 - MACAE no-Key-Vault pattern: <https://github.com/microsoft/Multi-Agent-Custom-Automation-Engine-Solution-Accelerator>.

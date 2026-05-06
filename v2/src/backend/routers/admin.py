@@ -113,7 +113,7 @@ class AdminConfig(BaseModel):
     * **Not infra-pinned.** ``orchestrator.name`` lives under the
       ``CWYD_`` namespace precisely so the admin UI can flip it without
       a Bicep redeploy (see ``OrchestratorSettings`` docstring in
-      ``shared/settings.py``); the OpenAI / Search / Observability
+      ``backend/core/settings.py``); the OpenAI / Search / Observability
       tunables likewise have safe runtime defaults.
     * **No new settings.** Adding e.g. content-safety / RAI / post-prompt
       toggles that v1 had but v2 does not yet model would trigger
@@ -225,7 +225,7 @@ _WRITABLE_FIELDS: frozenset[str] = frozenset(
 
 def _utcnow_iso() -> str:
     """ISO-8601 UTC timestamp with timezone suffix. Matches the
-    `_utcnow_iso` shape in `shared/providers/databases/cosmosdb.py`
+    `_utcnow_iso` shape in `backend/core/providers/databases/cosmosdb.py`
     so persisted RuntimeConfig rows are comparable across providers.
     """
     return datetime.now(UTC).isoformat()

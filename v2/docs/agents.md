@@ -32,13 +32,13 @@ v1 (and MACAE) carried Foundry agent identity in env vars: `AZURE_AI_AGENT_ID`, 
 
 | Concern | File | Symbol |
 |---|---|---|
-| Agent definitions (data) | [v2/src/shared/agents/definitions.py](../src/shared/agents/definitions.py) | `AgentDefinition`, `CWYD_AGENT`, `RAI_AGENT`, `BUILTIN_AGENTS` |
-| Lazy resolver (algorithm) | [v2/src/shared/providers/agents/base.py](../src/shared/providers/agents/base.py) | `BaseAgentsProvider.get_or_create_agent(definition, db)` |
-| Concrete provider (Foundry) | [v2/src/shared/providers/agents/foundry.py](../src/shared/providers/agents/foundry.py) | `FoundryAgentsProvider.get_client()` |
-| DB persistence — Cosmos | [v2/src/shared/providers/databases/cosmos.py](../src/shared/providers/databases/cosmos.py) | `get_agent_id`, `upsert_agent_id` |
-| DB persistence — Postgres | [v2/src/shared/providers/databases/postgres.py](../src/shared/providers/databases/postgres.py) | `get_agent_id`, `upsert_agent_id` |
+| Agent definitions (data) | [v2/src/backend/core/agents/definitions.py](../src/backend/core/agents/definitions.py) | `AgentDefinition`, `CWYD_AGENT`, `RAI_AGENT`, `BUILTIN_AGENTS` |
+| Lazy resolver (algorithm) | [v2/src/backend/core/providers/agents/base.py](../src/backend/core/providers/agents/base.py) | `BaseAgentsProvider.get_or_create_agent(definition, db)` |
+| Concrete provider (Foundry) | [v2/src/backend/core/providers/agents/foundry.py](../src/backend/core/providers/agents/foundry.py) | `FoundryAgentsProvider.get_client()` |
+| DB persistence — Cosmos | [v2/src/backend/core/providers/databases/cosmos.py](../src/backend/core/providers/databases/cosmos.py) | `get_agent_id`, `upsert_agent_id` |
+| DB persistence — Postgres | [v2/src/backend/core/providers/databases/postgres.py](../src/backend/core/providers/databases/postgres.py) | `get_agent_id`, `upsert_agent_id` |
 | Router call site | [v2/src/backend/routers/conversation.py](../src/backend/routers/conversation.py) | `agents.get_or_create_agent(CWYD_AGENT, db)` |
-| RAI gate call site | [v2/src/shared/tools/content_safety.py](../src/shared/tools/content_safety.py) | `rai_check(text, agents, db)` |
+| RAI gate call site | [v2/src/backend/core/tools/content_safety.py](../src/backend/core/tools/content_safety.py) | `rai_check(text, agents, db)` |
 
 ### 2.2 Sequence (first request)
 
@@ -97,7 +97,7 @@ HTTP request ─▶ BaseAgentsProvider.get_or_create_agent ─▶ cache hit ─�
 
 ## 3. Built-in agents (`BUILTIN_AGENTS`)
 
-Defined in [v2/src/shared/agents/definitions.py](../src/shared/agents/definitions.py). Both are frozen Pydantic models — they are **scenario data**, not configuration. Operators do not edit them via env vars; they edit them by editing the file (or, later, via the admin UI write seam).
+Defined in [v2/src/backend/core/agents/definitions.py](../src/backend/core/agents/definitions.py). Both are frozen Pydantic models — they are **scenario data**, not configuration. Operators do not edit them via env vars; they edit them by editing the file (or, later, via the admin UI write seam).
 
 ### 3.1 `CWYD_AGENT`
 
@@ -117,12 +117,12 @@ Defined in [v2/src/shared/agents/definitions.py](../src/shared/agents/definition
 | `deployment_attr` | `gpt_deployment` → resolves to `AZURE_OPENAI_GPT_DEPLOYMENT` (same model as CWYD; v2 collapses MACAE's per-agent `AZURE_OPENAI_RAI_DEPLOYMENT_NAME` env var into the `deployment_attr` indirection) |
 | `tools` | `()` — pure classifier, no tool calls |
 | Role | TRUE/FALSE safety classifier. Returns exactly one token; TRUE = safe (allow), FALSE = unsafe (block). |
-| Caller | [`shared/tools/content_safety.py::rai_check`](../src/shared/tools/content_safety.py) → wired into the chat pipeline as a pre-orchestrator gate by [`shared/pipelines/chat.py`](../src/shared/pipelines/chat.py) (CU-011b). |
+| Caller | [`backend/core/tools/content_safety.py::rai_check`](../src/backend/core/tools/content_safety.py) → wired into the chat pipeline as a pre-orchestrator gate by [`backend/core/pipelines/chat.py`](../src/backend/core/pipelines/chat.py) (CU-011b). |
 | Fail-closed | An unparseable verdict, a failed run, an empty agent reply, or an explicit `FALSE` all return **unsafe** (block). The guard never fails open. |
 
 ### 3.3 What's intentionally absent
 
-* No content-safety REST endpoint as a "built-in agent". `ContentSafetyGuard` (Azure AI Content Safety REST API, v1-style) is a **parallel seam**, not an agent — it lives next to `rai_check` in [`content_safety.py`](../src/shared/tools/content_safety.py) and the pipeline can run either, both, or neither.
+* No content-safety REST endpoint as a "built-in agent". `ContentSafetyGuard` (Azure AI Content Safety REST API, v1-style) is a **parallel seam**, not an agent — it lives next to `rai_check` in [`content_safety.py`](../src/backend/core/tools/content_safety.py) and the pipeline can run either, both, or neither.
 * No prompt-flow / semantic-kernel "skills". Both technologies are banned in v2 (Hard Rule #7).
 * No per-tenant agent variants. Single agent per `name` per Foundry environment is the v2 contract; multi-tenant separation belongs at the Foundry-project level, not the agent level.
 
@@ -193,7 +193,7 @@ The whole point of `AgentDefinition` + `BUILTIN_AGENTS` is that adding an agent 
 
 ### 5.1 Declare the definition
 
-Edit [v2/src/shared/agents/definitions.py](../src/shared/agents/definitions.py):
+Edit [v2/src/backend/core/agents/definitions.py](../src/backend/core/agents/definitions.py):
 
 ```python
 SUMMARIZER_AGENT = AgentDefinition(
@@ -225,9 +225,9 @@ The agent does nothing until something calls `get_or_create_agent`. Pick one:
 
 ### 5.3 Test
 
-* Update `BUILTIN_AGENTS` count assertion in [v2/tests/shared/agents/test_definitions.py](../tests/shared/agents/test_definitions.py).
+* Update `BUILTIN_AGENTS` count assertion in [v2/tests/backend/core/agents/test_definitions.py](../tests/backend/core/agents/test_definitions.py).
 * Add identity / wire-shape tests for the new agent in the same file.
-* If wired into a pipeline gate, mirror the CU-011b test suite in [v2/tests/shared/pipelines/test_chat.py](../tests/shared/pipelines/test_chat.py).
+* If wired into a pipeline gate, mirror the CU-011b test suite in [v2/tests/backend/core/pipelines/test_chat.py](../tests/backend/core/pipelines/test_chat.py).
 
 ### 5.4 Deploy
 

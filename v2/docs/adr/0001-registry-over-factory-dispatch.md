@@ -22,7 +22,7 @@ Two adjacent samples — Microsoft's [Multi-Agent Custom Automation Engine](http
 
 ## Decision
 
-**All swappable concerns in v2 are implemented as a registry domain.** A single generic primitive — `Registry[T]` in [`v2/src/shared/registry.py`](../../src/shared/registry.py) — backs every domain. Each domain follows the identical 3-file recipe documented in [`development_plan.md` §3.5](../development_plan.md#35-pluggability-contract-registry-first--stated-once-referenced-from-every-phase):
+**All swappable concerns in v2 are implemented as a registry domain.** A single generic primitive — `Registry[T]` in [`v2/src/backend/core/registry.py`](../../src/backend/core/registry.py) — backs every domain. Each domain follows the identical 3-file recipe documented in [`development_plan.md` §3.5](../development_plan.md#35-pluggability-contract-registry-first--stated-once-referenced-from-every-phase):
 
 ```text
 v2/src/providers/<domain>/
@@ -51,7 +51,7 @@ Applies to: credentials, llm, embedders, parsers, search, chat_history, orchestr
 
 Does **not** apply to:
 
-- Cross-cutting helpers in `shared/tools/` (content_safety, post_prompt) — these have one implementation and are imported directly.
+- Cross-cutting helpers in `backend/core/tools/` (content_safety, post_prompt) — these have one implementation and are imported directly.
 - Composed flows in `pipelines/` (ingestion, chat) — these compose providers but are not themselves pluggable.
 
 ## Consequences
@@ -82,8 +82,8 @@ Does **not** apply to:
 
 ## References
 
-- [`v2/src/shared/registry.py`](../../src/shared/registry.py) — the primitive (≈30 lines).
-- [`v2/tests/shared/test_registry.py`](../../tests/shared/test_registry.py) — 11 tests covering register, duplicate keys, missing keys, generic typing.
+- [`v2/src/backend/core/registry.py`](../../src/backend/core/registry.py) — the primitive (≈30 lines).
+- [`v2/tests/backend/core/test_registry.py`](../../tests/backend/core/test_registry.py) — 11 tests covering register, duplicate keys, missing keys, generic typing.
 - [`development_plan.md` §3.5](../development_plan.md#35-pluggability-contract-registry-first--stated-once-referenced-from-every-phase) — the recipe + the 3-step "how to add new tech" table.
 - [`copilot-instructions.md` Hard Rule #4](../../../.github/copilot-instructions.md) — enforcement rule.
 - MACAE registry pattern: <https://github.com/microsoft/Multi-Agent-Custom-Automation-Engine-Solution-Accelerator>.

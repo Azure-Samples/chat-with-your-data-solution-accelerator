@@ -32,7 +32,7 @@ services:
         required: false
     environment:
       AZURE_DB_TYPE: postgresql
-      # Match shared/settings.py: AzurePostgresSettings reads AZURE_POSTGRES_ENDPOINT.
+      # Match backend/core/settings.py: AzurePostgresSettings reads AZURE_POSTGRES_ENDPOINT.
       AZURE_POSTGRES_ENDPOINT: postgresql://cwyd:cwyd@postgres:5432/cwyd?sslmode=disable
       # AppSettings validator: AZURE_DB_TYPE=postgresql requires AZURE_INDEX_STORE=pgvector.
       AZURE_INDEX_STORE: pgvector
@@ -46,8 +46,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # REFACTOR-B (2026-05-06): src/shared was moved to src/backend/core,
+      # so the backend mount alone now covers what used to require two mounts.
       - ../src/backend:/app/v2/src/backend
-      - ../src/shared:/app/v2/src/shared
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,7 +94,10 @@ services:
       - "7071:80"
     volumes:
       - ../src/functions:/home/site/wwwroot
-      - ../src/shared:/home/site/wwwroot/shared
+      # REFACTOR-B (2026-05-06): functions imports backend.core (not shared.*),
+      # so mount the backend tree at /home/site/wwwroot/backend so PYTHONPATH
+      # picks it up. Functions/core extends backend/core; never duplicates it.
+      - ../src/backend:/home/site/wwwroot/backend
     depends_on:
       azurite:
         condition: service_started

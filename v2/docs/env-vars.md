@@ -7,7 +7,7 @@
 This is the operator-grade map between the three sources of truth for v2 runtime config:
 
 1. **[v2/.env.sample](../.env.sample)** — what an operator copies to `v2/.env` (gitignored) for local dev.
-2. **[v2/src/shared/settings.py](../src/shared/settings.py)** — the typed `AppSettings` (Pydantic v2 + pydantic-settings) that every backend / function / pipeline reads.
+2. **[v2/src/backend/core/settings.py](../src/backend/core/settings.py)** — the typed `AppSettings` (Pydantic v2 + pydantic-settings) that every backend / function / pipeline reads.
 3. **[v2/infra/main.bicep](../infra/main.bicep)** outputs — what `azd up` injects into the Container App + Function App env-vars.
 
 If a variable name appears in `.env.sample` but not in `AppSettings`, **pydantic-settings silently ignores it** (every sub-model uses `extra="ignore"`). Always cross-check spelling against the table below.
@@ -26,7 +26,7 @@ If a variable name appears in `.env.sample` but not in `AppSettings`, **pydantic
 
 ## v2 variables (canonical)
 
-Every row corresponds to exactly one field in [`AppSettings`](../src/shared/settings.py) (or its sub-models) and one output in [`main.bicep`](../infra/main.bicep). Required / optional refers to **runtime requirement when the corresponding feature is exercised**; the local dev compose stack hard-codes defaults so most are optional out of the box.
+Every row corresponds to exactly one field in [`AppSettings`](../src/backend/core/settings.py) (or its sub-models) and one output in [`main.bicep`](../infra/main.bicep). Required / optional refers to **runtime requirement when the corresponding feature is exercised**; the local dev compose stack hard-codes defaults so most are optional out of the box.
 
 ### Identity (`IdentitySettings`, env_prefix `AZURE_`)
 
@@ -155,8 +155,8 @@ Distinct namespace because the orchestrator is **runtime-tunable**, not infra-pi
 | `ORCHESTRATION_STRATEGY` | Banned — replaced by `CWYD_ORCHESTRATOR_NAME` (registry key). | Hard Rule #7 |
 | `CONVERSATION_FLOW` | Banned (Prompt Flow removed). | Hard Rule #7 |
 | `PROMPT_FLOW_ENDPOINT_NAME`, `PROMPT_FLOW_DEPLOYMENT_NAME` | Banned (Prompt Flow removed). | Hard Rule #7 |
-| `AZURE_OPENAI_SYSTEM_MESSAGE`, `OPEN_AI_FUNCTIONS_SYSTEM_PROMPT`, `SEMANTIC_KERNEL_SYSTEM_PROMPT` | System prompts moved to `shared/agents/definitions.py` (`AgentDefinition.instructions`); see [agents.md](agents.md). | Phase 3 |
-| `AZURE_SEARCH_FIELDS_*`, `AZURE_SEARCH_*_COLUMN` (23 vars) | Index schema is fixed in v2 (`shared/providers/search/_schema.py`). | Phase 3 |
+| `AZURE_OPENAI_SYSTEM_MESSAGE`, `OPEN_AI_FUNCTIONS_SYSTEM_PROMPT`, `SEMANTIC_KERNEL_SYSTEM_PROMPT` | System prompts moved to `backend/core/agents/definitions.py` (`AgentDefinition.instructions`); see [agents.md](agents.md). | Phase 3 |
+| `AZURE_SEARCH_FIELDS_*`, `AZURE_SEARCH_*_COLUMN` (23 vars) | Index schema is fixed in v2 (`backend/core/providers/search/_schema.py`). | Phase 3 |
 | `AZURE_SEARCH_INDEX_IS_PRECHUNKED`, `AZURE_SEARCH_INDEXER_NAME`, `AZURE_SEARCH_DATASOURCE_NAME`, `AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE`, `AZURE_SEARCH_CONVERSATIONS_LOG_INDEX`, `AZURE_SEARCH_FILTER`, `AZURE_SEARCH_ENABLE_IN_DOMAIN`, `AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG` | Replaced by Foundry IQ knowledge stores + the typed `SearchSettings`. | Phase 3 |
 | `AZURE_OPENAI_MODEL`, `AZURE_OPENAI_MODEL_NAME`, `AZURE_OPENAI_VISION_MODEL`, `AZURE_OPENAI_TOP_P`, `AZURE_OPENAI_STOP_SEQUENCE`, `AZURE_OPENAI_STREAM`, `AZURE_OPENAI_EMBEDDING_MODEL` | Replaced by `AZURE_OPENAI_GPT_DEPLOYMENT` / `_REASONING_DEPLOYMENT` / `_EMBEDDING_DEPLOYMENT` (deployment names, not model names). | Phase 2 |
 | `AZURE_COMPUTER_VISION_*`, `AZURE_FORM_RECOGNIZER_ENDPOINT` | Replaced by Foundry Document Intelligence + Vision via the Foundry account. | Phase 4 |

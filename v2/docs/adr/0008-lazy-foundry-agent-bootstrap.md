@@ -14,7 +14,7 @@ CWYD v2 selects between two orchestrators via the registry: `langgraph` (the def
 The recently shipped Phase 4 prep work in [CU-001](../cleanup_audit.md) wired that identity through configuration: a Bicep parameter `azureAiAgentId`, a container env binding `AZURE_AI_AGENT_ID`, an `OrchestratorSettings.agent_id` field with a `model_validator` requiring the value when `name == "agent_framework"`, and a router that read the value and forwarded it to the orchestrator constructor. That shape worked but pushed the agent's lifecycle entirely outside the app: an operator was expected to create the agent in the Foundry portal (or via a script we never shipped), copy the id back into `azd env set AZURE_AI_AGENT_ID asst_…`, and re-deploy. Three problems made that untenable:
 
 1. **Operator burden**: every fresh `azd up` required a manual portal step before the `agent_framework` orchestrator was reachable. Default `azd up` would silently produce a broken `agent_framework` deployment until that step ran.
-2. **Drift between code and Foundry state**: the agent's `instructions` and `model` live in source control under [`v2/src/shared/agents/`](../../src/shared/agents) (CU-010a). Out-of-band creation lets the deployed Foundry agent diverge from the code's expectations — exactly the v1 "what's the prompt actually running in production" problem we replaced `env_helper.py` to escape.
+2. **Drift between code and Foundry state**: the agent's `instructions` and `model` live in source control under [`v2/src/backend/core/agents/`](../../src/backend/core/agents) (CU-010a). Out-of-band creation lets the deployed Foundry agent diverge from the code's expectations — exactly the v1 "what's the prompt actually running in production" problem we replaced `env_helper.py` to escape.
 3. **No multi-agent path**: CU-011 needs a second Foundry agent (the MACAE-style RAI classifier). A single `AZURE_AI_AGENT_ID` env var doesn't generalize; adding `AZURE_AI_RAI_AGENT_ID`, `AZURE_AI_<NEXT>_AGENT_ID` per agent reproduces v1's env-var sprawl ([`code/backend/batch/utilities/helpers/env_helper.py`](../../../code/backend/batch/utilities/helpers/env_helper.py) reads 80+ such values).
 
 We surveyed two adjacent Microsoft GSAs:
@@ -30,7 +30,7 @@ Neither pattern is right as-is. We need: code-owned definitions (drift fix), no-
 
 This is the "Option C" lifecycle from the cleanup-audit-batch-2 planning matrix. Concretely:
 
-1. **Definitions live in code** under [`v2/src/shared/agents/`](../../src/shared/agents) (CU-010a). Each `AgentDefinition` is a pydantic model with `key`, `name`, `description`, `instructions`, `model_deployment_alias`. Two are exported as built-ins: `CWYD_AGENT` (the main RAG conversational agent, instructions adapted from v1 [`llm_helper.py`](../../../code/backend/batch/utilities/helpers/llm_helper.py)) and `RAI_AGENT` (MACAE-style TRUE/FALSE classifier, instructions adapted with attribution from MACAE `utils_af.create_RAI_agent`).
+1. **Definitions live in code** under [`v2/src/backend/core/agents/`](../../src/backend/core/agents) (CU-010a). Each `AgentDefinition` is a pydantic model with `key`, `name`, `description`, `instructions`, `model_deployment_alias`. Two are exported as built-ins: `CWYD_AGENT` (the main RAG conversational agent, instructions adapted from v1 [`llm_helper.py`](../../../code/backend/batch/utilities/helpers/llm_helper.py)) and `RAI_AGENT` (MACAE-style TRUE/FALSE classifier, instructions adapted with attribution from MACAE `utils_af.create_RAI_agent`).
 2. **Registry storage uses the same DB as chat history** (CU-010b). `BaseDatabaseClient` grows two methods: `async get_agent_id(key) -> str | None` and `async upsert_agent_id(key, agent_id) -> None`. Cosmos uses a new `agents` container with partition key `/key`. Postgres uses a new table `agents(key TEXT PRIMARY KEY, agent_id TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW())`. Schema bootstrap happens in `scripts/post_provision.py`. No new Azure resource is provisioned — we follow the existing `databaseType` switch.
 3. **The `agents` provider owns the resolver** (CU-010c). `BaseAgentsProvider` grows `async get_or_create_agent(definition: AgentDefinition, db: BaseDatabaseClient) -> str`. The `FoundryAgentsProvider` implementation does:
 
@@ -57,7 +57,7 @@ This is the "Option C" lifecycle from the cleanup-audit-batch-2 planning matrix.
 
 - **Zero operator steps in `azd up`.** The first chat request after deployment pays a one-time ~1-2s create latency per agent; subsequent requests hit cache.
 - **Definitions and runtime stay in sync.** Editing `RAI_AGENT.instructions` doesn't auto-rotate the deployed Foundry agent (that would surprise operators who edited the row), but the operational doc tells you to delete the row to force re-creation. We considered hashing instructions and auto-invalidating; rejected as YAGNI for v2.0 (see "Alternatives" #4).
-- **Generalizes to N agents trivially.** Adding a third built-in is a single-file change in `shared/agents/definitions.py`. The provider, the DB schema, and the router are unchanged.
+- **Generalizes to N agents trivially.** Adding a third built-in is a single-file change in `backend/core/agents/definitions.py`. The provider, the DB schema, and the router are unchanged.
 - **No agent leak.** `get_or_create_agent` only creates when the cache misses, the DB misses, and Foundry doesn't recognize the cached id. Steady state = one create per agent per Foundry project, ever.
 - **Boot decouples from Foundry.** Lifespan does not call Foundry. ACA cold start completes even if Foundry is briefly unhealthy; only the first `agent_framework` request degrades.
 - **Hard Rule #4 preserved.** Orchestrator dispatch stays registry-only. The router's `if name == "agent_framework"` branch decides *whether to resolve*, not *which orchestrator class to instantiate* — the latter is always `orchestrators.create(name, ...)`.
@@ -91,9 +91,9 @@ This is the "Option C" lifecycle from the cleanup-audit-batch-2 planning matrix.
 - [ADR 0001 — Registry over factory dispatch](0001-registry-over-factory-dispatch.md) — Hard Rule #4 reasoning that the resolver does not violate.
 - [ADR 0002 — No Key Vault, UAMI + RBAC](0002-no-key-vault-uami-rbac.md) — pattern that justifies storing Foundry-issued ids (not secrets) in the application DB.
 - [ADR 0004 — Foundry IQ, no OpenAI SDK import](0004-foundry-iq-no-openai-sdk-import.md) — establishes the Foundry-first stance this ADR extends.
-- [v2/src/shared/agents/](../../src/shared/agents) — built-in `AgentDefinition` constants (CU-010a).
-- [v2/src/shared/providers/agents/](../../src/shared/providers/agents) — `BaseAgentsProvider` + `FoundryAgentsProvider` (CU-010c).
-- [v2/src/shared/providers/databases/](../../src/shared/providers/databases) — `get_agent_id` / `upsert_agent_id` ABC + implementations (CU-010b).
+- [v2/src/backend/core/agents/](../../src/backend/core/agents) — built-in `AgentDefinition` constants (CU-010a).
+- [v2/src/backend/core/providers/agents/](../../src/backend/core/providers/agents) — `BaseAgentsProvider` + `FoundryAgentsProvider` (CU-010c).
+- [v2/src/backend/core/providers/databases/](../../src/backend/core/providers/databases) — `get_agent_id` / `upsert_agent_id` ABC + implementations (CU-010b).
 - [v2/scripts/post_provision.py](../../scripts/post_provision.py) — schema bootstrap (CU-010b).
 - [v2/docs/agents.md](../agents.md) — operational doc for the bootstrap flow (CU-012b).
 - [v2/docs/env-vars.md](../env-vars.md) — canonical env inventory + the deprecation note for `AZURE_AI_AGENT_ID` (CU-012a).
