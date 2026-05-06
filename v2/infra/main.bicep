@@ -1028,6 +1028,16 @@ var containerAppsEnvName = 'cae-${solutionSuffix}'
 var backendAppName = 'ca-backend-${solutionSuffix}'
 var acaWorkloadProfileName = 'Consumption'
 
+// Single source of truth for the Postgres libpq URI so the output, the
+// backend ACA env, and the Function App appSettings can't drift.
+// Empty in cosmosdb mode (the `!` non-null operators are guarded by the
+// ternary -- evaluated only when `databaseType == 'postgresql'`).
+// Hard Rule #11 (Bicep): hoist literals repeated 2+ times to a `var`.
+var postgresLibpqUri = databaseType == 'postgresql'
+  ? 'postgresql://${postgresServer!.outputs.fqdn!}:5432/cwyd?sslmode=require'
+  : ''
+var indexStoreValue = databaseType == 'cosmosdb' ? 'AzureSearch' : 'pgvector'
+
 module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
   name: take('avm.res.app.managed-environment.${solutionSuffix}', 64)
   params: {
@@ -1185,8 +1195,19 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
             { name: 'AZURE_OPENAI_REASONING_DEPLOYMENT', value: reasoningModelName }
             { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
-            // Database routing
+            // Database routing -- AppSettings.DatabaseSettings reads
+            // these to dispatch `databases.create(db_type, ...)` and
+            // `search.create(index_store, ...)` (Hard Rule #4). The
+            // endpoint vars per mode are conditionally non-empty in the
+            // Bicep outputs (lines ~1606-1661); binding both sides
+            // unconditionally lets one image deploy to either mode
+            // without rebuild. Pinned by Phase 4 hardening #32d.
             { name: 'AZURE_DB_TYPE', value: databaseType }
+            { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
+            { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
+            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+            { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
+            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
             // Default orchestrator (runtime-switchable per request)
             { name: 'ORCHESTRATOR', value: 'agent_framework' }
           ],
@@ -1447,8 +1468,17 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
           { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
           { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
-          // Database routing — same flag the backend reads.
+          // Database routing -- same flags the backend reads. The
+          // indexing pipeline writes vectors into AzureSearch (cosmosdb
+          // mode) or pgvector (postgresql mode), so it needs the
+          // active-mode endpoint(s). It does NOT need
+          // AZURE_COSMOS_ENDPOINT (no chat-history writes from the
+          // function host). Pinned by Phase 4 hardening #32d.
           { name: 'AZURE_DB_TYPE', value: databaseType }
+          { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
+          { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+          { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
+          { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
           // Storage wiring used by batch_start / batch_push / add_url.
           { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount.outputs.name }
           { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
@@ -1603,7 +1633,7 @@ output AZURE_UAMI_RESOURCE_ID string = userAssignedIdentity.outputs.resourceId
 output AZURE_DB_TYPE string = databaseType
 
 @description('Logical name of the configured vector index store: "AzureSearch" (cosmosdb mode) or "pgvector" (postgresql mode).')
-output AZURE_INDEX_STORE string = databaseType == 'cosmosdb' ? 'AzureSearch' : 'pgvector'
+output AZURE_INDEX_STORE string = indexStoreValue
 
 // --- Foundry substrate ---
 
@@ -1650,9 +1680,7 @@ output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!
 output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.fqdn! : ''
 
 @description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_ENDPOINT string = databaseType == 'postgresql'
-  ? 'postgresql://${postgresServer!.outputs.fqdn!}:5432/cwyd?sslmode=require'
-  : ''
+output AZURE_POSTGRES_ENDPOINT string = postgresLibpqUri
 
 @description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
 output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
