@@ -66,7 +66,35 @@ if ($Action -eq "enable") {
         throw "Failed to enable Function App public access."
     }
 
-    Write-Host "Function App public access enabled."
+    Write-Host "Function App public access enabled. Waiting for SCM endpoint to become reachable..."
+    $scmUrl = "https://$functionAppName.scm.azurewebsites.net/"
+    $maxRetries = 12
+    $retryDelay = 10
+    for ($i = 1; $i -le $maxRetries; $i++) {
+        try {
+            $response = Invoke-WebRequest -Uri $scmUrl -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
+            if ($response.StatusCode -ne 403) {
+                Write-Host "SCM endpoint is reachable (HTTP $($response.StatusCode)) after $($i * $retryDelay)s."
+                break
+            }
+        } catch {
+            $statusCode = $null
+            if ($_.Exception.Response) {
+                $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+            if ($statusCode -and $statusCode -ne 403) {
+                Write-Host "SCM endpoint returned HTTP $statusCode (not 403) after $($i * $retryDelay)s — access is open."
+                break
+            }
+        }
+        if ($i -eq $maxRetries) {
+            Write-Host "WARNING: SCM endpoint still not reachable after $($maxRetries * $retryDelay)s. Proceeding anyway."
+        } else {
+            Write-Host "  Retry $i/$maxRetries — SCM endpoint not yet reachable, waiting ${retryDelay}s..."
+            Start-Sleep -Seconds $retryDelay
+        }
+    }
+
     exit 0
 }
 

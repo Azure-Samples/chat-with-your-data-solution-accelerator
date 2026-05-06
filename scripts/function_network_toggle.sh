@@ -61,7 +61,25 @@ if [[ "$ACTION" == "enable" ]]; then
     --name "$FUNCTION_APP_NAME" \
     --resource-group "$RESOURCE_GROUP" \
     --set publicNetworkAccess=Enabled >/dev/null
-  echo "Function App public access enabled."
+
+  echo "Function App public access enabled. Waiting for SCM endpoint to become reachable..."
+  SCM_URL="https://${FUNCTION_APP_NAME}.scm.azurewebsites.net/"
+  MAX_RETRIES=12
+  RETRY_DELAY=10
+  for i in $(seq 1 $MAX_RETRIES); do
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$SCM_URL" 2>/dev/null || echo "000")
+    if [[ "$HTTP_STATUS" != "403" && "$HTTP_STATUS" != "000" ]]; then
+      echo "SCM endpoint is reachable (HTTP $HTTP_STATUS) after $((i * RETRY_DELAY))s."
+      break
+    fi
+    if [[ "$i" -eq "$MAX_RETRIES" ]]; then
+      echo "WARNING: SCM endpoint still not reachable after $((MAX_RETRIES * RETRY_DELAY))s. Proceeding anyway."
+    else
+      echo "  Retry $i/$MAX_RETRIES — SCM endpoint not yet reachable, waiting ${RETRY_DELAY}s..."
+      sleep "$RETRY_DELAY"
+    fi
+  done
+
   exit 0
 fi
 
