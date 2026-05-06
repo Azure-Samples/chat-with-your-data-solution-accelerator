@@ -9,6 +9,11 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from azure.core.exceptions import (
+    AzureError,
+    HttpResponseError,
+    ServiceRequestError,
+)
 
 from backend.core.providers import search
 from backend.core.providers.search.azure_search import AzureSearch
@@ -257,3 +262,97 @@ async def test_aclose_does_not_close_injected_client(
     handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
     await handler.aclose()
     client.close.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Failure-path coverage (Phase C2d -- provider try/except sweep)
+# ---------------------------------------------------------------------------
+#
+# Per v2/docs/exception_handling_policy.md (Provider entry-points + Lifespan
+# rows): every `azure.search.documents.aio.SearchClient` call at the
+# provider boundary catches `azure.core.exceptions.AzureError` (the
+# umbrella for `HttpResponseError`, `ServiceRequestError`, etc.),
+# structured-logs via `logger.exception` (`logger.warning` for shutdown),
+# and re-raises (or swallows on shutdown best-effort).
+
+_AZURE_SEARCH_LOGGER_NAME = "backend.core.providers.search.azure_search"
+
+
+def _find_record(
+    caplog: pytest.LogCaptureFixture,
+    operation: str,
+    *,
+    level: str = "ERROR",
+) -> Any:
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == level and getattr(r, "operation", None) == operation
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 {level} record for operation={operation!r}, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    return matches[0]
+
+
+@pytest.mark.asyncio
+async def test_search_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """SDK-level failure (4xx/5xx, transport timeout) on `client.search`
+    must surface via the new try wrap with the canonical extras + the
+    index name in the log payload, then re-raise so the router layer
+    can map to a sanitized HTTPException.
+    """
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        side_effect=HttpResponseError(message="429 throttled")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.search("hello")
+
+    record = _find_record(caplog, "search")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+    client.search.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_aclose_swallows_and_warns_on_close_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Shutdown is best-effort: `SearchClient.close()` failure must NOT
+    raise (the container is going away anyway), but a WARNING log must
+    fire so the failure is visible in App Insights, and the cached
+    client handle must be cleared either way.
+    """
+    settings = _settings_for_search(monkeypatch)
+    # Build a client we OWN (no override) so aclose() takes the close path.
+    client = MagicMock()
+    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
+    client.close = AsyncMock(
+        side_effect=ServiceRequestError(message="socket already closed")
+    )
+    handler = AzureSearch(settings=settings, credential=MagicMock())
+    handler._client = client  # type: ignore[attr-defined]
+    handler._client_override = None  # type: ignore[attr-defined]
+
+    with caplog.at_level("WARNING", logger=_AZURE_SEARCH_LOGGER_NAME):
+        await handler.aclose()  # MUST NOT raise
+
+    record = _find_record(caplog, "aclose", level="WARNING")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+    client.close.assert_awaited_once()
+    # Cached client handle cleared even though close() failed.
+    assert handler._client is None  # type: ignore[attr-defined]

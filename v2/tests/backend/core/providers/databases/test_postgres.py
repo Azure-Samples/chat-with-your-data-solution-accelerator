@@ -698,3 +698,319 @@ async def test_schema_sql_creates_runtime_config_table() -> None:
     assert "id          INTEGER PRIMARY KEY DEFAULT 1" in _SCHEMA_SQL
     assert "CHECK (id = 1)" in _SCHEMA_SQL
     assert "payload     JSONB NOT NULL" in _SCHEMA_SQL
+
+
+# ---------------------------------------------------------------------------
+# Failure-path coverage (Phase C2c -- provider try/except sweep)
+# ---------------------------------------------------------------------------
+#
+# Per v2/docs/exception_handling_policy.md (Provider entry-points + Lifespan
+# rows), every `asyncpg` call at a provider boundary catches
+# `asyncpg.PostgresError` (the umbrella for SQL-layer failures: foreign
+# key, serialization, deadlock, admin shutdown, etc.), logs structured
+# context via `logger.exception`, and re-raises so the router layer can
+# map to a sanitized HTTPException.
+#
+# Two carve-outs validated below:
+# - `_ensure_pool` widens the catch to `(asyncpg.PostgresError, OSError)`
+#   on `asyncpg.create_pool` so DNS/TLS-class failures (which surface as
+#   `OSError` from the underlying connection layer, not as a Postgres
+#   protocol error) are also captured.
+# - `add_message` keeps its inner `ForeignKeyViolationError -> KeyError`
+#   translation untouched; the outer wrap captures *other* PostgresError
+#   variants on either the INSERT or the parent `updated_at` UPDATE.
+#
+# All tests drive an `AsyncMock(side_effect=asyncpg.PostgresError(...))`
+# at the SDK boundary, assert (a) the exception bubbles out unchanged
+# (re-raised, not swallowed or wrapped), and (b) the structured log
+# fires at ERROR level with the canonical `extra` schema
+# {"operation": <name>, "provider": "postgres", ...domain_ids}.
+
+_LOGGER_NAME = "backend.core.providers.databases.postgres"
+
+
+def _pg_error(message: str = "boom") -> asyncpg.PostgresError:
+    """Construct a generic asyncpg.PostgresError. The base class accepts
+    a single string message and is what the SDK raises for any SQL-layer
+    failure not modeled by a more specific subclass.
+    """
+    return asyncpg.PostgresError(message)
+
+
+def _find_error_record(
+    caplog: pytest.LogCaptureFixture, operation: str
+) -> Any:
+    """Return the single ERROR record for `operation`, failing the test
+    with a useful message if zero or multiple matches surface. Same
+    helper shape as the cosmosdb tests (C2b) for consistency.
+    """
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR" and getattr(r, "operation", None) == operation
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record for operation={operation!r}, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    return matches[0]
+
+
+# --- Lifespan-style init wraps -------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_pool_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`asyncpg.create_pool` failure during lazy `_ensure_pool` is logged
+    loud + re-raised (lifespan policy). Endpoint host appears in the log
+    payload; credentials never do.
+    """
+
+    async def _fail_create_pool(**_kw: Any) -> Any:
+        raise _pg_error("AAD token rejected")
+
+    monkeypatch.setattr(
+        "backend.core.providers.databases.postgres.asyncpg.create_pool",
+        _fail_create_pool,
+    )
+    client = _make_client()  # no injected pool -> lazy path forced
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.list_conversations("u1")  # any CRUD triggers init
+
+    record = _find_error_record(caplog, "create_pool")
+    assert record.provider == "postgres"
+    # Endpoint logged for triage; raw DSN string never logged in full.
+    assert record.endpoint.endswith("postgres.database.azure.com:5432/cwyd?sslmode=require")
+
+
+@pytest.mark.asyncio
+async def test_create_pool_widens_catch_to_oserror(
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """DNS / TLS / connection failures surface from the asyncio transport
+    layer as `OSError`, not as `asyncpg.PostgresError`. The catch widens
+    only here (per the in-file policy comment) so a DNS resolution
+    failure still produces a structured log line instead of a bare
+    transport stack trace.
+    """
+
+    async def _fail_create_pool(**_kw: Any) -> Any:
+        raise OSError("Name or service not known")
+
+    monkeypatch.setattr(
+        "backend.core.providers.databases.postgres.asyncpg.create_pool",
+        _fail_create_pool,
+    )
+    client = _make_client()
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(OSError):
+            await client.list_conversations("u1")
+
+    record = _find_error_record(caplog, "create_pool")
+    assert record.provider == "postgres"
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Schema bootstrap failure is a lifespan-style failure: log loud +
+    re-raise so the container restart loop is the recovery path.
+    """
+    pool, conn = _make_pool()
+    conn.execute = AsyncMock(side_effect=_pg_error("permission denied"))
+    client = _make_client(pool=pool)
+    client._schema_ready = False  # type: ignore[attr-defined]
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.list_conversations("u1")
+
+    record = _find_error_record(caplog, "ensure_schema")
+    assert record.provider == "postgres"
+
+
+# --- Write-path wraps ----------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_conversation_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool, _conn = _make_pool()
+    pool.fetchrow = AsyncMock(side_effect=_pg_error("serialization failure"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.create_conversation("u1", "title")
+
+    record = _find_error_record(caplog, "create_conversation")
+    assert record.provider == "postgres"
+    assert record.user_id == "u1"
+    pool.fetchrow.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_rename_conversation_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool, _conn = _make_pool()
+    pool.fetchrow = AsyncMock(side_effect=_pg_error("deadlock"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.rename_conversation(_CID, "u1", "new title")
+
+    record = _find_error_record(caplog, "rename_conversation")
+    assert record.provider == "postgres"
+    assert record.conversation_id == _CID
+    assert record.user_id == "u1"
+
+
+@pytest.mark.asyncio
+async def test_delete_conversation_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """`delete_conversation` is idempotent on row-not-found (returns
+    silently), but an SDK-level failure (deadlock, admin shutdown) is
+    still loud per policy.
+    """
+    pool, _conn = _make_pool()
+    pool.execute = AsyncMock(side_effect=_pg_error("admin shutdown"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.delete_conversation(_CID, "u1")
+
+    record = _find_error_record(caplog, "delete_conversation")
+    assert record.provider == "postgres"
+    assert record.conversation_id == _CID
+    assert record.user_id == "u1"
+
+
+@pytest.mark.asyncio
+async def test_add_message_logs_and_reraises_on_postgres_error_during_insert(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A non-FK PostgresError on the message INSERT must surface via the
+    OUTER wrap (the inner try only converts ForeignKeyViolationError to
+    KeyError). The parent `updated_at` UPDATE must NOT be attempted: the
+    transaction context exits via the exception before reaching it.
+    """
+    pool, conn = _make_pool()
+    conn.fetchrow = AsyncMock(side_effect=_pg_error("serialization failure"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.add_message(
+                conversation_id=_CID,
+                user_id="u1",
+                message=ChatMessage(role="user", content="hi"),
+            )
+
+    record = _find_error_record(caplog, "add_message")
+    assert record.provider == "postgres"
+    assert record.conversation_id == _CID
+    assert record.user_id == "u1"
+    # The parent UPDATE must NOT have been attempted: the INSERT failed
+    # first, the transaction unwound, the outer except caught.
+    conn.execute.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_add_message_preserves_fk_to_keyerror_translation(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The inner `ForeignKeyViolationError -> KeyError(conversation_id)`
+    translation must survive C2c untouched. The KeyError is NOT a
+    PostgresError, so it bubbles past the new outer wrap unchanged
+    and the structured ERROR log is NOT emitted (no SDK error to log).
+    """
+    pool, conn = _make_pool()
+    conn.fetchrow = AsyncMock(
+        side_effect=asyncpg.ForeignKeyViolationError("parent missing")
+    )
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(KeyError) as excinfo:
+            await client.add_message(
+                conversation_id=_CID,
+                user_id="u1",
+                message=ChatMessage(role="user", content="hi"),
+            )
+
+    assert excinfo.value.args[0] == _CID
+    # No add_message ERROR record should have been emitted: the FK
+    # branch translates to KeyError before the outer except sees it.
+    assert not [
+        r
+        for r in caplog.records
+        if getattr(r, "operation", None) == "add_message"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_set_feedback_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool, _conn = _make_pool()
+    pool.execute = AsyncMock(side_effect=_pg_error("deadlock"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.set_feedback(_MID, "u1", "positive")
+
+    record = _find_error_record(caplog, "set_feedback")
+    assert record.provider == "postgres"
+    assert record.message_id == _MID
+    assert record.user_id == "u1"
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool, _conn = _make_pool()
+    pool.execute = AsyncMock(side_effect=_pg_error("connection reset"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.upsert_agent_id(name="contract", agent_id="asst_abc")
+
+    record = _find_error_record(caplog, "upsert_agent_id")
+    assert record.provider == "postgres"
+    # `agent_name` (not `name`) avoids stdlib LogRecord.name collision.
+    assert record.agent_name == "contract"
+    assert record.agent_id == "asst_abc"
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from backend.core.types import RuntimeConfig
+
+    pool, _conn = _make_pool()
+    pool.execute = AsyncMock(side_effect=_pg_error("admin shutdown"))
+    client = _make_client(pool=pool)
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await client.upsert_runtime_config(RuntimeConfig())
+
+    record = _find_error_record(caplog, "upsert_runtime_config")
+    assert record.provider == "postgres"

@@ -39,7 +39,10 @@ from typing import Any, AsyncIterable, Sequence, cast
 
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.cosmos.aio import ContainerProxy, CosmosClient
-from azure.cosmos.exceptions import CosmosResourceNotFoundError
+from azure.cosmos.exceptions import (
+    CosmosHttpResponseError,
+    CosmosResourceNotFoundError,
+)
 
 from backend.core.settings import AppSettings
 from backend.core.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
@@ -245,7 +248,22 @@ class CosmosDBClient(BaseDatabaseClient):
             "createdAt": now,
             "updatedAt": now,
         }
-        stored = await container.create_item(body=item)
+        # Per v2/docs/exception_handling_policy.md (Provider-entry-points
+        # row): narrow SDK catch -> structured logger.exception ->
+        # re-raise so the router layer maps to a sanitized HTTPException
+        # (PII/stack-leak protection lives there, not here).
+        try:
+            stored = await container.create_item(body=item)
+        except CosmosHttpResponseError:
+            logger.exception(
+                "cosmos create_item failed",
+                extra={
+                    "operation": "create_conversation",
+                    "provider": "cosmos",
+                    "user_id": user_id,
+                },
+            )
+            raise
         return self._to_conversation(stored)
 
     async def rename_conversation(
@@ -257,9 +275,21 @@ class CosmosDBClient(BaseDatabaseClient):
             raise KeyError(conversation_id)
         existing["title"] = title
         existing["updatedAt"] = _utcnow_iso()
-        stored = await container.replace_item(
-            item=conversation_id, body=existing
-        )
+        try:
+            stored = await container.replace_item(
+                item=conversation_id, body=existing
+            )
+        except CosmosHttpResponseError:
+            logger.exception(
+                "cosmos replace_item failed",
+                extra={
+                    "operation": "rename_conversation",
+                    "provider": "cosmos",
+                    "conversation_id": conversation_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
         return self._to_conversation(stored)
 
     async def delete_conversation(
@@ -358,7 +388,19 @@ class CosmosDBClient(BaseDatabaseClient):
             "content": message.content,
             "createdAt": now,
         }
-        stored = await container.create_item(body=item)
+        try:
+            stored = await container.create_item(body=item)
+        except CosmosHttpResponseError:
+            logger.exception(
+                "cosmos create_item failed",
+                extra={
+                    "operation": "add_message",
+                    "provider": "cosmos",
+                    "conversation_id": conversation_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
         # Best-effort bump of the conversation's `updatedAt` so the
         # history list re-orders. Missing parent (already deleted) is
         # silently ignored -- the message persists and a follow-up
@@ -366,7 +408,26 @@ class CosmosDBClient(BaseDatabaseClient):
         parent = await self._read_item(conversation_id, user_id)
         if parent is not None and parent.get("type") == CosmosItemType.CONVERSATION:
             parent["updatedAt"] = now
-            await container.replace_item(item=conversation_id, body=parent)
+            try:
+                await container.replace_item(item=conversation_id, body=parent)
+            except CosmosHttpResponseError:
+                # Best-effort updatedAt bump (per the docstring above):
+                # the message itself already persisted, and a follow-up
+                # list_conversations call will surface it via the
+                # message timestamps. Transient failures here (throttle,
+                # 412 precondition) are non-fatal -> logger.warning,
+                # swallow. WARNING (not ERROR/exception) keeps OTel from
+                # escalating a known-non-fatal path.
+                logger.warning(
+                    "cosmos replace_item parent updatedAt bump failed "
+                    "(best-effort, swallowed)",
+                    extra={
+                        "operation": "add_message_parent_bump",
+                        "provider": "cosmos",
+                        "conversation_id": conversation_id,
+                        "user_id": user_id,
+                    },
+                )
         return self._to_message(stored)
 
     # ------------------------------------------------------------------
@@ -412,7 +473,22 @@ class CosmosDBClient(BaseDatabaseClient):
             "createdAt": now,
             "updatedAt": now,
         }
-        await container.upsert_item(body=item)
+        try:
+            await container.upsert_item(body=item)
+        except CosmosHttpResponseError:
+            # `agent_name` (not `name`) in extra: the stdlib LogRecord
+            # already owns a `name` attribute, and the standard logging
+            # adapters refuse to inject colliding extras.
+            logger.exception(
+                "cosmos upsert_item failed",
+                extra={
+                    "operation": "upsert_agent_id",
+                    "provider": "cosmos",
+                    "agent_name": name,
+                    "agent_id": agent_id,
+                },
+            )
+            raise
 
     async def get_runtime_config(self) -> RuntimeConfig | None:
         container = self._get_container()
@@ -458,7 +534,17 @@ class CosmosDBClient(BaseDatabaseClient):
             "createdAt": now,
             "updatedAt": now,
         }
-        await container.upsert_item(body=body)
+        try:
+            await container.upsert_item(body=body)
+        except CosmosHttpResponseError:
+            logger.exception(
+                "cosmos upsert_item failed",
+                extra={
+                    "operation": "upsert_runtime_config",
+                    "provider": "cosmos",
+                },
+            )
+            raise
 
     async def set_feedback(
         self, message_id: str, user_id: str, feedback: str
@@ -468,7 +554,19 @@ class CosmosDBClient(BaseDatabaseClient):
         if existing is None or existing.get("type") != CosmosItemType.MESSAGE:
             raise KeyError(message_id)
         existing["feedback"] = feedback
-        await container.replace_item(item=message_id, body=existing)
+        try:
+            await container.replace_item(item=message_id, body=existing)
+        except CosmosHttpResponseError:
+            logger.exception(
+                "cosmos replace_item failed",
+                extra={
+                    "operation": "set_feedback",
+                    "provider": "cosmos",
+                    "message_id": message_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
 
     # ------------------------------------------------------------------
     # Lifecycle

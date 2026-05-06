@@ -15,7 +15,10 @@ from typing import Any, AsyncIterator, Iterable
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from azure.cosmos.exceptions import CosmosResourceNotFoundError
+from azure.cosmos.exceptions import (
+    CosmosHttpResponseError,
+    CosmosResourceNotFoundError,
+)
 
 from backend.core.providers import databases
 from backend.core.providers.databases.cosmosdb import CosmosDBClient
@@ -832,3 +835,262 @@ async def test_upsert_runtime_config_serializes_empty_payload_for_cleared_overri
     await client.upsert_runtime_config(RuntimeConfig())
     body = container.upsert_item.await_args.kwargs["body"]
     assert body["payload"] == RuntimeConfig().model_dump(mode="json")
+
+
+# ---------------------------------------------------------------------------
+# Failure-path coverage (Phase C2b — provider try/except sweep)
+# ---------------------------------------------------------------------------
+#
+# Per v2/docs/exception_handling_policy.md (Provider-entry-points row),
+# every Cosmos SDK call at a provider boundary catches
+# `CosmosHttpResponseError` (umbrella for 4xx/5xx including 429 throttle,
+# 409 conflict, 412 precondition failure, 503 service unavailable),
+# logs structured context via `logger.exception`, and re-raises so the
+# router layer can map to a sanitized HTTPException.
+#
+# The two exceptions to the "log + re-raise" rule are:
+# - `delete_conversation` per-message NotFound (idempotent skip,
+#   `logger.debug`, swallow) -- covered by C2a.
+# - `add_message` parent updatedAt bump (best-effort, `logger.warning`,
+#   swallow) -- covered below.
+#
+# All tests here drive an `AsyncMock(side_effect=CosmosHttpResponseError(...))`
+# at the SDK boundary, assert (a) the exception bubbles out unchanged
+# (re-raised, not swallowed or wrapped), and (b) the structured log
+# fires at ERROR level with the canonical `extra` schema
+# {"operation": <method_name>, "provider": "cosmos", ...domain_ids}.
+
+_LOGGER_NAME = "backend.core.providers.databases.cosmosdb"
+
+
+def _http_error(status_code: int = 429, message: str = "throttled") -> CosmosHttpResponseError:
+    """Construct a `CosmosHttpResponseError` without a real `azure.core`
+    HTTP response object. The SDK constructor accepts `status_code` +
+    `message` directly, which exercises the same code path the real
+    SDK takes when it parses an HTTP failure.
+    """
+    return CosmosHttpResponseError(status_code=status_code, message=message)
+
+
+def _find_error_record(
+    caplog: pytest.LogCaptureFixture, operation: str
+) -> Any:
+    """Return the single ERROR record for `operation`, failing the test
+    with a useful message if zero or multiple matches surface. Keeping
+    this lookup explicit (vs `caplog.records[0]`) protects against
+    test pollution from neighbouring code paths emitting their own logs.
+    """
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR" and getattr(r, "operation", None) == operation
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record for operation={operation!r}, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    return matches[0]
+
+
+@pytest.mark.asyncio
+async def test_create_conversation_logs_and_reraises_on_http_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    client, container = _make_client()
+    container.create_item = AsyncMock(side_effect=_http_error(429, "throttled"))
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.create_conversation(user_id="u1", title="t")
+
+    record = _find_error_record(caplog, "create_conversation")
+    assert record.provider == "cosmos"
+    assert record.user_id == "u1"
+    # Make sure the SDK was actually invoked (no silent short-circuit).
+    container.create_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_rename_conversation_logs_and_reraises_on_http_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    client, container = _make_client()
+    # _read_item must succeed (returns the existing conversation) so the
+    # method reaches the replace_item call we want to fail.
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "c1",
+            "userId": "u1",
+            "type": "conversation",
+            "title": "old",
+            "createdAt": "2026-04-28T00:00:00+00:00",
+            "updatedAt": "2026-04-28T00:00:00+00:00",
+        }
+    )
+    container.replace_item = AsyncMock(
+        side_effect=_http_error(412, "precondition failed")
+    )
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.rename_conversation("c1", "u1", "new title")
+
+    record = _find_error_record(caplog, "rename_conversation")
+    assert record.provider == "cosmos"
+    assert record.conversation_id == "c1"
+    assert record.user_id == "u1"
+    container.replace_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_add_message_logs_and_reraises_on_http_error_during_create(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The message create_item is the load-bearing call -- if it fails,
+    the conversation has no new turn and the caller must learn about it.
+    """
+    client, container = _make_client()
+    container.create_item = AsyncMock(side_effect=_http_error(429, "throttled"))
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.add_message(
+                conversation_id="c1",
+                user_id="u1",
+                message=ChatMessage(role="user", content="hi"),
+            )
+
+    record = _find_error_record(caplog, "add_message")
+    assert record.provider == "cosmos"
+    assert record.conversation_id == "c1"
+    assert record.user_id == "u1"
+    # The parent-bump replace_item must NOT have been attempted: failure
+    # of create_item short-circuits the rest of the method.
+    container.replace_item.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_add_message_swallows_and_warns_on_parent_bump_http_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The conversation `updatedAt` bump is best-effort: the message
+    already persisted, and the SSE stream must keep flowing. A throttle
+    on the parent replace_item must be logged at WARNING and swallowed
+    (per the docstring + policy doc), and the message return value must
+    be unchanged.
+    """
+    client, container = _make_client()
+    # Parent exists, so the bump path is taken.
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "c1",
+            "userId": "u1",
+            "type": "conversation",
+            "title": "t",
+            "createdAt": "2026-04-28T00:00:00+00:00",
+            "updatedAt": "2026-04-28T00:00:00+00:00",
+        }
+    )
+    # First create_item succeeds; replace_item (parent bump) raises.
+    container.replace_item = AsyncMock(
+        side_effect=_http_error(429, "throttled")
+    )
+
+    with caplog.at_level("WARNING", logger=_LOGGER_NAME):
+        result = await client.add_message(
+            conversation_id="c1",
+            user_id="u1",
+            message=ChatMessage(role="user", content="hi"),
+        )
+
+    # Message was returned despite the bump failure (best-effort intent).
+    assert result.role == "user"
+    assert result.content == "hi"
+
+    # WARNING-level log fired with the canonical extra schema.
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "WARNING"
+        and getattr(r, "operation", None) == "add_message_parent_bump"
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 WARNING record for parent bump, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    record = matches[0]
+    assert record.provider == "cosmos"
+    assert record.conversation_id == "c1"
+    assert record.user_id == "u1"
+    # The bump was actually attempted (i.e. failure isn't a missing call).
+    container.replace_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_upsert_agent_id_logs_and_reraises_on_http_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    client, container = _make_client()
+    container.upsert_item = AsyncMock(side_effect=_http_error(503, "unavailable"))
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.upsert_agent_id(name="contract", agent_id="asst_abc")
+
+    record = _find_error_record(caplog, "upsert_agent_id")
+    assert record.provider == "cosmos"
+    # `agent_name` (not `name`) on the record because `name` is a
+    # stdlib LogRecord attribute the standard adapters won't shadow.
+    assert record.agent_name == "contract"
+    assert record.agent_id == "asst_abc"
+    container.upsert_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_upsert_runtime_config_logs_and_reraises_on_http_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    from backend.core.types import RuntimeConfig
+
+    client, container = _make_client()
+    container.upsert_item = AsyncMock(side_effect=_http_error(429, "throttled"))
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.upsert_runtime_config(RuntimeConfig())
+
+    record = _find_error_record(caplog, "upsert_runtime_config")
+    assert record.provider == "cosmos"
+    container.upsert_item.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_set_feedback_logs_and_reraises_on_http_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    client, container = _make_client()
+    # _read_item must return an existing message so the method reaches
+    # the replace_item call we want to fail.
+    container.read_item = AsyncMock(
+        return_value={
+            "id": "m1",
+            "userId": "u1",
+            "type": "message",
+            "conversationId": "c1",
+            "role": "assistant",
+            "content": "answer",
+        }
+    )
+    container.replace_item = AsyncMock(side_effect=_http_error(429, "throttled"))
+
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.set_feedback(
+                message_id="m1", user_id="u1", feedback="positive"
+            )
+
+    record = _find_error_record(caplog, "set_feedback")
+    assert record.provider == "cosmos"
+    assert record.message_id == "m1"
+    assert record.user_id == "u1"
+    container.replace_item.assert_awaited_once()

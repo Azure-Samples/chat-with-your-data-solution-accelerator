@@ -8,7 +8,10 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
+import openai
 import pytest
+from azure.core.exceptions import AzureError, ServiceRequestError
 
 from backend.core.providers import llm
 from backend.core.providers.llm.base import BaseLLMProvider
@@ -606,3 +609,343 @@ async def test_complete_propagates_reason_error_events(
     assert [e.channel for e in events] == ["reasoning", "error"]
     # error event came from reason(), not from complete()'s wrapper.
     assert events[-1].metadata["code"] == "reason_stream_failed"
+
+
+# ---------------------------------------------------------------------------
+# Failure-path coverage (Phase C2d -- provider try/except sweep)
+# ---------------------------------------------------------------------------
+#
+# Per v2/docs/exception_handling_policy.md (Provider entry-points + Lifespan
+# rows), every OpenAI / AIProjectClient call at a provider boundary catches
+# a narrow SDK exception, logs structured context via `logger.exception`
+# (or `logger.warning` for shutdown), and re-raises (or yields an
+# OrchestratorEvent for the streaming `reason()` carve-out).
+#
+# All tests drive an `AsyncMock(side_effect=<SDK error>(...))` at the SDK
+# boundary and assert (a) the exception bubbles out unchanged (or is
+# converted to an SSE ERROR event for `reason()`), (b) the structured
+# log fires at the right level with the canonical `extra` schema
+# {"operation": ..., "provider": "foundry_iq", "deployment": ...},
+# (c) sibling SDK calls weren't made when one short-circuits the rest.
+
+
+_FOUNDRY_LOGGER_NAME = "backend.core.providers.llm.foundry_iq"
+
+
+def _api_error(message: str = "boom") -> openai.APIError:
+    """Construct a generic openai.APIError. The base class requires an
+    `httpx.Request` (the SDK populates it from the underlying HTTP call);
+    a minimal in-memory request is fine for triggering the exception.
+    """
+    return openai.APIError(
+        message,
+        httpx.Request("POST", "https://api.openai.com/v1/chat/completions"),
+        body=None,
+    )
+
+
+def _find_record(
+    caplog: pytest.LogCaptureFixture,
+    operation: str,
+    *,
+    level: str = "ERROR",
+) -> Any:
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == level and getattr(r, "operation", None) == operation
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 {level} record for operation={operation!r}, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    return matches[0]
+
+
+@pytest.mark.asyncio
+async def test_get_openai_client_logs_and_reraises_on_azure_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """`AIProjectClient.get_openai_client()` lives in azure-core, so AAD /
+    DNS / TLS failures surface as `AzureError` subclasses. The wrap must
+    catch the umbrella + re-raise.
+    """
+    project = MagicMock(name="AIProjectClient")
+    project.get_openai_client = AsyncMock(
+        side_effect=ServiceRequestError(message="DNS lookup failed")
+    )
+    provider = FoundryIQ(settings, fake_credential, project_client=project)
+
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await provider.chat([ChatMessage(role="user", content="hi")])
+
+    record = _find_record(caplog, "get_openai_client")
+    assert record.provider == "foundry_iq"
+
+
+@pytest.mark.asyncio
+async def test_chat_logs_and_reraises_on_openai_api_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(side_effect=_api_error("rate limited"))
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions),
+        embeddings=SimpleNamespace(create=AsyncMock()),
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        with pytest.raises(openai.APIError):
+            await provider.chat([ChatMessage(role="user", content="hi")])
+
+    record = _find_record(caplog, "chat")
+    assert record.provider == "foundry_iq"
+    assert record.deployment == "gpt-4o"
+    chat_completions.create.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_logs_and_reraises_on_create_api_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Pre-stream failure (auth / throttle on the initial create call)
+    must surface a distinct `chat_stream_create` log line and re-raise
+    before any iteration is attempted.
+    """
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(side_effect=_api_error("auth failed"))
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions),
+        embeddings=SimpleNamespace(create=AsyncMock()),
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        with pytest.raises(openai.APIError):
+            async for _ in provider.chat_stream(
+                [ChatMessage(role="user", content="hi")]
+            ):
+                pass  # pragma: no cover -- never reached
+
+    record = _find_record(caplog, "chat_stream_create")
+    assert record.provider == "foundry_iq"
+    assert record.deployment == "gpt-4o"
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_logs_and_reraises_on_iteration_api_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Mid-stream failure (server-side timeout, dropped connection)
+    must surface a distinct `chat_stream_iter` log line and re-raise.
+    Distinct operation tag from the create-failure case so an alert
+    on rate-limit-during-iteration can fire separately from
+    auth-failure-on-setup.
+    """
+
+    async def _failing_iter():
+        # First chunk yields normally; second iteration step raises.
+        yield SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(content="hel"),
+                    finish_reason=None,
+                )
+            ]
+        )
+        raise _api_error("server disconnect mid-stream")
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(return_value=_failing_iter())
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions),
+        embeddings=SimpleNamespace(create=AsyncMock()),
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    chunks: list[ChatChunk] = []
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        with pytest.raises(openai.APIError):
+            async for chunk in provider.chat_stream(
+                [ChatMessage(role="user", content="hi")]
+            ):
+                chunks.append(chunk)
+
+    # First chunk surfaced before the failure -- locks the partial-
+    # delivery semantics so the FE can render in-flight tokens.
+    assert [c.content for c in chunks] == ["hel"]
+    record = _find_record(caplog, "chat_stream_iter")
+    assert record.provider == "foundry_iq"
+    assert record.deployment == "gpt-4o"
+
+
+@pytest.mark.asyncio
+async def test_embed_logs_and_reraises_on_openai_api_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    embeddings = SimpleNamespace(
+        create=AsyncMock(side_effect=_api_error("quota exceeded"))
+    )
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=AsyncMock())),
+        embeddings=embeddings,
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        with pytest.raises(openai.APIError):
+            await provider.embed(["hello"])
+
+    record = _find_record(caplog, "embed")
+    assert record.provider == "foundry_iq"
+    assert record.deployment == "text-embedding-3-small"
+
+
+@pytest.mark.asyncio
+async def test_reason_yields_error_event_on_create_api_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """`reason()` is the streaming carve-out: pre-stream failures are
+    logged AND surfaced as an SSE ERROR event (not re-raised) so the
+    FE reasoning panel always gets an explicit error frame instead of
+    a generator that just terminates silently.
+    """
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(side_effect=_api_error("auth failed"))
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions),
+        embeddings=SimpleNamespace(create=AsyncMock()),
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = []
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        async for ev in provider.reason(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        ):
+            events.append(ev)
+
+    # Exactly one ERROR event (no reasoning / answer events emitted
+    # because the stream never started).
+    assert len(events) == 1
+    assert events[0].channel == "error"
+    assert events[0].metadata["code"] == "reason_stream_failed"
+    record = _find_record(caplog, "reason_create")
+    assert record.provider == "foundry_iq"
+    assert record.deployment == "o4-mini"
+
+
+@pytest.mark.asyncio
+async def test_reason_logs_iteration_failure_alongside_existing_error_event(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The pre-existing `except Exception: yield ERROR event` (noqa
+    BLE001 -- intentional per ADR 0007) is upgraded in C2d to also call
+    `logger.exception` with the canonical extras so App Insights
+    captures the failure even when the SSE consumer drops the error
+    event. The error-event surface stays unchanged.
+    """
+
+    async def _failing_iter():
+        yield SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    delta=SimpleNamespace(content="answ", reasoning_content="thi"),
+                    finish_reason=None,
+                )
+            ]
+        )
+        raise RuntimeError("upstream blew up mid-stream")
+
+    chat_completions = MagicMock()
+    chat_completions.create = AsyncMock(return_value=_failing_iter())
+    openai_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=chat_completions),
+        embeddings=SimpleNamespace(create=AsyncMock()),
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(openai_client),
+    )
+
+    events = []
+    with caplog.at_level("ERROR", logger=_FOUNDRY_LOGGER_NAME):
+        async for ev in provider.reason(
+            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+        ):
+            events.append(ev)
+
+    # Pre-existing surface: reasoning + answer + error.
+    assert [e.channel for e in events] == ["reasoning", "answer", "error"]
+    # New (C2d): ERROR record emitted with `reason_iter` operation tag,
+    # distinct from `reason_create` so iteration vs setup failures alert
+    # separately.
+    record = _find_record(caplog, "reason_iter")
+    assert record.provider == "foundry_iq"
+    assert record.deployment == "o4-mini"
+
+
+@pytest.mark.asyncio
+async def test_aclose_swallows_and_warns_on_close_failure(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Shutdown is best-effort: `AIProjectClient.close()` failure must
+    NOT raise (the container is going away anyway), but a WARNING log
+    must fire so the failure is visible in App Insights.
+    """
+    project = MagicMock(name="AIProjectClient")
+    project.close = AsyncMock(side_effect=ServiceRequestError(message="socket already closed"))
+    provider = FoundryIQ(settings, fake_credential)
+    # Force production-ownership so aclose() actually calls close().
+    provider._project_client = project  # type: ignore[attr-defined]
+    provider._project_client_override = None  # type: ignore[attr-defined]
+
+    with caplog.at_level("WARNING", logger=_FOUNDRY_LOGGER_NAME):
+        await provider.aclose()  # MUST NOT raise
+
+    record = _find_record(caplog, "aclose", level="WARNING")
+    assert record.provider == "foundry_iq"
+    project.close.assert_awaited_once()
+    # Cached handles cleared even though close() failed (idempotent
+    # lifecycle reset for the next aclose() / reuse cycle).
+    assert provider._project_client is None  # type: ignore[attr-defined]
+    assert provider._openai_client is None  # type: ignore[attr-defined]

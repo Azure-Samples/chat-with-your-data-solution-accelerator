@@ -22,8 +22,12 @@ openai stubs (Q14a, 2026-05-05).
 
 from typing import Any, AsyncIterator, Protocol, Sequence, cast
 
+import logging
+
+import openai
 from azure.ai.projects.aio import AIProjectClient
 from azure.core.credentials_async import AsyncTokenCredential
+from azure.core.exceptions import AzureError
 
 from backend.core.settings import AppSettings
 from backend.core.types import (
@@ -36,6 +40,36 @@ from backend.core.types import (
 
 from . import registry
 from .base import BaseLLMProvider
+
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Try/except policy (Phase C2d)
+#
+# Per v2/docs/exception_handling_policy.md (Provider entry-points row), every
+# OpenAI / AIProjectClient call at a provider boundary catches a narrow SDK
+# exception (`openai.APIError` for chat / embed / stream calls; the broader
+# `azure.core.exceptions.AzureError` for `AIProjectClient.get_openai_client`
+# and `close`, since those traverse azure-core transport before the OpenAI
+# layer is reached), structured-logs via
+# `logger.exception(..., extra={"operation": ..., "provider": "foundry_iq",
+# "deployment": ...})`, and re-raises so the router / pipeline layer can
+# translate to a sanitized HTTPException or SSE error event.
+#
+# Two carve-outs:
+# - `reason()` already yields `OrchestratorEvent(channel=ERROR, ...)` on
+#   stream-iteration failure (intentional per ADR 0007 + the policy doc's
+#   "Existing intentional catches" list). The catch is upgraded here to
+#   call `logger.exception` BEFORE the yield so failures land in App
+#   Insights even when the SSE consumer drops the error event. The
+#   pre-stream `await oai.chat.completions.create(...)` setup is wrapped
+#   separately so an immediate auth / throttle failure also surfaces as
+#   an ERROR event instead of bubbling up untyped.
+# - `aclose()` shutdown path catches `(AzureError, OSError)` and
+#   `logger.warning`-then-swallows: shutdown is best-effort per the
+#   policy doc Lifespan row.
+# ---------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +202,20 @@ class FoundryIQ(BaseLLMProvider):
         """
         if self._openai_client is None:
             project = cast(_ProjectClientView, self._get_project_client())
-            self._openai_client = await project.get_openai_client()
+            try:
+                self._openai_client = await project.get_openai_client()
+            except AzureError:
+                # Init-style failure -- AIProjectClient lives in azure-core,
+                # so AAD / DNS / TLS surface as AzureError subclasses
+                # (ClientAuthenticationError, ServiceRequestError, etc.).
+                logger.exception(
+                    "foundry_iq get_openai_client failed",
+                    extra={
+                        "operation": "get_openai_client",
+                        "provider": "foundry_iq",
+                    },
+                )
+                raise
         return self._openai_client
 
     def _resolve_deployment(self, override: str | None, *, kind: str) -> str:
@@ -217,9 +264,20 @@ class FoundryIQ(BaseLLMProvider):
             kwargs["temperature"] = temperature
         if max_tokens is not None:
             kwargs["max_tokens"] = max_tokens
-        response = cast(
-            _ChatResponse, await oai.chat.completions.create(**kwargs)
-        )
+        try:
+            response = cast(
+                _ChatResponse, await oai.chat.completions.create(**kwargs)
+            )
+        except openai.APIError:
+            logger.exception(
+                "foundry_iq chat completions.create failed",
+                extra={
+                    "operation": "chat",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            raise
         choice = response.choices[0].message
         return ChatMessage(role="assistant", content=choice.content or "")
 
@@ -242,18 +300,44 @@ class FoundryIQ(BaseLLMProvider):
             kwargs["temperature"] = temperature
         if max_tokens is not None:
             kwargs["max_tokens"] = max_tokens
-        stream = cast(
-            AsyncIterator[_StreamEvent],
-            await oai.chat.completions.create(**kwargs),
-        )
-        async for event in stream:
-            if not event.choices:
-                continue
-            delta = event.choices[0].delta
-            yield ChatChunk(
-                content=getattr(delta, "content", "") or "",
-                finish_reason=event.choices[0].finish_reason,
+        try:
+            stream = cast(
+                AsyncIterator[_StreamEvent],
+                await oai.chat.completions.create(**kwargs),
             )
+        except openai.APIError:
+            logger.exception(
+                "foundry_iq chat_stream completions.create failed",
+                extra={
+                    "operation": "chat_stream_create",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            raise
+        try:
+            async for event in stream:
+                if not event.choices:
+                    continue
+                delta = event.choices[0].delta
+                yield ChatChunk(
+                    content=getattr(delta, "content", "") or "",
+                    finish_reason=event.choices[0].finish_reason,
+                )
+        except openai.APIError:
+            # Mid-stream failure (token throttling, dropped connection,
+            # server-side timeout). Log structured + re-raise so the
+            # pipeline layer can translate to an SSE ERROR event for the
+            # FE reasoning panel.
+            logger.exception(
+                "foundry_iq chat_stream iteration failed",
+                extra={
+                    "operation": "chat_stream_iter",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            raise
 
     async def embed(
         self,
@@ -263,9 +347,20 @@ class FoundryIQ(BaseLLMProvider):
     ) -> EmbeddingResult:
         model = self._resolve_deployment(deployment, kind="embed")
         oai = await self._get_openai_client()
-        response = await oai.embeddings.create(
-            model=model, input=list(inputs)
-        )
+        try:
+            response = await oai.embeddings.create(
+                model=model, input=list(inputs)
+            )
+        except openai.APIError:
+            logger.exception(
+                "foundry_iq embeddings.create failed",
+                extra={
+                    "operation": "embed",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            raise
         return EmbeddingResult(
             vectors=[item.embedding for item in response.data],
             model=model,
@@ -299,10 +394,33 @@ class FoundryIQ(BaseLLMProvider):
             "messages": self._to_openai_messages(messages),
             "stream": True,
         }
-        stream = cast(
-            AsyncIterator[_StreamEvent],
-            await oai.chat.completions.create(**kwargs),
-        )
+        try:
+            stream = cast(
+                AsyncIterator[_StreamEvent],
+                await oai.chat.completions.create(**kwargs),
+            )
+        except openai.APIError as exc:
+            # Pre-stream failure (auth, throttle, missing deployment).
+            # `reason()` always surfaces failures as ERROR events for
+            # the FE reasoning panel (ADR 0007 / SSE contract); we add
+            # the structured log so App Insights captures it too,
+            # then yield the error event INSTEAD OF re-raising so the
+            # SSE generator stays alive and the consumer sees an
+            # explicit error event.
+            logger.exception(
+                "foundry_iq reason completions.create failed",
+                extra={
+                    "operation": "reason_create",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            yield OrchestratorEvent(
+                channel=OrchestratorChannel.ERROR,
+                content=str(exc),
+                metadata={"code": "reason_stream_failed"},
+            )
+            return
         try:
             async for event in stream:
                 if not event.choices:
@@ -319,6 +437,21 @@ class FoundryIQ(BaseLLMProvider):
                         channel=OrchestratorChannel.ANSWER, content=answer
                     )
         except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
+            # Mid-stream failure -- broad catch is intentional (ADR 0007 +
+            # exception_handling_policy.md "Existing intentional catches")
+            # so a streaming model returning anything unexpected still
+            # yields an explicit error event instead of crashing the SSE
+            # generator. Logger.exception() added in C2d so observability
+            # is uniform with the other provider methods even though the
+            # surface stays SSE-channel-only.
+            logger.exception(
+                "foundry_iq reason stream iteration failed",
+                extra={
+                    "operation": "reason_iter",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.ERROR,
                 content=str(exc),
@@ -328,7 +461,19 @@ class FoundryIQ(BaseLLMProvider):
     async def aclose(self) -> None:
         # We only own the client when we constructed it ourselves.
         if self._project_client is not None and self._project_client_override is None:
-            await self._project_client.close()
+            try:
+                await self._project_client.close()
+            except (AzureError, OSError):
+                # Lifespan shutdown is best-effort: the container is
+                # going away regardless. Log at WARNING so the failure
+                # is visible without crashing the shutdown sequence.
+                logger.warning(
+                    "foundry_iq AIProjectClient.close failed",
+                    extra={
+                        "operation": "aclose",
+                        "provider": "foundry_iq",
+                    },
+                )
             self._project_client = None
         # Drop the cached AsyncOpenAI handle either way -- it's bound to
         # the AIProjectClient lifecycle and stale once that closes.

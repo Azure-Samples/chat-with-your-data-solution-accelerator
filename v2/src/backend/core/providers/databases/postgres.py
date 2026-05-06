@@ -23,6 +23,7 @@ per process, no parallel connection management (per development plan
 """
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Protocol, Sequence, cast
@@ -35,6 +36,34 @@ from backend.core.types import ChatMessage, Conversation, MessageRecord, Runtime
 
 from . import registry
 from .base import BaseDatabaseClient
+
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Try/except policy (Phase C2c)
+#
+# Per v2/docs/exception_handling_policy.md (Provider entry-points + Lifespan
+# rows): every `asyncpg` call at a provider boundary is wrapped with a narrow
+# `asyncpg.PostgresError` catch (the umbrella for all SQL-layer failures --
+# foreign-key, serialization, deadlock, admin shutdown, etc.), structured-
+# logged via `logger.exception(..., extra={"operation": ..., "provider":
+# "postgres", ...domain_ids})`, and re-raised so the router layer (C4) can
+# map to a sanitized HTTPException.
+#
+# Two carve-outs in this file:
+# - The lazy `_ensure_pool()` init path treats failures as lifespan-style
+#   loud failures. `asyncpg.create_pool` can fail with non-Postgres errors
+#   (DNS, TLS, AAD token errors surfacing as OSError), so the catch widens
+#   to `(asyncpg.PostgresError, OSError)` -- the only place the broader
+#   tuple is justified.
+# - `add_message` keeps its inner `asyncpg.ForeignKeyViolationError ->
+#   KeyError(conversation_id)` translation untouched (callers depend on
+#   that semantic). The outer wrap catches all *other* PostgresError
+#   variants on either the INSERT or the parent updated_at UPDATE, while
+#   the inner KeyError bubbles past it unchanged (KeyError is not a
+#   PostgresError).
+# ---------------------------------------------------------------------------
 
 
 _POSTGRES_AAD_SCOPE = "https://ossrdbms-aad.database.windows.net/.default"
@@ -246,17 +275,44 @@ class PostgresClient(BaseDatabaseClient):
                         "PostgresClient requires the Entra principal name "
                         "to connect as."
                     )
-                self._pool = await asyncpg.create_pool(  # pyright: ignore[reportUnknownMemberType]
-                    dsn=endpoint,
-                    user=user,
-                    password=self._password_provider,
-                    min_size=1,
-                    max_size=10,
-                )
+                try:
+                    self._pool = await asyncpg.create_pool(  # pyright: ignore[reportUnknownMemberType]
+                        dsn=endpoint,
+                        user=user,
+                        password=self._password_provider,
+                        min_size=1,
+                        max_size=10,
+                    )
+                except (asyncpg.PostgresError, OSError):
+                    # Lifespan policy: log loud + re-raise. Container restart
+                    # loop is the recovery path. Endpoint host is logged (not
+                    # the full DSN) so credentials/tokens never reach the log.
+                    logger.exception(
+                        "asyncpg pool creation failed",
+                        extra={
+                            "operation": "create_pool",
+                            "provider": "postgres",
+                            "endpoint": endpoint,
+                        },
+                    )
+                    raise
             typed_pool = cast(_Pool, self._pool)
             if not self._schema_ready:
                 async with typed_pool.acquire() as conn:
-                    await conn.execute(_SCHEMA_SQL)
+                    try:
+                        await conn.execute(_SCHEMA_SQL)
+                    except asyncpg.PostgresError:
+                        # Lifespan policy: schema bootstrap is required for
+                        # the app to function. Log + re-raise; container
+                        # restart loop retries.
+                        logger.exception(
+                            "asyncpg schema bootstrap failed",
+                            extra={
+                                "operation": "ensure_schema",
+                                "provider": "postgres",
+                            },
+                        )
+                        raise
                 self._schema_ready = True
         return typed_pool
 
@@ -304,14 +360,25 @@ class PostgresClient(BaseDatabaseClient):
         self, user_id: str, title: str
     ) -> Conversation:
         pool = await self._ensure_pool()
-        row = await pool.fetchrow(
-            "INSERT INTO conversations (id, user_id, title) "
-            "VALUES ($1, $2, $3) "
-            "RETURNING id, user_id, title, created_at, updated_at",
-            uuid.uuid4(),
-            user_id,
-            title,
-        )
+        try:
+            row = await pool.fetchrow(
+                "INSERT INTO conversations (id, user_id, title) "
+                "VALUES ($1, $2, $3) "
+                "RETURNING id, user_id, title, created_at, updated_at",
+                uuid.uuid4(),
+                user_id,
+                title,
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg create_conversation failed",
+                extra={
+                    "operation": "create_conversation",
+                    "provider": "postgres",
+                    "user_id": user_id,
+                },
+            )
+            raise
         assert row is not None
         return _row_to_conversation(row)
 
@@ -319,14 +386,26 @@ class PostgresClient(BaseDatabaseClient):
         self, conversation_id: str, user_id: str, title: str
     ) -> Conversation:
         pool = await self._ensure_pool()
-        row = await pool.fetchrow(
-            "UPDATE conversations SET title = $1, updated_at = NOW() "
-            "WHERE id = $2 AND user_id = $3 "
-            "RETURNING id, user_id, title, created_at, updated_at",
-            title,
-            uuid.UUID(conversation_id),
-            user_id,
-        )
+        try:
+            row = await pool.fetchrow(
+                "UPDATE conversations SET title = $1, updated_at = NOW() "
+                "WHERE id = $2 AND user_id = $3 "
+                "RETURNING id, user_id, title, created_at, updated_at",
+                title,
+                uuid.UUID(conversation_id),
+                user_id,
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg rename_conversation failed",
+                extra={
+                    "operation": "rename_conversation",
+                    "provider": "postgres",
+                    "conversation_id": conversation_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
         if row is None:
             raise KeyError(conversation_id)
         return _row_to_conversation(row)
@@ -337,12 +416,26 @@ class PostgresClient(BaseDatabaseClient):
         pool = await self._ensure_pool()
         # ON DELETE CASCADE removes child messages atomically. Returns
         # silently on missing rows (idempotent), matching the cosmosdb
-        # client's behavior.
-        await pool.execute(
-            "DELETE FROM conversations WHERE id = $1 AND user_id = $2",
-            uuid.UUID(conversation_id),
-            user_id,
-        )
+        # client's behavior. Idempotency is row-not-found semantics; an
+        # SDK-level failure (deadlock, admin shutdown, FK trigger error)
+        # is still loud per policy.
+        try:
+            await pool.execute(
+                "DELETE FROM conversations WHERE id = $1 AND user_id = $2",
+                uuid.UUID(conversation_id),
+                user_id,
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg delete_conversation failed",
+                extra={
+                    "operation": "delete_conversation",
+                    "provider": "postgres",
+                    "conversation_id": conversation_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
 
     # ------------------------------------------------------------------
     # Messages
@@ -373,29 +466,45 @@ class PostgresClient(BaseDatabaseClient):
         # updated_at so the history list re-orders. If the parent has
         # been deleted concurrently, the UPDATE no-ops (zero rows) and
         # the FK on the INSERT raises -- caller treats that as KeyError.
-        async with pool.acquire() as conn:
-            async with conn.transaction():
-                try:
-                    row = await conn.fetchrow(
-                        "INSERT INTO messages "
-                        "(id, conversation_id, user_id, role, content) "
-                        "VALUES ($1, $2, $3, $4, $5) "
-                        "RETURNING id, conversation_id, user_id, role, "
-                        "content, created_at, feedback",
-                        uuid.uuid4(),
+        # The outer try catches OTHER asyncpg.PostgresError variants
+        # (serialization failure, deadlock, admin shutdown) on either
+        # the INSERT or the UPDATE; KeyError from the inner FK
+        # translation bubbles past unchanged.
+        try:
+            async with pool.acquire() as conn:
+                async with conn.transaction():
+                    try:
+                        row = await conn.fetchrow(
+                            "INSERT INTO messages "
+                            "(id, conversation_id, user_id, role, content) "
+                            "VALUES ($1, $2, $3, $4, $5) "
+                            "RETURNING id, conversation_id, user_id, role, "
+                            "content, created_at, feedback",
+                            uuid.uuid4(),
+                            uuid.UUID(conversation_id),
+                            user_id,
+                            message.role,
+                            message.content,
+                        )
+                    except asyncpg.ForeignKeyViolationError as exc:
+                        raise KeyError(conversation_id) from exc
+                    await conn.execute(
+                        "UPDATE conversations SET updated_at = NOW() "
+                        "WHERE id = $1 AND user_id = $2",
                         uuid.UUID(conversation_id),
                         user_id,
-                        message.role,
-                        message.content,
                     )
-                except asyncpg.ForeignKeyViolationError as exc:
-                    raise KeyError(conversation_id) from exc
-                await conn.execute(
-                    "UPDATE conversations SET updated_at = NOW() "
-                    "WHERE id = $1 AND user_id = $2",
-                    uuid.UUID(conversation_id),
-                    user_id,
-                )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg add_message failed",
+                extra={
+                    "operation": "add_message",
+                    "provider": "postgres",
+                    "conversation_id": conversation_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
         assert row is not None
         return _row_to_message(row)
 
@@ -405,13 +514,25 @@ class PostgresClient(BaseDatabaseClient):
         pool = await self._ensure_pool()
         # `WHERE user_id` keeps tenants isolated -- a message id leaked
         # across users still won't match.
-        result = await pool.execute(
-            "UPDATE messages SET feedback = $1 "
-            "WHERE id = $2 AND user_id = $3",
-            feedback,
-            uuid.UUID(message_id),
-            user_id,
-        )
+        try:
+            result = await pool.execute(
+                "UPDATE messages SET feedback = $1 "
+                "WHERE id = $2 AND user_id = $3",
+                feedback,
+                uuid.UUID(message_id),
+                user_id,
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg set_feedback failed",
+                extra={
+                    "operation": "set_feedback",
+                    "provider": "postgres",
+                    "message_id": message_id,
+                    "user_id": user_id,
+                },
+            )
+            raise
         # asyncpg returns the command tag like "UPDATE 1" / "UPDATE 0".
         if result.endswith(" 0"):
             raise KeyError(message_id)
@@ -440,13 +561,29 @@ class PostgresClient(BaseDatabaseClient):
         # bumped on every conflict; `created_at` keeps its original
         # value so an audit can distinguish "first bootstrapped at"
         # from "most recently rewritten".
-        await pool.execute(
-            "INSERT INTO agents (name, agent_id) VALUES ($1, $2) "
-            "ON CONFLICT (name) DO UPDATE SET "
-            "agent_id = EXCLUDED.agent_id, updated_at = NOW()",
-            name,
-            agent_id,
-        )
+        try:
+            await pool.execute(
+                "INSERT INTO agents (name, agent_id) VALUES ($1, $2) "
+                "ON CONFLICT (name) DO UPDATE SET "
+                "agent_id = EXCLUDED.agent_id, updated_at = NOW()",
+                name,
+                agent_id,
+            )
+        except asyncpg.PostgresError:
+            # `agent_name` (not `name`) avoids collision with the stdlib
+            # `LogRecord.name` attribute -- standard log adapters refuse
+            # to overwrite reserved record fields. Same convention as
+            # cosmosdb.upsert_agent_id (C2b).
+            logger.exception(
+                "asyncpg upsert_agent_id failed",
+                extra={
+                    "operation": "upsert_agent_id",
+                    "provider": "postgres",
+                    "agent_name": name,
+                    "agent_id": agent_id,
+                },
+            )
+            raise
 
     # ------------------------------------------------------------------
     # Runtime config (#35c-2)
@@ -484,9 +621,19 @@ class PostgresClient(BaseDatabaseClient):
         # box (no codec registration); `model_dump_json()` produces
         # exactly that shape and round-trips through `model_validate_json`
         # in `get_runtime_config`.
-        await pool.execute(
-            "INSERT INTO runtime_config (id, payload) VALUES (1, $1) "
-            "ON CONFLICT (id) DO UPDATE SET "
-            "payload = EXCLUDED.payload, updated_at = NOW()",
-            config.model_dump_json(),
-        )
+        try:
+            await pool.execute(
+                "INSERT INTO runtime_config (id, payload) VALUES (1, $1) "
+                "ON CONFLICT (id) DO UPDATE SET "
+                "payload = EXCLUDED.payload, updated_at = NOW()",
+                config.model_dump_json(),
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg upsert_runtime_config failed",
+                extra={
+                    "operation": "upsert_runtime_config",
+                    "provider": "postgres",
+                },
+            )
+            raise

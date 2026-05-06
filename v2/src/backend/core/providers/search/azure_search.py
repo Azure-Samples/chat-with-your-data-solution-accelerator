@@ -30,7 +30,10 @@ Callers needing custom field names can subclass and override
 
 from typing import Any, AsyncIterable, Sequence, cast
 
+import logging
+
 from azure.core.credentials_async import AsyncTokenCredential
+from azure.core.exceptions import AzureError
 from azure.search.documents.aio import SearchClient
 from azure.search.documents.models import (
     QueryType,
@@ -42,6 +45,27 @@ from backend.core.types import SearchResult
 
 from . import registry
 from .base import BaseSearch
+
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Try/except policy (Phase C2d)
+#
+# Per v2/docs/exception_handling_policy.md (Provider entry-points + Lifespan
+# rows): every `azure.search.documents.aio.SearchClient` call at the
+# provider boundary catches `azure.core.exceptions.AzureError` (the
+# umbrella for all azure-core SDK transport / service errors --
+# `HttpResponseError`, `ServiceRequestError`, `ServiceResponseError`,
+# `ClientAuthenticationError`, etc.), structured-logs via
+# `logger.exception(..., extra={"operation": ..., "provider":
+# "azure_search", "index_name": ...})`, and re-raises so the router /
+# pipeline layer can translate to a sanitized HTTPException.
+#
+# `aclose()` widens the catch to `(AzureError, OSError)` and downgrades
+# to `logger.warning` + swallow: shutdown is best-effort per the policy
+# doc Lifespan row.
+# ---------------------------------------------------------------------------
 
 
 _DEFAULT_SELECT_FIELDS = ("id", "content", "title", "url")
@@ -144,16 +168,47 @@ class AzureSearch(BaseSearch):
         # in the azure-search-documents stubs; the leaked Unknowns force
         # a member-type suppression at the access plus a result cast so
         # `_to_result` (which expects `dict[str, Any]`) sees a typed dict.
-        paged = cast(
-            AsyncIterable[dict[str, Any]],
-            await client.search(**kwargs),  # pyright: ignore[reportUnknownMemberType]
-        )
-        async for doc in paged:
-            results.append(self._to_result(doc))
+        try:
+            paged = cast(
+                AsyncIterable[dict[str, Any]],
+                await client.search(**kwargs),  # pyright: ignore[reportUnknownMemberType]
+            )
+            async for doc in paged:
+                results.append(self._to_result(doc))
+        except AzureError:
+            # The single try wraps both the initial paged-iterator setup
+            # AND the `async for doc in paged` iteration -- both are
+            # azure-core transport calls under the covers, and either
+            # can raise `HttpResponseError` (4xx/5xx) or
+            # `ServiceRequestError` (transport-level). Any partially-
+            # filled `results` are dropped: the caller treats the
+            # search as failed, not as a degraded partial response.
+            logger.exception(
+                "azure_search client.search failed",
+                extra={
+                    "operation": "search",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                },
+            )
+            raise
         return results
 
     async def aclose(self) -> None:
         # Only close the client when we constructed it ourselves.
         if self._client is not None and self._client_override is None:
-            await self._client.close()
+            try:
+                await self._client.close()
+            except (AzureError, OSError):
+                # Lifespan shutdown is best-effort: the container is
+                # going away regardless. Log at WARNING so the failure
+                # is visible without crashing the shutdown sequence.
+                logger.warning(
+                    "azure_search SearchClient.close failed",
+                    extra={
+                        "operation": "aclose",
+                        "provider": "azure_search",
+                        "index_name": self._settings.search.index,
+                    },
+                )
             self._client = None
