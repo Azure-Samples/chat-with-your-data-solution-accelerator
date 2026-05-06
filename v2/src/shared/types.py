@@ -62,7 +62,7 @@ class ChatChunk(BaseModel):
 class EmbeddingResult(BaseModel):
     """Result of an embedding call. One vector per input."""
 
-    vectors: list[list[float]] = Field(default_factory=list)
+    vectors: list[list[float]] = Field(default_factory=list[list[float]])
     model: str = ""
 
     @property

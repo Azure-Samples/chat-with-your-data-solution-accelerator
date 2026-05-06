@@ -34,7 +34,7 @@ Lifecycle: the underlying `CosmosClient` owns an HTTP session.
 import uuid
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any, Sequence
+from typing import Any, AsyncIterable, Sequence, cast
 
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.cosmos.aio import ContainerProxy, CosmosClient
@@ -168,11 +168,20 @@ class CosmosDBClient(BaseDatabaseClient):
             "SELECT * FROM c WHERE c.type = @type "
             "ORDER BY c.updatedAt DESC"
         )
-        params = [{"name": "@type", "value": CosmosItemType.CONVERSATION}]
-        items = container.query_items(
-            query=query,
-            parameters=params,
-            partition_key=user_id,
+        # `parameters` is typed `list[dict[str, object]]` explicitly so
+        # the StrEnum value (`CosmosItemType.CONVERSATION` is a `str`
+        # subclass) doesn't trip pyright's invariant-list check. Same
+        # rationale on every `query_items` call below (Q14c).
+        params: list[dict[str, object]] = [
+            {"name": "@type", "value": CosmosItemType.CONVERSATION}
+        ]
+        items = cast(
+            AsyncIterable[dict[str, Any]],
+            container.query_items(
+                query=query,
+                parameters=params,
+                partition_key=user_id,
+            ),
         )
         out: list[Conversation] = []
         async for item in items:
@@ -228,13 +237,17 @@ class CosmosDBClient(BaseDatabaseClient):
             "SELECT c.id FROM c WHERE c.type = @type "
             "AND c.conversationId = @cid"
         )
-        params = [
+        params: list[dict[str, object]] = [
             {"name": "@type", "value": CosmosItemType.MESSAGE},
             {"name": "@cid", "value": conversation_id},
         ]
-        async for row in container.query_items(
-            query=msg_query, parameters=params, partition_key=user_id
-        ):
+        rows = cast(
+            AsyncIterable[dict[str, Any]],
+            container.query_items(
+                query=msg_query, parameters=params, partition_key=user_id
+            ),
+        )
+        async for row in rows:
             try:
                 await container.delete_item(
                     item=str(row["id"]), partition_key=user_id
@@ -261,12 +274,15 @@ class CosmosDBClient(BaseDatabaseClient):
             "AND c.conversationId = @cid "
             "ORDER BY c.createdAt ASC"
         )
-        params = [
+        params: list[dict[str, object]] = [
             {"name": "@type", "value": CosmosItemType.MESSAGE},
             {"name": "@cid", "value": conversation_id},
         ]
-        items = container.query_items(
-            query=query, parameters=params, partition_key=user_id
+        items = cast(
+            AsyncIterable[dict[str, Any]],
+            container.query_items(
+                query=query, parameters=params, partition_key=user_id
+            ),
         )
         out: list[MessageRecord] = []
         async for item in items:

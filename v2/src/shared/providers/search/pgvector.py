@@ -28,9 +28,9 @@ The lifespan bootstraps the postgres client (`ensure_pool()`) and
 then hands its pool to this provider.
 """
 
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence, cast
 
-import asyncpg
+import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 
 from shared.settings import AppSettings
@@ -110,7 +110,10 @@ class PgVector(BaseSearch):
             sql += "ORDER BY score DESC LIMIT $2"
             params.append(effective_top_k)
 
-        rows = await self._pool.fetch(sql, *params)
+        rows = cast(
+            "list[Mapping[str, Any]]",
+            await self._pool.fetch(sql, *params),  # pyright: ignore[reportUnknownMemberType]
+        )
         return [
             SearchResult(
                 id=str(r["id"]),

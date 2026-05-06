@@ -30,7 +30,7 @@ class HealthResponse(BaseModel):
 
     status: OverallStatus
     version: str = "v2"
-    checks: list[DependencyCheck] = Field(default_factory=list)
+    checks: list[DependencyCheck] = Field(default_factory=list[DependencyCheck])
 
 
 __all__ = ["CheckStatus", "DependencyCheck", "HealthResponse", "OverallStatus"]

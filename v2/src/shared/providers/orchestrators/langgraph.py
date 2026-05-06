@@ -35,7 +35,11 @@ preserved for callers that haven't wired search through DI yet.
 import operator
 from typing import Annotated, Any, AsyncIterator, Sequence, TypedDict
 
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import (  # pyright: ignore[reportMissingTypeStubs]
+    END,
+    START,
+    StateGraph,
+)
 
 from shared.providers.llm.base import BaseLLMProvider
 from shared.providers.search.base import BaseSearch
@@ -86,7 +90,12 @@ class LangGraphOrchestrator(OrchestratorBase):
     # ------------------------------------------------------------------
 
     def _build_graph(self) -> Any:
-        graph: StateGraph = StateGraph(_GraphState)
+        # `StateGraph[_GraphState]` would be the precise generic, but
+        # langgraph ships partial stubs whose type parameters leak
+        # `Unknown` into every downstream call. Cast to `Any` at the
+        # construction site so call sites stay readable; the runtime
+        # behavior is unchanged.
+        graph: Any = StateGraph(_GraphState)
         graph.add_node("llm", self._llm_node)
         graph.add_edge(START, "llm")
         graph.add_edge("llm", END)

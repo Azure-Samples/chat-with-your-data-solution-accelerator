@@ -32,13 +32,13 @@ asyncpg) directly, keeping the surface registry-only (Hard Rule #4).
 """
 
 import logging
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from backend.dependencies import DatabaseClientDep, SettingsDep
-from shared.types import ChatMessage, Conversation, MessageRecord
+from shared.types import ChatMessage, Conversation, MessageRecord, Role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/history", tags=["history"])
@@ -204,7 +204,7 @@ async def add_message(
         return await db.add_message(
             conversation_id=conversation_id,
             user_id=user_id,
-            message=ChatMessage(role=body.role, content=body.content),
+            message=ChatMessage(role=cast(Role, body.role), content=body.content),
         )
     except KeyError as exc:
         raise HTTPException(

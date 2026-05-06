@@ -24,7 +24,7 @@ Design rules (binding):
 """
 
 from functools import lru_cache
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
@@ -218,10 +218,16 @@ class NetworkSettings(BaseSettings):
                 except json.JSONDecodeError:
                     parsed = None
                 if isinstance(parsed, list):
-                    return [str(item).strip() for item in parsed if str(item).strip()]
+                    parsed_list = cast(list[Any], parsed)
+                    return [
+                        str(item).strip()
+                        for item in parsed_list
+                        if str(item).strip()
+                    ]
             return [item.strip() for item in stripped.split(",") if item.strip()]
         if isinstance(raw, (list, tuple)):
-            return [str(item).strip() for item in raw if str(item).strip()]
+            raw_seq = cast("list[Any] | tuple[Any, ...]", raw)
+            return [str(item).strip() for item in raw_seq if str(item).strip()]
         raise ValueError(
             "BACKEND_CORS_ORIGINS must be a comma-separated string or list."
         )

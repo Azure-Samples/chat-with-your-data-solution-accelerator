@@ -39,7 +39,7 @@ field on the step details is emitted on the ``reasoning`` channel for
 o-series-backed agents.
 """
 
-from typing import Any, AsyncIterator, Sequence
+from typing import Any, AsyncIterator, Sequence, cast
 
 from azure.ai.agents.aio import AgentsClient
 from azure.ai.agents.models import ListSortOrder, MessageRole
@@ -202,7 +202,14 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 )
             details_type = getattr(details, "type", None)
             if details_type == "tool_calls":
-                for call in getattr(details, "tool_calls", None) or []:
+                # `tool_calls` is a heterogeneous SDK union (function /
+                # code_interpreter / file_search / bing_grounding); cast
+                # to `list[Any]` so the `getattr(call, ...)` cascade
+                # below doesn't leak `Unknown` into pyright.
+                tool_calls = cast(
+                    list[Any], getattr(details, "tool_calls", None) or []
+                )
+                for call in tool_calls:
                     name = (
                         getattr(call, "type", None)
                         or getattr(call, "name", None)

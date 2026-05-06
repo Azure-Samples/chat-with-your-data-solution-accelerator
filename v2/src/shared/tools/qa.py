@@ -57,7 +57,7 @@ class QAResult(BaseModel):
     """Outcome of a `QuestionAnsweringHelper.answer()` call."""
 
     answer: str
-    sources: list[SearchResult] = Field(default_factory=list)
+    sources: list[SearchResult] = Field(default_factory=list[SearchResult])
 
 
 class QuestionAnsweringHelper:

@@ -18,7 +18,7 @@ own an aiohttp transport.
 
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator
+from typing import Any, AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,14 +31,16 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
 
     conn_str = settings.observability.app_insights_connection_string.strip()
     if conn_str:
         # Local import: keeps the backend-only profile importable even
         # if the OTel extras are not yet wheel-resolved in dev.
-        from azure.monitor.opentelemetry import configure_azure_monitor
+        from azure.monitor.opentelemetry import (
+            configure_azure_monitor,  # pyright: ignore[reportUnknownVariableType]
+        )
 
         configure_azure_monitor(connection_string=conn_str)
         logger.info("Application Insights telemetry configured.")
@@ -116,8 +118,13 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
             # only on the postgres client; if the pgvector path is
             # selected but the database client isn't postgres, the
             # AttributeError surfaces the misconfiguration loudly
-            # instead of silently failing.
-            search_kwargs["pool"] = await database_client.ensure_pool()
+            # instead of silently failing. The two pyright suppressions
+            # cover (a) `ensure_pool` not being on the `BaseDatabaseClient`
+            # ABC, and (b) the `asyncpg.Pool` return type being Unknown
+            # (asyncpg ships no stubs).
+            search_kwargs["pool"] = (
+                await database_client.ensure_pool()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+            )
         search_provider = search.create(search_key, **search_kwargs)
         logger.info("Search provider ready (%s).", search_key)
     app.state.search_provider = search_provider

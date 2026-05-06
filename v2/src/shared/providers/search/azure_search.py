@@ -28,7 +28,7 @@ Callers needing custom field names can subclass and override
 `_to_result()`.
 """
 
-from typing import Any, Sequence
+from typing import Any, AsyncIterable, Sequence, cast
 
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.search.documents.aio import SearchClient
@@ -140,7 +140,15 @@ class AzureSearch(BaseSearch):
 
         client = self._get_client()
         results: list[SearchResult] = []
-        async for doc in await client.search(**kwargs):
+        # `client.search(...)` is typed `Awaitable[AsyncSearchItemPaged[Dict[Unknown, Unknown]]]`
+        # in the azure-search-documents stubs; the leaked Unknowns force
+        # a member-type suppression at the access plus a result cast so
+        # `_to_result` (which expects `dict[str, Any]`) sees a typed dict.
+        paged = cast(
+            AsyncIterable[dict[str, Any]],
+            await client.search(**kwargs),  # pyright: ignore[reportUnknownMemberType]
+        )
+        async for doc in paged:
             results.append(self._to_result(doc))
         return results
 

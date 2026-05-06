@@ -24,7 +24,7 @@ import logging
 from fastapi import APIRouter, Response, status
 
 from backend.dependencies import SettingsDep
-from backend.models.health import DependencyCheck, HealthResponse
+from backend.models.health import DependencyCheck, HealthResponse, OverallStatus
 from shared.settings import AppSettings
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ def _check_search(settings: AppSettings) -> DependencyCheck:
     )
 
 
-def _aggregate(checks: list[DependencyCheck]) -> str:
+def _aggregate(checks: list[DependencyCheck]) -> OverallStatus:
     """Aggregate per-check status into an overall status.
 
     `skip` is **neutral** -- a check that doesn't apply to this

@@ -25,7 +25,7 @@ class ConversationResponse(BaseModel):
     """
 
     content: str
-    citations: list[Citation] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list[Citation])
     conversation_id: str | None = None
 
 
