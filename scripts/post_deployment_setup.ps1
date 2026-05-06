@@ -27,9 +27,6 @@ Write-Host " Post-Deployment Setup"
 Write-Host " Resource Group: $ResourceGroupName"
 Write-Host "=============================================="
 
-$env:PG_ACCESS_TOKEN = az account get-access-token `
-    --resource "https://ossrdbms-aad.database.windows.net" `
-    --query accessToken -o tsv 2>$null
 
 # Remove rdbms-connect extension if present (it conflicts with built-in admin commands)
 az extension remove --name rdbms-connect 2>$null | Out-Null

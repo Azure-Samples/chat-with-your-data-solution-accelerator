@@ -33,11 +33,6 @@ echo "=============================================="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -W 2>/dev/null || pwd)"
 
-PG_ACCESS_TOKEN=$(az account get-access-token \
-    --resource "https://ossrdbms-aad.database.windows.net" \
-    --query accessToken -o tsv 2>/dev/null || true)
-export PG_ACCESS_TOKEN
-
 # Remove rdbms-connect extension if present (it conflicts with built-in admin commands)
 az extension remove --name rdbms-connect > /dev/null 2>&1 || true
 
