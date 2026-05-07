@@ -18,19 +18,19 @@ param enableTelemetry bool
 @description('Optional. The network security group (NSG) to attach to the network interface.')
 param networkSecurityGroupResourceId string = ''
 
-import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
+import { lockType } from 'br/public:avm/utl/types/avm-common-types:0.6.0'
 @description('Optional. The lock settings of the service.')
 param lock lockType?
 
-import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
+import { diagnosticSettingFullType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 @description('Optional. The diagnostic settings of the service.')
 param diagnosticSettings diagnosticSettingFullType[]?
 
-import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.7.0'
+import { roleAssignmentType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
 @description('Optional. Array of role assignments to create.')
 param roleAssignments roleAssignmentType[]?
 
-module networkInterface_publicIPAddresses 'br/public:avm/res/network/public-ip-address:0.12.0' = [
+module networkInterface_publicIPAddresses 'br/public:avm/res/network/public-ip-address:0.8.0' = [
   for (ipConfiguration, index) in ipConfigurations: if (!empty(ipConfiguration.?pipConfiguration) && empty(ipConfiguration.?pipConfiguration.?publicIPAddressResourceId)) {
     name: '${deployment().name}-publicIP-${index}'
     params: {
@@ -48,13 +48,13 @@ module networkInterface_publicIPAddresses 'br/public:avm/res/network/public-ip-a
       skuName: ipConfiguration.?pipConfiguration.?skuName
       skuTier: ipConfiguration.?pipConfiguration.?skuTier
       tags: ipConfiguration.?tags ?? tags
-      availabilityZones: ipConfiguration.?pipConfiguration.?availabilityZones
+      zones: ipConfiguration.?pipConfiguration.?zones
       enableTelemetry: ipConfiguration.?pipConfiguration.?enableTelemetry ?? ipConfiguration.?enableTelemetry ?? enableTelemetry
     }
   }
 ]
 
-module networkInterface 'br/public:avm/res/network/network-interface:0.5.3' = {
+module networkInterface 'br/public:avm/res/network/network-interface:0.5.1' = {
   name: '${deployment().name}-NetworkInterface'
   params: {
     name: networkInterfaceName
@@ -107,28 +107,7 @@ output ipConfigurations networkInterfaceIPConfigurationOutputType[] = networkInt
 //   Definitions   //
 // =============== //
 
-// Define types locally since they are no longer exported from the public IP module
-type dnsSettingsType = {
-  @description('Optional. The domain name label.')
-  domainNameLabel: string?
-
-  @description('Optional. The domain name label scope.')
-  domainNameLabelScope: ('NoReuse' | 'ResourceGroupReuse' | 'SubscriptionReuse' | 'TenantReuse')?
-
-  @description('Optional. The reverse FQDN.')
-  reverseFqdn: string?
-}
-
-type ddosSettingsType = {
-  @description('Optional. The DDoS protection plan associated with the public IP.')
-  protectionMode: ('Disabled' | 'Enabled')?
-
-  @description('Optional. The DDoS protection plan resource ID.')
-  ddosProtectionPlan: {
-    @description('Required. The resource ID of the DDoS protection plan.')
-    id: string
-  }?
-}
+import { dnsSettingsType, ddosSettingsType } from 'br/public:avm/res/network/public-ip-address:0.8.0'
 
 @export()
 @description('The type for the public IP address configuration.')
@@ -181,8 +160,8 @@ type publicIPConfigurationType = {
   @description('Optional. The tags of the public IP address.')
   tags: object?
 
-  @description('Optional. The availability zones of the public IP address.')
-  availabilityZones: (1 | 2 | 3)[]?
+  @description('Optional. The zones of the public IP address.')
+  zones: (1 | 2 | 3)[]?
 
   @description('Optional. Enable/Disable usage telemetry for the module.')
   enableTelemetry: bool?
@@ -196,7 +175,7 @@ import {
   subResourceType
   virtualNetworkTapType
   networkInterfaceIPConfigurationOutputType
-} from 'br/public:avm/res/network/network-interface:0.5.3'
+} from 'br/public:avm/res/network/network-interface:0.5.1'
 
 @export()
 @description('The type for the IP configuration.')

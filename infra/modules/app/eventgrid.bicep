@@ -30,7 +30,7 @@ param logAnalyticsWorkspaceResourceId string = ''
 @description('Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
 
-module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = {
+module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.3' = {
   name: take('avm.res.event-grid.system-topic.${name}', 64)
   params: {
     name: name
@@ -54,10 +54,6 @@ module avmEventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4'
       {
         name: name
         deliveryWithResourceIdentity: {
-          identity: {
-            type: 'UserAssigned'
-            userAssignedIdentity: userAssignedResourceId
-          }
           destination: {
             endpointType: 'StorageQueue'
             properties: {
