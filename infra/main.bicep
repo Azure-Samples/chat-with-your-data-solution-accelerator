@@ -623,7 +623,6 @@ var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
   'privatelink.openai.azure.com'
   'privatelink.vaultcore.azure.net'
-  'privatelink.api.azureml.ms'
 ]
 
 // DNS Zone Index Constants
@@ -637,7 +636,6 @@ var dnsZoneIndex = {
   cognitiveServices: 6
   openAI: 7
   keyVault: 8
-  machinelearning: 9
 }
 
 // ===================================================
