@@ -14,6 +14,17 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // Local dev convenience: proxy /api/* to the host-run FastAPI backend
+    // so streamChat() can keep using same-origin relative URLs and dodge
+    // CORS entirely. Container Apps deploys serve frontend + backend
+    // behind the same hostname so the relative URL also works there;
+    // this proxy is purely a dev affordance.
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
   },
   test: {
     environment: "jsdom",

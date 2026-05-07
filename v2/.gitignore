@@ -5,6 +5,9 @@
 .env
 .env.local
 
+# Local-only docker compose overrides (e.g. host ~/.azure mount for AzureCliCredential)
+docker/docker-compose.override.yml
+
 # Python build / cache
 __pycache__/
 *.py[cod]
