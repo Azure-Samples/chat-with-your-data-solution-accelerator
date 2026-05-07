@@ -105,7 +105,8 @@ def test_cosmos_item_type_membership_is_frozen() -> None:
     persistence model in the shared chat-history container), so
     membership is locked here. #35c-1 adds `CONFIG` for the
     runtime-config row added in this turn; CU-010b1 added `AGENT`
-    for the agent-id registry."""
+    for the agent-id registry. #35f-1 adds `ADMIN_AUDIT` for the
+    append-only admin-audit log."""
     from backend.core.providers.databases.cosmosdb import CosmosItemType
 
     assert {member.value for member in CosmosItemType} == {
@@ -113,6 +114,7 @@ def test_cosmos_item_type_membership_is_frozen() -> None:
         "message",
         "agent",
         "config",
+        "admin_audit",
     }
 
 
@@ -1094,3 +1096,146 @@ async def test_set_feedback_logs_and_reraises_on_http_error(
     assert record.message_id == "m1"
     assert record.user_id == "u1"
     container.replace_item.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# Admin audit (#35f-1 -- write_admin_audit)
+#
+# Append-only audit row written after every successful PATCH /api/admin/config
+# (#35f-3, T+8). Pinned to the synthetic `_system` partition so admin-audit
+# queries are single-partition (no cross-user fan-out). Cardinality is
+# bounded by `# of admin PATCH operations` -- single-tenant CWYD deployments
+# realistically peak at ~hundreds/year, well under the 20 GB partition cap.
+# ---------------------------------------------------------------------------
+
+
+def test_cosmos_item_type_admin_audit_serializes_as_bare_string() -> None:
+    """`StrEnum` member compares equal to its raw string value, so
+    the wire shape stays exactly `"admin_audit"` -- existing
+    consumers reading `body["type"] == "admin_audit"` keep working
+    without coupling to the enum import (mirrors the
+    `CosmosItemType.CONFIG` precedent locked in #35c-1)."""
+    from backend.core.providers.databases.cosmosdb import CosmosItemType
+
+    assert CosmosItemType.ADMIN_AUDIT == "admin_audit"
+    assert CosmosItemType.ADMIN_AUDIT.value == "admin_audit"
+    assert str(CosmosItemType.ADMIN_AUDIT) == "admin_audit"
+
+
+@pytest.mark.asyncio
+async def test_write_admin_audit_writes_canonical_shape() -> None:
+    """Wire shape: id is a fresh UUID (storage-assigned, mirrors
+    `add_message`), userId = `_system` partition (non-user-scoped
+    audit row, mirrors AGENT + CONFIG), type = `admin_audit`
+    (StrEnum -> bare string), actor / action are the operator
+    fingerprint, before / after carry the Pydantic JSON dumps of
+    the RuntimeConfig snapshots (`mode="json"` so future
+    datetime/UUID fields round-trip), and `createdAt` is an
+    ISO-8601 UTC timestamp so an audit query can sort by recency.
+    Mirrors the `upsert_runtime_config` write shape, but uses
+    `create_item` (not `upsert_item`) because the audit log is
+    append-only -- a UUID collision would be a silent log loss."""
+    from backend.core.providers.databases.cosmosdb import (
+        CosmosItemType,
+        CosmosSystemPartition,
+    )
+    from backend.core.types import AdminAuditEntry, RuntimeConfig
+
+    before = RuntimeConfig(openai_temperature=0.1)
+    after = RuntimeConfig(openai_temperature=0.9, updated_by="u-admin")
+    entry = AdminAuditEntry(
+        actor="u-admin",
+        action="patch_config",
+        before=before,
+        after=after,
+    )
+    client, container = _make_client()
+    await client.write_admin_audit(entry)
+
+    container.create_item.assert_awaited_once()
+    body = container.create_item.await_args.kwargs["body"]
+    assert body["id"]  # UUID assigned
+    assert body["userId"] == CosmosSystemPartition.DEFAULT
+    assert body["type"] == CosmosItemType.ADMIN_AUDIT
+    assert body["actor"] == "u-admin"
+    assert body["action"] == "patch_config"
+    assert body["before"] == before.model_dump(mode="json")
+    assert body["after"] == after.model_dump(mode="json")
+    assert body["createdAt"]  # ISO-8601 timestamp
+
+
+@pytest.mark.asyncio
+async def test_write_admin_audit_serializes_before_as_none_for_first_patch() -> None:
+    """The first-ever PATCH against a fresh deployment has no prior
+    override row to snapshot, so `entry.before is None`. The wire
+    shape must persist `None` (JSON null) -- the audit history is
+    truthful about the cold-start moment, not silently filled with
+    an empty `RuntimeConfig()` shape that an operator query would
+    misread as "every field was already overridden to None"."""
+    from backend.core.types import AdminAuditEntry, RuntimeConfig
+
+    entry = AdminAuditEntry(
+        actor="u-admin",
+        action="patch_config",
+        before=None,
+        after=RuntimeConfig(openai_temperature=0.5),
+    )
+    client, container = _make_client()
+    await client.write_admin_audit(entry)
+    body = container.create_item.await_args.kwargs["body"]
+    assert body["before"] is None
+
+
+@pytest.mark.asyncio
+async def test_write_admin_audit_assigns_distinct_ids_per_call() -> None:
+    """Append-only invariant: two writes of the same logical entry
+    must end up as two distinct rows. UUID4 collision risk is
+    negligible (~1 in 2^122) but the test pins the contract so a
+    future refactor that hard-codes the id (e.g. accidentally
+    pinning to the `_system` partition's `RUNTIME_CONFIG`
+    sentinel) is caught immediately."""
+    from backend.core.types import AdminAuditEntry, RuntimeConfig
+
+    entry = AdminAuditEntry(
+        actor="u-admin",
+        action="patch_config",
+        before=None,
+        after=RuntimeConfig(openai_temperature=0.5),
+    )
+    client, container = _make_client()
+    await client.write_admin_audit(entry)
+    await client.write_admin_audit(entry)
+    assert container.create_item.await_count == 2
+    first_id = container.create_item.await_args_list[0].kwargs["body"]["id"]
+    second_id = container.create_item.await_args_list[1].kwargs["body"]["id"]
+    assert first_id != second_id
+
+
+@pytest.mark.asyncio
+async def test_write_admin_audit_logs_and_reraises_on_sdk_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """SDK boundary policy (v2/docs/exception_handling_policy.md):
+    every SDK call wrapped in try/except logs structured context
+    and re-raises -- the audit row reaching the DB or not is a
+    correctness-critical signal the route layer must observe (the
+    PATCH route in #35f-3 will let the audit-write failure bubble
+    up rather than silently dropping the audit row).
+    """
+    from backend.core.types import AdminAuditEntry, RuntimeConfig
+
+    client, container = _make_client()
+    container.create_item = AsyncMock(
+        side_effect=CosmosHttpResponseError(message="boom")
+    )
+    entry = AdminAuditEntry(
+        actor="u-admin",
+        action="patch_config",
+        before=None,
+        after=RuntimeConfig(openai_temperature=0.5),
+    )
+    with caplog.at_level("ERROR", logger=_LOGGER_NAME):
+        with pytest.raises(CosmosHttpResponseError):
+            await client.write_admin_audit(entry)
+    record = _find_error_record(caplog, "write_admin_audit")
+    assert record.provider == "cosmos"

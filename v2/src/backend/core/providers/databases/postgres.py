@@ -32,7 +32,13 @@ import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
-from backend.core.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
+from backend.core.types import (
+    AdminAuditEntry,
+    ChatMessage,
+    Conversation,
+    MessageRecord,
+    RuntimeConfig,
+)
 
 from . import registry
 from .base import BaseDatabaseClient
@@ -117,6 +123,30 @@ CREATE TABLE IF NOT EXISTS runtime_config (
     payload     JSONB NOT NULL,
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Admin audit log (#35f-2). Append-only forensic trail of
+-- successful `PATCH /api/admin/config` mutations. Mirrors the
+-- cosmos `ADMIN_AUDIT` item type from #35f-1 so a single audit
+-- contract works across providers. Row id is a writer-generated
+-- UUID4 (no `gen_random_uuid()` -- avoids the `pgcrypto` extension
+-- dependency on a fresh deployment) and `created_at` defaults to
+-- `NOW()` so the writer never trusts an app-side clock. `before`
+-- is nullable -- the very first PATCH against an unseeded override
+-- row legitimately has no prior state. The `(created_at DESC)`
+-- index makes forensic queries ("show me the last N admin
+-- changes") cheap without a full table scan; cardinality is
+-- bounded by # of admin PATCHes (single-tenant CWYD: ~hundreds/
+-- year) so the index stays small.
+CREATE TABLE IF NOT EXISTS admin_audit (
+    id          UUID PRIMARY KEY,
+    actor       TEXT NOT NULL,
+    action      TEXT NOT NULL,
+    before      JSONB,
+    after       JSONB NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_created
+    ON admin_audit (created_at DESC);
 """
 
 
@@ -634,6 +664,53 @@ class PostgresClient(BaseDatabaseClient):
                 extra={
                     "operation": "upsert_runtime_config",
                     "provider": "postgres",
+                },
+            )
+            raise
+
+    # ------------------------------------------------------------------
+    # Admin audit log (#35f-2)
+    # ------------------------------------------------------------------
+
+    async def write_admin_audit(self, entry: AdminAuditEntry) -> None:
+        pool = await self._ensure_pool()
+        # Append-only INSERT with 5 bound parameters. `created_at`
+        # is intentionally omitted from the column list -- the DB
+        # default (`NOW()`) fills it in so the writer never trusts
+        # an app-side clock (clock-skew across containers is
+        # surprisingly common in ACA cold starts). The id is a
+        # writer-generated UUID4 (mirrors the cosmos impl in
+        # #35f-1) so the same id schema works across providers and
+        # avoids the `pgcrypto` extension dependency that
+        # `gen_random_uuid()` would otherwise pull in. asyncpg's
+        # JSONB codec accepts a JSON-shaped `str` directly
+        # (no codec registration), so `model_dump_json()` is bound
+        # as-is for `after`; `before` binds as Python `None` -> SQL
+        # NULL when the audit captures the very first PATCH against
+        # an unseeded override row (truthful first-PATCH receipt,
+        # distinct from an empty `RuntimeConfig()`).
+        before_payload = (
+            entry.before.model_dump_json() if entry.before else None
+        )
+        try:
+            await pool.execute(
+                "INSERT INTO admin_audit "
+                "(id, actor, action, before, after) "
+                "VALUES ($1, $2, $3, $4, $5)",
+                str(uuid.uuid4()),
+                entry.actor,
+                entry.action,
+                before_payload,
+                entry.after.model_dump_json(),
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "asyncpg write_admin_audit failed",
+                extra={
+                    "operation": "write_admin_audit",
+                    "provider": "postgres",
+                    "actor": entry.actor,
+                    "action": entry.action,
                 },
             )
             raise

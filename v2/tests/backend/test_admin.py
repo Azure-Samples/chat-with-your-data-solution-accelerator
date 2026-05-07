@@ -548,18 +548,20 @@ async def test_config_endpoint_requires_easy_auth_in_production() -> None:
 
 
 def _fake_db(
-    *, current: Any = None, upsert: Any = None
+    *, current: Any = None, upsert: Any = None, audit: Any = None
 ) -> Any:
-    """Build a minimal fake `BaseDatabaseClient` exposing only the two
-    runtime-config methods the PATCH route consumes (#35c-2 +
-    #35c-3). `current` is the value `get_runtime_config` returns;
-    `upsert` lets a test pin a custom AsyncMock to capture the
-    write argument for assertion."""
+    """Build a minimal fake `BaseDatabaseClient` exposing the
+    runtime-config + audit methods the PATCH route consumes
+    (#35c-2 / #35c-3 / #35f-3). `current` is the value
+    `get_runtime_config` returns; `upsert` and `audit` let a test
+    pin a custom AsyncMock to capture / fail the call for
+    assertion."""
     from unittest.mock import AsyncMock
 
     db = NS()
     db.get_runtime_config = AsyncMock(return_value=current)
     db.upsert_runtime_config = upsert or AsyncMock(return_value=None)
+    db.write_admin_audit = audit or AsyncMock(return_value=None)
     return db
 
 
@@ -819,6 +821,134 @@ async def test_patch_config_does_not_touch_app_state_on_validation_failure(
     assert resp.status_code == 422
     db.upsert_runtime_config.assert_not_awaited()
     assert app.state.runtime_overrides is seeded
+
+
+# ---------------------------------------------------------------------------
+# #35f(c): admin audit hook on PATCH -- after a successful PATCH, the
+# router fires `db.write_admin_audit(AdminAuditEntry(...))` capturing
+# (actor, action="patch_config", before=<prior overrides snapshot>,
+# after=<merged>). The audit write is best-effort: a failure in the
+# audit log MUST NOT roll back the PATCH (the override is already
+# persisted + live-reloaded; surfacing 500 to the operator would be
+# misleading), but it MUST be logged so the gap is observable.
+#
+# Validation failures (422) MUST NOT fire the audit -- a rejected
+# PATCH never mutated anything, so an audit row would be a phantom
+# entry forensic queries would have to filter out forever.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_patch_config_writes_admin_audit_on_success(
+    admin_app_factory,
+) -> None:
+    """Happy path: a successful PATCH must call
+    `db.write_admin_audit` exactly once with an `AdminAuditEntry`
+    whose `actor` is the admin caller id (pinned to `"u-1"` in this
+    fixture), `action == "patch_config"`, `before` is the prior
+    persisted override (here a `RuntimeConfig` with temperature=0.5)
+    and `after` is the just-persisted merged shape. Locks the four
+    forensic axes a future audit query needs (who / what /
+    before / after) at the route boundary."""
+    from backend.core.types import AdminAuditEntry, RuntimeConfig
+
+    prior = RuntimeConfig(openai_temperature=0.5)
+    db = _fake_db(current=prior)
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.9}
+        )
+    assert resp.status_code == 200
+    db.write_admin_audit.assert_awaited_once()
+    entry = db.write_admin_audit.await_args.args[0]
+    assert isinstance(entry, AdminAuditEntry)
+    assert entry.actor == "u-1"
+    assert entry.action == "patch_config"
+    assert entry.before is not None
+    assert entry.before.openai_temperature == 0.5
+    assert entry.after.openai_temperature == 0.9
+
+
+@pytest.mark.asyncio
+async def test_patch_config_audit_before_is_none_on_first_patch(
+    admin_app_factory,
+) -> None:
+    """First-ever PATCH -- no prior persisted override exists, so
+    the audit entry's `before` must be `None` (distinct from
+    `RuntimeConfig()` with all-cleared overrides). This is the
+    contract `AdminAuditEntry`'s docstring promises and the
+    only way a forensic query can answer 'was this the first
+    override this environment ever saw?'."""
+    from backend.core.types import AdminAuditEntry
+
+    db = _fake_db(current=None)
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.7}
+        )
+    assert resp.status_code == 200
+    db.write_admin_audit.assert_awaited_once()
+    entry = db.write_admin_audit.await_args.args[0]
+    assert isinstance(entry, AdminAuditEntry)
+    assert entry.before is None
+    assert entry.after.openai_temperature == 0.7
+
+
+@pytest.mark.asyncio
+async def test_patch_config_does_not_audit_on_validation_failure(
+    admin_app_factory,
+) -> None:
+    """A 422-rejected PATCH never mutated the persisted config, so
+    `write_admin_audit` MUST NOT fire. Without this guard the audit
+    log would accumulate phantom rows for every operator typo,
+    forcing every forensic query to filter on 'did the PATCH
+    actually succeed?' out-of-band."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"bogus_field": "x"}
+        )
+    assert resp.status_code == 422
+    db.upsert_runtime_config.assert_not_awaited()
+    db.write_admin_audit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_patch_config_audit_failure_does_not_roll_back_patch(
+    admin_app_factory, caplog
+) -> None:
+    """Best-effort audit policy: if `write_admin_audit` raises
+    (Cosmos throttling, Postgres connection drop, etc.) the PATCH
+    MUST still return 200 -- the override has already been
+    persisted via `upsert_runtime_config` AND mirrored into
+    `app.state.runtime_overrides`. Surfacing the audit failure as
+    500 would mislead the operator into retrying a PATCH that
+    actually succeeded. The failure MUST be logged so the gap is
+    observable in App Insights."""
+    import logging
+    from unittest.mock import AsyncMock
+
+    audit = AsyncMock(side_effect=RuntimeError("audit store down"))
+    db = _fake_db(audit=audit)
+    app = admin_app_factory(_settings(), db=db)
+    with caplog.at_level(logging.ERROR, logger="backend.routers.admin"):
+        async with _client(app) as ac:
+            resp = await ac.patch(
+                "/api/admin/config", json={"openai_temperature": 0.7}
+            )
+    assert resp.status_code == 200
+    db.upsert_runtime_config.assert_awaited_once()
+    db.write_admin_audit.assert_awaited_once()
+    # The failure surfaces in the log, not in the response -- so the
+    # operator sees success and the SRE sees the gap.
+    assert any(
+        "admin_audit" in rec.getMessage().lower()
+        or "write_admin_audit" in rec.getMessage().lower()
+        for rec in caplog.records
+    )
 
 
 # ---------------------------------------------------------------------------

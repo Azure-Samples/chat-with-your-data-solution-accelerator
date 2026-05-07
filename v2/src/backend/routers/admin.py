@@ -54,7 +54,7 @@ from backend.dependencies import (
     SettingsDep,
     requires_role,
 )
-from backend.core.types import RuntimeConfig
+from backend.core.types import AdminAuditEntry, RuntimeConfig
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -363,7 +363,11 @@ async def patch_config_endpoint(
 
     # --- Read current overrides; default to a fresh RuntimeConfig on cold
     # start so the first-ever PATCH still goes through the merge path.
-    current = await db.get_runtime_config() or RuntimeConfig()
+    # `before` keeps the raw fetch (None on first-ever PATCH) so the
+    # #35f(c) audit row can distinguish 'no prior override' from
+    # 'all-cleared override'.
+    before = await db.get_runtime_config()
+    current = before or RuntimeConfig()
     merged_data: dict[str, Any] = current.model_dump()
 
     # --- Apply the patch (overwrites None when key is `null`, sets when
@@ -395,6 +399,34 @@ async def patch_config_endpoint(
     # no lock needed because Python's GIL makes single-attribute
     # rebinds visible-or-not, never half-applied.
     request.app.state.runtime_overrides = merged
+
+    # #35f(c): Audit hook. Fire-and-forget append to the
+    # `admin_audit` log so a future forensic query can answer
+    # who / what / before / after for every successful PATCH.
+    # **Best-effort policy**: a failure here MUST NOT roll back
+    # the PATCH -- the override is already persisted AND
+    # live-reloaded; surfacing 500 to the operator would mislead
+    # them into retrying a PATCH that actually succeeded. The
+    # failure is logged so the gap is observable in App Insights.
+    try:
+        await db.write_admin_audit(
+            AdminAuditEntry(
+                actor=user_id,
+                action="patch_config",
+                before=before,
+                after=merged,
+            )
+        )
+    except Exception:
+        logger.exception(
+            "write_admin_audit failed; PATCH succeeded but audit row missing",
+            extra={
+                "operation": "write_admin_audit",
+                "actor": user_id,
+                "action": "patch_config",
+            },
+        )
+
     return merged
 
 

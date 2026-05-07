@@ -45,7 +45,13 @@ from azure.cosmos.exceptions import (
 )
 
 from backend.core.settings import AppSettings
-from backend.core.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
+from backend.core.types import (
+    AdminAuditEntry,
+    ChatMessage,
+    Conversation,
+    MessageRecord,
+    RuntimeConfig,
+)
 
 from . import registry
 from .base import BaseDatabaseClient
@@ -72,13 +78,19 @@ class CosmosItemType(StrEnum):
     by `BUILTIN_AGENTS` (~2 rows today) plus a single runtime-config
     row, so the usual "avoid low-cardinality partitions" guidance
     does not apply -- there is no hot-partition risk on a
-    read-mostly handful-of-rows partition.
+    read-mostly handful-of-rows partition. The `ADMIN_AUDIT` value
+    (#35f-1) is the append-only admin audit log -- also pinned to
+    `_system` because the audit query is non-user-scoped, with
+    cardinality bounded by `# of admin PATCH operations`
+    (single-tenant CWYD: ~hundreds/year, well under the 20 GB
+    partition cap).
     """
 
     CONVERSATION = "conversation"
     MESSAGE = "message"
     AGENT = "agent"
     CONFIG = "config"
+    ADMIN_AUDIT = "admin_audit"
 
 
 class CosmosSystemPartition(StrEnum):
@@ -564,6 +576,41 @@ class CosmosDBClient(BaseDatabaseClient):
                     "provider": "cosmos",
                     "message_id": message_id,
                     "user_id": user_id,
+                },
+            )
+            raise
+
+    async def write_admin_audit(self, entry: AdminAuditEntry) -> None:
+        container = self._get_container()
+        # Storage-assigned id + timestamp -- the router fires and
+        # forgets, the audit log is append-only, and a UUID4 is the
+        # natural id (collision risk ~1 in 2^122). `create_item`
+        # (not `upsert_item`) enforces append-only at the SDK layer
+        # so a future bug that re-uses an id surfaces as a 409 rather
+        # than silently overwriting a prior audit row.
+        before_payload = (
+            entry.before.model_dump(mode="json") if entry.before else None
+        )
+        body = {
+            "id": str(uuid.uuid4()),
+            "userId": CosmosSystemPartition.DEFAULT,
+            "type": CosmosItemType.ADMIN_AUDIT,
+            "actor": entry.actor,
+            "action": entry.action,
+            "before": before_payload,
+            "after": entry.after.model_dump(mode="json"),
+            "createdAt": _utcnow_iso(),
+        }
+        try:
+            await container.create_item(body=body)
+        except CosmosHttpResponseError:
+            logger.exception(
+                "cosmos create_item failed",
+                extra={
+                    "operation": "write_admin_audit",
+                    "provider": "cosmos",
+                    "actor": entry.actor,
+                    "action": entry.action,
                 },
             )
             raise

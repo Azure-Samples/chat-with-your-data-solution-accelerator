@@ -193,7 +193,45 @@ class RuntimeConfig(BaseModel):
     updated_by: str = ""
 
 
+class AdminAuditEntry(BaseModel):
+    """Append-only audit row for admin config mutations (#35f-1).
+
+    Persisted by `BaseDatabaseClient.write_admin_audit` after every
+    successful `PATCH /api/admin/config` (#35f-3, T+8). The wire
+    shape is uniform across providers (Cosmos: one item with
+    `type=admin_audit` in the `_system` partition; Postgres: one
+    row in `admin_audit` table, T+7) and captures the four answers
+    an operator forensic query needs:
+
+    * **who** -- `actor` is the admin user id (Entra object id)
+      surfaced by `_REQUIRE_ADMIN_USER` in the admin router.
+    * **what** -- `action` is a short verb (today: `"patch_config"`)
+      that lets a future audit query filter by operation kind.
+    * **before** / **after** -- the `RuntimeConfig` snapshots the
+      PATCH route observed before applying the merge and the merged
+      shape it persisted. `before is None` on the first-ever PATCH
+      (no prior override row) -- distinct from
+      `RuntimeConfig()` (every override cleared), see
+      `test_write_admin_audit_serializes_before_as_none_for_first_patch`.
+    * **when** -- the storage layer assigns `created_at` (ISO-8601
+      UTC) on persist alongside the row id (mirrors `add_message`),
+      so the router fires-and-forgets without minting timestamps
+      itself.
+
+    The router builds the entry with `actor / action / before /
+    after` and the storage layer fills `id` + `created_at` -- the
+    return type of `write_admin_audit` is `None` because the
+    audit log is fire-and-forget; no caller needs the row id back.
+    """
+
+    actor: str
+    action: str
+    before: RuntimeConfig | None = None
+    after: RuntimeConfig
+
+
 __all__ = [
+    "AdminAuditEntry",
     "ChatChunk",
     "ChatMessage",
     "Citation",

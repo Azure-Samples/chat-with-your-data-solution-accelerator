@@ -27,7 +27,13 @@ from typing import Sequence
 from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
-from backend.core.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
+from backend.core.types import (
+    AdminAuditEntry,
+    ChatMessage,
+    Conversation,
+    MessageRecord,
+    RuntimeConfig,
+)
 
 
 class BaseDatabaseClient(ABC):
@@ -146,6 +152,25 @@ class BaseDatabaseClient(ABC):
         prior payload (the PATCH route in #35c-4 does this on
         every operator update). The full payload is overwritten --
         merge semantics belong in the route, not the storage layer.
+        """
+
+    # ---- Admin audit log (#35f) ----------------------------------------
+    #
+    # Append-only audit row written by the admin router after every
+    # successful `PATCH /api/admin/config` (#35f-3, T+8). The router
+    # populates `actor / action / before / after`; the storage layer
+    # assigns the row id + `created_at` on persist so callers fire
+    # and forget without minting timestamps. Errors propagate -- the
+    # PATCH route would rather surface a 500 than silently drop the
+    # audit row.
+
+    @abstractmethod
+    async def write_admin_audit(self, entry: AdminAuditEntry) -> None:
+        """Append `entry` to the admin audit log. The storage layer
+        assigns the row id + `created_at` (ISO-8601 UTC) on persist
+        (mirrors `add_message`). Idempotency is **not** required:
+        the audit log is append-only by design, and two PATCHes
+        with identical bodies are still two distinct events.
         """
 
     # ---- Lifecycle ------------------------------------------------------

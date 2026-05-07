@@ -33,7 +33,13 @@ from backend.core.agents.definitions import AgentDefinition
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
-from backend.core.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
+from backend.core.types import (
+    AdminAuditEntry,
+    ChatMessage,
+    Conversation,
+    MessageRecord,
+    RuntimeConfig,
+)
 
 
 _AGENTS_BASE_LOGGER_NAME = "backend.core.providers.agents.base"
@@ -136,6 +142,9 @@ class _StubDB(BaseDatabaseClient):
         return None
 
     async def upsert_runtime_config(self, config: RuntimeConfig) -> None:
+        return None
+
+    async def write_admin_audit(self, entry: AdminAuditEntry) -> None:
         return None
 
 
