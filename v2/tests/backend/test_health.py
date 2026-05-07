@@ -272,6 +272,17 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     fake_llm_provider = MagicMock(spec=BaseLLMProvider)
     fake_llm_provider.aclose = AsyncMock()
 
+    # #35e(a): lifespan now calls `database_client.get_runtime_config()`
+    # to load persisted RuntimeConfig overrides. Stub `databases.create`
+    # so the call returns a no-op mock instead of attempting a real
+    # Cosmos round-trip.
+    fake_db = MagicMock(name="database_client")
+    fake_db.aclose = AsyncMock()
+    fake_db.get_runtime_config = AsyncMock(return_value=None)
+
+    fake_agents = MagicMock(name="agents_provider")
+    fake_agents.aclose = AsyncMock()
+
     monkeypatch.setattr(
         "backend.app.credentials.create",
         lambda key, *, settings: fake_cred_provider,
@@ -279,6 +290,12 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     monkeypatch.setattr(
         "backend.app.llm.create",
         lambda key, *, settings, credential: fake_llm_provider,
+    )
+    monkeypatch.setattr(
+        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+    )
+    monkeypatch.setattr(
+        "backend.app.agents.create", lambda *_a, **_kw: fake_agents
     )
 
     app = create_app()

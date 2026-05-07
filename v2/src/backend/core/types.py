@@ -177,7 +177,9 @@ class RuntimeConfig(BaseModel):
     `updated_at` is an ISO-8601 string for the same reason
     `Conversation.updated_at` is -- the wire shape stays uniform
     across providers (Cosmos JSON, Postgres). `updated_by` carries
-    the admin caller's user id (from `admin_user_id`) so an audit
+    the admin caller's user id (from the `_REQUIRE_ADMIN_USER` dep
+    in `backend.routers.admin`, which delegates to
+    `backend.dependencies.requires_role("admin")`) so an audit
     query can answer 'who flipped temperature to 0.7?'.
     """
 

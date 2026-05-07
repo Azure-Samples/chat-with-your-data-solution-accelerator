@@ -38,7 +38,7 @@ def test_bicep_does_not_declare_azure_ai_agent_id_param(bicep_text: str) -> None
     DB. Re-adding this parameter would re-introduce the dead-config
     path CU-009a was opened to remove. If you genuinely need to pin a
     specific agent post-deployment, use the registry-backed
-    `agents` provider in `v2/src/shared/agents/` (CU-010a) -- not env.
+    `agents` provider in `v2/src/backend/core/agents/` (CU-010a) -- not env.
     """
     assert "azureAiAgentId" not in bicep_text, (
         "azureAiAgentId Bicep param must remain absent (CU-009a reversal of "

@@ -187,7 +187,7 @@ def test_runtime_config_partial_override_leaves_other_fields_none() -> None:
 
 
 def test_runtime_config_is_in_module_exports() -> None:
-    """Ensures `from shared.types import RuntimeConfig` works for
+    """Ensures `from backend.core.types import RuntimeConfig` works for
     every downstream consumer (DB clients in #35c-4/5/6, admin
     router in #35c-7) without a leading-underscore re-export."""
     import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import

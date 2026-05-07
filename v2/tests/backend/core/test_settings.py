@@ -425,7 +425,7 @@ def test_env_sample_keys_round_trip_through_appsettings() -> None:
     assert not unknown, (
         "v2/.env.sample contains keys that AppSettings does not consume "
         "and that are not in the documented exemption list: "
-        f"{sorted(unknown)}. Either add the field to shared/settings.py "
+        f"{sorted(unknown)}. Either add the field to backend/core/settings.py "
         "or document the exemption in _ENV_EXAMPLE_EXEMPTIONS with a "
         "reason."
     )

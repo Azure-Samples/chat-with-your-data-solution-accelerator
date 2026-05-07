@@ -1,10 +1,11 @@
-"""Pillar: Stable Core / Phase: 5 (task #35a) -- admin router tests.
+"""Pillar: Stable Core / Phase: 5 (tasks #35a, #35b, #35c, #39) -- admin router tests.
 
-Covers the read-only ``GET /api/admin/status`` endpoint and the
-``admin_user_id`` auth-gating dependency that mirrors
-``backend.routers.history.get_user_id``. RBAC narrowing
-(admin-role-only) is deferred to task #39 with explicit ``# TODO(#39):``
-markers in the router; for now any authenticated caller is accepted.
+Covers the read-only ``GET /api/admin/status`` endpoint, the
+``GET /api/admin/config`` runtime-toggle subset (#35b), the
+``PATCH /api/admin/config`` merge-patch endpoint (#35c), and the
+#39 RBAC-narrowed ``_REQUIRE_ADMIN_USER`` auth gate (replaces the
+former ``admin_user_id`` placeholder; the role-claim contract itself
+is unit-tested in ``test_dependencies.py::test_requires_role_*``).
 """
 
 from types import SimpleNamespace as NS
@@ -15,7 +16,7 @@ import pytest
 from fastapi import FastAPI
 
 from backend.dependencies import get_app_settings, get_database_client
-from backend.routers.admin import admin_user_id, router as admin_router
+from backend.routers.admin import _REQUIRE_ADMIN_USER, router as admin_router
 
 
 # ---------------------------------------------------------------------------
@@ -97,9 +98,9 @@ def admin_app_factory():
         app = FastAPI()
         app.include_router(admin_router)
         app.dependency_overrides[get_app_settings] = lambda: settings
-        # Pin admin_user_id so route tests that don't probe auth gating
-        # can run without forging the Easy Auth header.
-        app.dependency_overrides[admin_user_id] = lambda: "u-1"
+        # Pin the #39 admin-role gate so route tests that don't probe
+        # auth gating can run without forging the Easy Auth headers.
+        app.dependency_overrides[_REQUIRE_ADMIN_USER] = lambda: "u-1"
         if db is not None:
             app.dependency_overrides[get_database_client] = lambda: db
         return app
@@ -114,44 +115,14 @@ def _client(app: FastAPI) -> httpx.AsyncClient:
 
 
 # ---------------------------------------------------------------------------
-# admin_user_id (auth gate, mirrors history.get_user_id H1 hardening)
+# admin auth gate (#39 -- RBAC-narrowed to the "admin" role claim).
+#
+# The role-claim parsing contract is exhaustively unit-tested in
+# tests/backend/test_dependencies.py::test_requires_role_*. The smoke
+# tests below are the ROUTE-level wiring checks: do the admin routes
+# actually consume the gate, and does a missing principal in production
+# surface as 401 end-to-end through the router?
 # ---------------------------------------------------------------------------
-
-
-def test_admin_user_id_reads_easy_auth_header() -> None:
-    from starlette.requests import Request
-
-    scope: dict[str, Any] = {
-        "type": "http",
-        "headers": [
-            (b"x-ms-client-principal-id", b"00000000-0000-0000-0000-000000000abc")
-        ],
-    }
-    settings = _settings(environment="production")
-    assert (
-        admin_user_id(Request(scope), settings)
-        == "00000000-0000-0000-0000-000000000abc"
-    )
-
-
-def test_admin_user_id_falls_back_to_local_dev_when_header_missing_in_local() -> None:
-    from starlette.requests import Request
-
-    scope: dict[str, Any] = {"type": "http", "headers": []}
-    settings = _settings(environment="local")
-    assert admin_user_id(Request(scope), settings) == "local-dev"
-
-
-def test_admin_user_id_raises_401_in_production_when_header_missing() -> None:
-    """Production must fail closed -- mirrors history H1 hardening (#32b)."""
-    from fastapi import HTTPException
-    from starlette.requests import Request
-
-    scope: dict[str, Any] = {"type": "http", "headers": []}
-    settings = _settings(environment="production")
-    with pytest.raises(HTTPException) as exc:
-        admin_user_id(Request(scope), settings)
-    assert exc.value.status_code == 401
 
 
 # ---------------------------------------------------------------------------
@@ -260,7 +231,8 @@ async def test_status_maps_orchestrator_db_index_environment(
         )
     )
     # production mode -> route requires header; forge it via the
-    # already-pinned admin_user_id override (the fixture pinned
+    # already-pinned _REQUIRE_ADMIN_USER override (the fixture pinned
+    # "u-1"), so the request still succeeds.
     # "u-1"), so the request still succeeds.
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/status")
@@ -329,9 +301,9 @@ async def test_status_does_not_leak_sensitive_settings(
 
 @pytest.mark.asyncio
 async def test_status_endpoint_requires_easy_auth_in_production() -> None:
-    """End-to-end H1 hardening check: the route must reject anonymous
-    callers in production. Builds the app WITHOUT the ``admin_user_id``
-    override so the real dependency runs.
+    """End-to-end #39 RBAC check: the route must reject anonymous
+    callers in production. Builds the app WITHOUT the
+    ``_REQUIRE_ADMIN_USER`` override so the real role-claim gate runs.
     """
     app = FastAPI()
     app.include_router(admin_router)
@@ -341,6 +313,76 @@ async def test_status_endpoint_requires_easy_auth_in_production() -> None:
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/status")
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_status_endpoint_returns_403_when_caller_lacks_admin_role() -> None:
+    """End-to-end #39 RBAC check: an authenticated caller WITHOUT the
+    ``admin`` role claim must be rejected with 403, not 200. Builds the
+    app WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the real gate
+    parses the forged claims blob.
+    """
+    import base64
+    import json
+
+    payload = {
+        "auth_typ": "aad",
+        "claims": [{"typ": "roles", "val": "reader"}],
+    }
+    claims_blob = base64.b64encode(
+        json.dumps(payload).encode("utf-8")
+    ).decode("ascii")
+
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings(
+        environment="production"
+    )
+    async with _client(app) as ac:
+        resp = await ac.get(
+            "/api/admin/status",
+            headers={
+                "x-ms-client-principal-id": "user-oid-789",
+                "x-ms-client-principal": claims_blob,
+            },
+        )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_status_endpoint_returns_200_when_caller_has_admin_role(
+    admin_app_factory,
+) -> None:
+    """End-to-end #39 RBAC check: an authenticated caller WITH the
+    ``admin`` role claim reaches the route handler. Builds the app
+    WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the real gate
+    parses the forged claims blob and resolves the user id.
+    """
+    import base64
+    import json
+
+    payload = {
+        "auth_typ": "aad",
+        "claims": [{"typ": "roles", "val": "admin"}],
+    }
+    claims_blob = base64.b64encode(
+        json.dumps(payload).encode("utf-8")
+    ).decode("ascii")
+
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings(
+        environment="production"
+    )
+    async with _client(app) as ac:
+        resp = await ac.get(
+            "/api/admin/status",
+            headers={
+                "x-ms-client-principal-id": "user-oid-admin",
+                "x-ms-client-principal": claims_blob,
+            },
+        )
+    assert resp.status_code == 200
 
 
 # ---------------------------------------------------------------------------
@@ -469,10 +511,10 @@ async def test_config_does_not_leak_sensitive_settings(
 
 @pytest.mark.asyncio
 async def test_config_endpoint_requires_easy_auth_in_production() -> None:
-    """H1 hardening: anonymous callers must be rejected in production.
+    """#39 RBAC: anonymous callers must be rejected in production.
 
-    Builds the app WITHOUT the ``admin_user_id`` override so the real
-    dependency runs and the missing Easy Auth header trips the 401.
+    Builds the app WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the
+    real dependency runs and the missing Easy Auth header trips the 401.
     """
     app = FastAPI()
     app.include_router(admin_router)
@@ -644,7 +686,7 @@ async def test_patch_config_records_caller_id_and_timestamp(
     admin_app_factory,
 ) -> None:
     """Audit trail: every persisted RuntimeConfig must carry the
-    admin caller's user id (from `admin_user_id`, pinned to "u-1"
+    admin caller's user id (from `_REQUIRE_ADMIN_USER`, pinned to "u-1"
     in this fixture) and an ISO-8601 `updated_at` so a future query
     can answer 'who flipped temperature to 0.9 and when?'. Without
     these, the override row is anonymous and undateable."""
@@ -708,3 +750,260 @@ async def test_patch_config_requires_easy_auth_in_production() -> None:
         )
     assert resp.status_code == 401
     db.upsert_runtime_config.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# #35e(a): live-reload runtime overrides -- PATCH writes through to
+# `app.state.runtime_overrides` so the next request's
+# `get_runtime_overrides` dependency surfaces the new override without
+# a container restart. Lifespan-side seed loading is covered in
+# tests/backend/test_app_lifespan.py::test_lifespan_loads_persisted_*.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_patch_config_writes_back_to_app_state_runtime_overrides(
+    admin_app_factory,
+) -> None:
+    """After a successful PATCH, the live process MUST observe the new
+    override via `app.state.runtime_overrides` (the read side of the
+    live-reload channel that downstream consumers read through the
+    `get_runtime_overrides` dependency). Without this, every PATCH
+    would still require a container restart to take effect, which is
+    exactly the gap #35e(a) closes.
+    """
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    # Seed `app.state` with a stale override to prove the PATCH
+    # actually replaces it (not merely "appends if absent").
+    from backend.core.types import RuntimeConfig
+
+    app.state.runtime_overrides = RuntimeConfig(openai_temperature=0.1)
+
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"openai_temperature": 0.9}
+        )
+    assert resp.status_code == 200
+
+    # Persisted shape and in-memory shape must be the SAME instance --
+    # the route must reuse the merged RuntimeConfig it just upserted,
+    # not re-fetch from the DB (which would mask a write/read drift).
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert app.state.runtime_overrides is persisted
+    assert app.state.runtime_overrides.openai_temperature == 0.9
+
+
+@pytest.mark.asyncio
+async def test_patch_config_does_not_touch_app_state_on_validation_failure(
+    admin_app_factory,
+) -> None:
+    """If the PATCH bails out with 422 (unknown key, wrong type, etc.)
+    the in-memory `app.state.runtime_overrides` MUST stay untouched --
+    the operator's previous override remains active. Without this
+    invariant, a typo in the PATCH body could silently wipe the live
+    config to whatever half-merged shape the route reached before
+    raising.
+    """
+    from backend.core.types import RuntimeConfig
+
+    seeded = RuntimeConfig(openai_temperature=0.5, updated_by="u-prev")
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    app.state.runtime_overrides = seeded
+
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config", json={"bogus_field": "x"}
+        )
+    assert resp.status_code == 422
+    db.upsert_runtime_config.assert_not_awaited()
+    assert app.state.runtime_overrides is seeded
+
+
+# ---------------------------------------------------------------------------
+# #35e(b): GET /api/admin/config/effective -- merged view of env defaults
+# overlaid with persisted DB overrides, with per-field provenance hints
+# so the admin UI can render "this value comes from env / from override".
+# Reads the override side through the live-reload channel
+# (`get_runtime_overrides` -> `request.app.state.runtime_overrides`)
+# established in #35e(a), so this endpoint reflects PATCHes immediately
+# without a database round-trip.
+# ---------------------------------------------------------------------------
+
+
+_EXPECTED_EFFECTIVE_KEYS = {"values", "sources", "updated_at", "updated_by"}
+
+
+@pytest.mark.asyncio
+async def test_config_effective_returns_env_defaults_when_no_overrides(
+    admin_app_factory,
+) -> None:
+    """No persisted overrides -> every field's source is "env",
+    every value matches the `AppSettings` env default, and the audit
+    fields (`updated_at`, `updated_by`) are null. This is the
+    cold-start shape every freshly-deployed environment will report
+    until the first admin PATCH lands.
+    """
+    app = admin_app_factory(
+        _settings(
+            orchestrator_name="langgraph",
+            openai_temperature=0.0,
+            openai_max_tokens=1000,
+            search_use_semantic_search=True,
+            search_top_k=5,
+            log_level="INFO",
+        )
+    )
+    # No `app.state.runtime_overrides` set -- the dep tolerates the
+    # missing attr and returns None, exercising the cold-start path.
+
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert set(body.keys()) == _EXPECTED_EFFECTIVE_KEYS
+
+    assert body["values"] == {
+        "orchestrator_name": "langgraph",
+        "openai_temperature": 0.0,
+        "openai_max_tokens": 1000,
+        "search_use_semantic_search": True,
+        "search_top_k": 5,
+        "log_level": "INFO",
+    }
+    assert body["sources"] == {
+        "orchestrator_name": "env",
+        "openai_temperature": "env",
+        "openai_max_tokens": "env",
+        "search_use_semantic_search": "env",
+        "search_top_k": "env",
+        "log_level": "env",
+    }
+    assert body["updated_at"] is None
+    assert body["updated_by"] is None
+
+
+@pytest.mark.asyncio
+async def test_config_effective_overlays_partial_overrides(
+    admin_app_factory,
+) -> None:
+    """A `RuntimeConfig` with only some fields set MUST overlay just
+    those fields and leave the rest reporting `"env"` provenance.
+    Mirrors the RFC 7396 storage shape (`T | None = None` per field
+    where None means 'not overridden').
+    """
+    from backend.core.types import RuntimeConfig
+
+    app = admin_app_factory(
+        _settings(
+            orchestrator_name="langgraph",
+            openai_temperature=0.0,
+            openai_max_tokens=1000,
+            search_use_semantic_search=True,
+            search_top_k=5,
+            log_level="INFO",
+        )
+    )
+    app.state.runtime_overrides = RuntimeConfig(
+        openai_temperature=0.9,
+        log_level="DEBUG",
+        updated_at="2026-05-07T12:00:00+00:00",
+        updated_by="u-admin",
+    )
+
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # Overridden fields surface override values.
+    assert body["values"]["openai_temperature"] == 0.9
+    assert body["values"]["log_level"] == "DEBUG"
+    # Non-overridden fields surface env defaults.
+    assert body["values"]["orchestrator_name"] == "langgraph"
+    assert body["values"]["openai_max_tokens"] == 1000
+    assert body["values"]["search_use_semantic_search"] is True
+    assert body["values"]["search_top_k"] == 5
+    # Provenance reflects the per-field origin.
+    assert body["sources"] == {
+        "orchestrator_name": "env",
+        "openai_temperature": "override",
+        "openai_max_tokens": "env",
+        "search_use_semantic_search": "env",
+        "search_top_k": "env",
+        "log_level": "override",
+    }
+    # Audit fields surfaced from the override row.
+    assert body["updated_at"] == "2026-05-07T12:00:00+00:00"
+    assert body["updated_by"] == "u-admin"
+
+
+@pytest.mark.asyncio
+async def test_config_effective_treats_explicit_none_field_as_env(
+    admin_app_factory,
+) -> None:
+    """A persisted `RuntimeConfig` whose field is explicitly None
+    (operator cleared the override via PATCH `null`) MUST report
+    `"env"` provenance for that field -- None means 'fall through to
+    env default', not 'override the value to null'.
+    """
+    from backend.core.types import RuntimeConfig
+
+    app = admin_app_factory(
+        _settings(openai_temperature=0.3, log_level="WARNING")
+    )
+    # Override row exists but every mutable field is None -- equivalent
+    # to "operator cleared all overrides via successive PATCH null".
+    app.state.runtime_overrides = RuntimeConfig(
+        updated_at="2026-05-07T13:00:00+00:00",
+        updated_by="u-admin",
+    )
+
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    body = resp.json()
+
+    assert body["values"]["openai_temperature"] == 0.3
+    assert body["values"]["log_level"] == "WARNING"
+    assert all(src == "env" for src in body["sources"].values())
+    # Audit fields still surface even when no field is overridden --
+    # the row exists, the operator just cleared every field.
+    assert body["updated_at"] == "2026-05-07T13:00:00+00:00"
+    assert body["updated_by"] == "u-admin"
+
+
+@pytest.mark.asyncio
+async def test_config_effective_overlays_all_fields_when_fully_overridden(
+    admin_app_factory,
+) -> None:
+    """Every field overridden -> every source is "override", every
+    value comes from the override row. Sanity check on the merge loop.
+    """
+    from backend.core.types import RuntimeConfig
+
+    app = admin_app_factory(_settings())
+    app.state.runtime_overrides = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2000,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-07T14:00:00+00:00",
+        updated_by="u-admin",
+    )
+
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    body = resp.json()
+
+    assert body["values"] == {
+        "orchestrator_name": "agent_framework",
+        "openai_temperature": 0.7,
+        "openai_max_tokens": 2000,
+        "search_use_semantic_search": False,
+        "search_top_k": 10,
+        "log_level": "DEBUG",
+    }
+    assert all(src == "override" for src in body["sources"].values())

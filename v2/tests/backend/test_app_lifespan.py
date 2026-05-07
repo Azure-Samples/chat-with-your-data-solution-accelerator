@@ -53,6 +53,11 @@ def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
 
     fake_db = MagicMock(name="database_client")
     fake_db.aclose = AsyncMock()
+    # #35e(a): lifespan loads persisted RuntimeConfig overrides into
+    # app.state. Stub returns None so the unrelated lifespan tests
+    # below see `app.state.runtime_overrides is None` (the cold-start
+    # default). Tests that exercise the load path override this stub.
+    fake_db.get_runtime_config = AsyncMock(return_value=None)
 
     fake_agents = MagicMock(name="agents_provider")
     fake_agents.aclose = AsyncMock()
@@ -138,6 +143,7 @@ async def test_lifespan_constructs_database_client_and_closes_on_shutdown(
         captured["credential"] = kwargs.get("credential")
         client = MagicMock(name="database_client")
         client.aclose = AsyncMock()
+        client.get_runtime_config = AsyncMock(return_value=None)
         captured["client"] = client
         return client
 
@@ -176,6 +182,7 @@ async def test_lifespan_dispatches_postgresql_db_type(
         client = MagicMock()
         client.aclose = AsyncMock()
         client.ensure_pool = AsyncMock(return_value=MagicMock(name="pool"))
+        client.get_runtime_config = AsyncMock(return_value=None)
         return client
 
     monkeypatch.setattr("backend.app.databases.create", _capture)
@@ -217,6 +224,7 @@ async def test_lifespan_wires_pgvector_with_postgres_pool(
     fake_db = MagicMock(name="postgres_client")
     fake_db.aclose = AsyncMock()
     fake_db.ensure_pool = AsyncMock(return_value=fake_pool)
+    fake_db.get_runtime_config = AsyncMock(return_value=None)
     monkeypatch.setattr(
         "backend.app.databases.create", lambda *_a, **_kw: fake_db
     )
@@ -268,6 +276,7 @@ async def test_lifespan_pgvector_does_not_require_search_endpoint(
     fake_db = MagicMock()
     fake_db.aclose = AsyncMock()
     fake_db.ensure_pool = AsyncMock(return_value=MagicMock())
+    fake_db.get_runtime_config = AsyncMock(return_value=None)
     monkeypatch.setattr(
         "backend.app.databases.create", lambda *_a, **_kw: fake_db
     )
@@ -487,3 +496,66 @@ async def test_lifespan_closes_agents_provider_on_shutdown(
         pass
 
     fake_agents.aclose.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# #35e(a): live-reload runtime overrides -- lifespan loads persisted
+# RuntimeConfig from the database and stashes it on app.state, so reads
+# survive container restarts. The PATCH /api/admin/config route handles
+# the post-startup reassignment (covered in test_admin.py).
+# ---------------------------------------------------------------------------
+
+
+async def test_lifespan_loads_persisted_runtime_overrides_into_app_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the database returns a persisted `RuntimeConfig`, lifespan
+    stashes it on ``app.state.runtime_overrides`` so the dependency
+    `get_runtime_overrides` returns it from the very first request --
+    no need to wait for a PATCH to repopulate after a restart.
+    """
+    from backend.core.types import RuntimeConfig
+
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
+
+    persisted = RuntimeConfig(
+        openai_temperature=0.42,
+        updated_at="2026-05-07T12:00:00+00:00",
+        updated_by="u-prev",
+    )
+    fake_db = MagicMock(name="database_client")
+    fake_db.aclose = AsyncMock()
+    fake_db.get_runtime_config = AsyncMock(return_value=persisted)
+    monkeypatch.setattr(
+        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.runtime_overrides is persisted
+
+    fake_db.get_runtime_config.assert_awaited_once()
+
+
+async def test_lifespan_runtime_overrides_none_when_no_persisted_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cold start: nothing in the database -> lifespan stashes None.
+    Downstream consumers MUST treat None as 'no overrides yet' and
+    fall through to the env-default `AppSettings` snapshot.
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)  # default fake_db returns None
+    monkeypatch.setattr(
+        "backend.app.search.create",
+        lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.runtime_overrides is None

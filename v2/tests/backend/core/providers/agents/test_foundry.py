@@ -15,11 +15,17 @@ directly (Hard Rule #4).
 
 from unittest.mock import AsyncMock, MagicMock
 
+import logging
+
 import pytest
+from azure.core.exceptions import AzureError
 
 from backend.core.providers import agents
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.agents.foundry import FoundryAgentsProvider
+
+
+_FOUNDRY_AGENTS_LOGGER_NAME = "backend.core.providers.agents.foundry"
 
 
 @pytest.fixture
@@ -202,3 +208,103 @@ async def test_aclose_does_not_close_injected_override(
     provider.get_client()
     await provider.aclose()
     fake_client.close.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Phase C2e -- shutdown best-effort with structured warning
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_aclose_swallows_azure_error_and_warns(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_settings: MagicMock,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Shutdown is best-effort per the policy doc: a transport drop
+    on `AgentsClient.close()` must NOT crash the lifespan shutdown
+    sequence (the container is going away regardless). The wrap
+    swallows `(AzureError, OSError)`, logs at WARNING with structured
+    extras, and clears the cached client so a subsequent restart
+    rebuilds cleanly.
+    """
+    failing = MagicMock(
+        name="AgentsClient",
+        close=AsyncMock(side_effect=AzureError("transport drop")),
+    )
+    monkeypatch.setattr(
+        "backend.core.providers.agents.foundry.AgentsClient",
+        lambda *, endpoint, credential: failing,
+    )
+    provider = FoundryAgentsProvider(
+        settings=fake_settings, credential=fake_credential
+    )
+    provider.get_client()  # trigger construction
+
+    with caplog.at_level(
+        logging.WARNING, logger=_FOUNDRY_AGENTS_LOGGER_NAME
+    ):
+        await provider.aclose()
+
+    failing.close.assert_awaited_once()
+    matches = [
+        r
+        for r in caplog.records
+        if r.name == _FOUNDRY_AGENTS_LOGGER_NAME
+        and r.levelno == logging.WARNING
+        and getattr(r, "operation", None) == "aclose"
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly one WARNING record with operation='aclose', "
+        f"got {len(matches)}: {matches!r}"
+    )
+    assert matches[0].provider == "foundry_agents"  # type: ignore[attr-defined]
+    # Cached client cleared so a restart can construct cleanly without
+    # leaking the failing handle.
+    assert provider._client is None  # type: ignore[attr-defined]
+    # Second close is a no-op now that the client handle was cleared.
+    await provider.aclose()
+    failing.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_aclose_swallows_os_error_and_warns(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_settings: MagicMock,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Mirror of the AzureError path for the OS-level transport
+    failure mode (e.g. broken pipe during shutdown). Same swallow,
+    same WARNING shape -- both error families are best-effort during
+    shutdown.
+    """
+    failing = MagicMock(
+        name="AgentsClient",
+        close=AsyncMock(side_effect=OSError("broken pipe")),
+    )
+    monkeypatch.setattr(
+        "backend.core.providers.agents.foundry.AgentsClient",
+        lambda *, endpoint, credential: failing,
+    )
+    provider = FoundryAgentsProvider(
+        settings=fake_settings, credential=fake_credential
+    )
+    provider.get_client()
+
+    with caplog.at_level(
+        logging.WARNING, logger=_FOUNDRY_AGENTS_LOGGER_NAME
+    ):
+        await provider.aclose()
+
+    failing.close.assert_awaited_once()
+    matches = [
+        r
+        for r in caplog.records
+        if r.name == _FOUNDRY_AGENTS_LOGGER_NAME
+        and r.levelno == logging.WARNING
+        and getattr(r, "operation", None) == "aclose"
+    ]
+    assert len(matches) == 1
+    assert provider._client is None  # type: ignore[attr-defined]

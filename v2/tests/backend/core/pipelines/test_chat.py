@@ -1,6 +1,6 @@
 """Pillar: Stable Core / Phase: 3 (#22b) + Cleanup audit batch 2 (CU-011b)
 
-Tests for v2/src/shared/pipelines/chat.py.
+Tests for v2/src/backend/core/pipelines/chat.py.
 """
 
 from typing import Any, AsyncIterator, Sequence

@@ -17,17 +17,26 @@ Coverage:
 """
 
 import asyncio
+import logging
 from typing import Sequence
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from azure.core.exceptions import ResourceNotFoundError
+from azure.core.exceptions import (
+    AzureError,
+    ClientAuthenticationError,
+    ResourceNotFoundError,
+    ServiceRequestError,
+)
 
 from backend.core.agents.definitions import AgentDefinition
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
 from backend.core.types import ChatMessage, Conversation, MessageRecord, RuntimeConfig
+
+
+_AGENTS_BASE_LOGGER_NAME = "backend.core.providers.agents.base"
 
 
 # ---------------------------------------------------------------------------
@@ -326,3 +335,176 @@ async def test_concurrent_first_requests_create_exactly_once() -> None:
     assert out_b == "asst_winner"
     assert create_count["n"] == 1
     assert db.upsert_calls == [("cwyd", "asst_winner")]
+
+
+# ---------------------------------------------------------------------------
+# Phase C2e -- try/except policy sweep for `agents` provider domain
+#
+# Mirrors the foundry_iq + azure_search wraps landed in C2d:
+#   * Provider entry-points catch `azure.core.exceptions.AzureError` (the
+#     umbrella for every azure-core SDK transport / service error --
+#     `HttpResponseError`, `ServiceRequestError`,
+#     `ClientAuthenticationError`, etc.), structured-log via
+#     `logger.exception(..., extra={"operation": ..., "provider":
+#     "agents", "agent_name": ..., "deployment": ...})`, and re-raise so
+#     the router / lifespan layer can translate to a sanitized 503.
+#
+# `ResourceNotFoundError` keeps its existing orphan-recovery branch:
+# stale persisted ids fall through to recreate, NOT re-raise. The
+# `AzureError` catch sits AFTER `ResourceNotFoundError` so MRO
+# correctly routes 404s to the orphan path and everything else
+# (auth, transport, 5xx) to the log+re-raise path.
+# ---------------------------------------------------------------------------
+
+
+def _find_record(
+    caplog: pytest.LogCaptureFixture,
+    operation: str,
+    *,
+    level: int = logging.ERROR,
+) -> logging.LogRecord:
+    """Return the unique log record for `operation` at `level`.
+
+    Centralises the assertion shape used by the C2 sweep tests --
+    every wrap site emits exactly one structured log record per
+    failure, so a count != 1 is itself a regression signal.
+    """
+    matches = [
+        record
+        for record in caplog.records
+        if record.name == _AGENTS_BASE_LOGGER_NAME
+        and record.levelno == level
+        and getattr(record, "operation", None) == operation
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly one {logging.getLevelName(level)} record "
+        f"with operation={operation!r}, got {len(matches)}: {matches!r}"
+    )
+    return matches[0]
+
+
+@pytest.mark.asyncio
+async def test_get_agent_azure_error_logs_and_reraises(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A non-404 azure-core failure on `client.get_agent` (transport
+    drop, 503, auth) MUST surface to the caller -- it is NOT an
+    orphan-recovery signal. The wrap logs structured context and
+    re-raises so the lifespan / router layer translates it.
+    """
+    client = _make_client()
+    client.get_agent = AsyncMock(
+        side_effect=ServiceRequestError("transport drop")
+    )
+    provider = _StubAgentsProvider(
+        _make_settings(), MagicMock(), client=client
+    )
+    db = _StubDB(seed={"cwyd": "asst_persisted"})
+
+    with caplog.at_level(logging.ERROR, logger=_AGENTS_BASE_LOGGER_NAME):
+        with pytest.raises(ServiceRequestError):
+            await provider.get_or_create_agent(_definition(), db)
+
+    record = _find_record(caplog, "get_agent")
+    assert record.provider == "agents"  # type: ignore[attr-defined]
+    assert record.agent_name == "cwyd"  # type: ignore[attr-defined]
+    # No fall-through to recreate: cache untouched, no upsert written.
+    client.create_agent.assert_not_called()
+    assert db.upsert_calls == []
+    assert "cwyd" not in provider._agent_cache
+
+
+@pytest.mark.asyncio
+async def test_get_agent_resource_not_found_does_not_log_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """`ResourceNotFoundError` is intentional control flow (orphan
+    recovery), NOT an error condition. The C2e wrap must keep it on
+    the silent fall-through path -- emitting an ERROR record here
+    would spam logs every time an environment is rebuilt.
+    """
+    client = _make_client(agent_id="asst_recreated")
+    client.get_agent = AsyncMock(side_effect=ResourceNotFoundError("gone"))
+    provider = _StubAgentsProvider(
+        _make_settings(), MagicMock(), client=client
+    )
+    db = _StubDB(seed={"cwyd": "asst_stale"})
+
+    with caplog.at_level(logging.ERROR, logger=_AGENTS_BASE_LOGGER_NAME):
+        out = await provider.get_or_create_agent(_definition(), db)
+
+    assert out == "asst_recreated"
+    error_records = [
+        r for r in caplog.records
+        if r.name == _AGENTS_BASE_LOGGER_NAME and r.levelno == logging.ERROR
+    ]
+    assert error_records == []
+
+
+@pytest.mark.asyncio
+async def test_create_agent_azure_error_logs_and_reraises(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """`client.create_agent` is the cold-start write path. A failure
+    here (auth misconfig, quota, 5xx) must NOT silently leave a
+    half-built state -- the wrap logs the deployment + agent name
+    and re-raises so the caller sees the failure.
+    """
+    client = _make_client()
+    client.create_agent = AsyncMock(
+        side_effect=ClientAuthenticationError("bad token")
+    )
+    provider = _StubAgentsProvider(
+        _make_settings(deployment="gpt-4o-mini"),
+        MagicMock(),
+        client=client,
+    )
+    db = _StubDB()
+
+    with caplog.at_level(logging.ERROR, logger=_AGENTS_BASE_LOGGER_NAME):
+        with pytest.raises(ClientAuthenticationError):
+            await provider.get_or_create_agent(_definition(), db)
+
+    record = _find_record(caplog, "create_agent")
+    assert record.provider == "agents"  # type: ignore[attr-defined]
+    assert record.agent_name == "cwyd"  # type: ignore[attr-defined]
+    assert record.deployment == "gpt-4o-mini"  # type: ignore[attr-defined]
+    # No DB write, no cache write -- partial state is poison.
+    assert db.upsert_calls == []
+    assert "cwyd" not in provider._agent_cache
+
+
+@pytest.mark.asyncio
+async def test_create_agent_azure_error_releases_per_key_lock(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The per-key lock must release on the failure path so a
+    subsequent retry doesn't deadlock on a still-held lock. We
+    assert the lock is released by issuing a second call (which
+    succeeds) and observing it actually executes `create_agent`.
+    """
+    call_count = {"n": 0}
+
+    async def _flaky_create(**_kwargs: object) -> MagicMock:
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            raise AzureError("transient 503")
+        return MagicMock(id="asst_retry")
+
+    client = _make_client()
+    client.create_agent = AsyncMock(side_effect=_flaky_create)
+    provider = _StubAgentsProvider(
+        _make_settings(), MagicMock(), client=client
+    )
+    db = _StubDB()
+
+    with caplog.at_level(logging.ERROR, logger=_AGENTS_BASE_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await provider.get_or_create_agent(_definition(), db)
+        # Retry must succeed -- if the lock leaked the await below
+        # would hang forever (test would timeout instead of asserting).
+        out = await provider.get_or_create_agent(_definition(), db)
+
+    assert out == "asst_retry"
+    assert call_count["n"] == 2
+    assert db.upsert_calls == [("cwyd", "asst_retry")]

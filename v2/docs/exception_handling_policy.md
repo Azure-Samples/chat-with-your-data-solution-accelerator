@@ -24,7 +24,7 @@ User report (2026-05-06): *"I noticed lack of try/catch, and with that we can de
 | Layer | Catch policy | Log policy | Re-raise / surface |
 |---|---|---|---|
 | **Provider entry points** (`backend/core/providers/**/*.py` public methods) | Catch narrow SDK exceptions (`CosmosResourceNotFoundError`, `HttpResponseError`, `asyncpg.PostgresError`, `openai.APIError`, `azure.core.exceptions.AzureError`); let unknown propagate. | `logger.exception(msg, extra={"deployment": ..., "operation": ...})` — pyright-strict + structured. | Re-raise as the same SDK exception (preserves stack) OR convert to a typed domain exception (`OrchestratorError`, `DatabaseError`) when SDK noise leaks into the API surface. |
-| **Routers** (`backend/routers/**.py` handlers) | Top-level `try/except` per handler; catch domain exceptions + `Exception` as a final safety net (with `# noqa: BLE001 -- final safety net for handler X`). | `logger.exception(...)` with `request.method`, `request.url.path`, `user_id`, `correlation_id`. | Convert to sanitized `HTTPException(status_code=...)` — never leak SDK payloads (PII risk) or stack traces. |
+| **Routers** (`backend/routers/**.py` handlers) | Top-level `try/except` per handler OR app-level `add_exception_handler` for cross-cutting upstream SDK errors (preferred when the same status-code mapping repeats across N handlers); catch domain exceptions + `Exception` as a final safety net (with `# noqa: BLE001 -- final safety net for handler X`). | `logger.exception(...)` with `request.method`, `request.url.path`, `user_id`, `correlation_id`. | Convert to sanitized `HTTPException(status_code=...)` (or `JSONResponse` from an app-level handler) -- never leak SDK payloads (PII risk) or stack traces. |
 | **Pipelines** (`backend/core/pipelines/chat.py` async generators) | `try/except` inside the generator body; never let an unhandled exception kill the SSE stream silently. | `logger.exception(...)` + emit `OrchestratorEvent(channel=ERROR, ...)` for the FE reasoning panel. | `yield` the error event; do not re-raise (would 500 the SSE response mid-stream). |
 | **Lifespan** (`backend/app.py::_lifespan`) | Catch + re-raise with the failing provider name in the message. Best-effort cleanup paths during shutdown may use broad `except Exception` with `# noqa: BLE001 -- shutdown is best-effort`. | `logger.exception("startup failed: <provider>", ...)`. | Re-raise on startup; swallow + log on shutdown. Startup failure must be loud; container restart loop is the recovery path. |
 | **Functions blueprints** (`functions/core/**` triggers, Phase 6+) | Top-level `try/except` per trigger; specific catches for Storage / Cosmos / OpenAI errors before the catch-all. | `logger.exception(...)` (Functions runtime auto-pipes to App Insights). | Escalate to poison queue per Functions retry policy; do not raise generic `Exception` (kills the worker). |
@@ -44,6 +44,14 @@ The AST invariant test ([v2/tests/no_silent_excepts.py](../tests/no_silent_excep
 
 - C2 closure removed `v2/src/backend/core/providers/databases/cosmosdb.py` -- inner per-message `CosmosResourceNotFoundError` catch now logs the idempotent skip via `logger.debug` with both message id and conversation id in the structured payload.
 - C3 closure removed `v2/src/backend/core/pipelines/chat.py` line 143 -- malformed-citation `pass` replaced with `logger.debug("ignoring malformed citation metadata", extra={"operation": "citation_parse", "pipeline": "chat", "citation_id": cid, "error": str(exc)})`. The cited document still streams to the SSE consumer as the original orchestrator event (only post-prompt grounding loses that one source).
+
+C2 sweep coverage by sub-unit:
+
+- C2a: `cosmosdb.py` silent-swallow removal.
+- C2b: `cosmosdb.py` 7 SDK boundaries wrapped (read / upsert / delete / patch).
+- C2c: `postgres.py` 9 SDK boundaries wrapped (`asyncpg.PostgresError` umbrella).
+- C2d: `foundry_iq.py` 8 + `azure_search.py` 2 = 10 SDK boundaries wrapped.
+- C2e: `agents/base.py` 2 + `agents/foundry.py` 1 = 3 SDK boundaries wrapped. `get_agent` keeps the existing `ResourceNotFoundError` orphan-recovery branch FIRST in the except ladder; the added `AzureError` branch surfaces non-404 failures (auth, transport, 5xx). `create_agent` adds the umbrella catch with deployment + agent name in extras. `aclose` widens to `(AzureError, OSError)` and downgrades to `logger.warning` per shutdown policy.
 
 After C3, silent swallow and `except BaseException` are unconditionally banned across `v2/src/**`. Adding a new entry to `_EXEMPTIONS` is **not the right escape hatch** -- fix the construct.
 
@@ -92,9 +100,26 @@ Use the OTel-instrumented logger configured in [v2/src/backend/app.py](../src/ba
 The following 9 broad `except Exception` blocks are intentional and pre-date this policy. All carry `# noqa: BLE001` with rationale:
 
 - `v2/src/backend/app.py` lines 142, 146, 150, 154, 158 — best-effort cleanup paths in `_lifespan` shutdown branch.
+- `v2/src/backend/app.py` `_unhandled_exception_handler` (Phase C4 — final safety net for app-level dispatch; logs full `exc_info` and returns sanitized 500).
 - `v2/src/backend/routers/conversation.py` line 80 — top-level handler safety net (surfaced to client SSE channel).
 - `v2/src/backend/core/pipelines/chat.py` line 146 — malformed citation metadata is non-fatal; pipeline keeps streaming and the failure is logged at DEBUG via `logger.debug("ignoring malformed citation metadata", extra={...})` (Phase C3 closure).
 - `v2/src/backend/core/providers/llm/foundry_iq.py` line 321 — surfaces to SSE error channel.
 - `v2/src/backend/core/providers/llm/base.py` line 136 — surfaces to SSE error channel.
 
 New broad catches added in Phase C2–C4 follow the same `# noqa: BLE001 -- <reason>` convention.
+
+## App-level exception handlers (Phase C4)
+
+`backend/app.py::_install_exception_handlers` registers the following handlers on the FastAPI app at construction time. They apply uniformly to every router (conversation / history / admin / health) so per-handler `try/except` for these cross-cutting upstream errors is **not** required (and is discouraged — use the app-level handler instead so the sanitized message stays single-sourced).
+
+| Exception | Status | Sanitized detail |
+|---|---|---|
+| `openai.APIError` | 502 | `Upstream model error.` |
+| `azure.cosmos.exceptions.CosmosHttpResponseError` | 503 | `Database temporarily unavailable.` |
+| `asyncpg.PostgresError` | 503 | `Database temporarily unavailable.` |
+| `azure.core.exceptions.AzureError` | 503 | `Azure dependency temporarily unavailable.` |
+| `Exception` (final safety net) | 500 | `Internal server error.` |
+
+Dispatch order is FastAPI's MRO walk over `type(exc).__mro__` against the handler dict, so the more specific class always wins (e.g. a `CosmosHttpResponseError` -- which extends `azure-core`'s `HttpResponseError` -- lands on the Cosmos handler, not the generic `AzureError` handler). `HTTPException` and `RequestValidationError` keep their FastAPI defaults; the `Exception` final safety net is only reached for unhandled types.
+
+Every handler logs at ERROR via `logger.exception(...)` with structured extras `{method, path, user_id, exception_class}` so triage can reconstruct the full SDK detail from App Insights without leaking it to the client. Coverage is locked in by `v2/tests/backend/test_app_exception_handlers.py` (8 tests, including pass-through invariants for `HTTPException` and `RequestValidationError`).

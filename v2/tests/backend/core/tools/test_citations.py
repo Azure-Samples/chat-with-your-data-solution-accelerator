@@ -1,4 +1,4 @@
-"""Pillar: Stable Core / Phase: 3 (#23) — tests for shared/tools/citations.py."""
+"""Pillar: Stable Core / Phase: 3 (#23) — tests for backend/core/tools/citations.py."""
 
 import pytest
 

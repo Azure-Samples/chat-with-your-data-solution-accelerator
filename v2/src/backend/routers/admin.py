@@ -1,7 +1,7 @@
 """Admin router.
 
 Pillar: Stable Core
-Phase: 5 (task #35a)
+Phase: 5 (tasks #35a, #35b, #35c, #35e, #39)
 
 Read-only operator surface for the v2 backend. Today exposes:
 
@@ -12,67 +12,71 @@ Read-only operator surface for the v2 backend. Today exposes:
   UAMI ids, and full database / Cosmos endpoints stay out of the
   payload (covered by ``test_status_does_not_leak_sensitive_settings``).
 
-Auth gating mirrors :func:`backend.routers.history.get_user_id`
-(H1 hardening, see #32b in development_plan.md §0.1):
+* ``GET /api/admin/config`` and ``PATCH /api/admin/config`` --
+  read / write the runtime-toggle subset of ``AppSettings`` (#35b/c).
 
-* ``x-ms-client-principal-id`` header present -> caller id is the
-  header value.
-* Header missing AND ``settings.environment == "local"`` -> caller id
-  is the literal ``"local-dev"`` so the panel is exercisable end-to-end
-  during development.
-* Header missing AND ``settings.environment == "production"`` ->
-  ``401 Unauthorized``. A misconfigured Easy Auth must fail closed,
-  never silently fold every anonymous caller into a single tenant.
+* ``GET /api/admin/config/effective`` -- merged view of env defaults
+  overlaid with persisted ``RuntimeConfig`` overrides + per-field
+  provenance hints (#35e(b)). Reads the override side via the
+  live-reload channel (#35e(a)) so PATCHes are visible immediately.
 
-RBAC narrowing (admin-role-only) is **deferred to task #39** with the
-explicit ``# TODO(#39):`` markers below. Today every authenticated
-caller is accepted.
+Auth gating (#39, RBAC-narrowed): every admin route is gated on the
+shared :func:`backend.dependencies.requires_role` factory bound to
+the ``"admin"`` role claim. The factory:
+
+* Reads Easy Auth ``x-ms-client-principal`` (base64 JSON claims) +
+  ``x-ms-client-principal-id`` headers.
+* Returns the caller's Entra object id when the ``"admin"`` role
+  claim is present.
+* Raises ``401`` when Easy Auth is missing or malformed in production
+  (must fail closed) and ``403`` when the caller is authenticated but
+  lacks the role.
+* Falls back to ``"local-dev"`` when no Easy Auth headers are present
+  in ``settings.environment == "local"`` so the admin panel is
+  exercisable end-to-end during development without forging claims.
+
+The dependency callable is cached at module import (``_REQUIRE_ADMIN_USER``)
+so ``app.dependency_overrides`` keying stays deterministic across
+test fixtures.
 """
 
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, ValidationError
 
-from backend.dependencies import DatabaseClientDep, SettingsDep
+from backend.dependencies import (
+    DatabaseClientDep,
+    RuntimeOverridesDep,
+    SettingsDep,
+    requires_role,
+)
 from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-_LOCAL_DEV_USER = "local-dev"
-_PRINCIPAL_ID_HEADER = "x-ms-client-principal-id"
 _APP_VERSION = "2.0.0"
 
 
 # ---------------------------------------------------------------------------
-# Auth gate (mirrors history.get_user_id; RBAC narrowing -> task #39)
+# Auth gate (#39 -- RBAC narrowed to the "admin" Easy Auth role claim)
+#
+# Cached at import time so `app.dependency_overrides[_REQUIRE_ADMIN_USER]`
+# keying stays deterministic. Each `requires_role("admin")` invocation
+# returns a fresh callable, so reaching for the factory at every test
+# fixture would defeat dependency_overrides.
 # ---------------------------------------------------------------------------
 
 
-def admin_user_id(request: Request, settings: SettingsDep) -> str:
-    """Return the admin caller's user id, or raise 401 in production.
-
-    See module docstring for the gating contract. TODO(#39): once the
-    auth router + middleware lands, narrow this dependency to require
-    an admin role claim instead of any-authenticated-user.
-    """
-    value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
-    if value:
-        return value
-    if settings.environment == "local":
-        return _LOCAL_DEV_USER
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Missing client principal; Easy Auth header required.",
-    )
+_REQUIRE_ADMIN_USER = requires_role("admin")
 
 
-AdminUserIdDep = Annotated[str, Depends(admin_user_id)]
+AdminUserIdDep = Annotated[str, Depends(_REQUIRE_ADMIN_USER)]
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +135,39 @@ class AdminConfig(BaseModel):
     search_use_semantic_search: bool
     search_top_k: int
     log_level: str
+
+
+class EffectiveAdminConfig(BaseModel):
+    """Merged effective view of `AdminConfig` (#35e(b)).
+
+    Combines the env-default snapshot returned by
+    ``GET /api/admin/config`` with the persisted `RuntimeConfig`
+    overrides loaded into ``app.state.runtime_overrides`` by the
+    lifespan + PATCH writeback channel from #35e(a). Each field on
+    `values` is resolved by the rule:
+
+    * Override field is `None` (the cold default and the post-clear
+      state once an admin has PATCHed `null`) -> source is `"env"`,
+      value comes from `AppSettings`.
+    * Override field carries a non-None value -> source is
+      `"override"`, value comes from `app.state.runtime_overrides`.
+
+    The frontend renders `sources` as per-field provenance hints
+    ("this is from env" / "operator overrode this on YYYY-MM-DD")
+    so admins can tell at a glance which knobs are actively being
+    held by an override vs. tracking the deployed env baseline.
+
+    `updated_at` / `updated_by` surface the audit fields from the
+    override row when one exists (even when every field is `None` --
+    the row is the receipt that the operator interacted with the
+    config); both are `None` on cold start when no override row
+    has been persisted yet.
+    """
+
+    values: AdminConfig
+    sources: dict[str, Literal["env", "override"]]
+    updated_at: str | None = None
+    updated_by: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +234,61 @@ async def config_endpoint(
     )
 
 
+@router.get("/config/effective", response_model=EffectiveAdminConfig)
+async def config_effective_endpoint(
+    settings: SettingsDep,
+    overrides: RuntimeOverridesDep,
+    _user: AdminUserIdDep,
+) -> EffectiveAdminConfig:
+    """Return env defaults overlaid with persisted overrides + per-field
+    provenance hints (#35e(b)).
+
+    Reads the override side via the live-reload channel
+    (`get_runtime_overrides` -> `request.app.state.runtime_overrides`)
+    seeded by the lifespan loader and refreshed by every successful
+    PATCH (#35e(a)), so this endpoint reflects PATCHes immediately
+    without a database round-trip.
+    """
+    # Env defaults -- same 6-field surface as `GET /api/admin/config`.
+    env_values: dict[str, Any] = {
+        "orchestrator_name": settings.orchestrator.name,
+        "openai_temperature": settings.openai.temperature,
+        "openai_max_tokens": settings.openai.max_tokens,
+        "search_use_semantic_search": settings.search.use_semantic_search,
+        "search_top_k": settings.search.top_k,
+        "log_level": settings.observability.log_level,
+    }
+    merged: dict[str, Any] = dict(env_values)
+    sources: dict[str, Literal["env", "override"]] = {
+        name: "env" for name in env_values
+    }
+    if overrides is not None:
+        for name in env_values:
+            override_value = getattr(overrides, name)
+            # `None` means "not overridden, fall through to env default"
+            # (the storage shape uses `T | None = None` per RuntimeConfig
+            # docstring); only non-None values count as overrides.
+            if override_value is not None:
+                merged[name] = override_value
+                sources[name] = "override"
+
+    # Surface audit fields whenever an override row exists, even if
+    # every field has been cleared back to env -- the row itself is
+    # the receipt that an operator interacted with the config.
+    updated_at: str | None = None
+    updated_by: str | None = None
+    if overrides is not None:
+        updated_at = overrides.updated_at or None
+        updated_by = overrides.updated_by or None
+
+    return EffectiveAdminConfig(
+        values=AdminConfig(**merged),
+        sources=sources,
+        updated_at=updated_at,
+        updated_by=updated_by,
+    )
+
+
 # ---------------------------------------------------------------------------
 # PATCH /api/admin/config -- runtime overrides (#35c-4)
 #
@@ -233,6 +325,7 @@ def _utcnow_iso() -> str:
 
 @router.patch("/config", response_model=RuntimeConfig)
 async def patch_config_endpoint(
+    request: Request,
     db: DatabaseClientDep,
     user_id: AdminUserIdDep,
     payload: Annotated[dict[str, Any], Body(...)],
@@ -295,7 +388,14 @@ async def patch_config_endpoint(
         ) from exc
 
     await db.upsert_runtime_config(merged)
+    # #35e(a): Live-reload. Reassign `app.state.runtime_overrides` to
+    # the same instance we just persisted so the next request's
+    # `get_runtime_overrides` dependency surfaces the new override
+    # without a container restart. Atomic Python attribute write --
+    # no lock needed because Python's GIL makes single-attribute
+    # rebinds visible-or-not, never half-applied.
+    request.app.state.runtime_overrides = merged
     return merged
 
 
-__all__ = ["AdminConfig", "AdminStatus", "admin_user_id", "router"]
+__all__ = ["AdminConfig", "AdminStatus", "EffectiveAdminConfig", "router"]
