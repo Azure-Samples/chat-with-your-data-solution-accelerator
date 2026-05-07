@@ -437,3 +437,4 @@ Pipfile.lock
 
 # Ignore sample code folder
 data/sample_code/
+.azurite/
