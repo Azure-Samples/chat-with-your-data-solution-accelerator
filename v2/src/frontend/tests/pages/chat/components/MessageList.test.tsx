@@ -87,7 +87,7 @@ describe("MessageList", () => {
     );
   });
 
-  it("renders a collapsed reasoning <details> panel when reasoning entries exist", () => {
+  it("renders a collapsed reasoning <details> panel when reasoning entries exist on a finished message", () => {
     render(
       <ChatProvider>
         <Seed messages={[]} />
@@ -104,10 +104,11 @@ describe("MessageList", () => {
     expect(details.tagName.toLowerCase()).toBe("details");
     expect((details as HTMLDetailsElement).open).toBe(false);
     const summary = details.querySelector("summary");
-    expect(summary?.textContent).toBe("\u25B8 Show reasoning");
+    expect(summary?.textContent).toBe("\u25B8 Thought process");
+    expect(summary?.getAttribute("data-streaming")).toBe("false");
   });
 
-  it("lists every reasoning entry inside the panel", () => {
+  it("concatenates reasoning chunks into a single body block", () => {
     render(
       <ChatProvider>
         <Seed messages={[]} />
@@ -121,10 +122,62 @@ describe("MessageList", () => {
     });
 
     const details = screen.getByTestId("message-3-reasoning");
-    const items = details.querySelectorAll("li");
-    expect(items).toHaveLength(2);
-    expect(items[0].textContent).toBe("thinking step 1");
-    expect(items[1].textContent).toBe("thinking step 2");
+    // Per-token deltas are joined verbatim (foundry_iq emits per-delta
+    // chunks; concatenation reconstitutes the streamed text).
+    expect(details.textContent).toContain("thinking step 1thinking step 2");
+    expect(details.querySelectorAll("li")).toHaveLength(0);
+  });
+
+  it("opens the reasoning panel and shows 'Thinking' while the message is streaming", () => {
+    const mStreamingNoChunks: ChatMessage = {
+      id: "6",
+      role: "assistant",
+      content: "",
+      reasoning: [],
+      streaming: true,
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mStreamingNoChunks });
+    });
+
+    const details = screen.getByTestId("message-6-reasoning");
+    expect((details as HTMLDetailsElement).open).toBe(true);
+    const summary = details.querySelector("summary");
+    expect(summary?.textContent).toContain("Thinking");
+    expect(summary?.getAttribute("data-streaming")).toBe("true");
+  });
+
+  it("streams joined reasoning chunks live while the message is still streaming", () => {
+    const mStreamingWithChunks: ChatMessage = {
+      id: "7",
+      role: "assistant",
+      content: "",
+      reasoning: ["delta1", "delta2"],
+      streaming: true,
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mStreamingWithChunks });
+    });
+
+    const details = screen.getByTestId("message-7-reasoning");
+    expect((details as HTMLDetailsElement).open).toBe(true);
+    expect(details.textContent).toContain("delta1delta2");
   });
 
   it("does not render a reasoning panel when reasoning is absent", () => {

@@ -1,6 +1,8 @@
 /**
  * Pillar: Scenario Pack
- * Phase: 4 (task #32)
+ * Phase: 4 (task #32) +
+ *        6 (visual polish — icon buttons + hover-reveal actions,
+ *           pulled forward for boss demo)
  *
  * Conversation history side panel. Loads `/api/history/conversations`
  * on mount, lets the user select / rename / delete entries. The
@@ -13,8 +15,15 @@
  * panel reads the discriminator from `/api/history/status` only to
  * surface it in the panel header for ops visibility, never to branch
  * behavior (Hard Rule #4: no `if/elif` over provider keys).
+ *
+ * Phase 6 polish: New / Rename / Delete buttons render as round icon
+ * buttons (lucide-react Plus / Pencil / Trash2). Per-row Rename +
+ * Delete are hover/focus-revealed (Slack/Outlook pattern). Every
+ * `data-testid` + `aria-label` is preserved verbatim from Phase 4.
  */
 import { useCallback, useEffect, useState, type JSX } from "react";
+import { Pencil, Plus, Trash2 } from "../../../components/icons";
+import styles from "./HistoryPanel.module.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
 
@@ -159,30 +168,49 @@ export function HistoryPanel({
   );
 
   return (
-    <aside aria-label="conversation history" data-testid="history-panel">
-      <header>
-        <h3>History</h3>
+    <aside
+      aria-label="conversation history"
+      data-testid="history-panel"
+      className={styles.panel}
+    >
+      <header className={styles.header}>
+        <div className={styles.headerRow}>
+          <h3 className={styles.title}>History</h3>
+          <button
+            type="button"
+            onClick={handleNew}
+            data-testid="history-new"
+            aria-label="New chat"
+            title="New chat"
+            className={styles.iconButton}
+          >
+            <Plus size={16} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
         {status !== null && (
-          <p data-testid="history-db-type">backend: {status.db_type}</p>
+          <p data-testid="history-db-type" className={styles.dbType}>
+            backend: {status.db_type}
+          </p>
         )}
-        <button type="button" onClick={handleNew} data-testid="history-new">
-          New chat
-        </button>
       </header>
 
       {load.status === "loading" && (
-        <p data-testid="history-loading">Loading conversations…</p>
+        <p data-testid="history-loading" className={styles.note}>
+          Loading conversations…
+        </p>
       )}
       {load.status === "error" && (
-        <p data-testid="history-error" role="alert">
+        <p data-testid="history-error" role="alert" className={styles.error}>
           Could not load history: {load.message}
         </p>
       )}
       {load.status === "ready" && items.length === 0 && (
-        <p data-testid="history-empty">No conversations yet.</p>
+        <p data-testid="history-empty" className={styles.note}>
+          No conversations yet.
+        </p>
       )}
       {load.status === "ready" && items.length > 0 && (
-        <ul data-testid="history-list">
+        <ul data-testid="history-list" className={styles.list}>
           {items.map((c) => {
             const isSelected = c.id === selectedId;
             return (
@@ -190,30 +218,40 @@ export function HistoryPanel({
                 key={c.id}
                 data-testid={`history-item-${c.id}`}
                 aria-current={isSelected ? "true" : undefined}
+                className={styles.item}
+                data-selected={isSelected ? "true" : "false"}
               >
                 <button
                   type="button"
                   onClick={() => onSelect?.(c.id)}
                   data-testid={`history-select-${c.id}`}
+                  className={styles.selectButton}
+                  title={c.title || "Untitled"}
                 >
                   {c.title || "Untitled"}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleRename(c.id, c.title)}
-                  data-testid={`history-rename-${c.id}`}
-                  aria-label={`Rename ${c.title || "Untitled"}`}
-                >
-                  Rename
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(c.id)}
-                  data-testid={`history-delete-${c.id}`}
-                  aria-label={`Delete ${c.title || "Untitled"}`}
-                >
-                  Delete
-                </button>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    onClick={() => handleRename(c.id, c.title)}
+                    data-testid={`history-rename-${c.id}`}
+                    aria-label={`Rename ${c.title || "Untitled"}`}
+                    title="Rename"
+                    className={styles.iconButton}
+                  >
+                    <Pencil size={14} strokeWidth={2} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(c.id)}
+                    data-testid={`history-delete-${c.id}`}
+                    aria-label={`Delete ${c.title || "Untitled"}`}
+                    title="Delete"
+                    className={styles.iconButton}
+                  >
+                    <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
+                  </button>
+                </div>
               </li>
             );
           })}

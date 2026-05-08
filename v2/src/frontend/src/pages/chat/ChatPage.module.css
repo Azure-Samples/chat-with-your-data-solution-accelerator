@@ -1,0 +1,80 @@
+/*
+ * Pillar: Stable Core
+ * Phase: 6 (frontend polish, pulled forward for boss demo)
+ *
+ * Page layout for the chat shell. Header lives in App.tsx; this file
+ * owns the body grid: centered main column (max 768px) on the LEFT
+ * with the message list scrolling above a fixed input bar, plus an
+ * optional history sidebar docked on the RIGHT (closed by default,
+ * toggled from the header history button).
+ */
+
+.shell {
+  display: grid;
+  grid-template-columns: 1fr var(--history-col, 0);
+  height: calc(100vh - 60px); /* header height */
+  overflow: hidden;
+  background: var(--color-background);
+}
+
+.shell[data-history-open="true"] {
+  --history-col: 280px;
+}
+
+.sidebar {
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.shell[data-history-open="false"] .sidebar {
+  display: none;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.column {
+  width: 100%;
+  max-width: 768px;
+  padding: var(--space-5) var(--space-4);
+}
+
+.composer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.composerColumn {
+  width: 100%;
+  max-width: 768px;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,88 @@
+/*
+ * Pillar: Stable Core
+ * Phase: 6 (frontend polish, pulled forward for boss demo)
+ *
+ * Composer row (textarea + send button). Sits inside the
+ * .composerColumn from ChatPage.module.css, so it owns only the row's
+ * internal layout, not the centering / max-width.
+ */
+
+.form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.form:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.field {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+}
+
+.field::placeholder {
+  color: var(--color-text-muted);
+}
+
+.field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.send {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+.send:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.send:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.send:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}

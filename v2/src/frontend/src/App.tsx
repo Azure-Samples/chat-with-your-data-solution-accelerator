@@ -1,14 +1,21 @@
 /**
  * Pillar: Stable Core
- * Phase: 1
+ * Phase: 1 +
+ *        6 (visual polish — header + theme + history toggle, pulled forward for boss demo)
  *
  * App shell. Pings `/api/health` against the configured backend (so
  * docker compose can verify `VITE_BACKEND_URL` wiring) and mounts
  * the chat page from dev_plan #15. SSE wiring lands in #24; routing
- * lands with the admin merge in #36.
+ * lands with the admin merge in #36. Phase-6 polish wraps the tree in
+ * a `<ThemeProvider>` and renders an `<AppHeader>` that owns the
+ * light/dark toggle and the history-panel toggle (state lives here so
+ * a single source of truth feeds both header and `<ChatPage>`).
  */
-import { useEffect, useState, type JSX } from "react";
+import { useState, useEffect, type JSX } from "react";
+import { AppHeader } from "./components/AppHeader/AppHeader";
 import { ChatPage } from "./pages/chat/ChatPage";
+import { ThemeProvider } from "./theme/themeContext";
+import "./theme/tokens.css";
 
 type HealthState =
   | { status: "loading" }
@@ -41,6 +48,12 @@ async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
 
 export function App(): JSX.Element {
   const [health, setHealth] = useState<HealthState>({ status: "loading" });
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // Bump this counter to force a fresh <ChatPage> mount, which resets
+  // ChatProvider state + selectedId without threading dispatch through
+  // the App shell (avoids lifting ChatProvider up a layer, which would
+  // be a structural change).
+  const [newChatNonce, setNewChatNonce] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,9 +68,42 @@ export function App(): JSX.Element {
   }, []);
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: "2rem" }}>
-      <h1>CWYD v2</h1>
-      <section aria-label="backend health">
+    <ThemeProvider>
+      <h1
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0,0,0,0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        CWYD v2
+      </h1>
+      <AppHeader
+        title="Chat with your data"
+        historyOpen={historyOpen}
+        onToggleHistory={() => setHistoryOpen((v) => !v)}
+        onNewChat={() => setNewChatNonce((n) => n + 1)}
+      />
+      <section
+        aria-label="backend health"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0,0,0,0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
         <h2>Backend health</h2>
         {health.status === "loading" && <p data-testid="health">Checking…</p>}
         {health.status === "ok" && (
@@ -69,7 +115,7 @@ export function App(): JSX.Element {
           </p>
         )}
       </section>
-      <ChatPage />
-    </main>
+      <ChatPage key={newChatNonce} historyOpen={historyOpen} />
+    </ThemeProvider>
   );
 }

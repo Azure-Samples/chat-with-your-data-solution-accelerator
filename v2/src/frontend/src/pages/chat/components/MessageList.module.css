@@ -1,0 +1,204 @@
+/*
+ * Pillar: Stable Core
+ * Phase: 6 (frontend polish, pulled forward for boss demo)
+ *
+ * Chat bubbles. Layout-only here — color tokens (bubble bg/text/border,
+ * avatar bg/icon) come from tokens.css and react automatically to
+ * data-theme on <html>. Each message renders a row of avatar + bubble;
+ * the row direction flips per role so the user lands on the right and
+ * the assistant on the left.
+ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: var(--space-6) var(--space-4);
+}
+
+.emptyIcon {
+  color: var(--color-accent);
+  opacity: 0.7;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.item[data-role="user"] {
+  align-items: flex-end;
+}
+
+.item[data-role="assistant"] {
+  align-items: flex-start;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.item[data-role="user"] .row {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+}
+
+.avatar[data-role="user"] {
+  background: var(--color-bubble-user-bg);
+  color: var(--color-bubble-user-text);
+  border-color: transparent;
+}
+
+.avatar[data-role="assistant"] {
+  background: var(--color-surface);
+  color: var(--color-accent);
+}
+
+.bubble {
+  display: inline-block;
+  max-width: min(80%, 560px);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  box-shadow: var(--shadow-sm);
+}
+
+.item[data-role="user"] .bubble {
+  background: var(--color-bubble-user-bg);
+  color: var(--color-bubble-user-text);
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.item[data-role="assistant"] .bubble {
+  background: var(--color-bubble-assistant-bg);
+  color: var(--color-bubble-assistant-text);
+  border: 1px solid var(--color-bubble-assistant-border);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.reasoning {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-width: min(80%, 560px);
+}
+
+.reasoning summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reasoning summary[data-streaming="true"] {
+  color: var(--color-accent);
+  list-style: none;
+}
+
+.reasoning summary[data-streaming="true"]::-webkit-details-marker {
+  display: none;
+}
+
+.reasoningBody {
+  margin: var(--space-2) 0 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.thinkingDots {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-left: 2px;
+}
+
+.thinkingDots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  animation: cwydThink 1.2s ease-in-out infinite;
+}
+
+.thinkingDots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinkingDots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes cwydThink {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
+.error {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  max-width: min(80%, 560px);
+}

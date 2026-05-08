@@ -12,7 +12,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5273,
     host: true,
     // Local dev convenience: proxy /api/* to the host-run FastAPI backend
     // so streamChat() can keep using same-origin relative URLs and dodge

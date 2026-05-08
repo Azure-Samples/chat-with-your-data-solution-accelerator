@@ -201,6 +201,7 @@ deployed v1 app + by future v2 work.
 | Storage calls return 403 with same wording | Public network access **Disabled** | `az storage account update --public-network-access Enabled --default-action Allow` |
 | Functions restart loop, lock lease errors | Two Functions hosts pointing at same `azure-webjobs-hosts` (deployed cloud app vs. local) | Stop the cloud Container App / App Service, or change `AzureWebJobsStorage` to a different account in `code/backend/batch/local.settings.json` |
 | Empty/garbage answers in chat | Search index empty | Upload via Streamlit admin → wait for Functions logs to show `search.index ... 200` |
+| Flask boot fails with `ImportError: cannot import name 'hdrs' from partially initialized module 'aiohttp'` | Corrupted `aiohttp` install in `.venv` (typically caused by killing a Python process mid-pip-op) | `pip install --force-reinstall aiohttp` from repo root with `.venv` activated |
 
 ---
 
