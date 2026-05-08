@@ -86,3 +86,40 @@
   cursor: not-allowed;
   opacity: 0.4;
 }
+
+.mic {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.mic:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.mic:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.mic[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border-color: var(--color-accent);
+}
+
+.mic:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}

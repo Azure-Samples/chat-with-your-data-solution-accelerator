@@ -6,12 +6,33 @@ import {
 } from "../../../../src/pages/chat/ChatContext";
 import { MessageInput } from "../../../../src/pages/chat/components/MessageInput";
 import { streamChat, type StreamEvent } from "../../../../src/api/streamChat";
+import { useSpeechRecognition } from "../../../../src/hooks/useSpeechRecognition";
 
 vi.mock("../../../../src/api/streamChat", () => ({
   streamChat: vi.fn(),
 }));
 
+vi.mock("../../../../src/hooks/useSpeechRecognition", () => ({
+  useSpeechRecognition: vi.fn(),
+}));
+
 const streamChatMock = vi.mocked(streamChat);
+const useSpeechRecognitionMock = vi.mocked(useSpeechRecognition);
+
+// Default speech state — idle, no transcript, no error. Individual
+// tests can override via `useSpeechRecognitionMock.mockReturnValue(...)`
+// before the render call.
+const defaultSpeechStub = {
+  isListening: false,
+  transcript: "",
+  error: null,
+  start: vi.fn(async () => {}),
+  stop: vi.fn(async () => {}),
+};
+
+beforeEach(() => {
+  useSpeechRecognitionMock.mockReturnValue({ ...defaultSpeechStub });
+});
 
 function probeMessages() {
   return JSON.parse(screen.getByTestId("probe").textContent ?? "[]");
@@ -340,5 +361,96 @@ describe("MessageInput SSE wiring", () => {
     expect(streamChatMock).toHaveBeenCalledTimes(1);
 
     act(() => def.end());
+  });
+});
+
+describe("MessageInput mic button (S1 / SPEECH-MVP)", () => {
+  beforeEach(() => {
+    streamChatMock.mockReturnValue(iterableOf([]));
+  });
+
+  afterEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  function getMic(): HTMLButtonElement {
+    return screen.getByTestId("message-input-mic") as HTMLButtonElement;
+  }
+
+  it("renders an idle mic button (aria-pressed=false) by default", () => {
+    renderInput();
+    const mic = getMic();
+    expect(mic).toBeEnabled();
+    expect(mic.getAttribute("aria-pressed")).toBe("false");
+    expect(mic.getAttribute("aria-label")).toMatch(/start dictation/i);
+  });
+
+  it("calls hook.start() when the mic is clicked while idle", async () => {
+    const start = vi.fn(async () => {});
+    useSpeechRecognitionMock.mockReturnValue({
+      ...defaultSpeechStub,
+      start,
+    });
+
+    renderInput();
+    fireEvent.click(getMic());
+    await waitFor(() => {
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("flips to aria-pressed=true and calls hook.stop() while listening", async () => {
+    const stop = vi.fn(async () => {});
+    useSpeechRecognitionMock.mockReturnValue({
+      ...defaultSpeechStub,
+      isListening: true,
+      stop,
+    });
+
+    renderInput();
+    const mic = getMic();
+    expect(mic.getAttribute("aria-pressed")).toBe("true");
+    expect(mic.getAttribute("aria-label")).toMatch(/stop dictation/i);
+    expect(getField()).toBeDisabled();
+
+    fireEvent.click(mic);
+    await waitFor(() => {
+      expect(stop).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("streams the transcript into the draft input while listening", () => {
+    useSpeechRecognitionMock.mockReturnValue({
+      ...defaultSpeechStub,
+      isListening: true,
+      transcript: "hello world",
+    });
+
+    renderInput();
+    expect(getField().value).toBe("hello world");
+  });
+
+  it("disables the mic button when the hook reports an error", () => {
+    useSpeechRecognitionMock.mockReturnValue({
+      ...defaultSpeechStub,
+      error: "mic permission denied",
+    });
+
+    renderInput();
+    const mic = getMic();
+    expect(mic).toBeDisabled();
+    expect(mic.getAttribute("aria-label")).toMatch(/permission denied/i);
+  });
+
+  it("disables Send while listening even when the draft is non-empty", () => {
+    useSpeechRecognitionMock.mockReturnValue({
+      ...defaultSpeechStub,
+      isListening: true,
+      transcript: "something to send",
+    });
+
+    renderInput();
+    expect(getField().value).toBe("something to send");
+    expect(getSend()).toBeDisabled();
   });
 });

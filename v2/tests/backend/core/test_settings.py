@@ -277,6 +277,66 @@ def test_observability_optional(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # ---------------------------------------------------------------------------
+# SpeechSettings (S1 / SPEECH-MVP)
+# ---------------------------------------------------------------------------
+
+
+def test_speech_settings_defaults_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    for key in (
+        "AZURE_SPEECH_SERVICE_NAME",
+        "AZURE_SPEECH_SERVICE_REGION",
+        "AZURE_SPEECH_ACCOUNT_RESOURCE_ID",
+        "AZURE_SPEECH_RECOGNIZER_LANGUAGES",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    settings = AppSettings()
+    assert settings.speech.service_name == ""
+    assert settings.speech.service_region == ""
+    assert settings.speech.account_resource_id == ""
+    # v1 parity default -- documented in plan/business-cases.md (M5).
+    assert settings.speech.recognizer_languages == "en-US,fr-FR,de-DE,it-IT"
+
+
+def test_speech_settings_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_SPEECH_SERVICE_NAME", "spch-cwyd001")
+    monkeypatch.setenv("AZURE_SPEECH_SERVICE_REGION", "eastus2")
+    monkeypatch.setenv(
+        "AZURE_SPEECH_ACCOUNT_RESOURCE_ID",
+        "/subscriptions/x/resourceGroups/y/providers/Microsoft.CognitiveServices/accounts/spch-cwyd001",
+    )
+    monkeypatch.setenv("AZURE_SPEECH_RECOGNIZER_LANGUAGES", "en-US,es-ES")
+    settings = AppSettings()
+    assert settings.speech.service_name == "spch-cwyd001"
+    assert settings.speech.service_region == "eastus2"
+    assert settings.speech.account_resource_id.endswith("/spch-cwyd001")
+    assert settings.speech.recognizer_languages == "en-US,es-ES"
+
+
+def test_speech_settings_no_subscription_key_field() -> None:
+    """Hard Rule #2: Speech credentials come from UAMI/AAD, never from
+    a stored subscription key. Guard against accidental re-introduction
+    of the v1 `AZURE_SPEECH_KEY` pattern.
+    """
+    from backend.core.settings import SpeechSettings
+
+    forbidden = ("key", "secret", "password")
+    for field_name in SpeechSettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"SpeechSettings.{field_name} looks secret-bearing "
+                f"(matched '{token}'); Speech tokens must be minted via "
+                "AAD bearer through the credentials provider."
+            )
+
+
+# ---------------------------------------------------------------------------
 # NetworkSettings.cors_origins (CU-002a)
 # ---------------------------------------------------------------------------
 

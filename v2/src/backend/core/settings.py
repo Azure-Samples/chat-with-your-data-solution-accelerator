@@ -257,6 +257,38 @@ class OrchestratorSettings(BaseSettings):
     name: Literal["langgraph", "agent_framework"] = "langgraph"
 
 
+class SpeechSettings(BaseSettings):
+    """Azure Speech Service for browser-side speech-to-text.
+
+    Reads: AZURE_SPEECH_SERVICE_NAME, AZURE_SPEECH_SERVICE_REGION,
+    AZURE_SPEECH_ACCOUNT_RESOURCE_ID, AZURE_SPEECH_RECOGNIZER_LANGUAGES.
+
+    The backend never streams audio: the `/api/speech` router mints a
+    short-lived (10-min) Speech auth token via AAD (UAMI bearer for
+    `https://cognitiveservices.azure.com/.default`) and returns it to
+    the browser, which talks to Azure Speech directly via the
+    `microsoft-cognitiveservices-speech-sdk`. No subscription key is
+    stored anywhere (Hard Rule #2 -- AAD/UAMI only).
+
+    `account_resource_id` is the full ARM resource id of the Speech
+    account; it goes in the `x-ms-cognitiveservices-resource-id`
+    header of the AAD-bearer token-mint request and lets Azure Speech
+    bill / audit per-account when shared with multi-tenant
+    subscription scopes.
+
+    `recognizer_languages` is stored as the raw comma-separated string
+    so env-var parity with the Bicep output stays trivial; the router
+    splits on consumption (one place, one rule).
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AZURE_SPEECH_", extra="ignore")
+
+    service_name: str = ""
+    service_region: str = ""
+    account_resource_id: str = ""
+    recognizer_languages: str = "en-US,fr-FR,de-DE,it-IT"
+
+
 # ---------------------------------------------------------------------------
 # Root settings
 # ---------------------------------------------------------------------------
@@ -296,6 +328,7 @@ class AppSettings(BaseSettings):
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     network: NetworkSettings = Field(default_factory=NetworkSettings)
     orchestrator: OrchestratorSettings = Field(default_factory=OrchestratorSettings)
+    speech: SpeechSettings = Field(default_factory=SpeechSettings)
 
 
 # ---------------------------------------------------------------------------
@@ -323,6 +356,7 @@ __all__ = [
     "OpenAISettings",
     "OrchestratorSettings",
     "SearchSettings",
+    "SpeechSettings",
     "StorageSettings",
     "get_settings",
 ]

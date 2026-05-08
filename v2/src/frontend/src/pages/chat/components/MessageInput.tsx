@@ -21,9 +21,16 @@
  * Input + Send are disabled while a stream is in flight so the user
  * can't fire a second request mid-response.
  */
-import { useState, type FormEvent, type JSX } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type JSX,
+} from "react";
 import { useChat, type ChatMessage } from "../ChatContext";
 import { streamChat, type StreamMessage } from "../../../api/streamChat";
+import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
 import styles from "./MessageInput.module.css";
 
 function newId(): string {
@@ -50,13 +57,82 @@ function SendIcon(): JSX.Element {
   );
 }
 
+function MicIcon(): JSX.Element {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path d="M19 10v2a7 7 0 1 1-14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  );
+}
+
+function MicOffIcon(): JSX.Element {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="1" y1="1" x2="23" y2="23" />
+      <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+      <line x1="12" y1="19" x2="12" y2="23" />
+      <line x1="8" y1="23" x2="16" y2="23" />
+    </svg>
+  );
+}
+
 export function MessageInput() {
   const { state, dispatch } = useChat();
   const [draft, setDraft] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const speech = useSpeechRecognition();
+
+  // Snapshot of the draft at the moment the mic was pressed. While
+  // listening, the visible draft is `baseDraftRef.current` + a
+  // separator + the live transcript, so the user can dictate ON TOP of
+  // text they've already typed without losing it.
+  const baseDraftRef = useRef("");
+
+  useEffect(() => {
+    if (!speech.isListening) return;
+    const transcript = speech.transcript;
+    const base = baseDraftRef.current;
+    const separator = base.length > 0 && transcript.length > 0 ? " " : "";
+    setDraft(base + separator + transcript);
+  }, [speech.isListening, speech.transcript]);
 
   const trimmed = draft.trim();
-  const canSend = trimmed.length > 0 && !isStreaming;
+  const canSend =
+    trimmed.length > 0 && !isStreaming && !speech.isListening;
+  const micDisabled = isStreaming || speech.error !== null;
+
+  async function toggleMic() {
+    if (speech.isListening) {
+      await speech.stop();
+      return;
+    }
+    baseDraftRef.current = draft;
+    await speech.start();
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,9 +218,33 @@ export function MessageInput() {
         onChange={(e) => setDraft(e.target.value)}
         placeholder="Type a message…"
         autoComplete="off"
-        disabled={isStreaming}
+        disabled={isStreaming || speech.isListening}
         className={styles.field}
       />
+      <button
+        type="button"
+        onClick={toggleMic}
+        disabled={micDisabled}
+        aria-pressed={speech.isListening}
+        aria-label={
+          speech.error !== null
+            ? `Microphone unavailable: ${speech.error}`
+            : speech.isListening
+              ? "Stop dictation"
+              : "Start dictation"
+        }
+        title={
+          speech.error !== null
+            ? speech.error
+            : speech.isListening
+              ? "Stop dictation"
+              : "Start dictation"
+        }
+        data-testid="message-input-mic"
+        className={styles.mic}
+      >
+        {speech.isListening ? <MicOffIcon /> : <MicIcon />}
+      </button>
       <button
         type="submit"
         disabled={!canSend}

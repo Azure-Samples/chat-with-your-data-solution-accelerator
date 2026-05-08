@@ -123,6 +123,17 @@ Distinct namespace because the orchestrator is **runtime-tunable**, not infra-pi
 |---|---|---|---|---|---|---|
 | `CWYD_ORCHESTRATOR_NAME` | `langgraph` \| `agent_framework` | optional | `orchestrator.name` | — | `langgraph` | Registry key passed to `orchestrators.create(...)`. |
 
+### Speech (`SpeechSettings`, env_prefix `AZURE_SPEECH_`)
+
+Wires `GET /api/speech` (`v2/src/backend/routers/speech.py`) which mints a 10-minute AAD-bearer Speech authorization token for the browser SDK. Hard Rule #2 — UAMI must hold **Cognitive Services Speech User** (`f2dc8367-1007-4938-bd23-fe263f013447`) on the `spch-*` account; no subscription keys.
+
+| Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
+|---|---|---|---|---|---|---|
+| `AZURE_SPEECH_SERVICE_NAME` | str | optional | `speech.service_name` | `AZURE_SPEECH_SERVICE_NAME` | `""` | Diagnostics only; STS endpoint is region-derived. |
+| `AZURE_SPEECH_SERVICE_REGION` | str | required for `/api/speech` | `speech.service_region` | `AZURE_SPEECH_SERVICE_REGION` | `""` | Empty → router returns **503 Speech service not configured**. |
+| `AZURE_SPEECH_ACCOUNT_RESOURCE_ID` | str | required | `speech.account_resource_id` | `AZURE_SPEECH_ACCOUNT_RESOURCE_ID` | `""` | Sent as `x-ms-cognitiveservices-resource-id` header on the AAD-bearer STS issueToken POST. |
+| `AZURE_SPEECH_RECOGNIZER_LANGUAGES` | CSV str | optional | `speech.recognizer_languages` | — | `"en-US,fr-FR,de-DE,it-IT"` | Comma-split client-side; passed to `AutoDetectSourceLanguageConfig.fromLanguages(...)`. |
+
 ### Root (`AppSettings`, env_prefix `AZURE_`)
 
 | Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
@@ -160,7 +171,6 @@ Distinct namespace because the orchestrator is **runtime-tunable**, not infra-pi
 | `AZURE_SEARCH_INDEX_IS_PRECHUNKED`, `AZURE_SEARCH_INDEXER_NAME`, `AZURE_SEARCH_DATASOURCE_NAME`, `AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE`, `AZURE_SEARCH_CONVERSATIONS_LOG_INDEX`, `AZURE_SEARCH_FILTER`, `AZURE_SEARCH_ENABLE_IN_DOMAIN`, `AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG` | Replaced by Foundry IQ knowledge stores + the typed `SearchSettings`. | Phase 3 |
 | `AZURE_OPENAI_MODEL`, `AZURE_OPENAI_MODEL_NAME`, `AZURE_OPENAI_VISION_MODEL`, `AZURE_OPENAI_TOP_P`, `AZURE_OPENAI_STOP_SEQUENCE`, `AZURE_OPENAI_STREAM`, `AZURE_OPENAI_EMBEDDING_MODEL` | Replaced by `AZURE_OPENAI_GPT_DEPLOYMENT` / `_REASONING_DEPLOYMENT` / `_EMBEDDING_DEPLOYMENT` (deployment names, not model names). | Phase 2 |
 | `AZURE_COMPUTER_VISION_*`, `AZURE_FORM_RECOGNIZER_ENDPOINT` | Replaced by Foundry Document Intelligence + Vision via the Foundry account. | Phase 4 |
-| `AZURE_SPEECH_SERVICE_NAME`, `AZURE_SPEECH_SERVICE_REGION` | Out of scope for v2 (no speech-to-text in the v2 surface). | Phase 1 |
 | `AZURE_ML_WORKSPACE_NAME` | No standalone ML workspace in v2. | Phase 1 |
 | `AZURE_BLOB_ACCOUNT_NAME`, `AZURE_BLOB_CONTAINER_NAME`, `AZURE_STORAGE_ACCOUNT_ENDPOINT`, `AzureWebJobsStorage`, `DOCUMENT_PROCESSING_QUEUE_NAME` | Replaced by typed `StorageSettings` (`AZURE_STORAGE_*`, `AZURE_DOCUMENTS_CONTAINER`, `AZURE_DOC_PROCESSING_QUEUE`). | Phase 4 |
 | `AZURE_COSMOSDB_DATABASE`, `AZURE_COSMOSDB_ACCOUNT`, `AZURE_COSMOSDB_CONVERSATIONS_CONTAINER`, `AZURE_COSMOSDB_ENABLE_FEEDBACK` | Replaced by typed `DatabaseSettings` (`AZURE_COSMOS_*`). | Phase 2 |

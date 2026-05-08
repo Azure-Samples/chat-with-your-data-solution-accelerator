@@ -584,6 +584,80 @@ module aiProject 'modules/ai-project.bicep' = {
 }
 
 // ----------------------------------------------------------------------
+// Azure Speech (S1 / SPEECH-MVP — pulled forward from Phase 5 task #38).
+//
+// Standalone `Microsoft.CognitiveServices/accounts` of kind
+// `SpeechServices` powers the browser-side mic button on the chat
+// composer (v2/src/frontend/src/hooks/useSpeechRecognition.ts). The
+// backend `mint_speech_token()` helper (v2/src/backend/core/speech.py)
+// exchanges the UAMI's AAD token for a 10-minute Speech authorization
+// token via the regional `sts/v1.0/issueToken` endpoint, then the
+// browser SDK talks to Speech directly — no audio ever flows back
+// through this backend.
+//
+// Local auth disabled (Hard Rule #2 — no subscription keys, no Key
+// Vault). The UAMI gets `Cognitive Services Speech User`
+// (`f2dc8367-1007-4938-bd23-fe263f013447`) which is the data-plane
+// role required by the issueToken STS exchange.
+//
+// Always-on (no `if` gate). S0 SKU has no per-resource cost; charges
+// only on actual STT minutes.
+// ----------------------------------------------------------------------
+var speechServiceName = 'spch-${solutionSuffix}'
+
+module speechService 'br/public:avm/res/cognitive-services/account:0.13.0' = {
+  name: take('avm.res.cognitive-services.account.speech.${solutionSuffix}', 64)
+  params: {
+    name: speechServiceName
+    location: azureAiServiceLocation
+    tags: allTags
+    enableTelemetry: false
+    kind: 'SpeechServices'
+    sku: 'S0'
+    customSubDomainName: speechServiceName
+    disableLocalAuth: true
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    managedIdentities: {
+      systemAssigned: true
+    }
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
+          }
+        ]
+      : []
+    roleAssignments: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Cognitive Services Speech User — data-plane role for STS
+        // issueToken + Speech recognition / synthesis.
+        roleDefinitionIdOrName: 'f2dc8367-1007-4938-bd23-fe263f013447'
+      }
+    ]
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-${speechServiceName}'
+            customNetworkInterfaceName: 'nic-${speechServiceName}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'account'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'cognitiveservices'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+        ]
+      : []
+  }
+}
+
+// ----------------------------------------------------------------------
 // Azure AI Search (CONDITIONAL — cosmosdb mode only).
 // In postgresql mode the index store is pgvector inside the Postgres
 // Flexible Server, so Search is not deployed at all. RBAC grants the
@@ -1208,6 +1282,13 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
+            // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
+            // Speech token for the browser SDK. UAMI holds Cognitive
+            // Services Speech User on the spch-* account; resource-id
+            // header is required by the STS issueToken exchange.
+            { name: 'AZURE_SPEECH_SERVICE_NAME', value: speechService.outputs.name }
+            { name: 'AZURE_SPEECH_SERVICE_REGION', value: azureAiServiceLocation }
+            { name: 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', value: speechService.outputs.resourceId }
             // Default orchestrator (runtime-switchable per request)
             { name: 'ORCHESTRATOR', value: 'agent_framework' }
           ],
@@ -1657,6 +1738,17 @@ output AZURE_OPENAI_REASONING_DEPLOYMENT string = reasoningModelName
 
 @description('Deployment name of the embedding model used by the indexing pipeline.')
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = embeddingModelName
+
+// --- Speech (S1 / SPEECH-MVP) ---
+
+@description('Speech account name (kind=SpeechServices). Backend reads via SpeechSettings.service_name; not used directly by the SDK.')
+output AZURE_SPEECH_SERVICE_NAME string = speechService.outputs.name
+
+@description('Speech account region. Browser SDK passes this to SpeechConfig.fromAuthorizationToken(token, region) and the backend uses it to build the regional sts/v1.0/issueToken URL.')
+output AZURE_SPEECH_SERVICE_REGION string = azureAiServiceLocation
+
+@description('Speech account ARM resource id. Required as the x-ms-cognitiveservices-resource-id header on the AAD-bearer STS issueToken POST.')
+output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = speechService.outputs.resourceId
 
 // --- Conditional: Azure AI Search (cosmosdb mode only) ---
 

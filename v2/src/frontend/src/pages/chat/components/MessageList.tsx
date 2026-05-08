@@ -37,14 +37,14 @@ export function MessageList() {
   if (state.messages.length === 0) {
     return (
       <div className={styles.empty}>
-        <MessageCircle
+        {/* <MessageCircle
           size={64}
           strokeWidth={1.5}
           aria-hidden="true"
           className={styles.emptyIcon}
-        />
+        /> */}
         <p data-testid="message-list-empty" className={styles.emptyText}>
-          No messages yet. Say hello.
+
         </p>
       </div>
     );

@@ -28,7 +28,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.routers import conversation, health, history
+from backend.routers import conversation, health, history, speech
 from backend.core.providers import agents, credentials, databases, llm, search
 from backend.core.settings import NetworkSettings, get_settings
 
@@ -357,6 +357,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(conversation.router)
     app.include_router(history.router)
+    app.include_router(speech.router)
     _install_exception_handlers(app)
     return app
 
