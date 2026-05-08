@@ -20,7 +20,7 @@
 
 ![Redirect URL](images/AddRedirectURL.png)
 
-6. Click on `+ Add a platform`.
+6. Click on `+ Add redirect URI`.
 
 ![+ Add platform](images/AddPlatform.png)
 
