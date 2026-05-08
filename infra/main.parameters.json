@@ -19,13 +19,13 @@
       "value": "${APP_ENV=Prod}"
     },
     "hostingModel": {
-      "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=code}"
+      "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=container}"
     },
     "hostingPlanSku": {
       "value": "${HOSTING_PLAN_SKU=B3}"
     },
     "databaseType": {
-      "value": "${DATABASE_TYPE=PostgreSQL}"
+      "value": "${DATABASE_TYPE=CosmosDB}"
     },
     "azureSearchUseIntegratedVectorization": {
       "value": "${AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION=false}"
@@ -173,6 +173,36 @@
     },
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+    },
+    "enableMonitoring": {
+      "value": true
+    },
+    "enablePrivateNetworking": {
+      "value": true
+    },
+    "enableScalability": {
+      "value": true
+    },
+    "enableRedundancy": {
+      "value": "${ENABLE_REDUNDANCY=false}"
+    },
+    "enablePurgeProtection": {
+      "value": "${ENABLE_PURGE_PROTECTION=false}"
+    },
+    "enableTelemetry": {
+      "value": "${ENABLE_TELEMETRY=true}"
+    },
+    "tags": {
+      "value": {}
+    },
+     "vmSize": {
+      "value": "${AZURE_ENV_JUMPBOX_SIZE}"
+    },
+    "virtualMachineAdminUsername": {
+      "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
+    },
+    "virtualMachineAdminPassword": {
+      "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     },
     "appversion": {
       "value": "${AZURE_IMAGE_TAG=latest_waf}"
