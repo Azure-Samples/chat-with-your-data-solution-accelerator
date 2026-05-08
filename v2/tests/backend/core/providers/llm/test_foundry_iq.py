@@ -238,41 +238,68 @@ async def test_embed_returns_vectors(
 
 
 # ---------------------------------------------------------------------------
-# reason() -- o-series streaming (task #25)
+# reason() -- Responses API streaming (task #25; refactored 2026-05-08)
 # ---------------------------------------------------------------------------
 
 
 def _build_reason_stream(
     chunks: list[tuple[str, str]],
 ):
-    """Build an async-iterable mimicking an o-series streamed response.
+    """Build an async-iterable mimicking a Responses-API streamed response.
 
-    Each tuple is ``(reasoning_content, content)``. Either side may be
-    empty to assert the channel-routing logic.
+    Each tuple is ``(reasoning_summary_delta, output_text_delta)``.
+    Either side may be empty to assert the channel-routing logic.
+    Events use the typed ``type`` discriminator the production code
+    dispatches on:
+
+    - ``"response.reasoning_summary_text.delta"`` -> REASONING channel
+    - ``"response.output_text.delta"`` -> ANSWER channel
+
+    A non-empty reasoning chunk + non-empty answer chunk in the same
+    tuple yields TWO events (matching the real SDK, where reasoning
+    summary deltas and output text deltas are interleaved as
+    independent events).
     """
-    events = [
-        SimpleNamespace(
-            choices=[
+    events: list[Any] = []
+    for reasoning, answer in chunks:
+        if reasoning:
+            events.append(
                 SimpleNamespace(
-                    delta=SimpleNamespace(
-                        reasoning_content=reasoning,
-                        content=answer,
-                    ),
-                    finish_reason=None,
+                    type="response.reasoning_summary_text.delta",
+                    delta=reasoning,
                 )
-            ]
-        )
-        for reasoning, answer in chunks
-    ]
+            )
+        if answer:
+            events.append(
+                SimpleNamespace(
+                    type="response.output_text.delta",
+                    delta=answer,
+                )
+            )
     return _async_iter(events)
+
+
+def _wrap_responses_client(responses_create: AsyncMock) -> Any:
+    """Build a fake openai client whose `responses.create` is the given
+    AsyncMock and whose other namespaces are inert mocks.
+
+    Required because production code's `_get_openai_client()` returns
+    a client object, not just the responses namespace, and pyright +
+    runtime both walk attribute access on `chat`/`embeddings` even
+    when only `responses` is exercised in a given test.
+    """
+    return SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=AsyncMock())),
+        embeddings=SimpleNamespace(create=AsyncMock()),
+        responses=SimpleNamespace(create=responses_create),
+    )
 
 
 @pytest.mark.asyncio
 async def test_reason_routes_to_reasoning_deployment_and_streams(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(
+    responses_create = AsyncMock(
         return_value=_build_reason_stream(
             [
                 ("thinking step 1 ", ""),
@@ -282,9 +309,7 @@ async def test_reason_routes_to_reasoning_deployment_and_streams(
             ]
         )
     )
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions)
-    )
+    openai_client = _wrap_responses_client(responses_create)
     project = _build_fake_project_client(openai_client)
     provider = FoundryIQ(settings, fake_credential, project_client=project)
 
@@ -292,11 +317,16 @@ async def test_reason_routes_to_reasoning_deployment_and_streams(
         ev async for ev in provider.reason([ChatMessage(role="user", content="hi")])
     ]
 
-    # Routes to the reasoning deployment.
-    call = chat_completions.create.await_args
+    # Routes to the reasoning deployment via the Responses API.
+    call = responses_create.await_args
     assert call.kwargs["model"] == "o4-mini"
     assert call.kwargs["stream"] is True
-    # No temperature / max_tokens for o-series.
+    # Responses API uses `input`, not `messages`.
+    assert call.kwargs["input"] == [{"role": "user", "content": "hi"}]
+    # Reasoning summary requested -- this is what makes gpt-5 emit
+    # ResponseReasoningSummaryTextDeltaEvent on the stream.
+    assert call.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
+    # No temperature / max_tokens for reasoning models.
     assert "temperature" not in call.kwargs
     assert "max_tokens" not in call.kwargs
 
@@ -313,11 +343,8 @@ async def test_reason_routes_to_reasoning_deployment_and_streams(
 async def test_reason_uses_explicit_deployment_override(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(return_value=_build_reason_stream([]))
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions)
-    )
+    responses_create = AsyncMock(return_value=_build_reason_stream([]))
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         settings,
         fake_credential,
@@ -330,7 +357,7 @@ async def test_reason_uses_explicit_deployment_override(
             [ChatMessage(role="user", content="hi")], deployment="o3-mini"
         )
     ]
-    assert chat_completions.create.await_args.kwargs["model"] == "o3-mini"
+    assert responses_create.await_args.kwargs["model"] == "o3-mini"
 
 
 @pytest.mark.asyncio
@@ -339,20 +366,13 @@ async def test_reason_emits_error_event_on_stream_failure(
 ) -> None:
     async def _boom():
         yield SimpleNamespace(
-            choices=[
-                SimpleNamespace(
-                    delta=SimpleNamespace(reasoning_content="t1", content=""),
-                    finish_reason=None,
-                )
-            ]
+            type="response.reasoning_summary_text.delta",
+            delta="t1",
         )
         raise RuntimeError("upstream blew up")
 
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(return_value=_boom())
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions)
-    )
+    responses_create = AsyncMock(return_value=_boom())
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         settings,
         fake_credential,
@@ -449,8 +469,7 @@ async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
 ) -> None:
     """Explicit deployment == reasoning_deployment -> reason() path,
     propagates reasoning + answer events in order."""
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(
+    responses_create = AsyncMock(
         return_value=_build_reason_stream(
             [
                 ("step a ", ""),
@@ -459,9 +478,7 @@ async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
             ]
         )
     )
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions)
-    )
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         settings,
         fake_credential,
@@ -480,8 +497,8 @@ async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
         ("reasoning", "step b"),
         ("answer", "Answer."),
     ]
-    assert chat_completions.create.await_args.kwargs["model"] == "o4-mini"
-    assert chat_completions.create.await_args.kwargs["stream"] is True
+    assert responses_create.await_args.kwargs["model"] == "o4-mini"
+    assert responses_create.await_args.kwargs["stream"] is True
 
 
 @pytest.mark.asyncio
@@ -495,13 +512,10 @@ async def test_complete_routes_to_reason_when_default_chat_equals_reasoning(
     monkeypatch.setenv("AZURE_OPENAI_GPT_DEPLOYMENT", "o4-mini")
     s = AppSettings()
 
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(
+    responses_create = AsyncMock(
         return_value=_build_reason_stream([("", "ok")])
     )
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions)
-    )
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         s,
         fake_credential,
@@ -513,7 +527,7 @@ async def test_complete_routes_to_reason_when_default_chat_equals_reasoning(
     ]
 
     assert [(e.channel, e.content) for e in events] == [("answer", "ok")]
-    assert chat_completions.create.await_args.kwargs["stream"] is True
+    assert responses_create.await_args.kwargs["stream"] is True
 
 
 @pytest.mark.asyncio
@@ -579,20 +593,13 @@ async def test_complete_propagates_reason_error_events(
     propagates it unchanged (does NOT wrap with complete_chat_failed)."""
     async def _boom():
         yield SimpleNamespace(
-            choices=[
-                SimpleNamespace(
-                    delta=SimpleNamespace(reasoning_content="thinking", content=""),
-                    finish_reason=None,
-                )
-            ]
+            type="response.reasoning_summary_text.delta",
+            delta="thinking",
         )
         raise RuntimeError("reason upstream blew up")
 
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(return_value=_boom())
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions)
-    )
+    responses_create = AsyncMock(return_value=_boom())
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         settings,
         fake_credential,
@@ -840,12 +847,8 @@ async def test_reason_yields_error_event_on_create_api_error(
     FE reasoning panel always gets an explicit error frame instead of
     a generator that just terminates silently.
     """
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(side_effect=_api_error("auth failed"))
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions),
-        embeddings=SimpleNamespace(create=AsyncMock()),
-    )
+    responses_create = AsyncMock(side_effect=_api_error("auth failed"))
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         settings,
         fake_credential,
@@ -884,21 +887,17 @@ async def test_reason_logs_iteration_failure_alongside_existing_error_event(
 
     async def _failing_iter():
         yield SimpleNamespace(
-            choices=[
-                SimpleNamespace(
-                    delta=SimpleNamespace(content="answ", reasoning_content="thi"),
-                    finish_reason=None,
-                )
-            ]
+            type="response.reasoning_summary_text.delta",
+            delta="thi",
+        )
+        yield SimpleNamespace(
+            type="response.output_text.delta",
+            delta="answ",
         )
         raise RuntimeError("upstream blew up mid-stream")
 
-    chat_completions = MagicMock()
-    chat_completions.create = AsyncMock(return_value=_failing_iter())
-    openai_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=chat_completions),
-        embeddings=SimpleNamespace(create=AsyncMock()),
-    )
+    responses_create = AsyncMock(return_value=_failing_iter())
+    openai_client = _wrap_responses_client(responses_create)
     provider = FoundryIQ(
         settings,
         fake_credential,

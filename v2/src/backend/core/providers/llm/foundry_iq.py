@@ -131,9 +131,25 @@ class _Embeddings(Protocol):
     async def create(self, **kwargs: Any) -> _EmbeddingResponse: ...
 
 
+class _Responses(Protocol):
+    """Narrow view of the openai client's `responses` namespace.
+
+    `reason()` calls `oai.responses.create(...)` (Responses API,
+    `2025-04-01-preview` and later) instead of
+    `oai.chat.completions.create(...)` because gpt-5's reasoning
+    *summary* deltas only stream through the Responses surface --
+    chat completions only ever returns `content` deltas for gpt-5
+    (verified empirically against api versions 2024-12-01 /
+    2025-04-01 / 2025-09-01 with reasoning_effort=medium).
+    """
+
+    async def create(self, **kwargs: Any) -> Any: ...
+
+
 class _OpenAIClient(Protocol):
     chat: _ChatNamespace
     embeddings: _Embeddings
+    responses: _Responses
 
 
 class _ProjectClientView(Protocol):
@@ -148,7 +164,9 @@ class _ProjectClientView(Protocol):
     the kwargs surface."
     """
 
-    async def get_openai_client(self) -> _OpenAIClient: ...
+    async def get_openai_client(
+        self, *, api_version: str | None = None
+    ) -> _OpenAIClient: ...
 
 
 @registry.register("foundry_iq")
@@ -203,7 +221,22 @@ class FoundryIQ(BaseLLMProvider):
         if self._openai_client is None:
             project = cast(_ProjectClientView, self._get_project_client())
             try:
-                self._openai_client = await project.get_openai_client()
+                # Pass `api_version` from settings so the cached AsyncOpenAI
+                # client targets a Responses-API-capable surface (>=
+                # 2025-04-01-preview is required for `oai.responses.create`
+                # and for gpt-5 reasoning *summary* stream deltas
+                # consumed by `reason()`). Foundry SDK's
+                # `get_openai_client()` ignores OPENAI_API_VERSION env, so
+                # we have to pipe it through explicitly. Fallback to the
+                # SDK default when the env var is unset (covers tests
+                # that don't load `.env`).
+                api_version = self._settings.openai.api_version or None
+                if api_version:
+                    self._openai_client = await project.get_openai_client(
+                        api_version=api_version,
+                    )
+                else:
+                    self._openai_client = await project.get_openai_client()
             except AzureError:
                 # Init-style failure -- AIProjectClient lives in azure-core,
                 # so AAD / DNS / TLS surface as AzureError subclasses
@@ -372,32 +405,44 @@ class FoundryIQ(BaseLLMProvider):
         *,
         deployment: str | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
-        """Stream from a reasoning (o-series) deployment.
+        """Stream from a reasoning deployment via the Responses API.
 
-        Yields ``reasoning``-channel events for chain-of-thought tokens
-        and ``answer``-channel events for the final answer tokens
-        (ADR 0007). Implementation reads ``reasoning_content`` and
-        ``content`` deltas from the streamed Chat Completions response;
-        the OpenAI-compatible client returned by Foundry IQ surfaces
-        both fields for o-series deployments.
+        Yields ``reasoning``-channel events for chain-of-thought
+        *summary* tokens and ``answer``-channel events for the final
+        answer tokens (ADR 0007).
+
+        Implementation note (2026-05-08): switched from
+        ``oai.chat.completions.create(..., stream=True)`` to
+        ``oai.responses.create(..., reasoning={"effort": "...",
+        "summary": "auto"}, stream=True)`` because gpt-5 (and other
+        modern reasoning models on Azure) **never** populate
+        ``delta.reasoning_content`` on chat-completions streams --
+        verified empirically against API versions ``2024-12-01-preview``,
+        ``2025-04-01-preview``, and ``2025-09-01-preview`` with
+        ``reasoning_effort=medium``. The reasoning summary surface is
+        only exposed through the Responses API. Stream events are
+        dispatched on the typed ``evt.type`` discriminator instead of
+        the openai SDK class names so this module stays compliant with
+        Hard Rule #7 (no openai-types imports in v2 runtime). The two
+        event kinds we read both expose ``evt.delta`` as a string.
 
         ``temperature`` / ``max_tokens`` are intentionally not exposed:
-        o-series models reject the former and prefer
-        ``max_completion_tokens`` (left to the deployment's configured
-        default for now -- task #25 wires per-request knobs once the
-        FE surfaces them).
+        reasoning models reject the former and prefer
+        ``max_output_tokens`` (left to the deployment's configured
+        default for now).
         """
         model = self._resolve_deployment(deployment, kind="reason")
         oai = await self._get_openai_client()
         kwargs: dict[str, Any] = {
             "model": model,
-            "messages": self._to_openai_messages(messages),
+            "input": self._to_openai_messages(messages),
+            "reasoning": {"effort": "medium", "summary": "auto"},
             "stream": True,
         }
         try:
             stream = cast(
-                AsyncIterator[_StreamEvent],
-                await oai.chat.completions.create(**kwargs),
+                AsyncIterator[Any],
+                await oai.responses.create(**kwargs),
             )
         except openai.APIError as exc:
             # Pre-stream failure (auth, throttle, missing deployment).
@@ -408,7 +453,7 @@ class FoundryIQ(BaseLLMProvider):
             # SSE generator stays alive and the consumer sees an
             # explicit error event.
             logger.exception(
-                "foundry_iq reason completions.create failed",
+                "foundry_iq reason responses.create failed",
                 extra={
                     "operation": "reason_create",
                     "provider": "foundry_iq",
@@ -423,19 +468,26 @@ class FoundryIQ(BaseLLMProvider):
             return
         try:
             async for event in stream:
-                if not event.choices:
-                    continue
-                delta = event.choices[0].delta
-                reasoning = getattr(delta, "reasoning_content", None) or ""
-                if reasoning:
-                    yield OrchestratorEvent(
-                        channel=OrchestratorChannel.REASONING, content=reasoning
-                    )
-                answer = getattr(delta, "content", None) or ""
-                if answer:
-                    yield OrchestratorEvent(
-                        channel=OrchestratorChannel.ANSWER, content=answer
-                    )
+                event_type = getattr(event, "type", None)
+                if event_type == "response.reasoning_summary_text.delta":
+                    delta = getattr(event, "delta", None) or ""
+                    if delta:
+                        yield OrchestratorEvent(
+                            channel=OrchestratorChannel.REASONING,
+                            content=delta,
+                        )
+                elif event_type == "response.output_text.delta":
+                    delta = getattr(event, "delta", None) or ""
+                    if delta:
+                        yield OrchestratorEvent(
+                            channel=OrchestratorChannel.ANSWER,
+                            content=delta,
+                        )
+                # Other event types (response.created,
+                # response.in_progress, *.added, *.done, *.completed,
+                # content_part.*) carry no token payload for the FE
+                # reasoning panel; intentionally dropped to keep the
+                # SSE channel narrow (ADR 0007 channel set).
         except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
             # Mid-stream failure -- broad catch is intentional (ADR 0007 +
             # exception_handling_policy.md "Existing intentional catches")

@@ -1,8 +1,8 @@
 ---
 Pillar: Stable Core
 Phase: cross-cutting (status / executive deck)
-Last synced from: development_plan.md §0 + Phase 4 hardening rows + infrastructure.md §1–§4
-Sync date: 2026-05-05
+Last synced from: development_plan.md §0 + Phase 4 hardening rows + Phase 5.5 REFACTOR-B closure (`shared/` → `backend/core/`) + infrastructure.md §1–§4
+Sync date: 2026-05-08
 Render with: VS Code Markdown Preview (Mermaid Support extension) · GitHub · `marp --pptx` for slides
 ---
 
@@ -50,7 +50,7 @@ Render with: VS Code Markdown Preview (Mermaid Support extension) · GitHub · `
 | 1 | Infrastructure + Project Skeleton | ✅ done | AVM-first Bicep, UAMI + RBAC, no Key Vault, two-mode `databaseType`, frontend + backend + functions stubs, P1 polish shipped. |
 | 2 | Configuration + LLM Integration | ✅ done | `Registry[T]` primitive · Pydantic `AppSettings` · credentials + LLM provider domains · health split (always-200 vs ready) · per-app singleton via lifespan. **55 / 55 tests.** |
 | 3 | Conversation + RAG (Core Chat) | ✅ done (BE) | Two orchestrators (LangGraph + Agent Framework) · 4 cross-cutting tools (content_safety, text_processing, post_prompt, qa) · Azure AI Search provider · SSE chat router + chat pipeline · citations · reasoning model routing · indexing scripts. **186 / 186 tests.** Frontend SSE wiring (#24) belongs to the FE team. |
-| 3.5 | QA Remediation (post-Phase-3 audit) | ✅ done | 6 deployability blockers cleared (Q2–Q8), structural realignment Q10 (`providers/` + `pipelines/` folded under `shared/`, `chat_history` collapsed into `databases`). 186 / 186 BE · 20 / 20 FE · both compose profiles green. |
+| 3.5 | QA Remediation (post-Phase-3 audit) | ✅ done | 6 deployability blockers cleared (Q2–Q8), structural realignment Q10 (`providers/` + `pipelines/` folded under `backend/core/`, `chat_history` collapsed into `databases`). 186 / 186 BE · 20 / 20 FE · both compose profiles green. |
 | 4 | Chat History + Both Databases | ⏳ in progress | Hardening pass complete: B1 (pgvector lifespan dispatch via `index_store`), H1 (`get_user_id` 401 fail-closed in production), H3 (`_ensure_pool` TOCTOU). **263 / 263 tests.** Remaining: tasks #27–#31 (`databases` domain — cosmosdb + postgres clients, caller wiring, pgvector search, chat history router) + #32 (FE history panel). |
 | 5 | Admin + Frontend Merge | ☐ not started | Admin/files/speech/auth routers + admin pages in React; permanently retire Streamlit references. |
 | 6 | RAG Indexing Pipeline (Split Functions) | ☐ not started | `function_app.py` + 4 blueprints (`batch_start` / `batch_push` / `add_url` / `search_skill`) · parsers domain (5 file types) · embedders domain (foundry_kb + pgvector) · ingestion pipeline · default config bootstrap. |
@@ -94,7 +94,7 @@ Render with: VS Code Markdown Preview (Mermaid Support extension) · GitHub · `
 | LangChain orchestrator | `ZeroShotAgent` / `AgentExecutor` → **LangGraph** (`StateGraph` + `ToolNode`) |
 | Azure Functions | Monolithic → **modular RAG indexing pipeline** (4 blueprints) |
 | Configuration | `EnvHelper` singleton → **Pydantic `BaseSettings`** (typed, validated, nested) |
-| Project structure | Monolithic `code/` → **modular `v2/src/`** (backend, frontend, functions, shared) |
+| Project structure | Monolithic `code/` → **modular `v2/src/`** (backend, backend/core, frontend, functions, functions/core) |
 | Admin UI | Standalone Streamlit app → **merged into React/Vite frontend** |
 | Bicep infrastructure | Updated to add Foundry IQ resources, remove Azure ML / one-click ARM |
 
@@ -115,18 +115,18 @@ flowchart TB
     subgraph BE["Backend · Azure Container Apps"]
         App["FastAPI app.py<br/>+ lifespan singletons"]
         Routers["Routers<br/>conversation · health · history<br/>admin · files · speech · auth"]
-        Pipelines["shared/pipelines<br/>chat · ingestion"]
+        Pipelines["backend/core/pipelines<br/>chat · ingestion"]
         App --> Routers --> Pipelines
     end
 
-    subgraph Reg["shared/providers · Registry[T]"]
+    subgraph Reg["backend/core/providers · Registry[T]"]
         direction LR
         Orch["orchestrators<br/>langgraph · agent_framework"]
         Search["search<br/>azure_search · pgvector"]
         DB["databases<br/>cosmosdb · postgres"]
         LLM["llm<br/>foundry_iq"]
         Cred["credentials<br/>managed_identity · cli"]
-        Tools["shared/tools<br/>content_safety · text_processing<br/>post_prompt · qa · citations"]
+        Tools["backend/core/tools<br/>content_safety · text_processing<br/>post_prompt · qa · citations"]
     end
 
     subgraph Foundry["Foundry IQ (AI Services + Foundry Project)"]
@@ -163,7 +163,7 @@ flowchart TB
 
 **Reading the diagram**
 
-- **Backend is registry-driven.** `Pipelines` and `Routers` never `if/elif` over provider names — they call `domain.create(key, ...)` (Hard Rule #4). Adding a new orchestrator / search / DB / embedder / parser is a 3-step recipe (§3.5 of the dev plan).
+- **Backend is registry-driven.** `Pipelines` and `Routers` never `if/elif` over provider names — they call `domain.create(key, ...)` (Hard Rule #4). Adding a new orchestrator / search / DB / embedder / parser is a 3-step recipe (§3.5 of the dev plan). All swappable concerns live under `backend/core/providers/<domain>/` (renamed from `shared/providers/` in Phase 5.5 REFACTOR-B).
 - **One LLM provider, one Foundry Project.** Both orchestrators reach Foundry IQ through the same `BaseLLMProvider` — `chat`, `chat_stream`, `embed`, and `reason` (the o-series fast-path).
 - **Reasoning is a first-class SSE channel.** The `OrchestratorEvent` model (ADR 0007) keeps `reasoning`, `tool`, `answer`, `citation`, and `error` as separate streams so the frontend can render reasoning in a collapsible panel without parsing it out of the answer string.
 
@@ -276,7 +276,7 @@ flowchart LR
         SS["search_skill<br/>custom AI Search skill endpoint"]
     end
 
-    subgraph Pipe["shared/pipelines/ingestion.py"]
+    subgraph Pipe["backend/core/pipelines/ingestion.py"]
         Parse["parsers.create(file_type)<br/>pdf · docx · html · md · txt"]
         Embed["embedders.create(index_store)<br/>foundry_kb · pgvector"]
         Parse --> Embed
@@ -353,9 +353,9 @@ flowchart LR
 
 | # | Improvement | What it means in practice | Source |
 |---|---|---|---|
-| 1 | **Registry-first plug-and-play** | Every swappable concern lives under `shared/providers/<domain>/` and self-registers via `@registry.register("key")`. Caller code is one line: `domain.create(key, ...)`. **Zero `if/elif` provider dispatch in `v2/src/` outside tests.** Adding a new orchestrator / search / DB / embedder / parser is 3 steps (drop a file · decorate · 1 import). | [ADR 0001](adr/0001-registry-over-factory-dispatch.md) · dev_plan §3.5 |
+| 1 | **Registry-first plug-and-play** | Every swappable concern lives under `backend/core/providers/<domain>/` and self-registers via `@registry.register("key")`. Caller code is one line: `domain.create(key, ...)`. **Zero `if/elif` provider dispatch in `v2/src/` outside tests.** Adding a new orchestrator / search / DB / embedder / parser is 3 steps (drop a file · decorate · 1 import). | [ADR 0001](adr/0001-registry-over-factory-dispatch.md) · dev_plan §3.5 |
 | 2 | **No Key Vault for app secrets** | One UAMI, RBAC end-to-end. Bicep outputs flow straight into Container App / Web App / Function App env vars. `disableLocalAuth` / `allowSharedKeyAccess: false` everywhere. No secrets to rotate, no Key Vault cold-start latency, simpler local dev (`.env` from `azd env get-values`). | [ADR 0002](adr/0002-no-key-vault-uami-rbac.md) · infra §1 |
-| 3 | **Pydantic `AppSettings` over `EnvHelper` god-singleton** | Typed, validated, nested per Azure service. 9 nested `BaseSettings` (Identity, Foundry, OpenAI, Database, Search, Storage, Observability, Network, Orchestrator). `model_validator` enforces db-mode ↔ endpoint consistency at startup. `get_settings()` cached. **No secret fields in any model.** | [ADR 0003](adr/0003-pydantic-settings-over-envhelper.md) · `shared/settings.py` |
+| 3 | **Pydantic `AppSettings` over `EnvHelper` god-singleton** | Typed, validated, nested per Azure service. 9 nested `BaseSettings` (Identity, Foundry, OpenAI, Database, Search, Storage, Observability, Network, Orchestrator). `model_validator` enforces db-mode ↔ endpoint consistency at startup. `get_settings()` cached. **No secret fields in any model.** | [ADR 0003](adr/0003-pydantic-settings-over-envhelper.md) · `backend/core/settings.py` |
 | 4 | **Foundry IQ — no `openai` SDK import in v2 runtime** | `BaseLLMProvider` wraps `azure.ai.projects.aio.AIProjectClient.get_openai_client()`. The runtime never imports `openai` directly (greppable gate). All chat / streaming / embeddings / reasoning go through one provider — keys, regions, and quotas are governed centrally. | [ADR 0004](adr/0004-foundry-iq-no-openai-sdk-import.md) |
 | 5 | **Per-app credential + LLM singleton via FastAPI lifespan** | `app.state.credential` and `app.state.llm` are constructed **once** at startup, closed in reverse order at shutdown. DI reads them — no per-request credential construction (a v1 leak). | [ADR 0005](adr/0005-credential-and-llm-singleton-via-lifespan.md) · `backend/app.py` |
 | 6 | **Health endpoint split** | `/api/health` always returns 200 (cheap diagnostic for orchestrators / probes). `/api/health/ready` returns 503 on dependency failure (real readiness). `skip` is neutral in aggregation so pgvector mode doesn't false-fail. | [ADR 0006](adr/0006-health-endpoint-split.md) |
@@ -364,7 +364,7 @@ flowchart LR
 | 9 | **One `databaseType` param, two modes — uniform output contract** | `cosmosdb` ⇒ Cosmos DB + AI Search · `postgresql` ⇒ Postgres Flex + pgvector. Both modes export the same `AZURE_*` env-var names so backend code is mode-agnostic. Adding a third mode means adding one conditional module that conforms to the same output contract. | dev_plan §3.6 · infra §2.2 |
 | 10 | **Modular Functions ready** | v1's monolithic Function App splits into 4 blueprints (`batch_start` · `batch_push` · `add_url` · `search_skill`). Blueprints are thin shells that call `pipelines.ingestion.run(...)`; parse / chunk / embed code lives behind the registry. *Implementation lands in Phase 6.* | dev_plan §3.2 + Phase 6 |
 | 11 | **Unified frontend — admin merged in** | React 19 + Vite 7 SPA hosts both the chat experience and the admin pages. No second container, no Streamlit, no separate auth domain. Frontend reads **only** `VITE_BACKEND_URL`. | dev_plan §2.1 + Phase 5 |
-| 12 | **`uv` everywhere · Poetry banned** | Single Python toolchain across root + `v2/`. `uv sync` from the repo root sets up the workspace. Dev compose mounts `src/shared` so providers + pipelines hot-reload. | dev_plan §2.1 + tech-stack note |
+| 12 | **`uv` everywhere · Poetry banned** | Single Python toolchain across root + `v2/`. `uv sync` from the repo root sets up the workspace. Dev compose mounts `src/backend` so providers + pipelines hot-reload. | dev_plan §2.1 + tech-stack note |
 
 **Phase 4 hardening highlights** (cleared 2026-04-28 → 2026-05-04 window):
 
@@ -380,10 +380,10 @@ flowchart LR
 
 | Pillar | What lives here in CWYD v2 |
 |---|---|
-| **1 · Stable Core** | Bicep substrate (`v2/infra/`), `shared/registry.py`, `shared/settings.py`, `shared/types.py`, FastAPI `app.py` + lifespan, `BaseLLMProvider` / `OrchestratorBase` / `BaseSearch` ABCs, the registry recipe itself, the typed SSE channel. **What every fork must keep.** |
+| **1 · Stable Core** | Bicep substrate (`v2/infra/`), `backend/core/registry.py`, `backend/core/settings.py`, `backend/core/types.py`, FastAPI `app.py` + lifespan, `BaseLLMProvider` / `OrchestratorBase` / `BaseSearch` ABCs, the registry recipe itself, the typed SSE channel. **What every fork must keep.** |
 | **2 · Scenario Packs** | Future industry / persona overlays (data + UI + ruleset bundles) layered on top of the Stable Core via the registry. Not in the MVP — extensibility surface is built and waiting. |
 | **3 · Configuration Layer** | `active.json` (system prompt, document processors, UI branding), `default.json` (post-provision-loaded defaults), `AppSettings` env-var surface, the `databaseType` Bicep param, `enableMonitoring` / `enableScalability` / `enableRedundancy` / `enablePrivateNetworking` WAF flags. **Customer-tunable without code.** |
-| **4 · Customization Layer** | Out-of-tree provider plug-ins (e.g. `customer_aoai.py` dropped under `shared/providers/embedders/` with `@register("customer_aoai")`), production network isolation profile, custom auth / RBAC overlays, brand assets. **Forks add code without upstream patches.** |
+| **4 · Customization Layer** | Out-of-tree provider plug-ins (e.g. `customer_aoai.py` dropped under `backend/core/providers/embedders/` with `@register("customer_aoai")`), production network isolation profile, custom auth / RBAC overlays, brand assets. **Forks add code without upstream patches.** |
 
 ---
 
