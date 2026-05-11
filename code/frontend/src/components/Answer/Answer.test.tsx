@@ -736,10 +736,9 @@ describe("Answer.tsx", () => {
   });
   test('test the api thow error', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false })
-    const consoleSpy = jest.spyOn(console, 'log');
-    let renderref
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     await act(async () => {
-      renderref = render(
+      render(
         <Answer
           answer={{
             answer: componentPropsWithCitations.answer.answer,
@@ -752,8 +751,15 @@ describe("Answer.tsx", () => {
         />
       );
     });
+    const playBtn = screen.getByRole('button', {
+      name: /speak/i
+    });
+
+    await act(async () => {
+      fireEvent.click(playBtn);
+    });
+
     expect(consoleSpy).toHaveBeenCalled();
-    // Restore the original console.log
     consoleSpy.mockRestore();
   });
   // test('test speech', async () => {

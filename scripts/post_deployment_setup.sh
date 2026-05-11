@@ -328,8 +328,21 @@ else
         pip install --user -r "$REQUIREMENTS_FILE" > /dev/null 2>&1 || echo "⚠ WARNING: pip install failed. Continuing anyway..."
     fi
 
+    if [ -z "$PG_ACCESS_TOKEN" ]; then
+        echo "✓ Acquiring PostgreSQL access token..."
+        PG_ACCESS_TOKEN=$(az account get-access-token \
+            --resource "https://ossrdbms-aad.database.windows.net" \
+            --query accessToken -o tsv 2>/dev/null || true)
+        export PG_ACCESS_TOKEN
+        if [ -z "$PG_ACCESS_TOKEN" ]; then
+            echo "⚠ WARNING: Failed to acquire PostgreSQL access token via az CLI."
+            echo "  Falling back to DefaultAzureCredential inside Python (may fail for federated SPs)."
+        fi
+    fi
+
     echo "✓ Creating tables..."
     python "$SCRIPT_DIR/data_scripts/setup_postgres_tables.py" "$SERVER_FQDN" "$CURRENT_USER_UPN"
+    unset PG_ACCESS_TOKEN
     echo "✓ PostgreSQL table creation completed."
 fi
 
