@@ -1,20 +1,23 @@
 /*
  * Pillar: Stable Core
- * Phase: 6 (frontend polish, pulled forward for boss demo)
+ * Phase: 6 (frontend polish, pulled forward for boss demo) +
+ *        4 (MACAE re-skin — sidebar moved LEFT)
  *
  * Page layout for the chat shell. Header lives in App.tsx; this file
- * owns the body grid: centered main column (max 768px) on the LEFT
- * with the message list scrolling above a fixed input bar, plus an
- * optional history sidebar docked on the RIGHT (closed by default,
- * toggled from the header history button).
+ * owns the body grid: optional history sidebar docked on the LEFT
+ * (closed by default, toggled from the header history button) +
+ * centered main column (max 768px) with the message list scrolling
+ * above a fixed input bar. Page height is governed by the parent
+ * `<CoralShellRow>` so this shell simply fills 100%.
  */
 
 .shell {
   display: grid;
-  grid-template-columns: 1fr var(--history-col, 0);
-  height: calc(100vh - 60px); /* header height */
+  grid-template-columns: var(--history-col, 0) 1fr;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
-  background: var(--color-background);
+  background: var(--colorNeutralBackground3);
 }
 
 .shell[data-history-open="true"] {
@@ -22,9 +25,6 @@
 }
 
 .sidebar {
-  border-left: 1px solid var(--color-border);
-  background: var(--color-surface);
-  overflow-y: auto;
   min-width: 0;
 }
 

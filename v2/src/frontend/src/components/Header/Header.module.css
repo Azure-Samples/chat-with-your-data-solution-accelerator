@@ -1,0 +1,69 @@
+/* Pillar: Stable Core
+   Phase: 4 (frontend polish — MACAE re-skin)
+
+   Header CSS Module. Mirrors MACAE's
+   `commonComponents/components/Header/Header.css`:
+     - 64px tall, padded 16px
+     - background: --colorNeutralBackgroundAlpha (translucent surface)
+     - bottom border: --colorNeutralStroke2
+     - flex row, brand on the left + tools on the right
+
+   No raw colors — all values use Fluent v9 design tokens injected by
+   <FluentProvider>, so light/dark theme flips for free. */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 56px;
+  padding: 0 16px;
+  background: var(--colorNeutralBackgroundAlpha);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.titleStack {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.divider {
+  color: var(--colorNeutralForeground4);
+  user-select: none;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--fontSizeBase300);
+  font-weight: var(--fontWeightRegular);
+  color: var(--colorNeutralForeground3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

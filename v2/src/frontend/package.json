@@ -11,6 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fluentui/react-components": "^9.73.8",
+    "@fluentui/react-icons": "^2.0.326",
     "lucide-react": "^1.14.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.49.0",
     "react": "^19.0.0",

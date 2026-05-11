@@ -20,6 +20,14 @@
  * buttons (lucide-react Plus / Pencil / Trash2). Per-row Rename +
  * Delete are hover/focus-revealed (Slack/Outlook pattern). Every
  * `data-testid` + `aria-label` is preserved verbatim from Phase 4.
+ *
+ * Phase 4 MACAE re-skin: rows render as MACAE-style `.tab` chips
+ * (border-radius var(--borderRadiusMedium), hover
+ * var(--colorSubtleBackgroundHover), selected with a 2px
+ * var(--colorCompoundBrandStroke) left tick). The outer landmark
+ * (`<aside aria-label="conversation history">`) is now provided by
+ * the parent `<PanelLeft>`, so this component renders a plain `<div>`
+ * to avoid nesting two `complementary` landmarks.
  */
 import { useCallback, useEffect, useState, type JSX } from "react";
 import { Pencil, Plus, Trash2 } from "../../../components/icons";
@@ -168,8 +176,7 @@ export function HistoryPanel({
   );
 
   return (
-    <aside
-      aria-label="conversation history"
+    <div
       data-testid="history-panel"
       className={styles.panel}
     >
@@ -257,6 +264,6 @@ export function HistoryPanel({
           })}
         </ul>
       )}
-    </aside>
+    </div>
   );
 }

@@ -1,39 +1,61 @@
 /**
  * Pillar: Stable Core
- * Phase: 6 (frontend polish, pulled forward for boss demo)
+ * Phase: 4 (frontend polish — MACAE re-skin)
  *
- * Tests for AppHeader: brand row + theme toggle + history toggle.
+ * Tests for the Coral <Header> component. Same behavioural contract
+ * as the prior <AppHeader> (preserved verbatim accessible names, the
+ * `data-testid="app-header"` discriminator, the same callback wiring)
+ * but the brand visuals are now MACAE-faithful: Microsoft 4-square
+ * logo + "<title> | <subtitle>" pattern.
+ *
+ * Tests are exercised against the canonical export `Header` from
+ * `components/Header/Header.tsx`. The aliased re-export at
+ * `components/AppHeader/AppHeader.tsx` (back-compat for App.tsx) is
+ * smoke-checked at the bottom to make sure the alias chain is intact.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AppHeader } from "../../src/components/AppHeader/AppHeader";
+import { Header } from "../../src/components/Header/Header";
+import { FluentThemeBridge } from "../../src/theme/FluentThemeBridge";
 import { ThemeProvider } from "../../src/theme/themeContext";
 
-function renderHeader(
-  props?: Partial<React.ComponentProps<typeof AppHeader>>,
-) {
+function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
   const onToggleHistory = props?.onToggleHistory ?? vi.fn();
   const onNewChat = props?.onNewChat ?? vi.fn();
   const utils = render(
     <ThemeProvider>
-      <AppHeader
-        title={props?.title ?? "Chat with your data"}
-        historyOpen={props?.historyOpen ?? false}
-        onToggleHistory={onToggleHistory}
-        onNewChat={onNewChat}
-      />
+      <FluentThemeBridge>
+        <Header
+          title={props?.title ?? "Chat with your data"}
+          subtitle={props?.subtitle}
+          historyOpen={props?.historyOpen ?? false}
+          onToggleHistory={onToggleHistory}
+          onNewChat={onNewChat}
+        />
+      </FluentThemeBridge>
     </ThemeProvider>,
   );
   return { ...utils, onToggleHistory, onNewChat };
 }
 
-describe("AppHeader", () => {
-  it("renders the title and the Azure logo with alt text", () => {
+describe("Header", () => {
+  it("renders the title, the default subtitle, and a Microsoft brand logo", () => {
     renderHeader({ title: "Chat with your data" });
     expect(
       screen.getByRole("heading", { level: 1, name: /chat with your data/i }),
     ).toBeInTheDocument();
-    expect(screen.getByAltText(/azure/i)).toBeInTheDocument();
+    // Default subtitle from MACAE pattern: "<title> | Solution Accelerator".
+    expect(screen.getByText(/solution accelerator/i)).toBeInTheDocument();
+    // The 4-square Microsoft logo is rendered as an <svg role="img">
+    // with aria-label="Microsoft" so it is announced by screen readers.
+    const logos = screen.getAllByRole("img", { name: /microsoft/i });
+    expect(logos.length).toBeGreaterThan(0);
+  });
+
+  it("renders a custom subtitle when provided", () => {
+    renderHeader({ title: "Hello", subtitle: "Demo Build" });
+    expect(screen.getByText(/demo build/i)).toBeInTheDocument();
   });
 
   it("toggles the theme when the theme button is clicked", () => {
@@ -58,11 +80,16 @@ describe("AppHeader", () => {
     expect(onNewChat).toHaveBeenCalledTimes(1);
   });
 
-  it("reflects historyOpen via aria-pressed", () => {
+  it("reflects historyOpen via aria-pressed on the history toggle", () => {
     renderHeader({ historyOpen: true });
-    expect(screen.getByRole("button", { name: /history/i })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const historyBtn = screen.getByRole("button", { name: /history/i });
+    expect(historyBtn).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("AppHeader alias re-exports the same component", () => {
+    // Sanity-check that the back-compat alias path used by App.tsx
+    // resolves to the same Coral Header (so removing the alias in U8
+    // is a one-line change with no behaviour shift).
+    expect(AppHeader).toBe(Header);
   });
 });
