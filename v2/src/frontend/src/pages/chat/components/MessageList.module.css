@@ -1,12 +1,14 @@
 /*
  * Pillar: Stable Core
- * Phase: 6 (frontend polish, pulled forward for boss demo)
+ * Phase: 6 (frontend polish, pulled forward for boss demo) +
+ *        4 (MACAE re-skin — assistant: no bubble (full-width prose);
+ *           user: brand-tinted right-aligned chip; Fluent tokens
+ *           replace all `--color-*` / `--space-*` aliases removed in U8.)
  *
- * Chat bubbles. Layout-only here — color tokens (bubble bg/text/border,
- * avatar bg/icon) come from tokens.css and react automatically to
- * data-theme on <html>. Each message renders a row of avatar + bubble;
- * the row direction flips per role so the user lands on the right and
- * the assistant on the left.
+ * Chat surface layout. Color/spacing tokens come from Fluent v9 via
+ * `<FluentProvider>`. The `cwydThink` keyframe stays defined here (it
+ * doesn't ship in the Fluent token set; tokens.css will keep mirroring
+ * a global copy until U8's tokens.css thinning).
  */
 
 .empty {
@@ -14,20 +16,22 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-3);
+  gap: var(--spacingVerticalM);
   text-align: center;
-  color: var(--color-text-muted);
-  padding: var(--space-6) var(--space-4);
+  color: var(--colorNeutralForeground3);
+  padding: var(--spacingVerticalXXXL) var(--spacingHorizontalL);
 }
 
 .emptyIcon {
-  color: var(--color-accent);
-  opacity: 0.7;
+  color: var(--colorBrandForeground1);
+  opacity: 0.85;
 }
 
 .emptyText {
   margin: 0;
-  font-size: var(--font-size-md);
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1);
 }
 
 .list {
@@ -36,13 +40,13 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--spacingVerticalL);
 }
 
 .item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--spacingVerticalXS);
   max-width: 100%;
 }
 
@@ -51,19 +55,25 @@
 }
 
 .item[data-role="assistant"] {
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .row {
   display: flex;
   flex-direction: row;
-  align-items: flex-end;
-  gap: var(--space-2);
+  align-items: flex-start;
+  gap: var(--spacingHorizontalS);
   max-width: 100%;
 }
 
 .item[data-role="user"] .row {
   flex-direction: row-reverse;
+  align-items: flex-end;
+  max-width: min(80%, 560px);
+}
+
+.item[data-role="assistant"] .row {
+  width: 100%;
 }
 
 .avatar {
@@ -74,43 +84,40 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 1px solid var(--color-border);
 }
 
 .avatar[data-role="user"] {
-  background: var(--color-bubble-user-bg);
-  color: var(--color-bubble-user-text);
-  border-color: transparent;
+  background: var(--colorBrandBackground);
+  color: var(--colorNeutralForegroundOnBrand);
 }
 
 .avatar[data-role="assistant"] {
-  background: var(--color-surface);
-  color: var(--color-accent);
+  background: var(--colorNeutralBackground3);
+  color: var(--colorBrandForeground1);
 }
 
 .bubble {
-  display: inline-block;
-  max-width: min(80%, 560px);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-md);
-  line-height: 1.5;
+  font-size: var(--fontSizeBase300);
+  line-height: var(--lineHeightBase300);
   white-space: pre-wrap;
   word-wrap: break-word;
-  box-shadow: var(--shadow-sm);
 }
 
 .item[data-role="user"] .bubble {
-  background: var(--color-bubble-user-bg);
-  color: var(--color-bubble-user-text);
-  border-bottom-right-radius: var(--radius-sm);
+  display: inline-block;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  border-radius: var(--borderRadiusXLarge);
+  background: var(--colorBrandBackground2);
+  color: var(--colorNeutralForeground1);
+  border-bottom-right-radius: var(--borderRadiusSmall);
 }
 
 .item[data-role="assistant"] .bubble {
-  background: var(--color-bubble-assistant-bg);
-  color: var(--color-bubble-assistant-text);
-  border: 1px solid var(--color-bubble-assistant-border);
-  border-bottom-left-radius: var(--radius-sm);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 4px; /* Optical alignment with avatar */
+  background: transparent;
+  color: var(--colorNeutralForeground1);
 }
 
 .srOnly {
@@ -126,27 +133,27 @@
 }
 
 .reasoning {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  margin: 0 0 0 36px;
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  background: var(--colorNeutralBackground2);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3);
   max-width: min(80%, 560px);
 }
 
 .reasoning summary {
   cursor: pointer;
-  font-weight: 500;
-  color: var(--color-text);
+  font-weight: var(--fontWeightMedium);
+  color: var(--colorNeutralForeground1);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--spacingHorizontalXS);
 }
 
 .reasoning summary[data-streaming="true"] {
-  color: var(--color-accent);
+  color: var(--colorBrandForeground1);
   list-style: none;
 }
 
@@ -155,11 +162,11 @@
 }
 
 .reasoningBody {
-  margin: var(--space-2) 0 0;
+  margin: var(--spacingVerticalXS) 0 0;
   white-space: pre-wrap;
-  line-height: 1.5;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  line-height: var(--lineHeightBase200);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -194,11 +201,11 @@
 }
 
 .error {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
+  margin: 0 0 0 36px;
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  background: var(--colorPaletteRedBackground1);
+  color: var(--colorPaletteRedForeground1);
+  border-radius: var(--borderRadiusMedium);
+  font-size: var(--fontSizeBase200);
   max-width: min(80%, 560px);
 }

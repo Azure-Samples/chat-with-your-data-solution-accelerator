@@ -1,6 +1,10 @@
 /**
  * Pillar: Stable Core
- * Phase: 5 (FE bridge — dev_plan §4 task #24, FE half)
+ * Phase: 5 (FE bridge — dev_plan §4 task #24, FE half) +
+ *        4 (MACAE re-skin — composer pill: Fluent <Button>/<ToggleButton>
+ *           replace hand-rolled SVG buttons; Send24Regular / Mic24Regular
+ *           / MicOff24Regular replace inline SVG icons; surface uses
+ *           Fluent tokens with a focus-ring border swap.)
  *
  * Controlled chat input wired to the backend SSE feed.
  *
@@ -19,15 +23,22 @@
  * team's #24 backlog.
  *
  * Input + Send are disabled while a stream is in flight so the user
- * can't fire a second request mid-response.
+ * can't fire a second request mid-response. The mic toggle uses
+ * Fluent's <ToggleButton>, which emits `aria-pressed` natively in line
+ * with the existing test contract.
  */
 import {
   useEffect,
   useRef,
   useState,
   type FormEvent,
-  type JSX,
 } from "react";
+import { Button, ToggleButton } from "@fluentui/react-components";
+import {
+  Mic24Regular,
+  MicOff24Regular,
+  Send24Regular,
+} from "@fluentui/react-icons";
 import { useChat, type ChatMessage } from "../ChatContext";
 import { streamChat, type StreamMessage } from "../../../api/streamChat";
 import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
@@ -36,68 +47,6 @@ import styles from "./MessageInput.module.css";
 function newId(): string {
   // crypto.randomUUID is available in modern browsers and jsdom 25+.
   return globalThis.crypto.randomUUID();
-}
-
-function SendIcon(): JSX.Element {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M22 2L11 13" />
-      <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-    </svg>
-  );
-}
-
-function MicIcon(): JSX.Element {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 1 0 6 0V4a3 3 0 0 0-3-3z" />
-      <path d="M19 10v2a7 7 0 1 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
-  );
-}
-
-function MicOffIcon(): JSX.Element {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <line x1="1" y1="1" x2="23" y2="23" />
-      <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
-      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
-  );
 }
 
 export function MessageInput() {
@@ -202,6 +151,19 @@ export function MessageInput() {
     }
   }
 
+  const micLabel =
+    speech.error !== null
+      ? `Microphone unavailable: ${speech.error}`
+      : speech.isListening
+        ? "Stop dictation"
+        : "Start dictation";
+  const micTitle =
+    speech.error !== null
+      ? speech.error
+      : speech.isListening
+        ? "Stop dictation"
+        : "Start dictation";
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -221,39 +183,30 @@ export function MessageInput() {
         disabled={isStreaming || speech.isListening}
         className={styles.field}
       />
-      <button
-        type="button"
+      <ToggleButton
+        appearance="subtle"
+        shape="circular"
+        checked={speech.isListening}
         onClick={toggleMic}
         disabled={micDisabled}
-        aria-pressed={speech.isListening}
-        aria-label={
-          speech.error !== null
-            ? `Microphone unavailable: ${speech.error}`
-            : speech.isListening
-              ? "Stop dictation"
-              : "Start dictation"
-        }
-        title={
-          speech.error !== null
-            ? speech.error
-            : speech.isListening
-              ? "Stop dictation"
-              : "Start dictation"
-        }
+        aria-label={micLabel}
+        title={micTitle}
         data-testid="message-input-mic"
+        icon={
+          speech.isListening ? <MicOff24Regular /> : <Mic24Regular />
+        }
         className={styles.mic}
-      >
-        {speech.isListening ? <MicOffIcon /> : <MicIcon />}
-      </button>
-      <button
+      />
+      <Button
+        appearance="primary"
+        shape="circular"
         type="submit"
         disabled={!canSend}
         aria-label="Send"
         title="Send"
+        icon={<Send24Regular />}
         className={styles.send}
-      >
-        <SendIcon />
-      </button>
+      />
     </form>
   );
 }

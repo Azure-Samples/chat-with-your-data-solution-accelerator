@@ -2,14 +2,18 @@
  * Pillar: Stable Core
  * Phase: 5 (FE bridge — dev_plan §4 task #24, FE half) +
  *        6 (visual polish — bubble layout, pulled forward for boss demo;
- *           H6 patch 2026-05-08: live "Thinking…" panel)
+ *           H6 patch 2026-05-08: live "Thinking…" panel) +
+ *        4 (MACAE re-skin — assistant runs as full-width prose with no
+ *           bubble; user is a brand-tinted right-aligned chip; avatars
+ *           use Fluent v9 icons; empty state uses Fluent Chat48 +
+ *           Title2 "Start a conversation".)
  *
  * Renders the chat transcript from ChatContext. Each message renders a
- * single <li> with a per-row layout: a 28x28 round avatar (User icon
- * for user, Sparkles icon for assistant) + a bubble. The row direction
- * flips per role (user-right / assistant-left) via CSS Modules driven
- * by the `data-role` attribute. Assistant messages carrying SSE-derived
- * metadata are decorated:
+ * single <li> with a per-row layout: a 28x28 round avatar (Fluent
+ * Person20Regular for user, Bot20Regular for assistant) + a content
+ * region. The row direction flips per role (user-right / assistant-left)
+ * via CSS Modules driven by the `data-role` attribute. Assistant
+ * messages carrying SSE-derived metadata are decorated:
  *   - `streaming === true` OR non-empty `reasoning?: string[]` → a
  *     <details> reasoning panel. While streaming the panel is forced
  *     open with summary "Thinking…" + animated dots so the boss-demo
@@ -23,11 +27,13 @@
  * Both decorations are skipped when neither field applies.
  *
  * All `data-testid` and `data-role` attributes are preserved verbatim
- * from the Phase-5 contract — visual changes only. Phase 6 adds a
- * MessageCircle icon above the empty-state copy so the blank canvas
- * reads as an intentional starting point rather than an error.
+ * from the Phase-5 contract — visual changes only.
  */
-import { MessageCircle, Sparkles, User } from "../../../components/icons";
+import {
+  Bot20Regular,
+  Chat48Regular,
+  Person20Regular,
+} from "@fluentui/react-icons";
 import { useChat } from "../ChatContext";
 import styles from "./MessageList.module.css";
 
@@ -37,14 +43,12 @@ export function MessageList() {
   if (state.messages.length === 0) {
     return (
       <div className={styles.empty}>
-        {/* <MessageCircle
-          size={64}
-          strokeWidth={1.5}
+        <Chat48Regular
           aria-hidden="true"
           className={styles.emptyIcon}
-        /> */}
+        />
         <p data-testid="message-list-empty" className={styles.emptyText}>
-
+          Start a conversation
         </p>
       </div>
     );
@@ -65,11 +69,7 @@ export function MessageList() {
               data-role={m.role}
               aria-hidden="true"
             >
-              {m.role === "user" ? (
-                <User size={16} strokeWidth={2} />
-              ) : (
-                <Sparkles size={16} strokeWidth={2} />
-              )}
+              {m.role === "user" ? <Person20Regular /> : <Bot20Regular />}
             </span>
             <span className={styles.srOnly}>{m.role}</span>
             <div className={styles.bubble}>{m.content}</div>

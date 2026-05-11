@@ -17,9 +17,10 @@
  * behavior (Hard Rule #4: no `if/elif` over provider keys).
  *
  * Phase 6 polish: New / Rename / Delete buttons render as round icon
- * buttons (lucide-react Plus / Pencil / Trash2). Per-row Rename +
- * Delete are hover/focus-revealed (Slack/Outlook pattern). Every
- * `data-testid` + `aria-label` is preserved verbatim from Phase 4.
+ * buttons (Fluent v9 Add16Regular / Edit16Regular / Delete16Regular).
+ * Per-row Rename + Delete are hover/focus-revealed (Slack/Outlook
+ * pattern). Every `data-testid` + `aria-label` is preserved verbatim
+ * from Phase 4.
  *
  * Phase 4 MACAE re-skin: rows render as MACAE-style `.tab` chips
  * (border-radius var(--borderRadiusMedium), hover
@@ -30,7 +31,11 @@
  * to avoid nesting two `complementary` landmarks.
  */
 import { useCallback, useEffect, useState, type JSX } from "react";
-import { Pencil, Plus, Trash2 } from "../../../components/icons";
+import {
+  Add16Regular,
+  Delete16Regular,
+  Edit16Regular,
+} from "@fluentui/react-icons";
 import styles from "./HistoryPanel.module.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
@@ -191,7 +196,7 @@ export function HistoryPanel({
             title="New chat"
             className={styles.iconButton}
           >
-            <Plus size={16} strokeWidth={2} aria-hidden="true" />
+            <Add16Regular aria-hidden="true" />
           </button>
         </div>
         {status !== null && (
@@ -246,7 +251,7 @@ export function HistoryPanel({
                     title="Rename"
                     className={styles.iconButton}
                   >
-                    <Pencil size={14} strokeWidth={2} aria-hidden="true" />
+                    <Edit16Regular aria-hidden="true" />
                   </button>
                   <button
                     type="button"
@@ -256,7 +261,7 @@ export function HistoryPanel({
                     title="Delete"
                     className={styles.iconButton}
                   >
-                    <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
+                    <Delete16Regular aria-hidden="true" />
                   </button>
                 </div>
               </li>

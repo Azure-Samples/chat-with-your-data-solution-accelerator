@@ -1,13 +1,19 @@
 /*
  * Pillar: Scenario Pack
- * Phase: 6 (frontend polish, pulled forward for boss demo)
+ * Phase: 6 (frontend polish, pulled forward for boss demo) +
+ *        4 (MACAE re-skin — rows use Fluent tokens + Coral .tab chip
+ *           pattern; selected row gets a 2px brand left tick)
  *
- * Visual styling for HistoryPanel.tsx. Follows the same design tokens
- * as AppHeader (28-36px round-ish icon buttons, focus ring, accent
- * hover). Per-row Rename + Delete actions use the Slack/Outlook
- * hover-reveal pattern: hidden by default, fade in on row hover or
- * keyboard focus so the list stays calm when the user is just
- * scanning titles.
+ * Visual styling for HistoryPanel.tsx. The outer column primitive
+ * (background, border-right, height) is owned by the parent
+ * `<PanelLeft>` so this file just sizes the inner panel content
+ * (header / list / states). Per-row Rename + Delete actions stay on
+ * the Slack/Outlook hover-reveal pattern: hidden by default, fade in
+ * on row hover or keyboard focus so the list stays calm when the
+ * user is just scanning titles.
+ *
+ * All colors / spacing / radii / focus rings come from Fluent v9
+ * design tokens injected by `<FluentProvider>`.
  */
 
 .panel {
@@ -15,78 +21,80 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
+  color: var(--colorNeutralForeground1);
+  font-size: var(--fontSizeBase300);
 }
 
 .header {
-  padding: var(--space-4) var(--space-4) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacingVerticalM) var(--spacingHorizontalM)
+    var(--spacingVerticalS);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
 }
 
 .headerRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--spacingHorizontalS);
 }
 
 .title {
   margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1);
 }
 
 .dbType {
-  margin: var(--space-2) 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
+  margin: var(--spacingVerticalXS) 0 0;
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3);
 }
 
 .note {
   margin: 0;
-  padding: var(--space-4);
-  color: var(--color-text-muted);
+  padding: var(--spacingVerticalM) var(--spacingHorizontalM);
+  color: var(--colorNeutralForeground3);
 }
 
 .error {
   margin: 0;
-  padding: var(--space-3) var(--space-4);
-  color: var(--color-danger);
-  background: var(--color-danger-bg);
-  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  color: var(--colorPaletteRedForeground1);
+  background: var(--colorPaletteRedBackground1);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
 }
 
 .list {
   list-style: none;
   margin: 0;
-  padding: var(--space-2);
+  padding: var(--spacingVerticalXS);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 2px;
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
 }
 
+/* Coral .tab chip */
 .item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: background 120ms ease;
+  gap: var(--spacingHorizontalXS);
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  border-radius: var(--borderRadiusMedium);
+  transition: background-color 120ms ease;
+  position: relative;
 }
 
 .item:hover {
-  background: var(--color-surface-muted);
+  background: var(--colorSubtleBackgroundHover);
 }
 
 .item[data-selected="true"] {
-  background: var(--color-surface-muted);
-  box-shadow: inset 2px 0 0 var(--color-accent);
+  background: var(--colorNeutralBackground1Selected);
+  box-shadow: inset 2px 0 0 var(--colorCompoundBrandStroke);
 }
 
 .selectButton {
@@ -95,7 +103,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--color-text);
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -105,15 +113,15 @@
 }
 
 .selectButton:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 1px;
+  border-radius: var(--borderRadiusSmall);
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 2px;
   flex-shrink: 0;
   opacity: 0;
   transition: opacity 120ms ease;
@@ -133,35 +141,25 @@
   height: 28px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--borderRadiusMedium);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--colorNeutralForeground2);
   cursor: pointer;
-  transition: background 120ms ease, color 120ms ease,
-    border-color 120ms ease;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .iconButton:hover {
-  background: var(--color-surface);
-  color: var(--color-accent);
-  border-color: var(--color-border);
+  background: var(--colorSubtleBackgroundHover);
+  color: var(--colorNeutralForeground1);
 }
 
 .iconButton:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-color: var(--color-accent);
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 1px;
 }
 
 .headerRow .iconButton {
   width: 32px;
   height: 32px;
-  background: var(--color-surface);
-  border-color: var(--color-border);
-  color: var(--color-text);
-}
-
-.headerRow .iconButton:hover {
-  background: var(--color-surface-muted);
-  color: var(--color-accent);
+  color: var(--colorNeutralForeground1);
 }

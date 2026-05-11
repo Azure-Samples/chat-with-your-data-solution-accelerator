@@ -1,27 +1,29 @@
 /*
  * Pillar: Stable Core
- * Phase: 6 (frontend polish, pulled forward for boss demo)
+ * Phase: 6 (frontend polish, pulled forward for boss demo) +
+ *        4 (MACAE re-skin — composer pill with focus-ring border swap.
+ *           Fluent <Button>/<ToggleButton> own their own pressed/hover
+ *           states; this module just owns the row layout + pill chrome.)
  *
- * Composer row (textarea + send button). Sits inside the
+ * Composer row (text input + send + mic). Sits inside the
  * .composerColumn from ChatPage.module.css, so it owns only the row's
  * internal layout, not the centering / max-width.
  */
 
 .form {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  align-items: center;
+  gap: var(--spacingHorizontalS);
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusXLarge);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .form:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: var(--focus-ring);
+  border-color: var(--colorCompoundBrandStroke);
+  box-shadow: 0 0 0 1px var(--colorCompoundBrandStroke);
 }
 
 .label {
@@ -39,9 +41,9 @@
 .field {
   flex: 1 1 auto;
   min-width: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
   font: inherit;
-  color: var(--color-text);
+  color: var(--colorNeutralForeground1);
   background: transparent;
   border: 0;
   outline: none;
@@ -49,7 +51,7 @@
 }
 
 .field::placeholder {
-  color: var(--color-text-muted);
+  color: var(--colorNeutralForeground3);
 }
 
 .field:disabled {
@@ -57,69 +59,8 @@
   opacity: 0.6;
 }
 
-.send {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
-  border: 0;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 120ms ease, opacity 120ms ease;
-}
-
-.send:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.send:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-.send:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
+/* Send + Mic are Fluent <Button>/<ToggleButton>; size + flex hooks only. */
+.send,
 .mic {
   flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  background: transparent;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
-}
-
-.mic:hover:not(:disabled) {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.mic:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-.mic[aria-pressed="true"] {
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
-  border-color: var(--color-accent);
-}
-
-.mic:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
 }
