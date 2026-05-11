@@ -14,8 +14,11 @@
 .shell {
   display: grid;
   grid-template-columns: var(--history-col, 0) 1fr;
+  width: 100%;
+  flex: 1 1 auto;
   height: 100%;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
   background: var(--colorNeutralBackground3);
 }
@@ -49,7 +52,7 @@
 
 .column {
   width: 100%;
-  max-width: 768px;
+  max-width: 1024px;
   padding: var(--spacingVerticalXL) var(--spacingHorizontalL);
 }
 
@@ -63,7 +66,7 @@
 
 .composerColumn {
   width: 100%;
-  max-width: 768px;
+  max-width: 1024px;
   padding: var(--spacingVerticalM) var(--spacingHorizontalL)
     var(--spacingVerticalL);
 }
