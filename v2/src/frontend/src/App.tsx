@@ -8,7 +8,7 @@
  * docker compose can verify `VITE_BACKEND_URL` wiring) and mounts
  * the chat page from dev_plan #15. SSE wiring lands in #24; routing
  * lands with the admin merge in #36. Phase-6 polish wraps the tree in
- * a `<ThemeProvider>` and renders an `<AppHeader>` that owns the
+ * a `<ThemeProvider>` and renders the Coral `<Header>` that owns the
  * light/dark toggle and the history-panel toggle (state lives here so
  * a single source of truth feeds both header and `<ChatPage>`).
  *
@@ -16,12 +16,12 @@
  * `<ThemeProvider>` and the rest of the tree so every Fluent UI v9
  * component inherits `teamsLightTheme` / `teamsDarkTheme` driven by
  * our own theme state. The visual shell uses `<CoralShellColumn>` (the
- * full-viewport vertical stack hosting `<AppHeader>`) and
+ * full-viewport vertical stack hosting the `<Header>`) and
  * `<CoralShellRow>` (the horizontal sidebar+content split) so the
  * layout matches MACAE's recessed-shell-with-raised-panels pattern.
  */
 import { useState, useEffect, type JSX } from "react";
-import { AppHeader } from "./components/AppHeader/AppHeader";
+import { Header } from "./components/Header/Header";
 import { CoralShellColumn } from "./components/CoralShell/CoralShellColumn";
 import { CoralShellRow } from "./components/CoralShell/CoralShellRow";
 import { ChatPage } from "./pages/chat/ChatPage";
@@ -98,7 +98,7 @@ export function App(): JSX.Element {
           >
             CWYD v2
           </h1>
-          <AppHeader
+          <Header
             title="Chat with your data"
             historyOpen={historyOpen}
             onToggleHistory={() => setHistoryOpen((v) => !v)}

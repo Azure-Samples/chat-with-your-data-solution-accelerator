@@ -11,8 +11,7 @@
  *
  * Same prop shape as the prior <AppHeader> (title, historyOpen,
  * onToggleHistory, onNewChat) plus an optional subtitle that defaults
- * to MACAE's "Solution Accelerator" pattern. App.tsx remains unchanged
- * thanks to the aliased re-export in components/AppHeader/AppHeader.tsx.
+ * to MACAE's "Solution Accelerator" pattern.
  *
  * The accessible name "app-header" testid is preserved verbatim.
  */

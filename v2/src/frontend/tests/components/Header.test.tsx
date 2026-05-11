@@ -7,15 +7,9 @@
  * `data-testid="app-header"` discriminator, the same callback wiring)
  * but the brand visuals are now MACAE-faithful: Microsoft 4-square
  * logo + "<title> | <subtitle>" pattern.
- *
- * Tests are exercised against the canonical export `Header` from
- * `components/Header/Header.tsx`. The aliased re-export at
- * `components/AppHeader/AppHeader.tsx` (back-compat for App.tsx) is
- * smoke-checked at the bottom to make sure the alias chain is intact.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { AppHeader } from "../../src/components/AppHeader/AppHeader";
 import { Header } from "../../src/components/Header/Header";
 import { FluentThemeBridge } from "../../src/theme/FluentThemeBridge";
 import { ThemeProvider } from "../../src/theme/themeContext";
@@ -84,12 +78,5 @@ describe("Header", () => {
     renderHeader({ historyOpen: true });
     const historyBtn = screen.getByRole("button", { name: /history/i });
     expect(historyBtn).toHaveAttribute("aria-pressed", "true");
-  });
-
-  it("AppHeader alias re-exports the same component", () => {
-    // Sanity-check that the back-compat alias path used by App.tsx
-    // resolves to the same Coral Header (so removing the alias in U8
-    // is a one-line change with no behaviour shift).
-    expect(AppHeader).toBe(Header);
   });
 });

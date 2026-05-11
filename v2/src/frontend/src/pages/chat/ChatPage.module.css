@@ -54,9 +54,13 @@
   justify-content: center;
 }
 
-.column {
+.centeredColumn {
   width: 100%;
   max-width: 1024px;
+}
+
+.column {
+  composes: centeredColumn;
   padding: var(--spacingVerticalXL) var(--spacingHorizontalL);
 }
 
@@ -69,8 +73,7 @@
 }
 
 .composerColumn {
-  width: 100%;
-  max-width: 1024px;
+  composes: centeredColumn;
   padding: var(--spacingVerticalM) var(--spacingHorizontalL)
     var(--spacingVerticalL);
 }
