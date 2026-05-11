@@ -353,7 +353,7 @@ async def patch_config_endpoint(
     unknown = set(payload) - _WRITABLE_FIELDS
     if unknown:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "msg": "Unknown field(s) in PATCH body",
                 "unknown_fields": sorted(unknown),
@@ -387,7 +387,7 @@ async def patch_config_endpoint(
         merged = RuntimeConfig.model_validate(merged_data)
     except ValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=exc.errors(),
         ) from exc
 
