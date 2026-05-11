@@ -55,6 +55,10 @@ export function HeaderTools({
       aria-label="Header actions"
       size="small"
       className={styles.tools}
+      // Fluent v9 <Toolbar> owns toggle-button checked state via its
+      // `checkedValues` map (keyed by `name`); individual
+      // <ToolbarToggleButton> instances do not accept a `checked` prop.
+      checkedValues={{ "header-actions": historyOpen ? ["history"] : [] }}
     >
       <ToolbarButton
         appearance="subtle"
@@ -72,7 +76,6 @@ export function HeaderTools({
         // a unique pair is required so this button can be controlled.
         name="header-actions"
         value="history"
-        checked={historyOpen}
         icon={<History20Regular />}
         onClick={onToggleHistory}
       />
