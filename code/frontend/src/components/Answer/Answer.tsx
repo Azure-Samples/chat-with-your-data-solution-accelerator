@@ -69,10 +69,16 @@ export const Answer = ({
     toggleIsRefAccordionOpen();
   };
 
-  const initializeSynthesizer = () => {
+  const initializeSynthesizer = (
+    token: string = synthesizerData.token,
+    region: string = synthesizerData.region
+  ) => {
+    if (!token || !region) {
+      return null;
+    }
     const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(
-      synthesizerData.token,
-      synthesizerData.region
+      token,
+      region
     );
     const newAudioDestination = new SpeechSDK.SpeakerAudioDestination();
     const audioConfig =
@@ -87,41 +93,32 @@ export const Answer = ({
       clearTimeout(playbackTimeout);
     }
     setRemainingDuration(0);
+    return newSynthesizer;
   };
 
   useEffect(() => {
-    if (synthesizerData.token != "") {
-      initializeSynthesizer();
-
-      return () => {
-        if (synthesizer) {
-          synthesizer.close();
-        }
-        if (audioDestination) {
-          audioDestination.close();
-        }
-        if (playbackTimeout) {
-          clearTimeout(playbackTimeout);
-        }
-      };
-    }
-  }, [index, synthesizerData]);
-
-  useEffect(() => {
-    const fetchSythesizerData = async () => {
-      const response = await fetch("/api/speech");
-      try {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-        setSynthesizerData({ token: data.token, region: data.region });
-      } catch (e) {
-        console.log(e);
+    return () => {
+      if (synthesizer) {
+        synthesizer.close();
+      }
+      if (audioDestination) {
+        audioDestination.close();
+      }
+      if (playbackTimeout) {
+        clearTimeout(playbackTimeout);
       }
     };
-    fetchSythesizerData();
-  }, []);
+  }, [synthesizer, audioDestination, playbackTimeout]);
+
+  const fetchSythesizerData = async (): Promise<{ token: string; region: string }> => {
+    const response = await fetch("/api/speech");
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    setSynthesizerData({ token: data.token, region: data.region });
+    return { token: data.token, region: data.region };
+  };
 
   useEffect(() => {
     if (!isActive && synthesizer && isSpeaking) {
@@ -193,10 +190,12 @@ export const Answer = ({
     return "";
   };
 
-  const startSpeech = () => {
-    if (synthesizer) {
+  const startSpeech = (
+    activeSynthesizer: SpeechSDK.SpeechSynthesizer | null = synthesizer
+  ) => {
+    if (activeSynthesizer) {
       const text = getAnswerText();
-      synthesizer?.speakTextAsync(
+      activeSynthesizer.speakTextAsync(
         text,
         (result) => {
           if (
@@ -261,8 +260,30 @@ export const Answer = ({
         }
       }
     } else {
-      onSpeak(index, "speak", resetSpeech);
-      startSpeech();
+      const startSpeechPlayback = async () => {
+        try {
+          if (!synthesizer) {
+            let token = synthesizerData.token;
+            let region = synthesizerData.region;
+            if (!synthesizerData.token || !synthesizerData.region) {
+              const speechData = await fetchSythesizerData();
+              token = speechData.token;
+              region = speechData.region;
+            }
+            const newSynthesizer = initializeSynthesizer(token, region);
+            onSpeak(index, "speak", resetSpeech);
+            startSpeech(newSynthesizer);
+            return;
+          }
+
+          onSpeak(index, "speak", resetSpeech);
+          startSpeech();
+        } catch (error) {
+          console.error("Error initializing speech synthesis:", error);
+        }
+      };
+
+      void startSpeechPlayback();
     }
   };
 

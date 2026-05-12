@@ -34,9 +34,16 @@ jobs:
       - name: Validate infra/ parameters
         id: validate_infra
         continue-on-error: true
+        env:
+          ACCELERATOR_NAME: ${{ env.accelerator_name }}
         run: |
           set +e
-          python scripts/validate_bicep_params.py --dir infra --strict --no-color --json-output infra_results.json 2>&1 | tee infra_output.txt
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          python scripts/validate_bicep_params.py --dir infra --strict --no-color \
+            --json-output infra_results.json \
+            --html-output email_body.html \
+            --accelerator-name "${ACCELERATOR_NAME}" \
+            --run-url "${RUN_URL}" 2>&1 | tee infra_output.txt
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
           echo "## Infra Param Validation" >> "$GITHUB_STEP_SUMMARY"
@@ -61,24 +68,21 @@ jobs:
           name: bicep-validation-results
           path: |
             infra_results.json
+            email_body.html
           retention-days: 30
 
       - name: Send schedule notification on failure
         if: github.event_name == 'schedule' && steps.result.outputs.status == 'failure'
         env:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
         run: |
-          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          INFRA_OUTPUT=$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' infra_output.txt)
+          EMAIL_BODY=$(cat email_body.html)
 
           jq -n \
             --arg name "${ACCELERATOR_NAME}" \
-            --arg infra "$INFRA_OUTPUT" \
-            --arg url "$RUN_URL" \
-            '{subject: ("Bicep Parameter Validation Report - " + $name + " - Issues Detected"), body: ("<p>Dear Team,</p><p>The scheduled <strong>Bicep Parameter Validation</strong> for <strong>" + $name + "</strong> has detected parameter mapping errors.</p><p><strong>infra/ Results:</strong></p><pre>" + $infra + "</pre><p><strong>Run URL:</strong> <a href=\"" + $url + "\">" + $url + "</a></p><p>Please fix the parameter mapping issues at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>")}' \
+            --arg body "$EMAIL_BODY" \
+            '{subject: ("Bicep Parameter Validation Report - " + $name + " - Issues Detected"), body: $body}' \
             | curl -X POST "${LOGICAPP_URL}" \
               -H "Content-Type: application/json" \
               -d @- || echo "Failed to send notification"
@@ -87,18 +91,14 @@ jobs:
         if: github.event_name == 'schedule' && steps.result.outputs.status == 'success'
         env:
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
         run: |
-          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          INFRA_OUTPUT=$(sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' infra_output.txt)
+          EMAIL_BODY=$(cat email_body.html)
 
           jq -n \
             --arg name "${ACCELERATOR_NAME}" \
-            --arg infra "$INFRA_OUTPUT" \
-            --arg url "$RUN_URL" \
-            '{subject: ("Bicep Parameter Validation Report - " + $name + " - Passed"), body: ("<p>Dear Team,</p><p>The scheduled <strong>Bicep Parameter Validation</strong> for <strong>" + $name + "</strong> has completed successfully. All parameter mappings are valid.</p><p><strong>infra/ Results:</strong></p><pre>" + $infra + "</pre><p><strong>Run URL:</strong> <a href=\"" + $url + "\">" + $url + "</a></p><p>Best regards,<br>Your Automation Team</p>")}' \
+            --arg body "$EMAIL_BODY" \
+            '{subject: ("Bicep Parameter Validation Report - " + $name + " - Passed"), body: $body}' \
             | curl -X POST "${LOGICAPP_URL}" \
               -H "Content-Type: application/json" \
               -d @- || echo "Failed to send notification"
