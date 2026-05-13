@@ -196,20 +196,12 @@ else
             sleep $RETRY_INTERVAL
         done
 
-        # Probe the host runtime status endpoint so we don't attempt the key write
-        # before the Functions host has finished initializing. This significantly
-        # reduces transient "ServiceUnavailable from host runtime" failures,
-        # especially under service-principal driven deployments where the host
-        # may still be cold-starting after provisioning.
+        # Force host re-init: identity-based AzureWebJobsStorage role assignments
+        # can land after the host's first boot, leaving the ARM-proxied keystore
+        # endpoint stuck on InternalServerError/ServiceUnavailable (most common
+        # under service-principal deployments).
         SUBSCRIPTION_ID=$(az account show --query "id" -o tsv | tr -d '\r')
 
-        # Restart the function app before setting the key.
-        # After fresh provisioning, the Functions host frequently lands in a state where
-        # the ARM-proxied keystore endpoints return InternalServerError/ServiceUnavailable.
-        # This is especially common under service-principal-driven deployments because
-        # role assignments (e.g. Storage Blob Data Owner for identity-based AzureWebJobsStorage)
-        # may not have fully propagated by the time the host first booted. A restart forces
-        # the host to re-initialize against the now-valid configuration.
         echo "✓ Restarting function app to ensure host runtime is in a clean state..."
         az functionapp restart --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1 || true
         sleep 20
@@ -236,11 +228,10 @@ else
             sleep $HOST_RETRY_INTERVAL
         done
 
-        # Warm up the host with an HTTP probe (best-effort, ignores result).
+        # Warm up the host (best-effort).
         curl -fsS -o /dev/null -m 30 "https://${FUNCTION_APP_NAME}.azurewebsites.net/" >/dev/null 2>&1 || true
 
-        # Set the function key via REST API (with retries — the host runtime may
-        # still report transient errors during early initialization).
+        # Set the function key via REST API (with retries — the host runtime may not be ready yet)
         echo "✓ Setting function key 'ClientKey' on '${FUNCTION_APP_NAME}'..."
         URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/functionKeys/clientKey?api-version=2023-01-01"
         BODY="{\"properties\":{\"name\":\"ClientKey\",\"value\":\"${FUNCTION_KEY}\"}}"
@@ -254,11 +245,10 @@ else
                 KEY_SET=true
                 break
             fi
-            # Recognize the well-known transient "ServiceUnavailable / InternalServerError
-            # from host runtime" error and continue retrying. Other errors are also retried but logged.
+            # Treat ServiceUnavailable / InternalServerError from the host runtime as transient.
             if echo "$REST_ERR" | grep -qiE "ServiceUnavailable|InternalServerError"; then
                 echo "  [${attempt}/${KEY_MAX_RETRIES}] Host runtime transient error. Retrying in ${KEY_RETRY_INTERVAL}s..."
-                # Every 5 failed attempts, restart the function app again to nudge the host out of a bad state.
+                # Every 5 attempts, restart to nudge a stuck host.
                 if [ $((attempt % 5)) -eq 0 ] && [ $attempt -lt $KEY_MAX_RETRIES ]; then
                     echo "  → Re-restarting function app to clear stuck host state..."
                     az functionapp restart --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1 || true
