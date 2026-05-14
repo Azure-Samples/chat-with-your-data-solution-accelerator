@@ -11,6 +11,22 @@ from pytest_html import extras
 import glob
 log_streams = {}
 
+# ---------- RETRY: Reset browser state between reruns ----------
+@pytest.hookimpl(tryfirst=True)
+def pytest_runtest_protocol(item, nextitem):
+    """Reset browser state when a test is being rerun by pytest-rerunfailures."""
+    if hasattr(item, 'execution_count') and item.execution_count > 0:
+        if "login_logout" in item.fixturenames:
+            page = item.funcargs.get("login_logout") if hasattr(item, 'funcargs') else None
+            if page:
+                try:
+                    logging.info("Rerun detected — navigating to WEB_URL to reset state")
+                    page.goto(WEB_URL, wait_until="domcontentloaded")
+                    page.wait_for_load_state("networkidle")
+                    page.wait_for_timeout(2000)
+                except Exception as e:
+                    logging.warning("Failed to reset browser state on rerun: %s", str(e))
+
 # ---------- FIXTURE: Login and Logout Setup ----------
 @pytest.fixture(scope="session")
 def login_logout():
