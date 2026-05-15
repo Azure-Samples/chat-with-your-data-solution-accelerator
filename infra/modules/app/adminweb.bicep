@@ -69,6 +69,8 @@ param publicNetworkAccess string?
 @description('Optional. Configuration details for private endpoints.')
 param privateEndpoints array = []
 
+@description('Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan.')
+param e2eEncryptionEnabled bool = false
 
 // Calculate the linuxFxVersion based on runtime or docker settings
 var linuxFxVersion = useDocker
@@ -126,6 +128,8 @@ module adminweb '../core/host/appservice.bicep' = {
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
     privateEndpoints: privateEndpoints
+    // SFI: Azure_AppService_DP_Configure_EndToEnd_TLS - enable end-to-end TLS encryption between front end and worker.
+    e2eEncryptionEnabled: e2eEncryptionEnabled
     managedIdentities: {
       systemAssigned: false
       userAssignedResourceIds: [

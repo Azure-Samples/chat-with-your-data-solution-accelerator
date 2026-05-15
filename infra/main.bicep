@@ -526,6 +526,19 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
       }
     }
     encryptionAtHost: false // Some Azure subscriptions do not support encryption at host
+    // SFI: Azure_VirtualMachine_Audit_Enable_DataCollectionRule - install AzureMonitorWindowsAgent and associate
+    // a Data Collection Rule that forwards Windows Security audit-success / audit-failure events to Log Analytics.
+    extensionMonitoringAgentConfig: enableMonitoring
+      ? {
+          enabled: true
+          dataCollectionRuleAssociations: [
+            {
+              name: 'dcra-${jumpboxVmName}-security'
+              dataCollectionRuleResourceId: jumpboxSecurityDcr!.id
+            }
+          ]
+        }
+      : { enabled: false }
     nicConfigurations: [
       {
         name: 'nic-${jumpboxVmName}'
@@ -556,6 +569,51 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
       }
     ]
     enableTelemetry: enableTelemetry
+  }
+}
+
+// SFI: Azure_VirtualMachine_Audit_Enable_DataCollectionRule
+// Data Collection Rule for Windows security event logs (audit success / audit failure) on the jumpbox VM.
+// The rule is created only when both private networking (jumpbox is deployed) and monitoring (Log Analytics workspace exists) are enabled.
+resource jumpboxSecurityDcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' = if (enablePrivateNetworking && enableMonitoring) {
+  name: 'dcr-${jumpboxVmName}-security'
+  location: location
+  tags: tags
+  kind: 'Windows'
+  properties: {
+    dataSources: {
+      windowsEventLogs: [
+        {
+          name: 'securityEvents'
+          streams: [
+            'Microsoft-SecurityEvent'
+          ]
+          xPathQueries: [
+            // Audit success and audit failure events (Keywords mask 0x8020000000000000 + 0x4020000000000000)
+            // Exclude EventID 4624 (successful logon) to reduce ingestion noise; failures (4625) are still captured.
+            'Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]'
+          ]
+        }
+      ]
+    }
+    destinations: {
+      logAnalytics: [
+        {
+          name: 'laDestination'
+          workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
+        }
+      ]
+    }
+    dataFlows: [
+      {
+        streams: [
+          'Microsoft-SecurityEvent'
+        ]
+        destinations: [
+          'laDestination'
+        ]
+      }
+    ]
   }
 }
 
@@ -943,6 +1001,8 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     sku: azureOpenAISkuName
     deployments: defaultOpenAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
+    // SFI: Azure_AIServices_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
     restrictOutboundNetworkAccess: true
     allowedFqdnList: concat(
       [
@@ -999,6 +1059,9 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     location: computerVisionLocation != '' ? computerVisionLocation : 'eastus' // Default to eastus if no location provided
     tags: allTags
     sku: computerVisionSkuName
+    // SFI: Azure_ComputerVision_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
+    // SFI: Azure_ComputerVision_DP_Data_Loss_Prevention - inherited via cognitiveservices module default (restrictOutboundNetworkAccess: true).
 
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
@@ -1049,6 +1112,8 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     subnetResourceId: enablePrivateNetworkingSpeech ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
+    // SFI exception: Speech SDK uses key-based websocket authentication from the browser, so local auth must remain enabled.
+    // Tracked control: Azure_AIServices_AuthN_Disable_Local_Auth.
     disableLocalAuth: false
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
     privateDnsZoneResourceId: enablePrivateNetworkingSpeech
@@ -1199,6 +1264,9 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
 }
 
 var postgresDBFqdn = '${postgresResourceName}.postgres.database.azure.com'
+// SFI Azure_AppService_DP_Configure_EndToEnd_TLS: end-to-end TLS encryption is only supported on
+// Premium v2/v3 or Isolated v2 App Service Plans. Enable it only when the plan is Premium-tier.
+var appServicePlanIsPremium = enableScalability || enableRedundancy || startsWith(hostingPlanSku, 'P')
 module web 'modules/app/web.bicep' = {
   name: take('module.web.site.${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()
@@ -1223,6 +1291,7 @@ module web 'modules/app/web.bicep' = {
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
+    e2eEncryptionEnabled: appServicePlanIsPremium
     applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     appSettings: union(
       {
@@ -1326,6 +1395,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
     dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-adminwebapp:${appversion}' : null
     useDocker: hostingModel == 'container' ? true : false
     userAssignedIdentityResourceId: managedIdentityModule.outputs.resourceId
+    e2eEncryptionEnabled: appServicePlanIsPremium
     // App settings
     appSettings: union(
       {
@@ -1434,6 +1504,7 @@ module function 'modules/app/function.bicep' = {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
+    e2eEncryptionEnabled: appServicePlanIsPremium
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -1529,6 +1600,8 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'FormRecognizer'
+    // SFI: Azure_AIServices_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
 
     enablePrivateNetworking: false // Temporary: enabling public access to resolve 403 private endpoint errors
     enableMonitoring: enableMonitoring
@@ -1580,6 +1653,8 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'ContentSafety'
+    // SFI: Azure_AIServices_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
 
     enablePrivateNetworking: false // Temporary: enabling public access to resolve 403 private endpoint errors
     enableMonitoring: enableMonitoring
@@ -1623,6 +1698,8 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
     tags: tags
     enableTelemetry: enableTelemetry
     supportsHttpsTrafficOnly: true
+    // SFI: Azure_Storage_DP_Enable_Infrastructure_Encryption - enforce a second layer of encryption at rest.
+    requireInfrastructureEncryption: true
     accessTier: 'Hot'
     skuName: 'Standard_GRS'
     kind: 'StorageV2'
