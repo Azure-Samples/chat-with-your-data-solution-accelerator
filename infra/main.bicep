@@ -583,7 +583,7 @@ resource jumpboxSecurityDcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' 
         {
           name: 'securityEvents'
           streams: [
-            'Microsoft-SecurityEvent'
+            'Microsoft-Event'
           ]
           xPathQueries: [
             // Audit Success (0x0020000000000000) + Audit Failure (0x0010000000000000) = 13510798882111488
@@ -603,7 +603,7 @@ resource jumpboxSecurityDcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' 
     dataFlows: [
       {
         streams: [
-          'Microsoft-SecurityEvent'
+          'Microsoft-Event'
         ]
         destinations: [
           'laDestination'

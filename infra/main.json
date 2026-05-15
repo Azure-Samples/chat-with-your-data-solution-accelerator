@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "128195372542087647"
+      "templateHash": "13486756126026309570"
     }
   },
   "parameters": {
@@ -736,7 +736,7 @@
             {
               "name": "securityEvents",
               "streams": [
-                "Microsoft-SecurityEvent"
+                "Microsoft-Event"
               ],
               "xPathQueries": [
                 "Security!*[System[(band(Keywords,13510798882111488))]]"
@@ -755,7 +755,7 @@
         "dataFlows": [
           {
             "streams": [
-              "Microsoft-SecurityEvent"
+              "Microsoft-Event"
             ],
             "destinations": [
               "laDestination"
