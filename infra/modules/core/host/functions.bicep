@@ -208,7 +208,6 @@ module functions 'appservice.bicep' = {
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: publicNetworkAccess
-    // SFI: Azure_AppService_DP_Configure_EndToEnd_TLS - enable end-to-end TLS encryption between front end and worker.
     e2eEncryptionEnabled: e2eEncryptionEnabled
   }
 }

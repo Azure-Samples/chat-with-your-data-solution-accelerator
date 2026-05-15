@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "18107258065675257548"
+      "templateHash": "128195372542087647"
     }
   },
   "parameters": {
@@ -683,7 +683,7 @@
     "enablePrivateNetworkingSpeech": false,
     "webServerFarmResourceName": "[variables('hostingPlanName')]",
     "postgresDBFqdn": "[format('{0}.postgres.database.azure.com', variables('postgresResourceName'))]",
-    "appServicePlanIsPremium": "[or(or(parameters('enableScalability'), parameters('enableRedundancy')), startsWith(parameters('hostingPlanSku'), 'P'))]",
+    "appServicePlanIsPremium": "[or(parameters('enableScalability'), parameters('enableRedundancy'))]",
     "enablePrivateEndpointsStorage": "[and(parameters('enablePrivateNetworking'), not(parameters('useAdvancedImageProcessing')))]",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'model_name', parameters('azureOpenAIModelName'), 'model_version', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'model_name', parameters('azureOpenAIEmbeddingModelName'), 'model_version', parameters('azureOpenAIEmbeddingModelVersion')))]",
@@ -739,7 +739,7 @@
                 "Microsoft-SecurityEvent"
               ],
               "xPathQueries": [
-                "Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]"
+                "Security!*[System[(band(Keywords,13510798882111488))]]"
               ]
             }
           ]
@@ -54633,8 +54633,8 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"

@@ -526,8 +526,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
       }
     }
     encryptionAtHost: false // Some Azure subscriptions do not support encryption at host
-    // SFI: Azure_VirtualMachine_Audit_Enable_DataCollectionRule - install AzureMonitorWindowsAgent and associate
-    // a Data Collection Rule that forwards Windows Security audit-success / audit-failure events to Log Analytics.
+
     extensionMonitoringAgentConfig: enableMonitoring
       ? {
           enabled: true
@@ -572,9 +571,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
   }
 }
 
-// SFI: Azure_VirtualMachine_Audit_Enable_DataCollectionRule
 // Data Collection Rule for Windows security event logs (audit success / audit failure) on the jumpbox VM.
-// The rule is created only when both private networking (jumpbox is deployed) and monitoring (Log Analytics workspace exists) are enabled.
 resource jumpboxSecurityDcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' = if (enablePrivateNetworking && enableMonitoring) {
   name: 'dcr-${jumpboxVmName}-security'
   location: location
@@ -589,9 +586,8 @@ resource jumpboxSecurityDcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' 
             'Microsoft-SecurityEvent'
           ]
           xPathQueries: [
-            // Audit success and audit failure events (Keywords mask 0x8020000000000000 + 0x4020000000000000)
-            // Exclude EventID 4624 (successful logon) to reduce ingestion noise; failures (4625) are still captured.
-            'Security!*[System[(band(Keywords,13510798882111488)) and (EventID != 4624)]]'
+            // Audit Success (0x0020000000000000) + Audit Failure (0x0010000000000000) = 13510798882111488
+            'Security!*[System[(band(Keywords,13510798882111488))]]'
           ]
         }
       ]
@@ -1264,9 +1260,8 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
 }
 
 var postgresDBFqdn = '${postgresResourceName}.postgres.database.azure.com'
-// SFI Azure_AppService_DP_Configure_EndToEnd_TLS: end-to-end TLS encryption is only supported on
-// Premium v2/v3 or Isolated v2 App Service Plans. Enable it only when the plan is Premium-tier.
-var appServicePlanIsPremium = enableScalability || enableRedundancy || startsWith(hostingPlanSku, 'P')
+// endToEndEncryptionEnabled is only supported on Premium v2/v3 or Isolated v2 App Service Plans.
+var appServicePlanIsPremium = enableScalability || enableRedundancy
 module web 'modules/app/web.bicep' = {
   name: take('module.web.site.${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()

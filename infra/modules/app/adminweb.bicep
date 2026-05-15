@@ -128,7 +128,6 @@ module adminweb '../core/host/appservice.bicep' = {
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
     privateEndpoints: privateEndpoints
-    // SFI: Azure_AppService_DP_Configure_EndToEnd_TLS - enable end-to-end TLS encryption between front end and worker.
     e2eEncryptionEnabled: e2eEncryptionEnabled
     managedIdentities: {
       systemAssigned: false
