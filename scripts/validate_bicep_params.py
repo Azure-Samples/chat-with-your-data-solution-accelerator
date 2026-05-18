@@ -299,6 +299,250 @@ def discover_pairs(infra_dir: Path) -> list[tuple[Path, Path]]:
 # Reporting
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# HTML email report
+# ---------------------------------------------------------------------------
+
+def _html_escape(text: str) -> str:
+    """Escape HTML special characters."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def generate_html_report(
+    results: list[ValidationResult],
+    *,
+    accelerator_name: str = "",
+    run_url: str = "",
+    scan_dir: str = "",
+) -> str:
+    """Build a structured HTML email body from validation results."""
+    total_errors = sum(
+        1 for r in results for i in r.issues if i.severity == "ERROR"
+    )
+    total_warnings = sum(
+        1 for r in results for i in r.issues if i.severity == "WARNING"
+    )
+    has_errors = total_errors > 0
+    overall_status = "Issues Detected" if has_errors else "Passed"
+    status_color = "#D32F2F" if has_errors else "#2E7D32"
+    status_bg = "#FFEBEE" if has_errors else "#E8F5E9"
+    status_icon = "&#10060;" if has_errors else "&#9989;"
+
+    parts: list[str] = []
+
+    # --- Document wrapper (Outlook-compatible, no gradient/border-radius/box-shadow) ---
+    parts.append(
+        '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
+        '<body style="margin:0;padding:0;font-family:Segoe UI,Helvetica,Arial,sans-serif;'
+        'background-color:#ffffff;">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"'
+        ' style="background-color:#ffffff;">'
+        '<tr><td align="center" style="padding:0;">'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"'
+        ' style="max-width:680px;background-color:#ffffff;">'
+    )
+
+    # --- Header banner (solid color, Outlook-safe) ---
+    parts.append(
+        f'<tr><td style="background-color:#0078D4;padding:20px 24px;color:#ffffff;">'
+        f'<h1 style="margin:0 0 4px 0;font-size:20px;font-weight:600;color:#ffffff;">'
+        f'Bicep Parameter Validation Report</h1>'
+        f'<p style="margin:0;font-size:13px;color:#ffffff;">'
+        f'{_html_escape(accelerator_name) if accelerator_name else "Accelerator"}'
+        f' &mdash; Automated Check</p>'
+        f'</td></tr>'
+    )
+
+    # --- Summary card ---
+    parts.append(
+        f'<tr><td style="padding:16px 24px 12px 24px;">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"'
+        f' style="background-color:{status_bg};border-left:4px solid {status_color};">'
+        f'<tr><td style="padding:12px 16px;">'
+        f'<span style="font-size:16px;font-weight:600;color:{status_color};">'
+        f'{status_icon} Overall Status: {overall_status}</span>'
+        f'</td></tr>'
+        f'<tr><td style="padding:4px 16px 12px 16px;">'
+        f'<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+    )
+    # Accelerator name pill
+    if accelerator_name:
+        parts.append(
+            f'<td style="padding-right:20px;vertical-align:top;">'
+            f'<span style="font-size:11px;color:#666;">Accelerator</span><br>'
+            f'<strong style="font-size:13px;">{_html_escape(accelerator_name)}'
+            f'</strong></td>'
+        )
+    # Scan directory pill
+    if scan_dir:
+        parts.append(
+            f'<td style="padding-right:20px;vertical-align:top;">'
+            f'<span style="font-size:11px;color:#666;">Scan Directory</span><br>'
+            f'<strong style="font-size:13px;">{_html_escape(scan_dir)}/</strong>'
+            f'</td>'
+        )
+    # Error count pill
+    err_pill_color = "#D32F2F" if total_errors > 0 else "#2E7D32"
+    parts.append(
+        f'<td style="padding-right:20px;vertical-align:top;">'
+        f'<span style="font-size:11px;color:#666;">Errors</span><br>'
+        f'<strong style="font-size:13px;color:{err_pill_color};">'
+        f'{total_errors}</strong></td>'
+    )
+    # Warning count pill
+    warn_pill_color = "#F57C00" if total_warnings > 0 else "#2E7D32"
+    parts.append(
+        f'<td style="vertical-align:top;">'
+        f'<span style="font-size:11px;color:#666;">Warnings</span><br>'
+        f'<strong style="font-size:13px;color:{warn_pill_color};">'
+        f'{total_warnings}</strong></td>'
+    )
+    parts.append("</tr></table></td></tr></table></td></tr>")
+
+    # --- Per-pair detail sections ---
+    parts.append('<tr><td style="padding:8px 24px 0 24px;">')
+    for r in results:
+        errors = [i for i in r.issues if i.severity == "ERROR"]
+        warnings = [i for i in r.issues if i.severity == "WARNING"]
+
+        if not r.issues:
+            badge = (
+                '<span style="display:inline-block;padding:2px 8px;'
+                'font-size:11px;font-weight:700;'
+                'color:#2E7D32;background-color:#E8F5E9;">PASS</span>'
+            )
+        elif errors:
+            badge = (
+                '<span style="display:inline-block;padding:2px 8px;'
+                'font-size:11px;font-weight:700;'
+                'color:#D32F2F;background-color:#FFEBEE;">FAIL</span>'
+            )
+        else:
+            badge = (
+                '<span style="display:inline-block;padding:2px 8px;'
+                'font-size:11px;font-weight:700;'
+                'color:#F57C00;background-color:#FFF3E0;">WARN</span>'
+            )
+
+        parts.append(
+            f'<table role="presentation" width="100%" cellpadding="0"'
+            f' cellspacing="0" style="margin-bottom:12px;border:1px solid #e0e0e0;">'
+            f'<tr><td style="background-color:#fafafa;padding:10px 12px;'
+            f'border-bottom:1px solid #e0e0e0;">'
+            f'{badge} '
+            f'<strong style="font-size:13px;">'
+            f'{_html_escape(r.pair)}</strong>'
+            f'<span style="float:right;font-size:11px;color:#888;">'
+            f'{len(errors)} error(s), {len(warnings)} warning(s)</span>'
+            f'</td></tr>'
+        )
+
+        if r.issues:
+            # --- Errors section ---
+            if errors:
+                parts.append(
+                    '<tr><td style="padding:8px 12px 4px 12px;">'
+                    '<strong style="font-size:12px;color:#D32F2F;">'
+                    '&#9679; Errors</strong></td></tr>'
+                    '<tr><td style="padding:0 12px;">'
+                    '<table role="presentation" width="100%" cellpadding="0"'
+                    ' cellspacing="0" style="font-size:12px;border:1px solid #f5c6cb;">'
+                    '<tr style="background-color:#FFEBEE;">'
+                    '<th style="text-align:left;padding:6px 10px;'
+                    'border-bottom:1px solid #f5c6cb;width:180px;">Parameter</th>'
+                    '<th style="text-align:left;padding:6px 10px;'
+                    'border-bottom:1px solid #f5c6cb;">Details</th></tr>'
+                )
+                for idx, issue in enumerate(errors):
+                    bg = "#ffffff" if idx % 2 == 0 else "#fff5f5"
+                    parts.append(
+                        f'<tr style="background-color:{bg};">'
+                        f'<td style="padding:5px 10px;border-bottom:1px solid #f5c6cb;'
+                        f'vertical-align:top;font-family:Consolas,monospace;'
+                        f'font-size:11px;word-break:break-all;">'
+                        f'{_html_escape(issue.param_name)}</td>'
+                        f'<td style="padding:5px 10px;border-bottom:1px solid #f5c6cb;'
+                        f'vertical-align:top;">{_html_escape(issue.message)}</td>'
+                        f'</tr>'
+                    )
+                parts.append("</table></td></tr>")
+
+            # --- Warnings section ---
+            if warnings:
+                parts.append(
+                    '<tr><td style="padding:8px 12px 4px 12px;">'
+                    '<strong style="font-size:12px;color:#F57C00;">'
+                    '&#9679; Warnings</strong></td></tr>'
+                    '<tr><td style="padding:0 12px 8px 12px;">'
+                    '<table role="presentation" width="100%" cellpadding="0"'
+                    ' cellspacing="0" style="font-size:12px;border:1px solid #ffe0b2;">'
+                    '<tr style="background-color:#FFF3E0;">'
+                    '<th style="text-align:left;padding:6px 10px;'
+                    'border-bottom:1px solid #ffe0b2;width:180px;">Parameter</th>'
+                    '<th style="text-align:left;padding:6px 10px;'
+                    'border-bottom:1px solid #ffe0b2;">Details</th></tr>'
+                )
+                for idx, issue in enumerate(warnings):
+                    bg = "#ffffff" if idx % 2 == 0 else "#fffaf0"
+                    parts.append(
+                        f'<tr style="background-color:{bg};">'
+                        f'<td style="padding:5px 10px;border-bottom:1px solid #ffe0b2;'
+                        f'vertical-align:top;font-family:Consolas,monospace;'
+                        f'font-size:11px;word-break:break-all;">'
+                        f'{_html_escape(issue.param_name)}</td>'
+                        f'<td style="padding:5px 10px;border-bottom:1px solid #ffe0b2;'
+                        f'vertical-align:top;">{_html_escape(issue.message)}</td>'
+                        f'</tr>'
+                    )
+                parts.append("</table></td></tr>")
+        else:
+            parts.append(
+                '<tr><td style="padding:10px 12px;color:#2E7D32;'
+                'font-size:12px;">All parameters validated successfully.'
+                '</td></tr>'
+            )
+
+        parts.append("</table>")
+
+    parts.append("</td></tr>")
+
+    # --- Footer with run URL ---
+    footer_parts: list[str] = []
+    if run_url:
+        footer_parts.append(
+            f'<a href="{_html_escape(run_url)}" style="display:inline-block;'
+            f'padding:8px 16px;background-color:#0078D4;color:#ffffff;'
+            f'text-decoration:none;font-size:12px;'
+            f'font-weight:600;">View Workflow Run</a>'
+        )
+    if has_errors:
+        footer_parts.append(
+            '<p style="margin:10px 0 0 0;font-size:12px;color:#555;">'
+            'Please fix the parameter mapping issues at your earliest convenience.</p>'
+        )
+    footer_parts.append(
+        '<p style="margin:10px 0 0 0;font-size:12px;color:#999;">'
+        'Best regards,<br>Your Automation Team</p>'
+    )
+    parts.append(
+        f'<tr><td style="padding:14px 24px 20px 24px;border-top:1px solid #e0e0e0;">'
+        f'{"".join(footer_parts)}</td></tr>'
+    )
+
+    # --- Close wrapper ---
+    parts.append("</table></td></tr></table></body></html>")
+    return "".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Console reporting
+# ---------------------------------------------------------------------------
+
 _COLORS = {
     "ERROR": "\033[91m",    # red
     "WARNING": "\033[93m",  # yellow
@@ -379,6 +623,23 @@ def main() -> int:
         type=Path,
         help="Write results as JSON to the given file path.",
     )
+    parser.add_argument(
+        "--html-output",
+        type=Path,
+        help="Write a structured HTML email report to the given file path.",
+    )
+    parser.add_argument(
+        "--accelerator-name",
+        type=str,
+        default="",
+        help="Accelerator display name for the HTML report header.",
+    )
+    parser.add_argument(
+        "--run-url",
+        type=str,
+        default="",
+        help="Workflow run URL to include in the HTML report footer.",
+    )
     args = parser.parse_args()
 
     results: list[ValidationResult] = []
@@ -414,6 +675,19 @@ def main() -> int:
             json.dumps(json_data, indent=2), encoding="utf-8"
         )
         print(f"\nJSON report written to {args.json_output}")
+
+    # Optional HTML email report
+    if args.html_output:
+        scan_dir = str(args.dir) if args.dir else ""
+        html = generate_html_report(
+            results,
+            accelerator_name=args.accelerator_name,
+            run_url=args.run_url,
+            scan_dir=scan_dir,
+        )
+        args.html_output.parent.mkdir(parents=True, exist_ok=True)
+        args.html_output.write_text(html, encoding="utf-8")
+        print(f"HTML report written to {args.html_output}")
 
     has_errors = any(r.has_errors for r in results)
     return 1 if args.strict and has_errors else 0

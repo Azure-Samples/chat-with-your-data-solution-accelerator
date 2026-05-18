@@ -196,14 +196,48 @@ else
             sleep $RETRY_INTERVAL
         done
 
+        # Force host re-init: identity-based AzureWebJobsStorage role assignments
+        # can land after the host's first boot, leaving the ARM-proxied keystore
+        # endpoint stuck on InternalServerError/ServiceUnavailable (most common
+        # under service-principal deployments).
+        SUBSCRIPTION_ID=$(az account show --query "id" -o tsv | tr -d '\r')
+
+        echo "✓ Restarting function app to ensure host runtime is in a clean state..."
+        az functionapp restart --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1 || true
+        sleep 20
+
+        # Wait for site to report Running again
+        for i in $(seq 1 20); do
+            STATE=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" --query "state" -o tsv 2>/dev/null || true)
+            [ "$STATE" = "Running" ] && break
+            echo "  [${i}/20] Function app not Running after restart. Retrying in 15s..."
+            sleep 15
+        done
+
+        echo "Waiting for Functions host runtime to be ready..."
+        HOST_STATUS_URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/properties/status?api-version=2023-01-01"
+        HOST_MAX_RETRIES=30
+        HOST_RETRY_INTERVAL=20
+        for i in $(seq 1 $HOST_MAX_RETRIES); do
+            HOST_STATE=$(az rest --method get --uri "$HOST_STATUS_URI" --query "properties.state" -o tsv 2>/dev/null || true)
+            if [ "$HOST_STATE" = "Running" ]; then
+                echo "Functions host runtime is Running."
+                break
+            fi
+            echo "  [${i}/${HOST_MAX_RETRIES}] Host runtime state: '${HOST_STATE:-unknown}'. Retrying in ${HOST_RETRY_INTERVAL}s..."
+            sleep $HOST_RETRY_INTERVAL
+        done
+
+        # Warm up the host (best-effort).
+        curl -fsS -o /dev/null -m 30 "https://${FUNCTION_APP_NAME}.azurewebsites.net/" >/dev/null 2>&1 || true
+
         # Set the function key via REST API (with retries — the host runtime may not be ready yet)
         echo "✓ Setting function key 'ClientKey' on '${FUNCTION_APP_NAME}'..."
-        SUBSCRIPTION_ID=$(az account show --query "id" -o tsv | tr -d '\r')
         URI="/subscriptions/${SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP}/providers/Microsoft.Web/sites/${FUNCTION_APP_NAME}/host/default/functionKeys/clientKey?api-version=2023-01-01"
         BODY="{\"properties\":{\"name\":\"ClientKey\",\"value\":\"${FUNCTION_KEY}\"}}"
 
         KEY_SET=false
-        KEY_MAX_RETRIES=5
+        KEY_MAX_RETRIES=20
         KEY_RETRY_INTERVAL=30
         for attempt in $(seq 1 $KEY_MAX_RETRIES); do
             REST_ERR=$(az rest --method put --uri "$URI" --body "$BODY" 2>&1 > /dev/null) || true
@@ -211,8 +245,19 @@ else
                 KEY_SET=true
                 break
             fi
-            echo "  [${attempt}/${KEY_MAX_RETRIES}] Host runtime not ready yet. Retrying in ${KEY_RETRY_INTERVAL}s..."
-            echo "  $REST_ERR"
+            # Treat ServiceUnavailable / InternalServerError from the host runtime as transient.
+            if echo "$REST_ERR" | grep -qiE "ServiceUnavailable|InternalServerError"; then
+                echo "  [${attempt}/${KEY_MAX_RETRIES}] Host runtime transient error. Retrying in ${KEY_RETRY_INTERVAL}s..."
+                # Every 5 attempts, restart to nudge a stuck host.
+                if [ $((attempt % 5)) -eq 0 ] && [ $attempt -lt $KEY_MAX_RETRIES ]; then
+                    echo "  → Re-restarting function app to clear stuck host state..."
+                    az functionapp restart --name "$FUNCTION_APP_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1 || true
+                    sleep 30
+                fi
+            else
+                echo "  [${attempt}/${KEY_MAX_RETRIES}] Key set failed. Retrying in ${KEY_RETRY_INTERVAL}s..."
+                echo "  $REST_ERR"
+            fi
             sleep $KEY_RETRY_INTERVAL
         done
 
@@ -220,6 +265,15 @@ else
             echo "✓ Function key set successfully."
         else
             echo "✗ ERROR: Failed to set function key on '${FUNCTION_APP_NAME}' after ${KEY_MAX_RETRIES} attempts." >&2
+            echo "  Last error: $REST_ERR" >&2
+            echo "" >&2
+            echo "  Manual workaround:" >&2
+            echo "    1. In the Azure Portal, open Function App '${FUNCTION_APP_NAME}' → Functions → App keys." >&2
+            echo "    2. Add a Host key named 'ClientKey' with the value of the 'FUNCTION-KEY' secret" >&2
+            echo "       in Key Vault '${KEY_VAULT_NAME}'." >&2
+            echo "    3. Or run:" >&2
+            echo "       az functionapp keys set --name ${FUNCTION_APP_NAME} --resource-group ${RESOURCE_GROUP} \\" >&2
+            echo "         --key-type functionKeys --key-name ClientKey --key-value <FUNCTION-KEY value>" >&2
             restore_network_access
             exit 1
         fi

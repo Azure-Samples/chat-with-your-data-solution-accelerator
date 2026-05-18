@@ -12,13 +12,24 @@ Ensure you have a **Deployed Infrastructure** - A successful Chat with your data
 
 ## Post Deployment Steps
 
-### Step 1: Configure App Authentication
+### Step 1: Run the Post-Deployment Setup Script
+
+Run the post-deployment setup script to configure the Function App client key and create PostgreSQL tables (if applicable). Open [Azure Cloud Shell](https://shell.azure.com) (Bash) and run:
+
+```bash
+az login
+git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator.git
+cd chat-with-your-data-solution-accelerator
+bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
+```
+
+### Step 2: Configure App Authentication
 
 1. After deployment is complete, navigate to your Azure App Service in the Azure portal
 2. Follow the detailed instructions in [Set Up Authentication in Azure App Service](./azure_app_service_auth_setup.md) to add authentication to your web app
 3. This will ensure only authorized users can access your application
 
-### Step 2: Access and Configure the Admin Site
+### Step 3: Access and Configure the Admin Site
 
 1. **Navigate to the admin site** using the following URL pattern:
    ```
@@ -36,7 +47,7 @@ Ensure you have a **Deployed Infrastructure** - A successful Chat with your data
    - Wait for the documents to be processed and indexed
    - Verify successful ingestion through the admin interface
 
-### Step 3: Access the Chat Application
+### Step 4: Access the Chat Application
 
 1. **Navigate to the main chat application** using this URL pattern:
    ```
