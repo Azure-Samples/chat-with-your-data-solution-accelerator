@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "4099545081158746618"
+      "templateHash": "4191524033827530657"
     }
   },
   "parameters": {
@@ -46150,7 +46150,7 @@
             "value": true
           },
           "enablePrivateNetworking": {
-            "value": false
+            "value": "[parameters('enablePrivateNetworking')]"
           },
           "enableMonitoring": {
             "value": "[parameters('enableMonitoring')]"
@@ -48769,7 +48769,7 @@
             "value": true
           },
           "enablePrivateNetworking": {
-            "value": false
+            "value": "[parameters('enablePrivateNetworking')]"
           },
           "enableMonitoring": {
             "value": "[parameters('enableMonitoring')]"
@@ -54633,9 +54633,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
