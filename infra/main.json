@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "12856068160787442197"
+      "templateHash": "18171910022154219391"
     }
   },
   "parameters": {
@@ -46044,7 +46044,7 @@
             "value": "FormRecognizer"
           },
           "enablePrivateNetworking": {
-            "value": false
+            "value": "[parameters('enablePrivateNetworking')]"
           },
           "enableMonitoring": {
             "value": "[parameters('enableMonitoring')]"
@@ -48660,7 +48660,7 @@
             "value": "ContentSafety"
           },
           "enablePrivateNetworking": {
-            "value": false
+            "value": "[parameters('enablePrivateNetworking')]"
           },
           "enableMonitoring": {
             "value": "[parameters('enableMonitoring')]"
