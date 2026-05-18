@@ -7,13 +7,6 @@ if [[ "$ACTION" != "enable" && "$ACTION" != "disable" ]]; then
   exit 1
 fi
 
-# This hook only applies to container hosting; code hosting remains unchanged.
-HOSTING_MODEL="${AZURE_APP_SERVICE_HOSTING_MODEL:-}"
-if [[ "$HOSTING_MODEL" != "container" ]]; then
-  echo "Skipping Function App network toggle: hosting model is '$HOSTING_MODEL' (not container)."
-  exit 0
-fi
-
 FUNCTION_APP_NAME="${SERVICE_FUNCTION_RESOURCE_NAME:-}"
 RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-}"
 

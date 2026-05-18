@@ -642,9 +642,9 @@ var dnsZoneIndex = {
   appService: 10
 }
 
-// Function App private networking is enabled only for container hosting.
-// Code hosting relies on SCM/Kudu-based package deployment from the deployer machine.
-var enablePrivateNetworkingFunction = enablePrivateNetworking && hostingModel == 'container'
+// Function App private networking is enabled for both container and code hosting.
+// The predeploy hook temporarily enables public access for zip deploy during code deployments.
+var enablePrivateNetworkingFunction = enablePrivateNetworking
 
 // ===================================================
 // DEPLOY PRIVATE DNS ZONES

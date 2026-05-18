@@ -6,13 +6,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# This hook only applies to container hosting; code hosting remains unchanged.
-$hostingModel = $env:AZURE_APP_SERVICE_HOSTING_MODEL
-if ($hostingModel -ne "container") {
-    Write-Host "Skipping Function App network toggle: hosting model is '$hostingModel' (not container)."
-    exit 0
-}
-
 $functionAppName = $env:SERVICE_FUNCTION_RESOURCE_NAME
 $resourceGroup = $env:AZURE_RESOURCE_GROUP
 
