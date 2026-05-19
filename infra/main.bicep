@@ -382,6 +382,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   properties: {
     tags: union(existingTags, allTags, {
       TemplateName: 'CWYD'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
       CreatedBy: createdBy
     })
   }
