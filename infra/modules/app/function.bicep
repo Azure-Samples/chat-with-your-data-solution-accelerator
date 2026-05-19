@@ -73,6 +73,9 @@ param diagnosticSettings array = []
 ])
 param publicNetworkAccess string?
 
+@description('Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan.')
+param e2eEncryptionEnabled bool = false
+
 var useDocker = !empty(dockerFullImageName)
 var kind = useDocker ? 'functionapp,linux,container' : 'functionapp,linux'
 
@@ -102,6 +105,7 @@ module function '../core/host/functions.bicep' = {
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
+    e2eEncryptionEnabled: e2eEncryptionEnabled
   }
 }
 

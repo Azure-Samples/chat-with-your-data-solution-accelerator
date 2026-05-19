@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "6545323487376399203"
+      "templateHash": "4886009486029521468"
     }
   },
   "parameters": {
@@ -624,6 +624,7 @@
     "replicaLocation": "[variables('replicaRegionPairs')[parameters('location')]]",
     "bastionHostName": "[format('bas-{0}', variables('solutionSuffix'))]",
     "jumpboxVmName": "[take(format('vm-jumpbox-{0}', variables('solutionSuffix')), 15)]",
+    "jumpboxDcrName": "[format('dcr-{0}-security', variables('jumpboxVmName'))]",
     "userAssignedIdentityResourceName": "[format('id-{0}', variables('solutionSuffix'))]",
     "privateDnsZones": [
       "privatelink.documents.azure.com",
@@ -683,6 +684,7 @@
     "enablePrivateNetworkingSpeech": false,
     "webServerFarmResourceName": "[variables('hostingPlanName')]",
     "postgresDBFqdn": "[format('{0}.postgres.database.azure.com', variables('postgresResourceName'))]",
+    "appServicePlanIsPremium": "[or(parameters('enableScalability'), parameters('enableRedundancy'))]",
     "enablePrivateEndpointsStorage": "[and(parameters('enablePrivateNetworking'), not(parameters('useAdvancedImageProcessing')))]",
     "azureOpenAIModelInfo": "[string(createObject('model', parameters('azureOpenAIModel'), 'model_name', parameters('azureOpenAIModelName'), 'model_version', parameters('azureOpenAIModelVersion')))]",
     "azureOpenAIEmbeddingModelInfo": "[string(createObject('model', parameters('azureOpenAIEmbeddingModel'), 'model_name', parameters('azureOpenAIEmbeddingModelName'), 'model_version', parameters('azureOpenAIEmbeddingModelVersion')))]",
@@ -4910,6 +4912,7 @@
           "encryptionAtHost": {
             "value": false
           },
+          "extensionMonitoringAgentConfig": "[if(parameters('enableMonitoring'), createObject('value', createObject('enabled', true(), 'dataCollectionRuleAssociations', createArray(createObject('name', format('dcra-{0}-security', variables('jumpboxVmName')), 'dataCollectionRuleResourceId', reference('jumpboxSecurityDcr').outputs.resourceId.value)))), createObject('value', createObject('enabled', false())))]",
           "nicConfigurations": {
             "value": [
               {
@@ -13196,8 +13199,1343 @@
         }
       },
       "dependsOn": [
+        "jumpboxSecurityDcr",
         "monitoring",
         "virtualNetwork"
+      ]
+    },
+    "jumpboxSecurityDcr": {
+      "condition": "[and(parameters('enablePrivateNetworking'), parameters('enableMonitoring'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[take(format('avm.res.insights.data-collection-rule.{0}', variables('jumpboxDcrName')), 64)]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[variables('jumpboxDcrName')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "enableTelemetry": {
+            "value": "[parameters('enableTelemetry')]"
+          },
+          "dataCollectionRuleProperties": {
+            "value": {
+              "kind": "Windows",
+              "dataSources": {
+                "windowsEventLogs": [
+                  {
+                    "name": "securityEvents",
+                    "streams": [
+                      "Microsoft-Event"
+                    ],
+                    "xPathQueries": [
+                      "Security!*[System[(band(Keywords,13510798882111488))]]"
+                    ]
+                  }
+                ],
+                "performanceCounters": [
+                  {
+                    "name": "perfCounterDataSource60",
+                    "streams": [
+                      "Microsoft-Perf"
+                    ],
+                    "samplingFrequencyInSeconds": 60,
+                    "counterSpecifiers": [
+                      "\\Processor Information(_Total)\\% Processor Time",
+                      "\\Processor Information(_Total)\\% Privileged Time",
+                      "\\Processor Information(_Total)\\% User Time",
+                      "\\Processor Information(_Total)\\Processor Frequency",
+                      "\\System\\Processes",
+                      "\\Process(_Total)\\Thread Count",
+                      "\\Process(_Total)\\Handle Count",
+                      "\\System\\System Up Time",
+                      "\\System\\Context Switches/sec",
+                      "\\System\\Processor Queue Length",
+                      "\\Memory\\% Committed Bytes In Use",
+                      "\\Memory\\Available Bytes",
+                      "\\Memory\\Committed Bytes",
+                      "\\Memory\\Cache Bytes",
+                      "\\Memory\\Pool Paged Bytes",
+                      "\\Memory\\Pool Nonpaged Bytes",
+                      "\\Memory\\Pages/sec",
+                      "\\Memory\\Page Faults/sec",
+                      "\\Process(_Total)\\Working Set",
+                      "\\Process(_Total)\\Working Set - Private",
+                      "\\LogicalDisk(_Total)\\% Disk Time",
+                      "\\LogicalDisk(_Total)\\% Disk Read Time",
+                      "\\LogicalDisk(_Total)\\% Disk Write Time",
+                      "\\LogicalDisk(_Total)\\% Idle Time",
+                      "\\LogicalDisk(_Total)\\Disk Bytes/sec",
+                      "\\LogicalDisk(_Total)\\Disk Read Bytes/sec",
+                      "\\LogicalDisk(_Total)\\Disk Write Bytes/sec",
+                      "\\LogicalDisk(_Total)\\Disk Transfers/sec",
+                      "\\LogicalDisk(_Total)\\Disk Reads/sec",
+                      "\\LogicalDisk(_Total)\\Disk Writes/sec",
+                      "\\LogicalDisk(_Total)\\Avg. Disk sec/Transfer",
+                      "\\LogicalDisk(_Total)\\Avg. Disk sec/Read",
+                      "\\LogicalDisk(_Total)\\Avg. Disk sec/Write",
+                      "\\LogicalDisk(_Total)\\Avg. Disk Queue Length",
+                      "\\LogicalDisk(_Total)\\Avg. Disk Read Queue Length",
+                      "\\LogicalDisk(_Total)\\Avg. Disk Write Queue Length",
+                      "\\LogicalDisk(_Total)\\% Free Space",
+                      "\\LogicalDisk(_Total)\\Free Megabytes",
+                      "\\Network Interface(*)\\Bytes Total/sec",
+                      "\\Network Interface(*)\\Bytes Sent/sec",
+                      "\\Network Interface(*)\\Bytes Received/sec",
+                      "\\Network Interface(*)\\Packets/sec",
+                      "\\Network Interface(*)\\Packets Sent/sec",
+                      "\\Network Interface(*)\\Packets Received/sec",
+                      "\\Network Interface(*)\\Packets Outbound Errors",
+                      "\\Network Interface(*)\\Packets Received Errors"
+                    ]
+                  }
+                ]
+              },
+              "destinations": {
+                "logAnalytics": [
+                  {
+                    "name": "laDestination",
+                    "workspaceResourceId": "[reference('monitoring').outputs.logAnalyticsWorkspaceId.value]"
+                  }
+                ]
+              },
+              "dataFlows": [
+                {
+                  "streams": [
+                    "Microsoft-Event"
+                  ],
+                  "destinations": [
+                    "laDestination"
+                  ],
+                  "transformKql": "source",
+                  "outputStream": "Microsoft-Event"
+                },
+                {
+                  "streams": [
+                    "Microsoft-Perf"
+                  ],
+                  "destinations": [
+                    "laDestination"
+                  ],
+                  "transformKql": "source",
+                  "outputStream": "Microsoft-Perf"
+                }
+              ]
+            }
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.41.2.15936",
+              "templateHash": "2441324888126124697"
+            },
+            "name": "Data Collection Rules",
+            "description": "This module deploys a Data Collection Rule."
+          },
+          "definitions": {
+            "dataCollectionRulePropertiesType": {
+              "type": "object",
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "Linux": {
+                    "$ref": "#/definitions/linuxDcrPropertiesType"
+                  },
+                  "Windows": {
+                    "$ref": "#/definitions/windowsDcrPropertiesType"
+                  },
+                  "All": {
+                    "$ref": "#/definitions/allPlatformsDcrPropertiesType"
+                  },
+                  "AgentSettings": {
+                    "$ref": "#/definitions/agentSettingsDcrPropertiesType"
+                  },
+                  "Direct": {
+                    "$ref": "#/definitions/directDcrPropertiesType"
+                  },
+                  "WorkspaceTransforms": {
+                    "$ref": "#/definitions/workspaceTransformsDcrPropertiesType"
+                  },
+                  "PlatformTelemetry": {
+                    "$ref": "#/definitions/platformTelemetryDcrPropertiesType"
+                  }
+                }
+              },
+              "metadata": {
+                "__bicep_export!": true,
+                "description": "Required. The type for data collection rule properties. Depending on the kind, the properties will be different."
+              }
+            },
+            "linuxDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Linux"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "dataSources": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataSources"
+                    },
+                    "description": "Required. Specification of data sources that will be collected."
+                  }
+                },
+                "dataFlows": {
+                  "type": "array",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataFlows"
+                    },
+                    "description": "Required. The specification of data flows."
+                  }
+                },
+                "destinations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations"
+                    },
+                    "description": "Required. Specification of destinations that can be used in data flows."
+                  }
+                },
+                "dataCollectionEndpointResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the data collection endpoint that this rule can be used with."
+                  }
+                },
+                "streamDeclarations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/streamDeclarations"
+                    },
+                    "description": "Optional. Declaration of custom streams used in this rule."
+                  },
+                  "nullable": true
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the 'Linux' data collection rule."
+              }
+            },
+            "windowsDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Windows"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "dataSources": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataSources"
+                    },
+                    "description": "Required. Specification of data sources that will be collected."
+                  }
+                },
+                "dataFlows": {
+                  "type": "array",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataFlows"
+                    },
+                    "description": "Required. The specification of data flows."
+                  }
+                },
+                "destinations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations"
+                    },
+                    "description": "Required. Specification of destinations that can be used in data flows."
+                  }
+                },
+                "dataCollectionEndpointResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the data collection endpoint that this rule can be used with."
+                  }
+                },
+                "streamDeclarations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/streamDeclarations"
+                    },
+                    "description": "Optional. Declaration of custom streams used in this rule."
+                  },
+                  "nullable": true
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the 'Windows' data collection rule."
+              }
+            },
+            "allPlatformsDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "All"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "dataSources": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataSources"
+                    },
+                    "description": "Required. Specification of data sources that will be collected."
+                  }
+                },
+                "dataFlows": {
+                  "type": "array",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataFlows"
+                    },
+                    "description": "Required. The specification of data flows."
+                  }
+                },
+                "destinations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations"
+                    },
+                    "description": "Required. Specification of destinations that can be used in data flows."
+                  }
+                },
+                "dataCollectionEndpointResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the data collection endpoint that this rule can be used with."
+                  }
+                },
+                "streamDeclarations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/streamDeclarations"
+                    },
+                    "description": "Optional. Declaration of custom streams used in this rule."
+                  },
+                  "nullable": true
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the data collection rule of the kind 'All'."
+              }
+            },
+            "agentSettingsDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "AgentSettings"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                },
+                "agentSettings": {
+                  "$ref": "#/definitions/agentSettingsType",
+                  "metadata": {
+                    "description": "Required. Agent settings used to modify agent behavior on a given host."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the 'AgentSettings' data collection rule."
+              }
+            },
+            "agentSettingsType": {
+              "type": "object",
+              "properties": {
+                "logs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/agentSettingType"
+                  },
+                  "metadata": {
+                    "description": "Required. All the settings that are applicable to the logs agent (AMA)."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the agent settings."
+              }
+            },
+            "agentSettingType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "allowedValues": [
+                    "MaxDiskQuotaInMB",
+                    "UseTimeReceivedForForwardedEvents"
+                  ],
+                  "metadata": {
+                    "description": "Required. The name of the agent setting."
+                  }
+                },
+                "value": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The value of the agent setting."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the (single) agent setting."
+              }
+            },
+            "directDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Direct"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "dataFlows": {
+                  "type": "array",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataFlows"
+                    },
+                    "description": "Required. The specification of data flows."
+                  }
+                },
+                "destinations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations"
+                    },
+                    "description": "Required. Specification of destinations that can be used in data flows."
+                  }
+                },
+                "dataCollectionEndpointResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID of the data collection endpoint that this rule can be used with."
+                  }
+                },
+                "streamDeclarations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/streamDeclarations"
+                    },
+                    "description": "Required. Declaration of custom streams used in this rule."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the 'Direct' data collection rule."
+              }
+            },
+            "workspaceTransformsDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "WorkspaceTransforms"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "dataFlows": {
+                  "type": "array",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataFlows"
+                    },
+                    "description": "Required. The specification of data flows. Should include a separate dataflow for each table that will have a transformation. Use a where clause in the query if only certain records should be transformed."
+                  }
+                },
+                "destinations": {
+                  "type": "object",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations"
+                    },
+                    "description": "Required. Specification of destinations that can be used in data flows. For WorkspaceTransforms, only one Log Analytics workspace destination is supported."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the 'WorkspaceTransforms' data collection rule."
+              }
+            },
+            "platformTelemetryDcrPropertiesType": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "PlatformTelemetry"
+                  ],
+                  "metadata": {
+                    "description": "Required. The kind of the resource."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Description of the data collection rule."
+                  }
+                },
+                "dataSources": {
+                  "type": "object",
+                  "properties": {
+                    "platformTelemetry": {
+                      "type": "array",
+                      "metadata": {
+                        "__bicep_resource_derived_type!": {
+                          "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataSources/properties/platformTelemetry"
+                        },
+                        "description": "Required. The list of platform telemetry configurations."
+                      }
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. Specification of data sources that will be collected."
+                  }
+                },
+                "destinations": {
+                  "type": "object",
+                  "properties": {
+                    "logAnalytics": {
+                      "type": "array",
+                      "metadata": {
+                        "__bicep_resource_derived_type!": {
+                          "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations/properties/logAnalytics"
+                        },
+                        "description": "Optional. The list of Log Analytics destinations."
+                      },
+                      "nullable": true
+                    },
+                    "storageAccounts": {
+                      "type": "array",
+                      "metadata": {
+                        "__bicep_resource_derived_type!": {
+                          "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations/properties/storageAccounts"
+                        },
+                        "description": "Optional. The list of Storage Account destinations."
+                      },
+                      "nullable": true
+                    },
+                    "eventHubs": {
+                      "type": "array",
+                      "metadata": {
+                        "__bicep_resource_derived_type!": {
+                          "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/destinations/properties/eventHubs"
+                        },
+                        "description": "Optional. The list of Event Hub destinations."
+                      },
+                      "nullable": true
+                    }
+                  },
+                  "metadata": {
+                    "description": "Required. Specification of destinations. Choose a single destination type of either logAnalytics, storageAccounts, or eventHubs."
+                  }
+                },
+                "dataFlows": {
+                  "type": "array",
+                  "metadata": {
+                    "__bicep_resource_derived_type!": {
+                      "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/dataFlows"
+                    },
+                    "description": "Required. The specification of data flows."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "The type for the properties of the 'PlatformTelemetry' data collection rule."
+              }
+            },
+            "lockType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the name of lock."
+                  }
+                },
+                "kind": {
+                  "type": "string",
+                  "allowedValues": [
+                    "CanNotDelete",
+                    "None",
+                    "ReadOnly"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the type of lock."
+                  }
+                },
+                "notes": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Specify the notes of the lock."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a lock.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.7.0"
+                }
+              }
+            },
+            "managedIdentityAllType": {
+              "type": "object",
+              "properties": {
+                "systemAssigned": {
+                  "type": "bool",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Enables system assigned managed identity on the resource."
+                  }
+                },
+                "userAssignedResourceIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The resource ID(s) to assign to the resource. Required if a user assigned identity is used for encryption."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a managed identity configuration. To be used if both a system-assigned & user-assigned identities are supported by the resource provider.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.7.0"
+                }
+              }
+            },
+            "roleAssignmentType": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The name (as GUID) of the role assignment. If not provided, a GUID will be generated."
+                  }
+                },
+                "roleDefinitionIdOrName": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The role to assign. You can provide either the display name of the role definition, the role definition GUID, or its fully qualified ID in the following format: '/providers/Microsoft.Authorization/roleDefinitions/c2f4ef07-c644-48eb-af81-4b1b4947fb11'."
+                  }
+                },
+                "principalId": {
+                  "type": "string",
+                  "metadata": {
+                    "description": "Required. The principal ID of the principal (user/group/identity) to assign the role to."
+                  }
+                },
+                "principalType": {
+                  "type": "string",
+                  "allowedValues": [
+                    "Device",
+                    "ForeignGroup",
+                    "Group",
+                    "ServicePrincipal",
+                    "User"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The principal type of the assigned principal ID."
+                  }
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The description of the role assignment."
+                  }
+                },
+                "condition": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The conditions on the role assignment. This limits the resources it can be assigned to. e.g.: @Resource[Microsoft.Storage/storageAccounts/blobServices/containers:ContainerName] StringEqualsIgnoreCase \"foo_storage_container\"."
+                  }
+                },
+                "conditionVersion": {
+                  "type": "string",
+                  "allowedValues": [
+                    "2.0"
+                  ],
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. Version of the condition."
+                  }
+                },
+                "delegatedManagedIdentityResourceId": {
+                  "type": "string",
+                  "nullable": true,
+                  "metadata": {
+                    "description": "Optional. The Resource Id of the delegated managed identity resource."
+                  }
+                }
+              },
+              "metadata": {
+                "description": "An AVM-aligned type for a role assignment.",
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.7.0"
+                }
+              }
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. The name of the data collection rule. The name is case insensitive."
+              }
+            },
+            "dataCollectionRuleProperties": {
+              "$ref": "#/definitions/dataCollectionRulePropertiesType",
+              "metadata": {
+                "description": "Required. The kind of data collection rule."
+              }
+            },
+            "enableTelemetry": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Optional. Enable/Disable usage telemetry for module."
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Optional. Location for all Resources."
+              }
+            },
+            "lock": {
+              "$ref": "#/definitions/lockType",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. The lock settings of the service."
+              }
+            },
+            "managedIdentities": {
+              "$ref": "#/definitions/managedIdentityAllType",
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. The managed identity definition for this resource."
+              }
+            },
+            "roleAssignments": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/roleAssignmentType"
+              },
+              "nullable": true,
+              "metadata": {
+                "description": "Optional. Array of role assignments to create."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "__bicep_resource_derived_type!": {
+                  "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/tags"
+                },
+                "description": "Optional. Resource tags."
+              },
+              "nullable": true
+            }
+          },
+          "variables": {
+            "copy": [
+              {
+                "name": "formattedRoleAssignments",
+                "count": "[length(coalesce(parameters('roleAssignments'), createArray()))]",
+                "input": "[union(coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')], createObject('roleDefinitionId', coalesce(tryGet(variables('builtInRoleNames'), coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName), if(contains(coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName, '/providers/Microsoft.Authorization/roleDefinitions/'), coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', coalesce(parameters('roleAssignments'), createArray())[copyIndex('formattedRoleAssignments')].roleDefinitionIdOrName)))))]"
+              }
+            ],
+            "formattedUserAssignedIdentities": "[reduce(map(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createArray()), lambda('id', createObject(format('{0}', lambdaVariables('id')), createObject()))), createObject(), lambda('cur', 'next', union(lambdaVariables('cur'), lambdaVariables('next'))))]",
+            "identity": "[if(not(empty(parameters('managedIdentities'))), createObject('type', if(coalesce(tryGet(parameters('managedIdentities'), 'systemAssigned'), false()), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'SystemAssigned,UserAssigned', 'SystemAssigned'), if(not(empty(coalesce(tryGet(parameters('managedIdentities'), 'userAssignedResourceIds'), createObject()))), 'UserAssigned', 'None')), 'userAssignedIdentities', if(not(empty(variables('formattedUserAssignedIdentities'))), variables('formattedUserAssignedIdentities'), null())), null())]",
+            "builtInRoleNames": {
+              "Contributor": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+              "Owner": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
+              "Reader": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]",
+              "Role Based Access Control Administrator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f58310d9-a9f6-439a-9e8d-f62e7b41a168')]",
+              "User Access Administrator": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9')]"
+            },
+            "dataCollectionRulePropertiesUnion": "[union(createObject('description', tryGet(parameters('dataCollectionRuleProperties'), 'description')), if(contains(createArray('Linux', 'Windows', 'All', 'PlatformTelemetry'), parameters('dataCollectionRuleProperties').kind), createObject('dataSources', parameters('dataCollectionRuleProperties').dataSources), createObject()), if(contains(createArray('Linux', 'Windows', 'All', 'Direct', 'WorkspaceTransforms', 'PlatformTelemetry'), parameters('dataCollectionRuleProperties').kind), createObject('dataFlows', parameters('dataCollectionRuleProperties').dataFlows, 'destinations', parameters('dataCollectionRuleProperties').destinations), createObject()), if(contains(createArray('Linux', 'Windows', 'All', 'Direct', 'WorkspaceTransforms'), parameters('dataCollectionRuleProperties').kind), createObject('dataCollectionEndpointId', tryGet(parameters('dataCollectionRuleProperties'), 'dataCollectionEndpointResourceId'), 'streamDeclarations', tryGet(parameters('dataCollectionRuleProperties'), 'streamDeclarations')), createObject()), if(equals(parameters('dataCollectionRuleProperties').kind, 'AgentSettings'), createObject('agentSettings', parameters('dataCollectionRuleProperties').agentSettings), createObject()))]",
+            "enableReferencedModulesTelemetry": false
+          },
+          "resources": {
+            "avmTelemetry": {
+              "condition": "[parameters('enableTelemetry')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('46d3xbcp.res.insights-datacollectionrule.{0}.{1}', replace('0.11.0', '.', '-'), substring(uniqueString(deployment().name, parameters('location')), 0, 4))]",
+              "properties": {
+                "mode": "Incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "resources": [],
+                  "outputs": {
+                    "telemetry": {
+                      "type": "String",
+                      "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                    }
+                  }
+                }
+              }
+            },
+            "dataCollectionRule": {
+              "condition": "[not(equals(parameters('dataCollectionRuleProperties').kind, 'All'))]",
+              "type": "Microsoft.Insights/dataCollectionRules",
+              "apiVersion": "2024-03-11",
+              "name": "[parameters('name')]",
+              "kind": "[parameters('dataCollectionRuleProperties').kind]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": "[variables('identity')]",
+              "properties": "[variables('dataCollectionRulePropertiesUnion')]"
+            },
+            "dataCollectionRuleAll": {
+              "condition": "[equals(parameters('dataCollectionRuleProperties').kind, 'All')]",
+              "type": "Microsoft.Insights/dataCollectionRules",
+              "apiVersion": "2024-03-11",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": "[variables('identity')]",
+              "properties": "[variables('dataCollectionRulePropertiesUnion')]"
+            },
+            "dataCollectionRule_conditionalScopeLock": {
+              "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('{0}-DCR-Lock', uniqueString(deployment().name, parameters('location')))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "dataCollectionRuleName": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), createObject('value', parameters('name')), createObject('value', parameters('name')))]",
+                  "lock": {
+                    "value": "[parameters('lock')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "languageVersion": "2.0",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.41.2.15936",
+                      "templateHash": "2876136109547890997"
+                    }
+                  },
+                  "definitions": {
+                    "lockType": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the name of lock."
+                          }
+                        },
+                        "kind": {
+                          "type": "string",
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the type of lock."
+                          }
+                        },
+                        "notes": {
+                          "type": "string",
+                          "nullable": true,
+                          "metadata": {
+                            "description": "Optional. Specify the notes of the lock."
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "description": "An AVM-aligned type for a lock.",
+                        "__bicep_imported_from!": {
+                          "sourceTemplate": "br:mcr.microsoft.com/bicep/avm/utl/types/avm-common-types:0.6.1"
+                        }
+                      }
+                    }
+                  },
+                  "parameters": {
+                    "lock": {
+                      "$ref": "#/definitions/lockType",
+                      "nullable": true,
+                      "metadata": {
+                        "description": "Optional. The lock settings of the service."
+                      }
+                    },
+                    "dataCollectionRuleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. Name of the Data Collection Rule to assign the role(s) to."
+                      }
+                    }
+                  },
+                  "resources": {
+                    "dataCollectionRule": {
+                      "existing": true,
+                      "type": "Microsoft.Insights/dataCollectionRules",
+                      "apiVersion": "2024-03-11",
+                      "name": "[parameters('dataCollectionRuleName')]"
+                    },
+                    "dataCollectionRule_lock": {
+                      "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
+                      "type": "Microsoft.Authorization/locks",
+                      "apiVersion": "2020-05-01",
+                      "scope": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('dataCollectionRuleName'))]",
+                      "name": "[coalesce(tryGet(parameters('lock'), 'name'), format('lock-{0}', parameters('dataCollectionRuleName')))]",
+                      "properties": {
+                        "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
+                        "notes": "[coalesce(tryGet(parameters('lock'), 'notes'), if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.'))]"
+                      }
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "dataCollectionRule",
+                "dataCollectionRuleAll"
+              ]
+            },
+            "dataCollectionRule_roleAssignments": {
+              "copy": {
+                "name": "dataCollectionRule_roleAssignments",
+                "count": "[length(coalesce(variables('formattedRoleAssignments'), createArray()))]"
+              },
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[format('{0}-DCR-RoleAssignments-{1}', uniqueString(deployment().name, parameters('location')), copyIndex())]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "resourceId": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), createObject('value', resourceId('Microsoft.Insights/dataCollectionRules', parameters('name'))), createObject('value', resourceId('Microsoft.Insights/dataCollectionRules', parameters('name'))))]",
+                  "name": {
+                    "value": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'name')]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].roleDefinitionId]"
+                  },
+                  "principalId": {
+                    "value": "[coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()].principalId]"
+                  },
+                  "description": {
+                    "value": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'description')]"
+                  },
+                  "principalType": {
+                    "value": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'principalType')]"
+                  },
+                  "enableTelemetry": {
+                    "value": "[variables('enableReferencedModulesTelemetry')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.32.4.45862",
+                      "templateHash": "14634305923902101494"
+                    },
+                    "name": "Resource-scoped role assignment",
+                    "description": "This module deploys a Role Assignment for a specific resource."
+                  },
+                  "parameters": {
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The scope for the role assignment, fully qualified resourceId."
+                      }
+                    },
+                    "name": {
+                      "type": "string",
+                      "defaultValue": "[guid(parameters('resourceId'), parameters('principalId'), if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId'))))]",
+                      "metadata": {
+                        "description": "Optional. The unique guid name for the role assignment."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The role definition ID for the role assignment."
+                      }
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The name for the role, used for logging."
+                      }
+                    },
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Required. The Principal or Object ID of the Security Principal (User, Group, Service Principal, Managed Identity)."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "Group",
+                        "User",
+                        "ForeignGroup",
+                        "Device",
+                        ""
+                      ],
+                      "metadata": {
+                        "description": "Optional. The principal type of the assigned principal ID."
+                      }
+                    },
+                    "description": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Optional. The description of role assignment."
+                      }
+                    },
+                    "enableTelemetry": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Optional. Enable/Disable usage telemetry for module."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "$fxv#0": {
+                      "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                      "contentVersion": "1.0.0.0",
+                      "parameters": {
+                        "scope": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "roleDefinitionId": {
+                          "type": "string"
+                        },
+                        "principalId": {
+                          "type": "string"
+                        },
+                        "principalType": {
+                          "type": "string",
+                          "allowedValues": [
+                            "Device",
+                            "ForeignGroup",
+                            "Group",
+                            "ServicePrincipal",
+                            "User",
+                            ""
+                          ],
+                          "defaultValue": "",
+                          "metadata": {
+                            "description": "Optional. The principal type of the assigned principal ID."
+                          }
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "resources": [
+                        {
+                          "type": "Microsoft.Authorization/roleAssignments",
+                          "apiVersion": "2022-04-01",
+                          "scope": "[[parameters('scope')]",
+                          "name": "[[parameters('name')]",
+                          "properties": {
+                            "roleDefinitionId": "[[parameters('roleDefinitionId')]",
+                            "principalId": "[[parameters('principalId')]",
+                            "principalType": "[[parameters('principalType')]",
+                            "description": "[[parameters('description')]"
+                          }
+                        }
+                      ],
+                      "outputs": {
+                        "roleAssignmentId": {
+                          "type": "string",
+                          "value": "[[extensionResourceId(parameters('scope'), 'Microsoft.Authorization/roleAssignments', parameters('name'))]"
+                        }
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "condition": "[parameters('enableTelemetry')]",
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2024-03-01",
+                      "name": "[format('46d3xbcp.ptn.authorization-resourceroleassignment.{0}.{1}', replace('0.1.2', '.', '-'), substring(uniqueString(deployment().name), 0, 4))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "template": {
+                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                          "contentVersion": "1.0.0.0",
+                          "resources": [],
+                          "outputs": {
+                            "telemetry": {
+                              "type": "String",
+                              "value": "For more information, see https://aka.ms/avm/TelemetryInfo"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Resources/deployments",
+                      "apiVersion": "2023-07-01",
+                      "name": "[format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))]",
+                      "properties": {
+                        "mode": "Incremental",
+                        "expressionEvaluationOptions": {
+                          "scope": "Outer"
+                        },
+                        "template": "[variables('$fxv#0')]",
+                        "parameters": {
+                          "scope": {
+                            "value": "[parameters('resourceId')]"
+                          },
+                          "name": {
+                            "value": "[parameters('name')]"
+                          },
+                          "roleDefinitionId": {
+                            "value": "[if(contains(parameters('roleDefinitionId'), '/providers/Microsoft.Authorization/roleDefinitions/'), parameters('roleDefinitionId'), subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('roleDefinitionId')))]"
+                          },
+                          "principalId": {
+                            "value": "[parameters('principalId')]"
+                          },
+                          "principalType": {
+                            "value": "[parameters('principalType')]"
+                          },
+                          "description": {
+                            "value": "[parameters('description')]"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The GUID of the Role Assignment."
+                      },
+                      "value": "[parameters('name')]"
+                    },
+                    "roleName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name for the role, used for logging."
+                      },
+                      "value": "[parameters('roleName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the Role Assignment."
+                      },
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-ResourceRoleAssignment', guid(parameters('resourceId'), parameters('principalId'), parameters('roleDefinitionId')))), '2023-07-01').outputs.roleAssignmentId.value]"
+                    },
+                    "resourceGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the resource group the role assignment was applied at."
+                      },
+                      "value": "[resourceGroup().name]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "dataCollectionRule",
+                "dataCollectionRuleAll"
+              ]
+            }
+          },
+          "outputs": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the dataCollectionRule."
+              },
+              "value": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), parameters('name'), parameters('name'))]"
+            },
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "The resource ID of the dataCollectionRule."
+              },
+              "value": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), resourceId('Microsoft.Insights/dataCollectionRules', parameters('name')), resourceId('Microsoft.Insights/dataCollectionRules', parameters('name')))]"
+            },
+            "resourceGroupName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the resource group the dataCollectionRule was created in."
+              },
+              "value": "[resourceGroup().name]"
+            },
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "The location the resource was deployed into."
+              },
+              "value": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), reference('dataCollectionRuleAll', '2024-03-11', 'full').location, reference('dataCollectionRule', '2024-03-11', 'full').location)]"
+            },
+            "systemAssignedMIPrincipalId": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "The principal ID of the system assigned identity."
+              },
+              "value": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), tryGet(tryGet(if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), reference('dataCollectionRuleAll', '2024-03-11', 'full'), null()), 'identity'), 'principalId'), tryGet(tryGet(if(not(equals(parameters('dataCollectionRuleProperties').kind, 'All')), reference('dataCollectionRule', '2024-03-11', 'full'), null()), 'identity'), 'principalId'))]"
+            },
+            "endpoints": {
+              "type": "object",
+              "metadata": {
+                "__bicep_resource_derived_type!": {
+                  "source": "Microsoft.Insights/dataCollectionRules@2024-03-11#properties/properties/properties/endpoints",
+                  "output": true
+                },
+                "description": "The endpoints of the dataCollectionRule, if created."
+              },
+              "nullable": true,
+              "value": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), tryGet(reference('dataCollectionRuleAll'), 'endpoints'), tryGet(reference('dataCollectionRule'), 'endpoints'))]"
+            },
+            "immutableId": {
+              "type": "string",
+              "nullable": true,
+              "metadata": {
+                "description": "The ImmutableId of the dataCollectionRule."
+              },
+              "value": "[if(equals(parameters('dataCollectionRuleProperties').kind, 'All'), tryGet(reference('dataCollectionRuleAll'), 'immutableId'), tryGet(reference('dataCollectionRule'), 'immutableId'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "monitoring"
       ]
     },
     "maintenanceConfiguration": {
@@ -22361,6 +23699,9 @@
           "userAssignedResourceId": {
             "value": "[reference('managedIdentityModule').outputs.resourceId.value]"
           },
+          "disableLocalAuth": {
+            "value": true
+          },
           "restrictOutboundNetworkAccess": {
             "value": true
           },
@@ -24969,6 +26310,9 @@
           },
           "sku": {
             "value": "[parameters('computerVisionSkuName')]"
+          },
+          "disableLocalAuth": {
+            "value": true
           },
           "enablePrivateNetworking": {
             "value": "[parameters('enablePrivateNetworking')]"
@@ -33134,6 +34478,9 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
+          "e2eEncryptionEnabled": {
+            "value": "[variables('appServicePlanIsPremium')]"
+          },
           "applicationInsightsName": "[if(parameters('enableMonitoring'), createObject('value', reference('monitoring').outputs.applicationInsightsName.value), createObject('value', ''))]",
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_SPEECH_SERVICE_NAME', variables('speechServiceName'), 'AZURE_SPEECH_SERVICE_REGION', parameters('location'), 'AZURE_SPEECH_RECOGNIZER_LANGUAGES', parameters('recognizedLanguages'), 'AZURE_SPEECH_REGION_ENDPOINT', reference('speechService').outputs.endpoint.value, 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'ADVANCED_IMAGE_PROCESSING_MAX_IMAGES', string(parameters('advancedImageProcessingMaxImages')), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'DATABASE_TYPE', parameters('databaseType'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions'), 'APPLICATIONINSIGHTS_ENABLED', if(parameters('enableMonitoring'), 'true', 'false')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_COSMOSDB_ACCOUNT_NAME', variables('azureCosmosDBAccountName'), 'AZURE_COSMOSDB_DATABASE_NAME', variables('cosmosDbName'), 'AZURE_COSMOSDB_CONVERSATIONS_CONTAINER_NAME', variables('cosmosDbContainerName'), 'AZURE_COSMOSDB_ENABLE_FEEDBACK', 'true', 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_CONVERSATIONS_LOG_INDEX', parameters('azureSearchConversationLogIndex'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
@@ -33147,7 +34494,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "18241505075581370667"
+              "templateHash": "15192594027567719609"
             }
           },
           "parameters": {
@@ -33313,6 +34660,13 @@
               "metadata": {
                 "description": "Optional. Configuration details for private endpoints."
               }
+            },
+            "e2eEncryptionEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan."
+              }
             }
           },
           "variables": {
@@ -33387,6 +34741,9 @@
                   "publicNetworkAccess": "[if(empty(parameters('publicNetworkAccess')), createObject('value', null()), createObject('value', parameters('publicNetworkAccess')))]",
                   "privateEndpoints": {
                     "value": "[parameters('privateEndpoints')]"
+                  },
+                  "e2eEncryptionEnabled": {
+                    "value": "[parameters('e2eEncryptionEnabled')]"
                   },
                   "managedIdentities": {
                     "value": {
@@ -35437,6 +36794,9 @@
           "userAssignedIdentityResourceId": {
             "value": "[reference('managedIdentityModule').outputs.resourceId.value]"
           },
+          "e2eEncryptionEnabled": {
+            "value": "[variables('appServicePlanIsPremium')]"
+          },
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_TEMPERATURE', parameters('azureOpenAITemperature'), 'AZURE_OPENAI_TOP_P', parameters('azureOpenAITopP'), 'AZURE_OPENAI_MAX_TOKENS', parameters('azureOpenAIMaxTokens'), 'AZURE_OPENAI_STOP_SEQUENCE', parameters('azureOpenAIStopSequence'), 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'AZURE_OPENAI_STREAM', parameters('azureOpenAIStream'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'BACKEND_URL', format('https://{0}.azurewebsites.net', if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'FUNCTION_KEY', 'FUNCTION-KEY', 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'CONVERSATION_FLOW', parameters('conversationFlow'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'DATABASE_TYPE', parameters('databaseType'), 'USE_KEY_VAULT', 'true', 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'APP_ENV', parameters('appEnvironment'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions'), 'APPLICATIONINSIGHTS_ENABLED', if(parameters('enableMonitoring'), 'true', 'false')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_USE_SEMANTIC_SEARCH', if(parameters('azureSearchUseSemanticSearch'), 'true', 'false'), 'AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG', parameters('azureSearchSemanticSearchConfig'), 'AZURE_SEARCH_INDEX_IS_PRECHUNKED', parameters('azureSearchIndexIsPrechunked'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK'), 'AZURE_SEARCH_ENABLE_IN_DOMAIN', parameters('azureSearchEnableInDomain'), 'AZURE_SEARCH_FILENAME_COLUMN', parameters('azureSearchFilenameColumn'), 'AZURE_SEARCH_FILTER', parameters('azureSearchFilter'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_URL_COLUMN', parameters('azureSearchUrlColumn'), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           },
@@ -35457,7 +36817,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "10541723303096083402"
+              "templateHash": "10601961761929099428"
             }
           },
           "parameters": {
@@ -35623,6 +36983,13 @@
               "metadata": {
                 "description": "Optional. Configuration details for private endpoints."
               }
+            },
+            "e2eEncryptionEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan."
+              }
             }
           },
           "variables": {
@@ -35697,6 +37064,9 @@
                   "publicNetworkAccess": "[if(empty(parameters('publicNetworkAccess')), createObject('value', null()), createObject('value', parameters('publicNetworkAccess')))]",
                   "privateEndpoints": {
                     "value": "[parameters('privateEndpoints')]"
+                  },
+                  "e2eEncryptionEnabled": {
+                    "value": "[parameters('e2eEncryptionEnabled')]"
                   },
                   "managedIdentities": {
                     "value": {
@@ -37759,6 +39129,9 @@
           "publicNetworkAccess": {
             "value": "Enabled"
           },
+          "e2eEncryptionEnabled": {
+            "value": "[variables('appServicePlanIsPremium')]"
+          },
           "appSettings": {
             "value": "[union(createObject('AZURE_BLOB_ACCOUNT_NAME', variables('storageAccountName'), 'AZURE_BLOB_CONTAINER_NAME', variables('blobContainerName'), 'AZURE_FORM_RECOGNIZER_ENDPOINT', reference('formrecognizer').outputs.endpoint.value, 'AZURE_COMPUTER_VISION_ENDPOINT', if(parameters('useAdvancedImageProcessing'), reference('computerVision').outputs.endpoint.value, ''), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_API_VERSION', parameters('computerVisionVectorizeImageApiVersion'), 'AZURE_COMPUTER_VISION_VECTORIZE_IMAGE_MODEL_VERSION', parameters('computerVisionVectorizeImageModelVersion'), 'AZURE_CONTENT_SAFETY_ENDPOINT', reference('contentsafety').outputs.endpoint.value, 'AZURE_KEY_VAULT_ENDPOINT', reference('keyvault').outputs.uri.value, 'AZURE_OPENAI_MODEL', parameters('azureOpenAIModel'), 'AZURE_OPENAI_MODEL_NAME', parameters('azureOpenAIModelName'), 'AZURE_OPENAI_MODEL_VERSION', parameters('azureOpenAIModelVersion'), 'AZURE_OPENAI_EMBEDDING_MODEL', parameters('azureOpenAIEmbeddingModel'), 'AZURE_OPENAI_EMBEDDING_MODEL_NAME', parameters('azureOpenAIEmbeddingModelName'), 'AZURE_OPENAI_EMBEDDING_MODEL_VERSION', parameters('azureOpenAIEmbeddingModelVersion'), 'AZURE_OPENAI_RESOURCE', variables('azureOpenAIResourceName'), 'AZURE_OPENAI_API_VERSION', parameters('azureOpenAIApiVersion'), 'USE_ADVANCED_IMAGE_PROCESSING', if(parameters('useAdvancedImageProcessing'), 'true', 'false'), 'DOCUMENT_PROCESSING_QUEUE_NAME', variables('queueName'), 'ORCHESTRATION_STRATEGY', parameters('orchestrationStrategy'), 'LOGLEVEL', parameters('logLevel'), 'PACKAGE_LOGGING_LEVEL', 'WARNING', 'AZURE_LOGGING_PACKAGES', '', 'AZURE_OPENAI_SYSTEM_MESSAGE', parameters('azureOpenAISystemMessage'), 'OPEN_AI_FUNCTIONS_SYSTEM_PROMPT', variables('openAIFunctionsSystemPrompt'), 'SEMANTIC_KERNEL_SYSTEM_PROMPT', variables('semanticKernelSystemPrompt'), 'DATABASE_TYPE', parameters('databaseType'), 'MANAGED_IDENTITY_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'MANAGED_IDENTITY_RESOURCE_ID', reference('managedIdentityModule').outputs.resourceId.value, 'AZURE_CLIENT_ID', reference('managedIdentityModule').outputs.clientId.value, 'APP_ENV', parameters('appEnvironment'), 'BACKEND_URL', variables('backendUrl'), 'AZURE_SEARCH_DIMENSIONS', parameters('azureSearchDimensions'), 'APPLICATIONINSIGHTS_ENABLED', if(parameters('enableMonitoring'), 'true', 'false')), if(equals(parameters('databaseType'), 'CosmosDB'), createObject('AZURE_SEARCH_INDEX', variables('azureSearchIndex'), 'AZURE_SEARCH_SERVICE', format('https://{0}.search.windows.net', variables('azureAISearchName')), 'AZURE_SEARCH_DATASOURCE_NAME', variables('azureSearchDatasource'), 'AZURE_SEARCH_INDEXER_NAME', variables('azureSearchIndexer'), 'AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION', if(parameters('azureSearchUseIntegratedVectorization'), 'true', 'false'), 'AZURE_SEARCH_FIELDS_ID', parameters('azureSearchFieldId'), 'AZURE_SEARCH_CONTENT_COLUMN', parameters('azureSearchContentColumn'), 'AZURE_SEARCH_CONTENT_VECTOR_COLUMN', parameters('azureSearchVectorColumn'), 'AZURE_SEARCH_TITLE_COLUMN', parameters('azureSearchTitleColumn'), 'AZURE_SEARCH_FIELDS_METADATA', parameters('azureSearchFieldsMetadata'), 'AZURE_SEARCH_SOURCE_COLUMN', parameters('azureSearchSourceColumn'), 'AZURE_SEARCH_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchTextColumn'), ''), 'AZURE_SEARCH_LAYOUT_TEXT_COLUMN', if(parameters('azureSearchUseIntegratedVectorization'), parameters('azureSearchLayoutTextColumn'), ''), 'AZURE_SEARCH_CHUNK_COLUMN', parameters('azureSearchChunkColumn'), 'AZURE_SEARCH_OFFSET_COLUMN', parameters('azureSearchOffsetColumn'), 'AZURE_SEARCH_TOP_K', parameters('azureSearchTopK')), if(equals(parameters('databaseType'), 'PostgreSQL'), createObject('AZURE_POSTGRESQL_HOST_NAME', variables('postgresDBFqdn'), 'AZURE_POSTGRESQL_DATABASE_NAME', variables('postgresDBName'), 'AZURE_POSTGRESQL_USER', reference('managedIdentityModule').outputs.name.value), createObject())))]"
           }
@@ -37771,7 +39144,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "11617929813953386519"
+              "templateHash": "10484412130586017551"
             }
           },
           "parameters": {
@@ -37926,6 +39299,13 @@
               "metadata": {
                 "description": "Optional. Whether or not public network access is allowed for this resource. For security reasons it should be disabled when using private endpoints."
               }
+            },
+            "e2eEncryptionEnabled": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan."
+              }
             }
           },
           "variables": {
@@ -38003,7 +39383,10 @@
                   "diagnosticSettings": {
                     "value": "[parameters('diagnosticSettings')]"
                   },
-                  "publicNetworkAccess": "[if(empty(parameters('publicNetworkAccess')), createObject('value', null()), createObject('value', parameters('publicNetworkAccess')))]"
+                  "publicNetworkAccess": "[if(empty(parameters('publicNetworkAccess')), createObject('value', null()), createObject('value', parameters('publicNetworkAccess')))]",
+                  "e2eEncryptionEnabled": {
+                    "value": "[parameters('e2eEncryptionEnabled')]"
+                  }
                 },
                 "template": {
                   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
@@ -38012,7 +39395,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.43.8.12551",
-                      "templateHash": "15238703165947550295"
+                      "templateHash": "3051447569601787854"
                     }
                   },
                   "parameters": {
@@ -38276,6 +39659,13 @@
                       "metadata": {
                         "description": "Optional. Whether or not public network access is allowed for this resource. For security reasons it should be disabled when using private endpoints."
                       }
+                    },
+                    "e2eEncryptionEnabled": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan."
+                      }
                     }
                   },
                   "variables": {
@@ -38368,6 +39758,9 @@
                           },
                           "publicNetworkAccess": {
                             "value": "[parameters('publicNetworkAccess')]"
+                          },
+                          "e2eEncryptionEnabled": {
+                            "value": "[parameters('e2eEncryptionEnabled')]"
                           }
                         },
                         "template": {
@@ -46043,6 +47436,9 @@
           "kind": {
             "value": "FormRecognizer"
           },
+          "disableLocalAuth": {
+            "value": true
+          },
           "enablePrivateNetworking": {
             "value": "[parameters('enablePrivateNetworking')]"
           },
@@ -48659,6 +50055,9 @@
           "kind": {
             "value": "ContentSafety"
           },
+          "disableLocalAuth": {
+            "value": true
+          },
           "enablePrivateNetworking": {
             "value": "[parameters('enablePrivateNetworking')]"
           },
@@ -51264,6 +52663,9 @@
             "value": "[parameters('enableTelemetry')]"
           },
           "supportsHttpsTrafficOnly": {
+            "value": true
+          },
+          "requireInfrastructureEncryption": {
             "value": true
           },
           "accessTier": {
@@ -54522,8 +55924,8 @@
       },
       "dependsOn": [
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
