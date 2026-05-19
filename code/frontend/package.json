@@ -30,7 +30,7 @@
         "rehype-raw": "^7.0.0",
         "remark-gfm": "^4.0.1",
         "remark-supersub": "^1.0.0",
-        "uuid": "^13.0.0"
+        "uuid": "^14.0.0"
     },
     "devDependencies": {
         "@testing-library/jest-dom": "^6.9.1",
