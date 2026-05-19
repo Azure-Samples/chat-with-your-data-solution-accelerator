@@ -186,8 +186,6 @@ To review Cosmos DB configuration overview and steps, follow the link [here](doc
 
 > **Note**: Some tenants may have additional security restrictions that run periodically and could impact the application (e.g., blocking public network access). If you experience issues or the application stops working, check if these restrictions are the cause. In such cases, consider deploying the WAF-supported version to ensure compliance. To configure, [Click here](./docs/LOCAL_DEPLOYMENT.md#31-choose-deployment-type-optional).
 
-> **WAF networking note**: In WAF mode (`enablePrivateNetworking=true`), backend Function App private-only access is applied when using `AZURE_APP_SERVICE_HOSTING_MODEL=container`. For `AZURE_APP_SERVICE_HOSTING_MODEL=code`, Function App public access remains enabled so deployment can use SCM/Kudu from the deployer environment.
-
 > ⚠️ **Important: Check Azure OpenAI Quota Availability**
  <br/>To ensure sufficient quota is available in your subscription, please follow [quota check instructions guide](./docs/QuotaCheck.md) before you deploy the solution.
 

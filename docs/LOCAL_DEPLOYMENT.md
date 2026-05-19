@@ -175,14 +175,6 @@ Review the configuration options below. You can customize any settings that meet
 | **Framework** | Basic configuration | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
 | **Features** | Core functionality | Reliability, security, operational excellence |
 
-> **WAF networking note for Function App backend**
->
-> - If `enablePrivateNetworking=true` and `AZURE_APP_SERVICE_HOSTING_MODEL=container`, the backend Function App is configured as private-only (private endpoint + disabled public network access).
-> - During `azd deploy`, the function service uses deployment hooks to temporarily set Function App `publicNetworkAccess=Enabled`, deploy the app from terminal, then restore `publicNetworkAccess=Disabled` automatically.
-> - If `enablePrivateNetworking=true` and `AZURE_APP_SERVICE_HOSTING_MODEL=code`, the backend Function App remains publicly reachable by design in this deployment flow. This preserves code-package deployment from the deployer machine, which depends on SCM/Kudu access.
-> - Frontend and admin App Services remain publicly accessible in WAF mode.
-> - Admin file upload remains supported in container+WAF mode because the admin app is VNet-integrated and calls the backend Function App through the private endpoint path.
-
 **To use production configuration:**
 
 Copy the contents from the production configuration file to your main parameters file:
