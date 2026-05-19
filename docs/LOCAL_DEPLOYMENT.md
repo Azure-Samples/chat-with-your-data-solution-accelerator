@@ -129,6 +129,7 @@ Select one of the following options to set up your Chat with your Data local dep
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/)
 - [Node.js LTS](https://nodejs.org/en)
 - [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
+- [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) <small>(v0.33.0+)</small>
 - [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
 - [Git](https://git-scm.com/downloads)
 - [PowerShell 7.0+](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell)

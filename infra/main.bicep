@@ -382,6 +382,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   properties: {
     tags: union(existingTags, allTags, {
       TemplateName: 'CWYD'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
       CreatedBy: createdBy
     })
   }
@@ -623,7 +624,6 @@ var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
   'privatelink.openai.azure.com'
   'privatelink.vaultcore.azure.net'
-  'privatelink.api.azureml.ms'
 ]
 
 // DNS Zone Index Constants
@@ -637,7 +637,6 @@ var dnsZoneIndex = {
   cognitiveServices: 6
   openAI: 7
   keyVault: 8
-  machinelearning: 9
 }
 
 // ===================================================

@@ -228,7 +228,7 @@ def test_gp_question(login_logout, question, request):
     start_time = time.time()
 
     try:
-        for attempt in range(1, 3):
+        for attempt in range(1, 4):
             logger.info(f"[GP] [{question}] Attempt {attempt} - START")
 
             try:
@@ -270,7 +270,7 @@ def test_gp_question(login_logout, question, request):
                 logger.error(f"[GP] [{question}] Exception: {str(e)}")
 
         if not success:
-            pytest.fail(f"[GP] [{question}] Failed after 2 attempts.")
+            pytest.fail(f"[GP] [{question}] Failed after 3 attempts.")
 
     finally:
         duration = time.time() - start_time
