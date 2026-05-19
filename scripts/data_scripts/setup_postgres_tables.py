@@ -3,12 +3,23 @@
 Usage:
     python setup_postgres_tables.py <server_fqdn> <user>
 
-Authenticates using DefaultAzureCredential (requires 'az login').
+Authentication:
+    The script authenticates to PostgreSQL using a Microsoft Entra ID access
+    token (the ``ossrdbms-aad`` resource). It resolves the token in this order:
+
+    1. ``PG_ACCESS_TOKEN`` environment variable, if set. The post-deployment
+       wrapper scripts (``post_deployment_setup.sh`` / ``.ps1``) acquire the
+       token via ``az account get-access-token`` immediately before invoking
+       this script and export it as ``PG_ACCESS_TOKEN`` to avoid token expiry
+       (especially for federated service principals where ``DefaultAzureCredential``
+       may fail).
+    2. Fallback: ``azure.identity.DefaultAzureCredential`` is used to acquire
+       a token in-process when ``PG_ACCESS_TOKEN`` is not set.
 """
 
+import os
 import sys
 import psycopg2
-from azure.identity import DefaultAzureCredential
 
 if len(sys.argv) != 3:
     print("Usage: python setup_postgres_tables.py <server_fqdn> <user>")
@@ -18,14 +29,22 @@ host = sys.argv[1]
 user = sys.argv[2]
 dbname = "postgres"
 
-# Acquire the access token
-cred = DefaultAzureCredential()
-access_token = cred.get_token("https://ossrdbms-aad.database.windows.net/.default")
+token = os.environ.get("PG_ACCESS_TOKEN")
+if not token:
+    from azure.identity import DefaultAzureCredential
 
-conn_string = "host={0} user={1} dbname={2} password={3} sslmode=require".format(
-    host, user, dbname, access_token.token
+    cred = DefaultAzureCredential()
+    token = cred.get_token(
+        "https://ossrdbms-aad.database.windows.net/.default"
+    ).token
+
+conn = psycopg2.connect(
+    host=host,
+    user=user,
+    dbname=dbname,
+    password=token,
+    sslmode="require",
 )
-conn = psycopg2.connect(conn_string)
 cursor = conn.cursor()
 
 # Drop and recreate the conversations table
