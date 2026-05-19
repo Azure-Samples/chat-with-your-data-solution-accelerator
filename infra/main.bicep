@@ -534,7 +534,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
           dataCollectionRuleAssociations: [
             {
               name: 'dcra-${jumpboxVmName}-security'
-              dataCollectionRuleResourceId: jumpboxSecurityDcr!.id
+              dataCollectionRuleResourceId: jumpboxSecurityDcr!.outputs.resourceId
             }
           ]
         }
@@ -572,45 +572,119 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
   }
 }
 
-// Data Collection Rule for Windows security event logs (audit success / audit failure) on the jumpbox VM.
-resource jumpboxSecurityDcr 'Microsoft.Insights/dataCollectionRules@2022-06-01' = if (enablePrivateNetworking && enableMonitoring) {
-  name: 'dcr-${jumpboxVmName}-security'
-  location: location
-  tags: tags
-  kind: 'Windows'
-  properties: {
-    dataSources: {
-      windowsEventLogs: [
+// Data Collection Rule for jumpbox VM: Windows security audit events + performance counters.
+var jumpboxDcrName = 'dcr-${jumpboxVmName}-security'
+module jumpboxSecurityDcr 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
+  name: take('avm.res.insights.data-collection-rule.${jumpboxDcrName}', 64)
+  params: {
+    name: jumpboxDcrName
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    dataCollectionRuleProperties: {
+      kind: 'Windows'
+      dataSources: {
+        windowsEventLogs: [
+          {
+            name: 'securityEvents'
+            streams: [
+              'Microsoft-Event'
+            ]
+            xPathQueries: [
+              // Audit Success (0x0020000000000000) + Audit Failure (0x0010000000000000) = 13510798882111488
+              'Security!*[System[(band(Keywords,13510798882111488))]]'
+            ]
+          }
+        ]
+        performanceCounters: [
+          {
+            name: 'perfCounterDataSource60'
+            streams: [
+              'Microsoft-Perf'
+            ]
+            samplingFrequencyInSeconds: 60
+            counterSpecifiers: [
+              '\\Processor Information(_Total)\\% Processor Time'
+              '\\Processor Information(_Total)\\% Privileged Time'
+              '\\Processor Information(_Total)\\% User Time'
+              '\\Processor Information(_Total)\\Processor Frequency'
+              '\\System\\Processes'
+              '\\Process(_Total)\\Thread Count'
+              '\\Process(_Total)\\Handle Count'
+              '\\System\\System Up Time'
+              '\\System\\Context Switches/sec'
+              '\\System\\Processor Queue Length'
+              '\\Memory\\% Committed Bytes In Use'
+              '\\Memory\\Available Bytes'
+              '\\Memory\\Committed Bytes'
+              '\\Memory\\Cache Bytes'
+              '\\Memory\\Pool Paged Bytes'
+              '\\Memory\\Pool Nonpaged Bytes'
+              '\\Memory\\Pages/sec'
+              '\\Memory\\Page Faults/sec'
+              '\\Process(_Total)\\Working Set'
+              '\\Process(_Total)\\Working Set - Private'
+              '\\LogicalDisk(_Total)\\% Disk Time'
+              '\\LogicalDisk(_Total)\\% Disk Read Time'
+              '\\LogicalDisk(_Total)\\% Disk Write Time'
+              '\\LogicalDisk(_Total)\\% Idle Time'
+              '\\LogicalDisk(_Total)\\Disk Bytes/sec'
+              '\\LogicalDisk(_Total)\\Disk Read Bytes/sec'
+              '\\LogicalDisk(_Total)\\Disk Write Bytes/sec'
+              '\\LogicalDisk(_Total)\\Disk Transfers/sec'
+              '\\LogicalDisk(_Total)\\Disk Reads/sec'
+              '\\LogicalDisk(_Total)\\Disk Writes/sec'
+              '\\LogicalDisk(_Total)\\Avg. Disk sec/Transfer'
+              '\\LogicalDisk(_Total)\\Avg. Disk sec/Read'
+              '\\LogicalDisk(_Total)\\Avg. Disk sec/Write'
+              '\\LogicalDisk(_Total)\\Avg. Disk Queue Length'
+              '\\LogicalDisk(_Total)\\Avg. Disk Read Queue Length'
+              '\\LogicalDisk(_Total)\\Avg. Disk Write Queue Length'
+              '\\LogicalDisk(_Total)\\% Free Space'
+              '\\LogicalDisk(_Total)\\Free Megabytes'
+              '\\Network Interface(*)\\Bytes Total/sec'
+              '\\Network Interface(*)\\Bytes Sent/sec'
+              '\\Network Interface(*)\\Bytes Received/sec'
+              '\\Network Interface(*)\\Packets/sec'
+              '\\Network Interface(*)\\Packets Sent/sec'
+              '\\Network Interface(*)\\Packets Received/sec'
+              '\\Network Interface(*)\\Packets Outbound Errors'
+              '\\Network Interface(*)\\Packets Received Errors'
+            ]
+          }
+        ]
+      }
+      destinations: {
+        logAnalytics: [
+          {
+            name: 'laDestination'
+            workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
+          }
+        ]
+      }
+      dataFlows: [
         {
-          name: 'securityEvents'
           streams: [
             'Microsoft-Event'
           ]
-          xPathQueries: [
-            // Audit Success (0x0020000000000000) + Audit Failure (0x0010000000000000) = 13510798882111488
-            'Security!*[System[(band(Keywords,13510798882111488))]]'
+          destinations: [
+            'laDestination'
           ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Event'
         }
-      ]
-    }
-    destinations: {
-      logAnalytics: [
         {
-          name: 'laDestination'
-          workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
+          streams: [
+            'Microsoft-Perf'
+          ]
+          destinations: [
+            'laDestination'
+          ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Perf'
         }
       ]
     }
-    dataFlows: [
-      {
-        streams: [
-          'Microsoft-Event'
-        ]
-        destinations: [
-          'laDestination'
-        ]
-      }
-    ]
   }
 }
 
