@@ -16,8 +16,8 @@ inlined in every blueprint's ``_execute``. Centralizing it here means:
   "patch one context manager".
 
 The helper deliberately does **not** acquire the credential -- callers
-build one via ``backend.core.providers.credentials.create(...)`` (Hard
-Rule #4) and pass the already-entered ``credential`` token here. That
+build one via the ``backend.core.providers.credentials`` registry
+(Hard Rule #4) and pass the already-entered ``credential`` token here. That
 keeps this module dependency-light (no registry import) and pure SDK
 wiring, mirroring how :func:`functions.core.storage_endpoints.resolve_storage_endpoints`
 stays free of settings-construction logic.
