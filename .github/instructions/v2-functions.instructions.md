@@ -15,7 +15,7 @@ applyTo: "v2/src/functions/**"
 
 - `function_app.py` — sole registration entry; imports blueprints and `app.register_functions(bp)`.
 - `blueprints/<name>.py` — one trigger per file. Files: `batch_start.py`, `batch_push.py`, `add_url.py`, `search_skill.py`.
-- Pluggable logic is consumed via the registries in `v2/src/backend/core/providers/`. Specifically: parsers via `providers.parsers.create(...)`, embedders via `providers.embedders.create(...)`, search via `providers.search.create(...)`. Composition lives in `v2/src/backend/core/pipelines/ingestion.py` — blueprints invoke the pipeline, they do not duplicate parse/chunk/embed logic.
+- Pluggable logic is consumed via the registries in `v2/src/backend/core/providers/`. Specifically: parsers via `from backend.core.providers.parsers import registry as parsers_registry; parsers_registry.registry.get(ext)()`, embedders via `from backend.core.providers.embedders import registry as embedders_registry; embedders_registry.registry.get(key)(...)`, search via `from backend.core.providers.search import registry as search_registry; search_registry.registry.get(key)(...)`. Composition lives in `v2/src/backend/core/pipelines/ingestion.py` — blueprints invoke the pipeline, they do not duplicate parse/chunk/embed logic.
 
 ## Rules
 

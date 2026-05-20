@@ -6,7 +6,7 @@ Phase: 6
 
 import pytest
 
-from backend.core.providers import parsers
+from backend.core.providers.parsers import registry as parsers_registry
 from backend.core.providers.parsers.base import BaseParser
 from backend.core.registry import Registry
 from backend.core.types import Chunk
@@ -21,19 +21,19 @@ class _FakeParser(BaseParser):
 
 @pytest.fixture
 def isolated_registry(monkeypatch: pytest.MonkeyPatch) -> Registry[type[BaseParser]]:
-    """Swap the module-level `parsers.registry` for an empty one.
+    """Swap the module-level `parsers_registry.registry` for an empty one.
 
     Tests register fake parsers without polluting the global registry
     that real provider concretes (added in U8d) will populate.
     """
     fresh: Registry[type[BaseParser]] = Registry("parsers")
-    monkeypatch.setattr(parsers, "registry", fresh)
+    monkeypatch.setattr(parsers_registry, "registry", fresh)
     return fresh
 
 
 def test_registry_is_named_parsers() -> None:
     # Sanity check on the production registry instance.
-    assert parsers.registry.domain == "parsers"
+    assert parsers_registry.registry.domain == "parsers"
 
 
 def test_register_and_create_returns_instance(
@@ -41,7 +41,7 @@ def test_register_and_create_returns_instance(
 ) -> None:
     isolated_registry.register("txt")(_FakeParser)
 
-    parser = parsers.create("txt")
+    parser = parsers_registry.registry.get("txt")()
 
     assert isinstance(parser, _FakeParser)
     assert isinstance(parser, BaseParser)
@@ -52,8 +52,8 @@ def test_create_is_case_insensitive(
 ) -> None:
     isolated_registry.register("PDF")(_FakeParser)
 
-    assert isinstance(parsers.create("pdf"), _FakeParser)
-    assert isinstance(parsers.create("PdF"), _FakeParser)
+    assert isinstance(parsers_registry.registry.get("pdf")(), _FakeParser)
+    assert isinstance(parsers_registry.registry.get("PdF")(), _FakeParser)
 
 
 def test_create_unknown_key_raises_keyerror_listing_available(
@@ -62,7 +62,7 @@ def test_create_unknown_key_raises_keyerror_listing_available(
     isolated_registry.register("txt")(_FakeParser)
 
     with pytest.raises(KeyError) as exc:
-        parsers.create("docx")
+        parsers_registry.registry.get("docx")
 
     # Registry surfaces the sorted list of available keys.
     assert "txt" in str(exc.value)
@@ -75,7 +75,7 @@ def test_duplicate_registration_same_value_is_idempotent(
     # Re-registering the same class under the same key must not raise.
     isolated_registry.register("txt")(_FakeParser)
 
-    assert isinstance(parsers.create("txt"), _FakeParser)
+    assert isinstance(parsers_registry.registry.get("txt")(), _FakeParser)
 
 
 def test_duplicate_registration_different_value_raises(
