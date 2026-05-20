@@ -10,8 +10,8 @@ beyond the Bicep outputs. Never used in deployed environments.
 
 from azure.identity.aio import AzureCliCredential
 
-from . import registry
 from .base import BaseCredentialProvider
+from .registry import registry
 
 
 @registry.register("cli")

@@ -62,12 +62,14 @@ def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
     fake_agents = MagicMock(name="agents_provider")
     fake_agents.aclose = AsyncMock()
 
+    fake_cred_registry = MagicMock(name="credentials_registry")
+    fake_cred_registry.get.return_value = lambda **_kw: fake_cred_provider
+
     monkeypatch.setattr(
-        "backend.app.credentials.select_default", lambda *_a, **_kw: "azure_cli"
+        "backend.app.credentials_registry.select_default", lambda *_a, **_kw: "azure_cli"
     )
     monkeypatch.setattr(
-        "backend.app.credentials.create",
-        lambda *_a, **_kw: fake_cred_provider,
+        "backend.app.credentials_registry.registry", fake_cred_registry
     )
     monkeypatch.setattr(
         "backend.app.llm.create", lambda *_a, **_kw: fake_llm

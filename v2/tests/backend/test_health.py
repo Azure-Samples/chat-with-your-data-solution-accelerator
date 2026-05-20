@@ -283,9 +283,12 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     fake_agents = MagicMock(name="agents_provider")
     fake_agents.aclose = AsyncMock()
 
+    fake_cred_registry = MagicMock(name="credentials_registry")
+    fake_cred_registry.get.return_value = lambda **_kw: fake_cred_provider
+
     monkeypatch.setattr(
-        "backend.app.credentials.create",
-        lambda key, *, settings: fake_cred_provider,
+        "backend.app.credentials_registry.registry",
+        fake_cred_registry,
     )
     monkeypatch.setattr(
         "backend.app.llm.create",

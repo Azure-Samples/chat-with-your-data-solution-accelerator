@@ -23,8 +23,8 @@ private ``_execute`` helper remains the seam route-level tests
 monkeypatch so unit tests do not need Azurite or a real credential.
 
 Registry-first credentials wiring (Hard Rule #4): credential
-construction still goes through
-``backend.core.providers.credentials.create(...)``, never
+construction still goes through the
+``backend.core.providers.credentials`` registry, never
 ``DefaultAzureCredential()`` directly.
 """
 
@@ -32,7 +32,7 @@ from http import HTTPStatus
 
 import azure.functions as func
 
-from backend.core.providers import credentials
+from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.settings import AppSettings, get_settings
 from functions.batch_start.handler import batch_start_handler
 from functions.batch_start.models import BatchStartRequest
@@ -56,10 +56,9 @@ async def _execute(
     body stays parse-and-respond only.
     """
     blob_endpoint, queue_endpoint = resolve_storage_endpoints(settings.storage)
-    cred_provider = credentials.create(
-        credentials.select_default(settings.identity.uami_client_id),
-        settings=settings,
-    )
+    cred_provider = credentials_registry.registry.get(
+        credentials_registry.select_default(settings.identity.uami_client_id)
+    )(settings=settings)
     async with await cred_provider.get_credential() as credential:
         async with storage_clients(
             credential=credential,
