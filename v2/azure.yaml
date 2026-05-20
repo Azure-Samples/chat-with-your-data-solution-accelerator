@@ -1,0 +1,147 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+# ========================================================================
+# Pillar:  Stable Core
+# Phase:   1 (Infrastructure + Project Skeleton)
+# Purpose: Azure Developer CLI manifest for CWYD v2. Drives `azd up` /
+#          `azd provision` / `azd deploy`.
+#
+#          The `parameters:` block uses azd's typed-prompt feature
+#          (CGSA pattern) so `azd up` asks the operator for the few
+#          decisions that cannot be defaulted safely:
+#            - databaseType (LOCKED at deploy: chat history + index store)
+#            - azureAiServiceLocation (model availability)
+#            - WAF flags (monitoring, scalability, redundancy, networking)
+#
+#          `services:` is intentionally empty in Phase 1. Backend,
+#          frontend, and functions are wired in their own units
+#          (tasks #14, #15, #16) once their Bicep modules emit the
+#          required outputs.
+# ========================================================================
+
+name: chat-with-your-data-v2
+metadata:
+  template: chat-with-your-data-v2@0.1.0
+requiredVersions:
+  azd: ">= 1.18.0 != 1.23.9"
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+# ----------------------------------------------------------------------
+# Typed prompt block — surfaced by `azd up` / `azd provision`. Each
+# answer is persisted in the azd env file under AZURE_ENV_<name> and
+# bound back to a Bicep parameter via v2/infra/main.parameters.json.
+# ----------------------------------------------------------------------
+parameters:
+  - name: databaseType
+    description: |
+      Database engine for chat history AND vector index. LOCKED after
+      deploy.
+        cosmosdb   - Cosmos DB (chat) + Azure AI Search (index)
+        postgresql - PostgreSQL Flexible (chat) + pgvector (index)
+                     Azure AI Search is NOT deployed in this mode.
+    type: string
+    default: cosmosdb
+    allowed:
+      - cosmosdb
+      - postgresql
+
+  - name: azureAiServiceLocation
+    description: |
+      Azure region for AI Services / Foundry (model availability).
+      Restricted to regions with GPT-5.1 GlobalStandard capacity.
+    type: string
+    default: eastus2
+    allowed:
+      - australiaeast
+      - canadaeast
+      - eastus2
+      - japaneast
+      - koreacentral
+      - polandcentral
+      - swedencentral
+      - switzerlandnorth
+      - uaenorth
+      - uksouth
+      - westus3
+
+  - name: enableMonitoring
+    description: Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.
+    type: boolean
+    default: false
+
+  - name: enableScalability
+    description: Higher SKUs and autoscale on App Service Plan, Container Apps, Search, and PostgreSQL.
+    type: boolean
+    default: false
+
+  - name: enableRedundancy
+    description: Zone-redundant + paired-region failover on databases, App Service Plan, Container Apps, and Storage.
+    type: boolean
+    default: false
+
+  - name: enablePrivateNetworking
+    description: Deploy a VNet, private endpoints, and disable public network access on data-plane resources.
+    type: boolean
+    default: false
+
+# ----------------------------------------------------------------------
+# Services — bound to Bicep resources by the `azd-service-name` tag in
+# v2/infra/main.bicep:
+#   - backend  → Container App  (tag 'backend',  L1120)
+#   - frontend → App Service    (tag 'frontend', L1240)
+#   - function → Function App   (tag 'function', L1366)
+# Each service uses its own Dockerfile under v2/docker/. `azd deploy`
+# builds the image, pushes to the Bicep-deployed ACR, and updates the
+# target resource. Debt #Q4 (Phase 3.5 QA remediation) — closes the
+# blocker that `azure.yaml` `services:` was empty.
+# ----------------------------------------------------------------------
+services:
+  backend:
+    project: ./src/backend
+    language: py
+    host: containerapp
+    docker:
+      path: ../../docker/Dockerfile.backend
+      context: ../..
+  frontend:
+    project: ./src/frontend
+    language: js
+    host: appservice
+    docker:
+      path: ../../docker/Dockerfile.frontend
+      context: ../..
+      target: prod
+  function:
+    project: ./src/functions
+    language: py
+    host: function
+    docker:
+      path: ../../docker/Dockerfile.functions
+      context: ../..
+
+# ----------------------------------------------------------------------
+# Post-provision hook (task #19). Runs after every successful `azd
+# provision` / `azd up`. Idempotent. In postgresql mode it creates the
+# pgvector extension on the freshly provisioned Flexible Server using
+# the deployer's Entra token. Always prints a compact summary of the
+# AZURE_* outputs an operator most commonly needs.
+#
+# Both wrappers shell out to v2/scripts/post_provision.py so the logic
+# stays in one place.
+# ----------------------------------------------------------------------
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: ./scripts/post-provision.sh
+      continueOnError: false
+      interactive: true
+    windows:
+      shell: pwsh
+      run: ./scripts/post-provision.ps1
+      continueOnError: false
+      interactive: true

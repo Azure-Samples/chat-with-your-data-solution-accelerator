@@ -1,0 +1,13 @@
+# Pillar: Stable Core
+# Phase: 1 (debt #7)
+#
+# Minimal pyproject for the Functions container build (Dockerfile.functions
+# COPYs this file before `uv sync`). Phase 6 expands deps as blueprints land.
+[project]
+name = "cwyd-functions"
+version = "0.1.0"
+description = "CWYD v2 Azure Functions — modular RAG indexing pipeline host"
+requires-python = ">=3.11"
+dependencies = [
+    "azure-functions>=1.24,<2.0",
+]

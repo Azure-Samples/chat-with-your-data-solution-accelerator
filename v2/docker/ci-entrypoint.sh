@@ -28,12 +28,12 @@ run() {
 # -- Python: deps + lint + tests + coverage --------------------------------
 run "uv sync"               bash -c "uv sync --frozen 2>/dev/null || uv sync"
 run "ruff (if configured)"  bash -c "uv run ruff check v2 || true"
-run "pytest (v2)"           bash -c "uv run pytest v2 --maxfail=1 --disable-warnings -q || true"
+run "pytest (v2)"           bash -c "uv run pytest v2 --maxfail=1 --disable-warnings -q"
 
 # -- Frontend: install + lint + unit tests --------------------------------
 if [ -f v2/src/frontend/package.json ]; then
     run "npm ci frontend"   bash -c "cd v2/src/frontend && (npm ci || npm install)"
-    run "npm test frontend" bash -c "cd v2/src/frontend && (npm test --silent --if-present || true)"
+    run "npm test frontend" bash -c "cd v2/src/frontend && npm test --silent --if-present"
 fi
 
 # -- Bicep: build + (optional) what-if -----------------------------------

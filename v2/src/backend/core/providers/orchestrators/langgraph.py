@@ -1,0 +1,183 @@
+"""LangGraph-backed orchestrator.
+
+Pillar: Stable Core
+Phase: 3
+
+Builds a `StateGraph` with a single LLM node, compiled once per
+orchestrator instance and re-used across requests (no mutable
+per-request state held on `self`). The graph is held for tool-node
+wiring (task #20: ``ToolNode`` + ``add_conditional_edges``) and is
+**deliberately bypassed** for the LLM call as of CU-004b
+(2026-05-05): live token + reasoning streaming is incompatible with
+``StateGraph.ainvoke``'s buffer-then-return contract, and the unified
+LLM-layer factory ``BaseLLMProvider.complete()`` (CU-004a) already
+auto-routes between ``chat()`` and ``reason()`` so the orchestrator
+never has to branch on model class.
+
+``run()`` calls ``self._llm.complete(...)`` directly, propagates
+``reasoning`` / ``error`` events to the SSE channel as they arrive,
+accumulates ``answer`` chunks into a single buffered event (ADR 0007
+single-answer contract preserved), then emits ``citation`` events for
+the markers actually referenced in the answer.
+
+Citation wiring (task #23, audit step 6d): when an optional
+``BaseSearch`` provider is supplied at construction time, ``run()``
+retrieves grounding documents for the latest user message, injects
+them as a numbered ``[doc1] / [doc2] / ...`` system message via
+``shared.tools.citations.format_sources_block``, and emits one
+``citation`` event per marker actually referenced in the assistant
+reply (filtered through ``filter_to_referenced``). When ``search`` is
+``None`` the orchestrator stays in pass-through mode -- no retrieval,
+no citation events -- so the existing single-answer contract is
+preserved for callers that haven't wired search through DI yet.
+"""
+
+import operator
+from typing import Annotated, Any, AsyncIterator, Sequence, TypedDict
+
+from langgraph.graph import (  # pyright: ignore[reportMissingTypeStubs]
+    END,
+    START,
+    StateGraph,
+)
+
+from backend.core.providers.llm.base import BaseLLMProvider
+from backend.core.providers.search.base import BaseSearch
+from backend.core.settings import AppSettings
+from backend.core.tools.citations import (
+    build_citations,
+    filter_to_referenced,
+    format_sources_block,
+)
+from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
+
+from . import registry
+from .base import OrchestratorBase
+
+
+class _GraphState(TypedDict):
+    """Shape of the value flowing through the LangGraph state machine.
+
+    `messages` carries an append-only conversation log. The
+    `operator.add` reducer makes multi-node writes (e.g., `llm` and the
+    future `tools` node added in task #20) merge instead of overwrite.
+    Without this reducer, the second writer would silently clobber the
+    first -- a class of bug LangGraph specifically protects against
+    when you declare a channel reducer.
+    """
+
+    messages: Annotated[list[ChatMessage], operator.add]
+
+
+@registry.register("langgraph")
+class LangGraphOrchestrator(OrchestratorBase):
+    def __init__(
+        self,
+        settings: AppSettings,
+        llm: BaseLLMProvider,
+        search: BaseSearch | None = None,
+        **_extras: object,
+    ) -> None:
+        # `**_extras` swallows kwargs the router passes uniformly to every
+        # orchestrator (e.g. `agents_client`, `agent_id` for `agent_framework`).
+        # Avoids name-based dispatch in the caller (Hard Rule #4).
+        super().__init__(settings, llm)
+        self._search = search
+        self._graph = self._build_graph()
+
+    # ------------------------------------------------------------------
+    # Graph construction
+    # ------------------------------------------------------------------
+
+    def _build_graph(self) -> Any:
+        # `StateGraph[_GraphState]` would be the precise generic, but
+        # langgraph ships partial stubs whose type parameters leak
+        # `Unknown` into every downstream call. Cast to `Any` at the
+        # construction site so call sites stay readable; the runtime
+        # behavior is unchanged.
+        graph: Any = StateGraph(_GraphState)
+        graph.add_node("llm", self._llm_node)
+        graph.add_edge(START, "llm")
+        graph.add_edge("llm", END)
+        return graph.compile()
+
+    async def _llm_node(self, state: _GraphState) -> _GraphState:
+        reply = await self._llm.chat(state["messages"])
+        # Return only the delta -- the `operator.add` reducer on
+        # `messages` appends it to the existing log.
+        return {"messages": [reply]}
+
+    # ------------------------------------------------------------------
+    # OrchestratorBase implementation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _latest_user_text(messages: Sequence[ChatMessage]) -> str:
+        for msg in reversed(messages):
+            if msg.role == "user":
+                return msg.content
+        return ""
+
+    async def run(
+        self,
+        messages: Sequence[ChatMessage],
+        *,
+        settings_override: dict[str, Any] | None = None,
+    ) -> AsyncIterator[OrchestratorEvent]:
+        # Optional retrieval: when a search provider is wired, prepend a
+        # system message containing the [docN] block before invoking the
+        # graph. Citation events are emitted only for markers actually
+        # referenced in the final answer.
+        graph_messages: list[ChatMessage] = list(messages)
+        citations = []
+        if self._search is not None:
+            query = self._latest_user_text(messages)
+            if query:
+                sources = await self._search.search(query)
+                if sources:
+                    citations = build_citations(sources)
+                    block = format_sources_block(sources)
+                    graph_messages = [
+                        ChatMessage(role="system", content=f"Sources:\n{block}"),
+                        *messages,
+                    ]
+
+        # CU-004b: stream events through the LLM-layer factory
+        # (CU-004a). `complete()` auto-routes to `chat()` / `reason()`
+        # based on the configured deployment, so o-series `reasoning`
+        # tokens flow live to the SSE channel without per-orchestrator
+        # branching. The compiled graph is bypassed for the LLM call --
+        # task #20 (tool-node wiring) reintroduces it for tool routing.
+        answer_parts: list[str] = []
+        saw_error = False
+        async for event in self._llm.complete(graph_messages):
+            if event.channel == OrchestratorChannel.ANSWER:
+                answer_parts.append(event.content)
+            elif event.channel == OrchestratorChannel.ERROR:
+                saw_error = True
+                yield event  # surface upstream LLM errors immediately
+            else:
+                # `reasoning` (and any future LLM-emitted channel) is
+                # passed through verbatim so the FE reasoning panel
+                # lights up while the model is still thinking.
+                yield event
+
+        if saw_error and not answer_parts:
+            # Upstream already emitted a typed error event; nothing
+            # more to assemble.
+            return
+
+        answer = "".join(answer_parts)
+        if not answer:
+            yield OrchestratorEvent(
+                channel=OrchestratorChannel.ERROR,
+                content="LangGraph run produced no assistant reply.",
+            )
+            return
+
+        for citation in filter_to_referenced(answer, citations):
+            yield OrchestratorEvent(
+                channel=OrchestratorChannel.CITATION,
+                metadata=citation.model_dump(),
+            )
+        yield OrchestratorEvent(channel=OrchestratorChannel.ANSWER, content=answer)

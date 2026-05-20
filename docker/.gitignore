@@ -1,0 +1,3 @@
+# Local-only Compose overrides (may reference key-bearing env_files).
+docker-compose.override.yml
+docker-compose.override.yaml

@@ -1,0 +1,21 @@
+# CWYD v2 root .gitignore (CU-008a, 2026-05-05).
+# v2/-scoped patterns only; the repo root .gitignore covers v1 + global tooling.
+
+# Local env (sensitive; copy from .env.sample)
+.env
+.env.local
+
+# Local-only docker compose overrides (e.g. host ~/.azure mount for AzureCliCredential)
+docker/docker-compose.override.yml
+
+# Python build / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs (uv default + common alternates)
+.venv/
+venv/

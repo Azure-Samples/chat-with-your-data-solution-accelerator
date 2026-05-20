@@ -1,346 +1,175 @@
-"""Conversation endpoint: POST /api/conversation.
+"""Conversation router.
 
-Supports two flows based on ``conversational_flow`` configuration:
-  - **byod** — Direct Azure OpenAI call with ``data_sources`` extra_body.
-    Supports streaming (``application/json-lines``) and non-streaming.
-  - **custom** — Routes through the Orchestrator pipeline (OpenAI Functions,
-    LangGraph, SK, Azure Agents).  Returns a JSON response.
+Pillar: Stable Core
+Phase: 3 (task #22a)
+
+Single endpoint: ``POST /api/conversation``.
+
+Two response modes, content-negotiated by the ``Accept`` header:
+
+* ``text/event-stream`` → Server-Sent Events on the locked channel
+  set in ADR 0007 (``reasoning`` / ``tool`` / ``answer`` /
+  ``citation`` / ``error``). Each event is wire-formatted as
+  ``event: <channel>\\ndata: <json>\\n\\n``.
+* anything else (default) → buffered JSON
+  (:class:`backend.models.conversation.ConversationResponse`) with the
+  concatenated answer plus deduplicated citations.
+
+Orchestrator dispatch goes through ``orchestrators.create(...)`` per
+ADR 0001 / Hard Rule #4 — *no ``if/elif`` over orchestrator names in
+this module*. The orchestrator stream is wrapped by
+``pipelines.chat.run_chat`` (#22b), which gives us the seam to plug
+content-safety / post-prompt guards once they are exposed via DI.
+Today both guards default to ``None`` (pipeline streams through
+unchanged), preserving the original router behavior.
 """
-
-from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING
+from typing import AsyncIterator
 
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import APIRouter, Header, Request
+from fastapi.responses import StreamingResponse
 
-from shared.config.config_helper import ConfigHelper
-from shared.llm.llm_helper import LLMHelper, get_current_date_suffix
-from shared.orchestrator.orchestrator import Orchestrator
-
-from ..models.conversation import ConversationRequest
-
-if TYPE_CHECKING:
-    from openai import Stream
-    from openai.types.chat import ChatCompletionChunk
-
-    from shared.config.env_settings import EnvSettings
-    from shared.llm.llm_helper import LLMHelper as LLMHelperType
+from backend.dependencies import (
+    AgentsProviderDep,
+    DatabaseClientDep,
+    LLMProviderDep,
+    SearchProviderDep,
+    SettingsDep,
+)
+from backend.models.conversation import ConversationRequest, ConversationResponse
+from backend.core.agents import CWYD_AGENT
+from backend.core.pipelines.chat import run_chat
+from backend.core.providers import orchestrators
+from backend.core.types import Citation, OrchestratorChannel, OrchestratorEvent
 
 logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api", tags=["conversation"])
 
-router = APIRouter()
-
-_ERROR_429_MESSAGE = (
-    "We're currently experiencing a high number of requests. "
-    "Please try again in a few seconds."
-)
-_ERROR_GENERIC_MESSAGE = (
-    "An error occurred. Please try again. "
-    "If the problem persists, please contact the site administrator."
-)
+_SSE_MEDIA_TYPE = "text/event-stream"
 
 
-# ── helpers ──────────────────────────────────────────────────────
+def _wants_sse(accept: str | None) -> bool:
+    """Return True when the client asked for the SSE feed."""
+    if not accept:
+        return False
+    return _SSE_MEDIA_TYPE in accept.lower()
 
 
-def _build_data_source(settings: EnvSettings) -> dict:
-    """Build the ``extra_body.data_sources`` block for Azure OYD."""
-    search = settings.search
-    auth = settings.auth
-    oai = settings.openai
-
-    if auth.azure_auth_type == "keys":
-        authentication = {"type": "api_key", "key": search.key}
-    else:
-        authentication = {
-            "type": "user_assigned_managed_identity",
-            "managed_identity_resource_id": auth.managed_identity_resource_id,
-        }
-
-    query_type = (
-        "vector_semantic_hybrid"
-        if search.use_semantic_search
-        else "vector_simple_hybrid"
+def _format_sse(event: OrchestratorEvent) -> bytes:
+    """Encode one ``OrchestratorEvent`` as an SSE frame."""
+    payload = json.dumps(
+        {"content": event.content, "metadata": event.metadata},
+        ensure_ascii=False,
     )
-
-    return {
-        "type": "azure_search",
-        "parameters": {
-            "authentication": authentication,
-            "endpoint": f"https://{search.service}.search.windows.net",
-            "index_name": search.index,
-            "fields_mapping": {
-                "content_fields": (
-                    search.content_column.split("|") if search.content_column else []
-                ),
-                "vector_fields": [search.content_vector_column],
-                "title_field": search.title_column or None,
-                "url_field": search.fields_metadata or None,
-                "filepath_field": search.filename_column or None,
-            },
-            "filter": search.filter or None,
-            "in_scope": search.enable_in_domain,
-            "top_n_documents": search.top_k,
-            "embedding_dependency": {
-                "type": "deployment_name",
-                "deployment_name": oai.embedding_model,
-            },
-            "query_type": query_type,
-            "semantic_configuration": (
-                search.semantic_search_config
-                if search.use_semantic_search and search.semantic_search_config
-                else ""
-            ),
-            "role_information": oai.system_message + get_current_date_suffix(),
-        },
-    }
+    return f"event: {event.channel}\ndata: {payload}\n\n".encode("utf-8")
 
 
-def _should_use_data(settings: EnvSettings) -> bool:
-    """Check whether Azure Search is properly configured."""
-    search = settings.search
-    auth = settings.auth
-    return bool(
-        search.service
-        and search.index
-        and (search.key or auth.azure_auth_type == "rbac")
-    )
-
-
-# ── BYOD streaming generators ───────────────────────────────────
-
-
-def _stream_with_data(response: Stream[ChatCompletionChunk]):
-    """Yield ``application/json-lines`` chunks for BYOD *with data*."""
-    response_obj: dict = {
-        "id": "",
-        "model": "",
-        "created": 0,
-        "object": "",
-        "choices": [
-            {
-                "messages": [
-                    {"content": "", "end_turn": False, "role": "tool"},
-                    {"content": "", "end_turn": False, "role": "assistant"},
-                ]
-            }
-        ],
-    }
-
-    for line in response:
-        if not line.choices:
-            continue
-        choice = line.choices[0]
-
-        if choice.model_extra and choice.model_extra.get("end_turn"):
-            response_obj["choices"][0]["messages"][1]["end_turn"] = True
-            yield json.dumps(response_obj, ensure_ascii=False) + "\n"
-            return
-
-        response_obj["id"] = line.id
-        response_obj["model"] = line.model
-        response_obj["created"] = line.created
-        response_obj["object"] = line.object
-
-        delta = choice.delta
-        if delta.role == "assistant":
-            context = delta.model_extra.get("context") if delta.model_extra else None
-            if context:
-                citations = _extract_citations(context)
-                response_obj["choices"][0]["messages"][0]["content"] = json.dumps(
-                    citations, ensure_ascii=False
-                )
-        else:
-            if delta.content:
-                response_obj["choices"][0]["messages"][1]["content"] += delta.content
-
-        yield json.dumps(response_obj, ensure_ascii=False) + "\n"
-
-
-def _stream_without_data(response: Stream[ChatCompletionChunk]):
-    """Yield ``application/json-lines`` chunks for BYOD *without data*."""
-    response_text = ""
-    for line in response:
-        if not line.choices:
-            continue
-        delta_text = line.choices[0].delta.content
-        if delta_text is None:
-            return
-        response_text += delta_text
-        yield json.dumps(
-            {
-                "id": line.id,
-                "model": line.model,
-                "created": line.created,
-                "object": line.object,
-                "choices": [
-                    {"messages": [{"role": "assistant", "content": response_text}]}
-                ],
-            },
-            ensure_ascii=False,
-        ) + "\n"
-
-
-def _extract_citations(context: dict) -> dict:
-    """Extract citations from the OYD context object."""
-    citations_out: list[dict] = []
-    for c in context.get("citations", []):
-        title = c.get("title", "")
-        filepath = c.get("filepath", title)
-        citations_out.append(
-            {
-                "content": c.get("content", ""),
-                "id": c.get("id", ""),
-                "chunk_id": c.get("chunk_id", ""),
-                "title": title,
-                "filepath": filepath,
-                "url": c.get("url", ""),
-            }
-        )
-    return {"citations": citations_out}
-
-
-# ── BYOD flow ───────────────────────────────────────────────────
-
-
-def _conversation_byod(
-    payload: ConversationRequest, settings: EnvSettings
-) -> JSONResponse | StreamingResponse:
-    """Azure OpenAI 'On Your Data' flow (streaming or non-streaming)."""
-    oai = settings.openai
-    config = ConfigHelper.get_active_config_or_default()
-    date_suffix = get_current_date_suffix()
-    should_stream = oai.stream
-
-    # Build message history
-    messages: list[dict] = []
-    if config.prompts.use_on_your_data_format:
-        messages.append(
-            {"role": "system", "content": config.prompts.answering_system_prompt + date_suffix}
-        )
-    for msg in payload.messages:
-        messages.append({"role": msg.role, "content": msg.content})
-
-    llm = LLMHelper(settings)
-    use_data = _should_use_data(settings)
-
-    call_kwargs: dict = {
-        "model": oai.model,
-        "messages": messages,
-        "temperature": oai.temperature,
-        "max_tokens": oai.max_tokens or None,
-        "top_p": oai.top_p,
-        "stream": should_stream,
-    }
-    if oai.stop_sequence:
-        call_kwargs["stop"] = oai.stop_sequence.split("|")
-    if use_data:
-        call_kwargs["extra_body"] = {"data_sources": [_build_data_source(settings)]}
-
-    response = llm.openai_client.chat.completions.create(**call_kwargs)
-
-    # ── non-streaming ────────────────────────────────────────────
-    if not should_stream:
-        if use_data:
-            context = response.choices[0].message.model_extra.get("context", {})
-            citations = _extract_citations(context)
-            resp_messages = [
-                {
-                    "content": json.dumps(citations, ensure_ascii=False),
-                    "end_turn": False,
-                    "role": "tool",
-                },
-                {
-                    "end_turn": True,
-                    "content": response.choices[0].message.content,
-                    "role": "assistant",
-                },
-            ]
-        else:
-            resp_messages = [
-                {
-                    "role": "assistant",
-                    "content": response.choices[0].message.content,
-                }
-            ]
-
-        return JSONResponse(
-            content={
-                "id": response.id,
-                "model": response.model,
-                "created": response.created,
-                "object": response.object,
-                "choices": [{"messages": resp_messages}],
-            }
+async def _sse_stream(
+    events: AsyncIterator[OrchestratorEvent],
+    request: Request,
+) -> AsyncIterator[bytes]:
+    """Pump orchestrator events to the client; surface errors as ``error`` events."""
+    try:
+        async for event in events:
+            if await request.is_disconnected():
+                logger.info("Client disconnected; aborting SSE stream.")
+                break
+            yield _format_sse(event)
+    except Exception as exc:  # noqa: BLE001 -- surfaced to the client channel
+        logger.exception("Orchestrator failed during SSE stream.")
+        yield _format_sse(
+            OrchestratorEvent(channel=OrchestratorChannel.ERROR, content=str(exc))
         )
 
-    # ── streaming ────────────────────────────────────────────────
-    gen = _stream_with_data(response) if use_data else _stream_without_data(response)
-    return StreamingResponse(gen, media_type="application/json-lines")
 
+async def _collect(
+    events: AsyncIterator[OrchestratorEvent],
+    *,
+    conversation_id: str | None,
+) -> ConversationResponse:
+    """Buffer the event stream into a non-streaming JSON response."""
+    answer_chunks: list[str] = []
+    citations: list[Citation] = []
+    seen_citation_ids: set[str] = set()
 
-# ── Custom flow (orchestrator) ───────────────────────────────────
+    async for event in events:
+        if event.channel == OrchestratorChannel.ANSWER:
+            answer_chunks.append(event.content)
+        elif event.channel == OrchestratorChannel.CITATION:
+            cid = event.metadata.get("id")
+            if isinstance(cid, str) and cid not in seen_citation_ids:
+                citations.append(Citation(**event.metadata))
+                seen_citation_ids.add(cid)
+        elif event.channel == OrchestratorChannel.ERROR:
+            # Bubble orchestrator failures to the caller verbatim; the
+            # FastAPI default handler turns this into a 500.
+            raise RuntimeError(event.content)
 
-
-async def _conversation_custom(
-    payload: ConversationRequest, settings: EnvSettings
-) -> JSONResponse:
-    """Orchestrator-based flow: routes to the configured strategy."""
-    user_message = payload.messages[-1].content
-    conversation_id = payload.conversation_id
-
-    # Filter history: user/assistant only, exclude last message
-    chat_history = [
-        {"role": m.role, "content": m.content}
-        for m in payload.messages[:-1]
-        if m.role in ("user", "assistant")
-    ]
-
-    orchestrator = Orchestrator.get_strategy(settings)
-    messages = await orchestrator.handle_message(
-        user_message=user_message,
-        chat_history=chat_history,
+    return ConversationResponse(
+        content="".join(answer_chunks),
+        citations=citations,
         conversation_id=conversation_id,
     )
 
-    return JSONResponse(
-        content={
-            "id": conversation_id or "",
-            "model": settings.openai.model,
-            "created": 0,
-            "object": "chat.completion",
-            "choices": [{"messages": messages}],
-        }
+
+@router.post(
+    "/conversation",
+    response_model=None,  # response shape depends on Accept header
+)
+async def conversation(
+    request: Request,
+    body: ConversationRequest,
+    settings: SettingsDep,
+    llm: LLMProviderDep,
+    search: SearchProviderDep,
+    agents: AgentsProviderDep,
+    db: DatabaseClientDep,
+    accept: str | None = Header(default=None),
+) -> ConversationResponse | StreamingResponse:
+    """Run the configured orchestrator and stream / buffer the result."""
+    # `agents.get_client()` is lazy: the first call constructs the
+    # AgentsClient against `settings.foundry.project_endpoint` and
+    # caches it on the provider; subsequent requests reuse the same
+    # HTTP transport for the lifetime of the process.
+    #
+    # `agents.get_or_create_agent(...)` is the lazy DB-backed resolver
+    # landed in CU-010c (ADR 0008). We only spend the DB + Foundry
+    # round-trip on the `agent_framework` branch -- the langgraph
+    # branch swallows `agent_id` via `**_extras` and never touches the
+    # Agents SDK, so resolving an id we'd never use is wasted I/O.
+    #
+    # Hard Rule #4 nuance: the `if name == "agent_framework"` check
+    # below is *kwarg preparation*, not orchestrator dispatch.
+    # `orchestrators.create(...)` remains the single registry-keyed
+    # factory call -- the router never has a chain of `if/elif` that
+    # *constructs* different orchestrator instances per name. The
+    # invariant is enforced by `test_router_uses_registry_dispatch_
+    # no_hardcoded_provider_names` (asserts exactly one
+    # `orchestrators.create(` call site).
+    agent_id = ""
+    if settings.orchestrator.name == "agent_framework":
+        agent_id = await agents.get_or_create_agent(CWYD_AGENT, db)
+
+    orchestrator = orchestrators.create(
+        settings.orchestrator.name,
+        settings=settings,
+        llm=llm,
+        search=search,
+        agents_client=agents.get_client(),
+        agent_id=agent_id,
     )
 
+    events = run_chat(body.messages, orchestrator=orchestrator)
 
-# ── main endpoint ────────────────────────────────────────────────
+    if _wants_sse(accept):
+        return StreamingResponse(
+            _sse_stream(events, request),
+            media_type=_SSE_MEDIA_TYPE,
+        )
+
+    return await _collect(events, conversation_id=body.conversation_id)
 
 
-@router.post("/conversation")
-async def conversation(payload: ConversationRequest, req: Request):
-    settings: EnvSettings = req.app.state.settings
-    config = ConfigHelper.get_active_config_or_default()
-    flow = config.prompts.conversational_flow
-
-    try:
-        if flow == "byod":
-            return _conversation_byod(payload, settings)
-        elif flow == "custom":
-            return await _conversation_custom(payload, settings)
-        else:
-            return JSONResponse(
-                status_code=500,
-                content={"error": f"Invalid conversation flow: {flow}"},
-            )
-    except Exception as e:
-        status = getattr(e, "status_code", 500)
-        if status == 429:
-            msg = _ERROR_429_MESSAGE
-        else:
-            msg = _ERROR_GENERIC_MESSAGE
-            logger.exception("Conversation error")
-        return JSONResponse(status_code=status, content={"error": msg})
+__all__ = ["router"]

@@ -1,17 +1,37 @@
-"""Azure Functions v2 entry point."""
+"""Pillar: Stable Core
+Phase: 1 (Infrastructure + Project Skeleton, debt #7)
+
+Modular RAG indexing pipeline host. The full Phase 6 blueprint set
+(``batch_start``, ``batch_push``, ``add_url``, ``search_skill``) lands
+later — see [v2/docs/development_plan.md] §4 Phase 6, tasks #39–#43.
+
+This stub exposes a single anonymous health endpoint so the container
+starts cleanly and ``azd up`` succeeds for the Functions app at the end
+of Phase 1.
+"""
+
+import json
 
 import azure.functions as func
 
-from .blueprints.add_url_embeddings import bp as add_url_bp
-from .blueprints.batch_push_results import bp as batch_push_bp
-from .blueprints.batch_start import bp as batch_start_bp
-from .blueprints.conversation import bp as conversation_bp
-from .blueprints.search_skill import bp as search_skill_bp
+app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
-app.register_functions(add_url_bp)
-app.register_functions(batch_start_bp)
-app.register_functions(batch_push_bp)
-app.register_functions(conversation_bp)
-app.register_functions(search_skill_bp)
+def _health_payload() -> dict[str, str]:
+    """Return the JSON body served by the ``health`` route.
+
+    Extracted so unit tests can assert payload shape without invoking the
+    Azure Functions host or building a fake ``HttpRequest``.
+    """
+    return {"status": "ok"}
+
+
+@app.function_name(name="health")
+@app.route(route="health", methods=["GET"])
+def health(req: func.HttpRequest) -> func.HttpResponse:
+    """GET /api/health — liveness probe for the Functions container."""
+    return func.HttpResponse(
+        body=json.dumps(_health_payload()),
+        status_code=200,
+        mimetype="application/json",
+    )

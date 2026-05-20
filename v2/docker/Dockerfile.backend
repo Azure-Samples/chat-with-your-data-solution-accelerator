@@ -15,10 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy only manifests first for cache efficiency. v2 will get its own pyproject;
-# until then we fall back to the repo-root pyproject.
-COPY pyproject.toml uv.lock* ./
-COPY v2/src/backend/pyproject.toml v2/src/backend/pyproject.toml 2>/dev/null || true
+# Copy only manifests first for cache efficiency.
+COPY v2/pyproject.toml v2/uv.lock ./
 
 RUN uv sync --frozen --no-install-project || uv sync --no-install-project
 

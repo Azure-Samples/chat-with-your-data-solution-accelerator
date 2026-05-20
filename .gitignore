@@ -98,6 +98,9 @@ StyleCopReport.xml
 *.vspscc
 *.vssscc
 .builds
+# Bicep transient build output (az bicep build --outdir)
+.build/
+v2/infra/.build/
 *.pidb
 *.svclog
 *.scc
@@ -431,3 +434,7 @@ tests/integration/ui/cypress/screenshots/
 .idea/
 Pipfile
 Pipfile.lock
+
+# Ignore sample code folder
+data/sample_code/
+.azurite/

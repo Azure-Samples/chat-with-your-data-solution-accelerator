@@ -1,32 +1,32 @@
-"""Conversation request/response models."""
+"""Conversation request/response models.
 
-from __future__ import annotations
+Pillar: Stable Core
+Phase: 3 (task #22a)
+"""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-
-class Citation(BaseModel):
-    content: str = ""
-    title: str = ""
-    url: str = ""
-    filepath: str = ""
-    chunk_id: str = ""
+from backend.core.types import ChatMessage, Citation
 
 
 class ConversationRequest(BaseModel):
-    messages: list[ChatMessage]
+    """POST /api/conversation request body."""
+
+    messages: list[ChatMessage] = Field(min_length=1)
     conversation_id: str | None = None
 
 
-class ConversationChoice(BaseModel):
-    messages: list[ChatMessage]
-
-
 class ConversationResponse(BaseModel):
-    id: str
-    choices: list[ConversationChoice]
+    """Non-streaming response (when `Accept` is not `text/event-stream`).
+
+    The streaming variant emits the same content over the SSE channel
+    set defined in ADR 0007 (`reasoning` / `tool` / `answer` /
+    `citation` / `error`).
+    """
+
+    content: str
+    citations: list[Citation] = Field(default_factory=list[Citation])
+    conversation_id: str | None = None
+
+
+__all__ = ["ConversationRequest", "ConversationResponse"]

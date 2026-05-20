@@ -1,0 +1,195 @@
+"""Type-level invariants for `shared.types`.
+
+Pillar: Stable Core
+Phase: 2
+
+Locks the `OrchestratorChannel` `StrEnum` contract added in Q12
+(2026-05-05). The enum has to satisfy three properties at once so
+that the channel-literal sweep stays a *one-time* refactor instead of
+re-introducing drift the next time a producer is added:
+
+1. Frozen membership -- exactly the five locked channel keys, no
+   more, no less.
+2. `str` round-trip -- a bare string passed to
+   `OrchestratorEvent(channel="answer", ...)` Pydantic-coerces to
+   `OrchestratorChannel.ANSWER`, AND `event.channel == "answer"`
+   keeps holding (because `StrEnum` members ARE strings). This is
+   what lets the ~20 pre-existing tests using bare-string channels
+   keep passing without modification.
+3. Cross-equality between members -- the enum must compare equal to
+   its own raw value but NOT to a sibling's value, so consumer code
+   doing `if event.channel == OrchestratorChannel.ERROR` is
+   unambiguous.
+"""
+
+from enum import StrEnum
+
+import pytest
+from pydantic import ValidationError
+
+from backend.core.types import OrchestratorChannel, OrchestratorEvent, RuntimeConfig
+
+
+def test_orchestrator_channel_is_a_strenum() -> None:
+    """`StrEnum` subclassing is required by Hard Rule #11; assert it
+    so a future refactor can't silently regress to a bare class."""
+    assert issubclass(OrchestratorChannel, StrEnum)
+    assert issubclass(OrchestratorChannel, str)
+
+
+def test_orchestrator_channel_membership_is_frozen() -> None:
+    """The five keys are part of the wire contract (frontend renders
+    `REASONING` in a collapsible panel, dedupes on `CITATION.id`,
+    raises 500 on `ERROR`, etc.). A new channel needs an explicit
+    code change here AND a matching FE update."""
+    assert {member.value for member in OrchestratorChannel} == {
+        "reasoning",
+        "tool",
+        "answer",
+        "citation",
+        "error",
+    }
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("reasoning", OrchestratorChannel.REASONING),
+        ("tool", OrchestratorChannel.TOOL),
+        ("answer", OrchestratorChannel.ANSWER),
+        ("citation", OrchestratorChannel.CITATION),
+        ("error", OrchestratorChannel.ERROR),
+    ],
+)
+def test_orchestrator_event_coerces_bare_string(
+    raw: str, expected: OrchestratorChannel
+) -> None:
+    """Bare-string emit sites (pre-Q12 producers + every test fixture)
+    must keep working: Pydantic coerces the string into the matching
+    enum member."""
+    event = OrchestratorEvent(channel=raw, content="hi")  # type: ignore[arg-type]
+    assert event.channel is expected
+    # Cross-direction equality for `if event.channel == "answer":`
+    # consumers (the Q12 sweep updated production code to compare
+    # against the enum, but tests + future producers may keep using
+    # the raw string).
+    assert event.channel == raw
+
+
+def test_orchestrator_event_rejects_unknown_channel() -> None:
+    """Unknown channel keys must fail validation -- a typo in a new
+    producer surfaces immediately at construction, not at the SSE
+    consumer."""
+    with pytest.raises(ValidationError):
+        OrchestratorEvent(channel="thoughts", content="hi")  # type: ignore[arg-type]
+
+
+def test_orchestrator_channel_equality_is_member_distinct() -> None:
+    """Sanity check that `StrEnum` members compare equal to their own
+    raw value but distinct from siblings -- protects the
+    `event.channel == OrchestratorChannel.ERROR` consumer pattern in
+    `routers/conversation.py` and the LangGraph orchestrator."""
+    assert OrchestratorChannel.ANSWER == "answer"
+    assert OrchestratorChannel.ANSWER != "error"
+    assert OrchestratorChannel.ANSWER != OrchestratorChannel.ERROR
+
+
+# ---------------------------------------------------------------------------
+# RuntimeConfig (#35c-1)
+# ---------------------------------------------------------------------------
+#
+# `RuntimeConfig` is the persisted shape of the admin-mutable subset
+# of `AppSettings` -- the same 6 fields that `AdminConfig` exposes as
+# read-only in #35b, plus two audit fields (`updated_at`,
+# `updated_by`). Lives in `shared.types` (not `backend.routers.admin`)
+# because both DB clients (Cosmos in #35c-4/5, Postgres in #35c-6)
+# need to read/write it without depending on the backend package.
+#
+# Wire-shape decisions locked here:
+#   * All 6 mutable fields are `T | None = None` so the persisted row
+#     can distinguish "explicitly overridden" from "not overridden"
+#     (critical for booleans like `search_use_semantic_search` where
+#     `False` is a legitimate override distinct from "fall through to
+#     env default" -- otherwise PATCH could never disable semantic
+#     search without also disabling the override-vs-default
+#     distinction).
+#   * `updated_at` is an ISO-8601 string (mirrors `Conversation` /
+#     `MessageRecord` -- "provider-formatted, wire shape stable
+#     across providers"). Using `datetime` here would force every
+#     provider to (de)serialize on the wire and break the existing
+#     pattern.
+
+
+def test_runtime_config_default_construction_is_all_unset() -> None:
+    """All 6 mutable fields default to None so the persisted row
+    distinguishes 'explicitly overridden' from 'not overridden' --
+    a precondition for the RFC 7396 merge semantics in #35c-7."""
+    rc = RuntimeConfig()
+    assert rc.orchestrator_name is None
+    assert rc.openai_temperature is None
+    assert rc.openai_max_tokens is None
+    assert rc.search_use_semantic_search is None
+    assert rc.search_top_k is None
+    assert rc.log_level is None
+    # Audit fields default to empty strings (not None) so the
+    # persistence layer always writes a value -- a row with
+    # `updated_at=""` is unambiguously "never written" and a row
+    # with a populated string is unambiguously "audit trail present".
+    assert rc.updated_at == ""
+    assert rc.updated_by == ""
+
+
+def test_runtime_config_round_trips_explicit_overrides() -> None:
+    """`model_dump()` -> `model_validate()` is what every DB
+    provider (Cosmos JSON, Postgres JSONB column) will use to
+    persist + read back, so the round-trip must be lossless for
+    every field."""
+    rc = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        openai_temperature=0.7,
+        openai_max_tokens=2048,
+        search_use_semantic_search=False,
+        search_top_k=10,
+        log_level="DEBUG",
+        updated_at="2026-05-06T12:00:00+00:00",
+        updated_by="alice@example.com",
+    )
+    rebuilt = RuntimeConfig.model_validate(rc.model_dump())
+    assert rebuilt == rc
+
+
+def test_runtime_config_distinguishes_false_from_unset() -> None:
+    """The `Optional[bool]` shape on `search_use_semantic_search`
+    is load-bearing: a PATCH that disables semantic search must
+    persist as `False` (a real override), distinct from an unset
+    field that means 'fall through to env default'. If this test
+    breaks, the merge semantics in #35c-7 collapse silently."""
+    explicit_false = RuntimeConfig(search_use_semantic_search=False)
+    unset = RuntimeConfig()
+    assert explicit_false.search_use_semantic_search is False
+    assert unset.search_use_semantic_search is None
+    assert explicit_false != unset
+
+
+def test_runtime_config_partial_override_leaves_other_fields_none() -> None:
+    """A partial override (one field set, others not mentioned) is
+    the common case -- the FE PATCH payload typically carries only
+    the field the admin just toggled. Each unmentioned field must
+    stay `None`, NOT take a Pydantic default that would silently
+    overwrite the env value at merge time."""
+    rc = RuntimeConfig(openai_temperature=0.3)
+    assert rc.openai_temperature == 0.3
+    assert rc.orchestrator_name is None
+    assert rc.openai_max_tokens is None
+    assert rc.search_use_semantic_search is None
+    assert rc.search_top_k is None
+    assert rc.log_level is None
+
+
+def test_runtime_config_is_in_module_exports() -> None:
+    """Ensures `from backend.core.types import RuntimeConfig` works for
+    every downstream consumer (DB clients in #35c-4/5/6, admin
+    router in #35c-7) without a leading-underscore re-export."""
+    import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import
+
+    assert "RuntimeConfig" in st.__all__

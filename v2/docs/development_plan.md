@@ -1,109 +1,86 @@
-# CWYD v2 — Development Plan Proposal
+# CWYD v2 — Development Plan
 
 **Repo**: [Azure-Samples/chat-with-your-data-solution-accelerator](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator)
 **Branch**: `dev-v2`
-**Date**: April 2026
+**Last updated**: 2026-05-06 (rewritten lean — see [development_plan.old.md](development_plan.old.md) for the historical Phase 1–5 + Cleanup-audit batch 1/2 ledger)
+
+> This is the **canonical, forward-looking** plan. The historical CU/Q ledger and per-phase closure trails live in [development_plan.old.md](development_plan.old.md) (frozen 2026-05-06). New debt and phase deltas land in §0.1 below.
 
 ---
 
-## Summary
+## 0. Status snapshot
 
-Modernize the Chat With Your Data Solution Accelerator from a monolithic Flask application with four co-installed orchestrators into a modular **FastAPI + Azure Functions** architecture. Replace the direct Azure OpenAI SDK with **Foundry IQ** (Knowledge Base, Embeddings), remove Prompt Flow, Semantic Kernel, Streamlit admin, one-click deploy, and Poetry references, add the **Azure AI Agent Framework** with reasoning model support, upgrade **LangChain to LangGraph** for PostgreSQL indexing, and split **Azure Functions** into a modular RAG indexing pipeline. Azure Bot Service and Teams plugin are deferred to a future version.
+Where we are against the 7-phase plan in §4. Status legend: ✅ done · ⏳ in progress · ⏭ next · ☐ not started.
 
-**Key principle**: Infrastructure is Phase 1. Every phase results in a deployable `azd up` solution — some infra, some data, some scripts, some backend, and some frontend — even if they don't look great yet.
+| Phase | Title | Status | Summary |
+|---|---|---|---|
+| 1 | Infrastructure + Project Skeleton | ✅ done | Bicep (AVM-first, UAMI+RBAC, no Key Vault), frontend stub, backend stub, functions stub, `post_provision.sh`. |
+| 2 | Configuration + LLM Integration | ✅ done | `shared/{registry,settings,types}` + `shared/providers/{credentials,llm}/` + `backend/{app,dependencies,routers/health}`. Per-app credential+LLM singletons via lifespan. `/api/health` (always 200) split from `/api/health/ready` (503-on-fail). |
+| 3 | Conversation + RAG (Core Chat) | ✅ done | Chat router + LangGraph + Agent Framework orchestrators, content-safety/post-prompt/QA/text-processing tools, AzureSearch + pgvector handlers, citations, reasoning channel, indexing scripts. **#24 (FE SSE wiring) owned by frontend team — partial advance 2026-05-07 (C1+C2a/b/c demo path); see §0.2 #24 for remaining backlog.** |
+| 3.5 | QA Remediation | ✅ done | Cleared 6 deployability blockers (Q1–Q9) + structural realignment Q10 (`shared/{providers,pipelines}/` consolidation). |
+| 4 | Chat History + Both Databases | ✅ done | Cosmos + Postgres clients, DI wiring, pgvector with injected pool, chat-history router with fail-closed `get_user_id`, FE history panel, lifespan dispatch + auth + TOCTOU hardening, Bicep outputs + env-binding drift guard. |
+| 5 | Admin + Frontend Merge | ✅ done (backend) | Backend surface complete: #35a `GET /api/admin/config` ✅, #35b `RuntimeConfig` + `CosmosItemType.CONFIG` ✅, #35c `PATCH /api/admin/config` (DB-backed, RFC 7396 merge) ✅, #35e (a) live-reload `app.state.runtime_overrides` channel + (b) `GET /api/admin/config/effective` with per-field provenance ✅, #35f (a) Cosmos + (b) Postgres `write_admin_audit` + (c) router PATCH integration with best-effort policy ✅, #39 `requires_role("admin")` RBAC narrowing ✅. **Open (does NOT block Phase 6):** #35d FE-team admin route merge, #35g per-tenant overrides (deferred to post-#39 tenant claims). 784 tests / 0 pyright errors. |
+| 5.5 | **Stable Core Refactor** (`shared/` → `backend/core/` + `functions/core/`) | ✅ done | Phase A (doc swap) + Phase B (B1-B5: shared→backend/core git mv, ~155 import sites swept, mono-package via single `pyproject.toml`, pyright `--strict` extends to `src/functions/core/**`) + Phase C (C1 policy doc + AST invariant `no_silent_excepts.py`; C2a-e SDK boundary sweep across cosmosdb/postgres/foundry_iq/azure_search/agents = 29 wrapped sites; C3 silent-swallow fix in `chat.py` clears `_EXEMPTIONS`; C4 5 app-level exception handlers in `app.py`). 747 tests / 0 pyright errors. C5 (functions sweep) deferred to Phase 6 task slots. |
+| 6 | RAG Indexing Pipeline (Split Functions) | ⏭ next (unblocked 2026-05-07) | `batch_start`, `batch_push`, `add_url`, `search_skill` blueprints land under `v2/src/functions/`; ingestion-only extensions land under `v2/src/functions/core/`. |
+| 7 | Testing + Documentation | ☐ | Rolling — each phase ends with `azd up` green and updates this file. |
 
----
-
-## 1. Current State (v1)
-
-### 1.1 Technology Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Backend | Flask + Uvicorn, monolithic `code/` directory |
-| Admin | Streamlit (`code/backend/Admin.py`) — separate Python web app |
-| Frontend | React 19, TypeScript, Vite, Fluent UI |
-| Functions | Azure Functions (Python 3.11) — batch document processing |
-| Model Access | Direct Azure OpenAI SDK (GPT-\*, text-embedding-3-small) |
-| Databases | Azure Cosmos DB **or** PostgreSQL Flexible Server (switchable at deploy time) |
-| Configuration | Monolithic `EnvHelper` singleton — 100+ environment variables |
-| Infrastructure | Bicep IaC, Azure Developer CLI (`azd`), one-click "Deploy to Azure" ARM button |
-| Package Managers | `uv` (Python), `npm` (Node) |
-
-### 1.2 Orchestration Strategies (4, runtime-switchable)
-
-| Strategy | Implementation |
-|----------|---------------|
-| **OpenAI Functions** | Direct Azure OpenAI function/tool calling |
-| **Semantic Kernel** | Microsoft SK framework with plugins |
-| **LangChain** | `ZeroShotAgent` + `AgentExecutor` (legacy pattern) |
-| **Prompt Flow** | Azure ML deployed endpoint invocation |
-
-### 1.3 Azure Services
-
-- Azure OpenAI (GPT-\*, embeddings) — direct SDK calls
-- Azure AI Search (vector + semantic search)
-- Azure Storage (Blob + Queue)
-- Azure Cosmos DB / PostgreSQL Flexible Server (pgvector)
-- Azure Key Vault, Document Intelligence, Content Safety, Speech Services
-- Azure App Service (frontend + admin), Azure Functions
-- Application Insights, Log Analytics, Event Grid
-- Optional: Computer Vision, VNet + Private Endpoints, Bastion
-
-### 1.4 Deployment
-
-- One-click "Deploy to Azure" button (ARM template)
-- Azure Developer CLI (`azd up`)
-- Docker Compose (local development)
-- Supported regions: australiaeast, eastus2, japaneast, uksouth
-
-### 1.5 Architecture Diagram (v1)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                       USERS                             │
-└────────────────────────┬────────────────────────────────┘
-                         │
-          ┌──────────────▼──────────────┐
-          │   React/Vite Frontend       │
-          │   Azure App Service         │
-          └──────────────┬──────────────┘
-                         │
-          ┌──────────────▼──────────────┐
-          │   Flask Backend (Uvicorn)   │
-          │   code/create_app.py        │
-          │   Azure App Service         │
-          └──┬───────────┬──────────┬───┘
-             │           │          │
-    ┌────────▼───┐  ┌────▼────┐  ┌─▼──────────────────┐
-    │ Orchestrator│  │Chat     │  │ Azure OpenAI       │
-    │ (4 options) │  │History  │  │ (Direct SDK)       │
-    │ SK / LC /   │  │CosmosDB │  │ GPT-* + Embeddings │
-    │ PF / OAI    │  │or PG    │  └────────────────────┘
-    └──────┬──────┘  └─────────┘
-           │
-    ┌──────▼─────────────┐    ┌───────────────────────┐
-    │ Shared Tools        │    │ Streamlit Admin       │
-    │ QA, TextProc,       │    │ code/backend/Admin.py │
-    │ ContentSafety       │    │ Azure App Service     │
-    └──────┬──────────────┘    └───────────────────────┘
-           │
-    ┌──────▼─────────────┐
-    │ Search Handlers     │
-    │ AI Search / PG      │
-    └─────────────────────┘
-
-    ┌─────────────────────────────────────────┐
-    │  Azure Functions (Monolithic)            │
-    │  Batch processing — blob → queue → index │
-    └─────────────────────────────────────────┘
-```
+> **Phase closure discipline** (Hard Rule #12 in [.github/copilot-instructions.md](../../.github/copilot-instructions.md)): debt items discovered while working on Phase N are appended to §0.1 — **never implemented inline**. Within a phase, tasks execute in numeric order from §4; no out-of-order pulls from later phases. The queue is cleared in a single dedicated audit turn at the end of the phase.
 
 ---
 
-## 2. What Changes in v2
+## 0.1 Active debt queue
+
+Forward-looking debt only. **Closed historical items live in [development_plan.old.md](development_plan.old.md) §0.1** (CU-001 through CU-013, CU-004a/b/c, Q1 through Q14, plus #7/#8/#35c).
+
+Append-only during normal work; cleared in batch during the originating phase's end-of-phase audit.
+
+### Backend debt
+
+| ID | Origin Phase | Item | Files | Cleared in | Status |
+|---|---|---|---|---|---|
+| #35d | 5 | Frontend merge: pull v1 Streamlit admin features (configuration form, document upload, prompt editor) into the React/Vite frontend as an admin route gated by RBAC. **Out of scope: backend changes.** Owned by frontend team. | `v2/src/frontend/**` | Phase 5 audit | ☐ open |
+| #35e | 5 | Live-reload of `app.state.settings` after `PATCH /api/admin/config` so config tweaks take effect without container restart; effective-config `GET /api/admin/config/effective` showing the merged result of env defaults + DB overrides. Deferred from #35c (Hard Rule #12). | `v2/src/backend/{app,routers/admin}.py`, `v2/src/backend/core/settings.py` | Phase 5 audit | ✅ done (2026-05-07: **(a) live-reload channel + (b) effective-config GET both landed.** (a) Lifespan in `backend/app.py` calls `await database_client.get_runtime_config()` once at startup and stashes the result on `app.state.runtime_overrides` (None when nothing persisted). PATCH `/api/admin/config` route reassigns the same attribute to the just-merged `RuntimeConfig` after every successful upsert (atomic Python attribute write). New `get_runtime_overrides(request)` dependency + `RuntimeOverridesDep` type alias in `backend/dependencies.py` is the read seam. 7 tests: 3 dep-level / 2 lifespan / 2 admin-route. (b) New `GET /api/admin/config/effective` route + `EffectiveAdminConfig` response model: returns `{values: AdminConfig, sources: dict[str, Literal["env","override"]], updated_at, updated_by}`. Merge rule: override field is None -> source = `"env"`, value comes from `AppSettings`; non-None -> source = `"override"`, value comes from `app.state.runtime_overrides`. Audit fields surface from override row even when every field is None (the row is the receipt that an operator interacted). 4 route tests: cold-start (all env / audit None) / partial overlay / explicit-None-treated-as-env / fully overridden. 767/0/0.) |
+| #35f | 5 | Audit log for admin config mutations: every successful `PATCH /api/admin/config` writes a row to a new `admin_audit` Cosmos type / Postgres table capturing `who`, `when`, `before`, `after`. Deferred from #35c. | `v2/src/backend/core/providers/databases/**`, `v2/src/backend/routers/admin.py` | Phase 5 audit | ✅ done (2026-05-07: **(a) Cosmos `write_admin_audit` landed.** New `AdminAuditEntry` Pydantic model in `backend/core/types.py` (`actor / action / before: RuntimeConfig | None / after: RuntimeConfig`); router builds the entry and storage assigns id + `createdAt` on persist (mirrors `add_message`). New `CosmosItemType.ADMIN_AUDIT = "admin_audit"`. New abstract `BaseDatabaseClient.write_admin_audit(entry)`. CosmosDB impl uses `create_item` (not `upsert_item`) -- append-only at the SDK layer; UUID4 row id, pinned to `_system` partition (cardinality bounded by # of admin PATCHes); `before` serialized as JSON null when None (truthful first-PATCH receipt, distinct from empty `RuntimeConfig()`). 8 new tests. **(b) Postgres `write_admin_audit` landed (2026-05-07).** New `admin_audit` table in `_SCHEMA_SQL` (`id UUID PK, actor TEXT, action TEXT, before JSONB, after JSONB NOT NULL, created_at TIMESTAMPTZ DEFAULT NOW()`) + `idx_admin_audit_created` on `(created_at DESC)`. INSERT binds 5 parameters via `$1..$5` (id = `str(uuid.uuid4())`, before via `model_dump_json()` or SQL NULL, after via `model_dump_json()`); `created_at` filled by DB default to avoid app-clock drift; SQL injection seam closed (actor/action bound, never interpolated); `asyncpg.PostgresError` logged via `logger.exception(extra={operation, provider, actor, action})` and re-raised. 6 new tests (schema DDL, canonical INSERT shape, parameterized binding, distinct UUIDs, before-as-JSON-when-set, log+reraise). **(c) Router PATCH integration landed (2026-05-07, T+8).** PATCH `/api/admin/config` now snapshots `before = await db.get_runtime_config()` *before* coercing the cold-start default (so `before is None` on the first-ever PATCH stays distinct from `RuntimeConfig()` with all-cleared overrides — the truthful first-PATCH receipt the storage layer already serializes as JSON null). After the existing `upsert_runtime_config(merged)` + `app.state.runtime_overrides = merged` write-back, the route fires `db.write_admin_audit(AdminAuditEntry(actor=user_id, action="patch_config", before=before, after=merged))`. **Best-effort policy**: the audit call is wrapped in a try/except whose body is `logger.exception("write_admin_audit failed; PATCH succeeded but audit row missing", extra={operation, actor, action})` and **does NOT re-raise** — the override is already persisted AND live-reloaded, so surfacing 500 to the operator would mislead them into retrying a PATCH that succeeded; the failure is observable in App Insights via the structured log. 422 validation failures (unknown field, wrong type) skip the audit entirely (no phantom rows for rejected PATCHes). `_fake_db` test helper extended with optional `audit` AsyncMock parameter; default `AsyncMock(return_value=None)` keeps every pre-existing PATCH test green. 4 new route tests in `tests/backend/test_admin.py`: success path locks the four forensic axes (actor `"u-1"` / action `"patch_config"` / before snapshot / after merged), first-PATCH `before is None`, no-audit-on-422, audit-failure-does-not-roll-back-PATCH (asserts 200 + caplog mentions `admin_audit` / `write_admin_audit`). Pyright `--strict` 0 errors; full suite 784/0/0 (was 780). Silent-except invariant clean (`logger.exception` body is policy-compliant per `test_no_silent_excepts`). **#35f fully closed.**) |
+| #35g | 5 | Per-tenant config overrides (multi-tenant scenario): `RuntimeConfig` keyed by `tenantId` instead of singleton; PATCH route narrows by `request.tenantId`. Deferred from #35c — only relevant once #39 (RBAC) lands tenant claims. | `v2/src/backend/core/types.py`, `v2/src/backend/core/providers/databases/**` | Phase 5 audit (or later) | ☐ open |
+| #39 | 5 | Admin RBAC narrowing: `/api/admin/*` routes guarded by `requires_role("admin")` dependency; role claim sourced from Easy Auth `X-MS-CLIENT-PRINCIPAL` header. Currently any authenticated user can call admin endpoints. | `v2/src/backend/dependencies.py`, `v2/src/backend/routers/admin.py` | Phase 5 audit | ✅ cleared (2026-05-06: `requires_role(role)` factory in `backend/dependencies.py` decodes Easy Auth claims, accepts both `typ="roles"` and full schema-URI role claims, returns user OID on success, raises 403 on missing role / 401 on missing/malformed Easy Auth in production, falls back to `"local-dev"` when no headers in `local`. `_REQUIRE_ADMIN_USER` cached at admin-router module import for stable `dependency_overrides` keying. Old placeholder `admin_user_id` deleted. 9 new tests: 8 unit-level role-claim variants in `test_dependencies.py` + route-level 200/401/403 smoke in `test_admin.py`.) |
+| REFACTOR-A | 5.5 | **Phase A — Doc swap.** Renamed old plan to `development_plan.old.md` with deprecation banner; wrote fresh lean canonical `development_plan.md`. | `v2/docs/development_plan.{md,old.md}`, `/memories/repo/cwyd-tech-stack.md` | Phase 5.5 | ✅ cleared (2026-05-06) |
+| REFACTOR-B | 5.5 | **Phase B — `shared/` → `backend/core/` + `functions/core/` skeleton.** All 5 sub-units (B1 AST invariant test xfail · B2 `git mv` shared→backend/core + create empty functions/core · B3 import sweep ~155 sites · B4 config + docs sweep · B5 validate + flip xfail strict) closed. `tests/no_legacy_shared_imports.py` enforces strictly with zero exemptions. | `v2/src/shared/**` → `v2/src/backend/core/**`, `v2/src/functions/core/__init__.py`, `v2/pyproject.toml`, `v2/docker/{docker-compose.dev.yml,Dockerfile.functions}`, `.github/instructions/v2-shared.instructions.md` (renamed → `v2-backend-core.instructions.md`), all `*.py` import sites | Phase 5.5 | ✅ cleared (2026-05-06) |
+| REFACTOR-C | 5.5 | **Phase C — Try/catch policy + sweep.** `v2/docs/exception_handling_policy.md` defines per-layer catch/log/re-raise rules; AST invariant `v2/tests/no_silent_excepts.py` enforces ban on silent swallow + `except BaseException`. C2 wrapped 29 SDK boundaries (cosmosdb 7 + postgres 9 + foundry_iq 8 + azure_search 2 + agents 3) with `azure.core.exceptions.AzureError` / `openai.APIError` / `asyncpg.PostgresError` umbrellas + structured `logger.exception` extras. C3 cleared the last `_EXEMPTIONS` entry in `chat.py`. C4 installed 5 app-level exception handlers in `app.py` (openai 502 / Cosmos 503 / Postgres 503 / AzureError 503 / Exception 500). C5 (functions sweep) deferred to Phase 6 task slots. | `v2/docs/exception_handling_policy.md`, `v2/src/backend/core/providers/**`, `v2/src/backend/core/pipelines/**`, `v2/src/backend/app.py`, `v2/tests/no_silent_excepts.py`, `v2/tests/backend/test_app_exception_handlers.py` | Phase 5.5 | ✅ cleared (2026-05-06) |
+| REASON-RESPONSES | 2 (debt) | **`FoundryIQ.reason()` switched from Chat Completions to Responses API.** Demo-prep finding (2026-05-08): the H6 polish-batch-3 row in §0.2 wrote *"Foundry IQ already emits per-token `OrchestratorChannel.REASONING` deltas"* — that was wrong. End-to-end probe against gpt-5 across api versions `2024-12-01-preview` / `2025-04-01-preview` / `2025-09-01-preview` with `reasoning_effort=medium` confirmed gpt-5 **never** populates `delta.reasoning_content` on the chat-completions stream surface (90 / 55 / 58 chunks observed, zero reasoning fields). The reasoning *summary* surface is only exposed through the Responses API. Refactor: `reason()` now calls `oai.responses.create(model=..., input=..., reasoning={"effort":"medium","summary":"auto"}, stream=True)` and dispatches stream events on the typed `evt.type` discriminator — `"response.reasoning_summary_text.delta"` → `OrchestratorChannel.REASONING`, `"response.output_text.delta"` → `OrchestratorChannel.ANSWER`. Other event types (created / in_progress / *.added / *.done / *.completed / content_part.*) carry no token payload and are intentionally dropped (ADR 0007 channel set stays narrow). Hard Rule #7 still enforced: dispatched on attribute access (`getattr(event, "type")`, `getattr(event, "delta")`) — no `from openai.types.responses import ...`. `_get_openai_client()` now passes `api_version=self._settings.openai.api_version` through to `AIProjectClient.get_openai_client(...)` because Foundry SDK ignores `OPENAI_API_VERSION` env var; without that, the cached client targets whatever default the SDK ships and `oai.responses.create` 404s on older Azure backends. `_OpenAIClient` Protocol gained `responses: _Responses` member with the canonical `async def create(**kwargs) -> Any` shape. `v2/.env` bumped `AZURE_OPENAI_API_VERSION` + `OPENAI_API_VERSION` from `2024-12-01-preview` → `2025-04-01-preview` (first stable preview surfacing Responses + reasoning summaries together). All 8 reason-related tests rewritten: `_build_reason_stream` helper now emits `SimpleNamespace(type=..., delta=...)` events instead of `choices[0].delta.reasoning_content`; new `_wrap_responses_client` helper builds a fake openai client with `chat` / `embeddings` / `responses` namespaces (the production code reaches for all three through the Protocol). Live verification: `POST /api/conversation` now streams **178 `event: reasoning` SSE frames + 1 buffered `event: answer`** for "Solve x+3=10. Show your reasoning." (was 0 reasoning + 1 buffered answer pre-fix). 28/28 `test_foundry_iq.py` green. **Also bundled this turn (Cosmos firewall demo unblock):** added the dev machine's public IP `74.71.174.58` to `cosmos-cwydcdbv23ane6` IP allow-list and re-enabled `publicNetworkAccess=Enabled` (was disabled in an earlier toggle); discovered the running uvicorn process had cached the Forbidden state from before propagation, so backend restart was required to clear it. `GET /api/history/conversations` now returns 200 (was 503) and `/api/health` reports `database=pass`. Added `--env-file .env` to the local uvicorn launch incantation because pydantic-settings sub-`BaseSettings` models do **not** inherit `env_file` from parent `AppSettings`, so the `.env` keys never reached `OpenAISettings`/`DatabaseSettings`/etc unless pre-loaded into `os.environ` before `get_settings()` is first called. **No structural changes** (no Hard Rule #10 trigger): same provider + same SSE channel set + same routing rule (CU-004a equality match between `gpt_deployment` and `reasoning_deployment`). | `v2/src/backend/core/providers/llm/foundry_iq.py` (`reason()` body, `_get_openai_client` api_version pipe, `_OpenAIClient` Protocol, `_Responses` Protocol, `_ProjectClientView.get_openai_client(api_version=...)`), `v2/tests/backend/core/providers/llm/test_foundry_iq.py` (`_build_reason_stream`, `_wrap_responses_client`, 8 reason tests), `v2/.env` (api version bump) | Phase 2 audit (carry-back from H6) | ✅ cleared (2026-05-08) |
+| S1 / SPEECH-MVP | 5 (pulled forward — task #38) | **Browser-side speech-to-text on the chat composer.** v1 had a working mic button (subscription-key minted Speech token + `microsoft-cognitiveservices-speech-sdk` browser SDK + multi-lingual `AutoDetectSourceLanguageConfig`); v2 had ALL the scaffolding (Bicep abbreviation slot, doc commitments in `business-cases.md` / `mvp-release.md` / `modernization-plan.md` / `status_presentation.md`, dev_plan task #38) but **zero functional code** and the env-vars row was stale-marked "Out of scope for v2." Pulled task #38 forward into a Phase 4 polish row (same precedent as REASON-RESPONSES / FE-UI-1 / H6) for the boss demo. **Hard Rule #2 delta from v1: NO subscription key.** The backend mints the 10-minute Speech authorization token via AAD: `DefaultAzureCredential.get_token("https://cognitiveservices.azure.com/.default")` → `POST https://{region}.api.cognitive.microsoft.com/sts/v1.0/issueToken` with `Authorization: Bearer <aad>` + `x-ms-cognitiveservices-resource-id: <speech_account_arm_id>` headers. UAMI holds **Cognitive Services Speech User** (`f2dc8367-1007-4938-bd23-fe263f013447`) on a new `spch-<suffix>` Cognitive Services account (kind=`SpeechServices`, S0, `disableLocalAuth=true`, `customSubDomainName`, conditional private endpoint into the `cognitiveservices` DNS zone) — verified via `az bicep build` exit 0. Backend slice = 4 units (B1 `SpeechSettings` Pydantic submodel `env_prefix="AZURE_SPEECH_"` with `service_name` / `service_region` / `account_resource_id` / `recognizer_languages` (default `"en-US,fr-FR,de-DE,it-IT"`); B2 `mint_speech_token()` async helper in `backend/core/speech.py` (owns-vs-borrows `httpx.AsyncClient`, narrow catch on `AzureError` + `httpx.HTTPError` → `logger.exception(extra={operation, provider="speech", region, speech_account})` + re-raise per `exception_handling_policy.md` Provider entry-points row); B3 `routers/speech.py` `GET /api/speech` returning `SpeechConfig {token, region, languages: list[str]}` — 503 when `service_region` empty, sanitized 502 on AAD/HTTP failure; B4 app wiring + `.env.sample` block + test rename `tests/backend/core/test_speech.py` → `test_speech_helper.py` to avoid the pytest `import file mismatch` from the v2 tests-tree's missing `__init__.py` packages). Frontend slice = 3 units on top of a new top-level `frontend/src/hooks/` folder (Hard Rule #10 trigger; user OK'd via "Start implementation"): F1 added `microsoft-cognitiveservices-speech-sdk@1.49.0` (MIT) + hand-rolled `src/api/speech.ts` matching the existing `streamChat.ts` pattern (no OpenAPI generator exists in v2 — pivoted away from the plan's "make openapi" line to avoid scope creep); F2 `useSpeechRecognition()` hook returning `{isListening, transcript, error, start, stop}` — `SpeechConfig.fromAuthorizationToken(token, region)` + `AudioConfig.fromDefaultMicrophoneInput()` + `AutoDetectSourceLanguageConfig.fromLanguages(languages)` for ≥2 langs (else single-language pin), continuous recognition with `recognizing` (interim) + `recognized` (final, append + trailing space) + `canceled` (typed error state) handlers, idempotent `stop()`, unmount cleanup so the mic stream never leaks; F3 mic button on `MessageInput` with inline lucide-style `Mic` / `MicOff` SVG icons (deliberately inline-SVG to match the existing `SendIcon()` pattern, not a `lucide-react` import — keeps the icon set within the component file), `aria-pressed=isListening`, `aria-label` swaps to surface the error string when the hook reports one, transcript flows into the draft input *on top of* whatever the user had already typed (`baseDraftRef` snapshot at start), input + Send disabled while listening so the dictation can't race a submit. Bicep slice = 1 unit (I1) added the new `speechService` module (always-on, no `if` gate), wired three new container-app env vars (`AZURE_SPEECH_SERVICE_NAME` / `_SERVICE_REGION=azureAiServiceLocation` / `_ACCOUNT_RESOURCE_ID`), and exposed three matching outputs so `azd up` populates the backend env automatically. Docs slice = 1 unit (D1) added new `### Speech` table in `env-vars.md` Configuration Layer section + removed the stale "Out of scope" row from the "Removed in v2" table. **Token NOT cached on the backend** (10-min lifetime, 1 RTT per session-start; revisit when observability shows >>1 req/min). **No backend audio streaming** — the mic stream stays in the browser; the backend only mints tokens. **Test deltas: backend +14 (3 settings + 5 helper + 6 router) → 818/0/0; frontend +12 (4 api/speech + 7 hook + 6 mic-button on MessageInput, replacing 1 superseded count baseline) → 94/0/0.** Pillar: Stable Core (router + helper + hook + mic button) + Configuration Layer (`AZURE_SPEECH_*` env vars). Phase 5 task #38 stays open in the §3.4 task list as a cross-reference; the Phase 5 audit will mark it cleared via this row. | `v2/src/backend/core/{settings.py,speech.py}`, `v2/src/backend/routers/speech.py`, `v2/src/backend/app.py`, `v2/.env.sample`, `v2/tests/backend/core/{test_settings.py,test_speech_helper.py}`, `v2/tests/backend/routers/test_speech.py`, `v2/src/frontend/{package.json,src/api/speech.ts,src/hooks/useSpeechRecognition.ts,src/pages/chat/components/{MessageInput.tsx,MessageInput.module.css}}`, `v2/src/frontend/tests/{api/speech.test.ts,hooks/useSpeechRecognition.test.ts,pages/chat/components/MessageInput.test.tsx}`, `v2/infra/main.bicep` (new `speechService` module + 3 backend env vars + 3 outputs), `v2/docs/env-vars.md` (new Speech section + removed stale "Out of scope" row), `v2/docs/development_plan.md` (this row) | Phase 4 polish | ✅ cleared (2026-05-08) |
+| BACKEND-422-CONST | 5 | **`backend/routers/admin.py` references `starlette.status.HTTP_422_UNPROCESSABLE_CONTENT`** which only exists in newer Starlette; installed version exposes `HTTP_422_UNPROCESSABLE_ENTITY`. Surfaced during S2/MACAE-RESKIN U9 final smoke (2026-05-11): 4 admin tests fail with `AttributeError: module 'starlette.status' has no attribute 'HTTP_422_UNPROCESSABLE_CONTENT'` (`test_patch_config_rejects_unknown_field_with_422`, `test_patch_config_rejects_wrong_type_with_422`, `test_patch_config_does_not_touch_app_state_on_validation_failure`, `test_patch_config_does_not_audit_on_validation_failure`). Per Hard Rule #12 the fix is queued, not patched inline. **Frontend untouched.** Choose ONE of: (a) bump Starlette in `pyproject.toml`/`uv.lock` to a version that exposes `HTTP_422_UNPROCESSABLE_CONTENT` (Starlette ≥0.40 ships the new alias); (b) revert the four references in `admin.py` to `HTTP_422_UNPROCESSABLE_ENTITY` (functionally identical — same 422 status). Option (b) is the smaller blast radius (one file, no dep bump). Either path keeps the existing 4 tests green without rewriting them. Total backend count drift: was 808/808 at S1/SPEECH-MVP turn-close → now 804 passed + 4 failed = same 808 total tests. | `v2/src/backend/routers/admin.py`, `v2/pyproject.toml` (option a only) | Phase 5 audit | ✅ cleared (2026-05-11: option (b) chosen — `admin.py` two `status.HTTP_422_UNPROCESSABLE_CONTENT` references reverted to `HTTP_422_UNPROCESSABLE_ENTITY` (functionally identical, smaller blast radius than a Starlette dep bump). All 4 previously-failing tests pass without modification (they assert `resp.status_code == 422` numerically). 49/49 `test_admin.py` green; full backend 808/808 green. **No new dep**, no Bicep change, no `.env` change.) |
+| FE-TS-TOOLBARTOGGLE | 4 (S2/MACAE-RESKIN) | **`HeaderTools.tsx` passes `checked` to Fluent `<ToolbarToggleButton>`** (line 75) but the v9 type signature (`@fluentui/react-components@^9.73.8`) only accepts `defaultChecked` + Toolbar-managed state via `name`/`value`, not a controlled `checked` prop. `npm run build` fails with TS2322 (`Property 'checked' does not exist on type 'ToolbarToggleButtonProps & RefAttributes<HTMLAnchorElement \| HTMLButtonElement>'`). Surfaced 2026-05-11 during cleanup B1.U2 first-ever `npm run build` after S2 ship — **vitest 103/103 green** (runtime behaviour unaffected: Toolbar's internal toggle group manages `historyOpen` reflection via `name="header-actions"` + `value="history"`; the `aria-pressed=true` test passes). Per Hard Rule #12 the fix is queued, not patched in B1.U2. Choose ONE of: (a) drop `checked={historyOpen}` and pass `checkedValues={{ "header-actions": historyOpen ? ["history"] : [] }}` on the parent `<Toolbar>` (Fluent's controlled toggle-group API); (b) drop the prop entirely and let Toolbar manage state via `defaultCheckedValues`, deriving `historyOpen` upward via `onCheckedValueChange` (lifts state, larger blast radius); (c) use a plain `<ToolbarButton>` with manual `aria-pressed` + onClick (drops the toggle-group semantics but matches the actual single-button use). Option (a) is the smallest blast radius and keeps the existing test contract. **Frontend untouched in B1.U2** (CSS-only `composes:` consolidation in `ChatPage.module.css`). | `v2/src/frontend/src/components/Header/HeaderTools.tsx` | End-of-cleanup audit | ✅ cleared (2026-05-11: option (a) chosen — dropped `checked={historyOpen}` from `<ToolbarToggleButton>` and added `checkedValues={{ "header-actions": historyOpen ? ["history"] : [] }}` to the parent `<Toolbar>` (Fluent v9 controlled toggle-group API). vitest 103/103 still green; `npm run build` (`tsc -b && vite build`) now succeeds in 9.16s with zero TS errors. **No test changes required** — the existing `aria-pressed=true` assertion still passes because Toolbar reflects the controlled state to the toggle button. **No new dep**, no Bicep change, no `.env` change.) |
+
+### 0.2 Frontend debt (separate team)
+
+| ID | Origin Phase | Item | Files | Cleared in | Status |
+|---|---|---|---|---|---|
+| DV1 | 1 | Re-verify `docker compose -f v2/docker/docker-compose.dev.yml build frontend` (currently blocked: Docker Desktop daemon down on dev machine) | n/a | Frontend team audit | ⏸ blocked — FE team owns |
+| #24 | 3 | **FE SSE wiring** for `POST /api/conversation`. Owned by FE team. **Partial advance landed 2026-05-07** to unblock a boss-demo (backend-only profile + LangGraph + gpt-5 in eastus2): C1 typed `streamChat()` SSE client (`fetch` + `ReadableStream` + `TextDecoder` + line parser, drops unknown channels); C2a `ChatContext` reducer extension (`reasoning?: string[]` / `streaming?: boolean` / `error?: string` on `ChatMessage`; new `append_answer` / `append_reasoning` / `finish_stream` / `set_error` actions, no-op-on-missing-id); C2b `MessageInput` wires submit → user msg + assistant placeholder → `for await` over `streamChat(history)` folding events via reducer (input + Send disabled while streaming, no re-entry); C2c `MessageList` renders collapsible `<details>` "▸ Show reasoning" panel + inline `role="alert"` error notice. **Citations + tools intentionally dropped from the demo path** (events parsed but discarded). 61/61 frontend vitest green; tsc strict clean. **Remaining sub-units stay on FE backlog**: citation cards, error toast/UX polish, reconnect on dropped stream, abort/cancel button, multi-turn UX (clear button, scroll-to-bottom). | `v2/src/frontend/src/api/streamChat.ts`, `v2/src/frontend/src/pages/chat/ChatContext.tsx`, `v2/src/frontend/src/pages/chat/components/{MessageInput,MessageList}.tsx`, `v2/src/frontend/tests/**` | Frontend team backlog | ⏳ partial (2026-05-07) |
+| FE-UI-1 | 6 (pulled forward) | **Phase 6 frontend polish — pulled forward for boss demo.** Re-skin v2's existing chat skeleton in place (no SSE rewiring): G1 dev-port move 5173→5273 (`vite.config.ts` + `BACKEND_CORS_ORIGINS`); G2 `ThemeProvider` + `useTheme()` hook + `tokens.css` (light/dark palette via `data-theme` attribute on `<html>`, persisted to `localStorage["cwyd.theme"]`) — a v2 capability v1 lacked; G3 `<AppHeader>` component (Azure logo + title + history button with `aria-pressed` + theme toggle button with sun/moon SVG); G4 page-layout grid (`ChatPage.module.css` `grid-template-columns: var(--history-col, 0) 1fr`, sidebar `display: none` when `data-history-open="false"`) + chat bubble polish (`MessageList.module.css`: user-right accent bg / assistant-left surface bg / capitalized role label / styled reasoning `<details>` / danger error banner) + `historyOpen` state lift in `App.tsx`; G5 composer pill (`MessageInput.module.css`: `:focus-within` accent border + focus-ring, accent send button with paper-airplane SVG, `aria-label="Send"` preserved, sr-only "Message" label preserved); G6 history-toggle integration tests (3 new). **Zero new dependencies** — CSS Modules + `fireEvent` only (no `@testing-library/user-event`). **Asset exception (per Hard Rule #9)**: `v2/src/frontend/src/assets/Azure.svg` copied verbatim from v1 (static asset, not code). **Pillar = Stable Core** declared in every new module's docstring. **Test count 61 → 74** (+6 theme + +4 AppHeader + +3 history toggle); all pre-existing 61 tests green via preserved `data-testid` + `data-role` attributes + accessible names. G7 browser smoke verified server-side (health 200 / `text/html` root 200 / SSE end-to-end gpt-5 200) — manual UI walkthrough handed to user with checklist. **Remaining canonical Phase 6 tasks (RAG indexing pipeline — `batch_start` / `batch_push` / `add_url` / `search_skill` blueprints under `v2/src/functions/`) untouched** and remain ⏭ next per §0 status snapshot. **Polish batch 2 (2026-05-08, also pulled forward for boss demo):** sidebar L→R move (`ChatPage.module.css` `grid-template-columns: 1fr var(--history-col, 0)`, `.sidebar { border-left }`, JSX child re-order so `<aside>` follows `<div .main>`); H0 added `lucide-react@^1.14.0` (verified latest via `npm view`); H1 message avatars (`MessageList.tsx` / `MessageList.module.css` — 28×28 round per-row avatar with `User` / `Sparkles` lucide icons, role-flipped row direction, sr-only role text); H2 history-panel icon buttons + Slack/Outlook hover-reveal pattern (`HistoryPanel.tsx` + new `HistoryPanel.module.css` — `Plus` New / `Pencil` Rename / `Trash2` Delete, every `data-testid` + `aria-label` preserved verbatim, `.actions { opacity: 0 → 1 on :hover, :focus-within, [data-selected="true"] }`); H3 empty-chat-state `MessageCircle size={64}` icon above the existing `<p data-testid="message-list-empty">` (testid + visible text preserved); H4 header `Plus` New chat button wired through new required `onNewChat` prop on `<AppHeader>` → `App.tsx` owns a `newChatNonce` counter → `<ChatPage key={newChatNonce}>` cleanly remounts and resets `ChatProvider` state + `selectedId` without lifting the provider (no structural change, no Hard Rule #10 trigger). Also added `v2/src/frontend/src/components/icons.ts` barrel so pages never import from `lucide-react` directly (one-line swap point if the icon set changes). **Test count 74 → 75** (+1 AppHeader new-chat click); all pre-existing tests green; pillar/phase docstrings declared on every new module. **Polish batch 3 (H6, 2026-05-08, also pulled forward for boss demo — live "Thinking…" panel UX fix):** Foundry IQ already emits per-token `OrchestratorChannel.REASONING` deltas and the SSE → reducer → `m.reasoning: string[]` wire was verified end-to-end intact (no backend / no `streamChat.ts` / no `ChatContext.tsx` change). UX bug: panel only appeared *after* `finish_stream` and rendered each delta as its own `<li>`, so the boss demo saw a static post-hoc list instead of a live trace. Fix isolated to `MessageList.tsx` + `MessageList.module.css`: render-condition flipped from `m.reasoning?.length > 0` → `m.streaming === true || (m.reasoning && m.reasoning.length > 0)` so the panel pops open immediately on first chunk; `<details open={m.streaming}>` keeps it open while streaming and lets the user toggle it after; summary swaps `Thinking` + three CSS-keyframed dots (`@keyframes cwydThink`, `data-streaming="true"` accent color) ↔ `▸ Thought process` on completion; body switched from per-delta `<ol><li>` to a single `<div className={styles.reasoningBody}>{m.reasoning?.join("") ?? ""}</div>` (pre-wrap, scrollable `max-height: 200px`) so token deltas concatenate into the actual reasoning prose at render time. Every existing `data-testid` (`message-{id}-reasoning`) preserved. **Zero new dependencies** (pure CSS animation). **Test count 75 → 77** (2 reasoning tests rewritten for new copy + joined body; +2 new streaming tests: panel open with "Thinking" when no chunks yet, panel open with joined live deltas mid-stream); all pre-existing tests green. Pillar/phase docstring header on `MessageList.tsx` updated to `Phase: 5 + 6 (visual polish — bubble layout, pulled forward for boss demo; H6 patch 2026-05-08: live "Thinking…" panel)`. | `v2/.env`, `v2/src/frontend/vite.config.ts`, `v2/src/frontend/package.json` (`lucide-react@^1.14.0`), `v2/src/frontend/src/{App.tsx,assets/Azure.svg}`, `v2/src/frontend/src/theme/{themeContext.tsx,tokens.css}`, `v2/src/frontend/src/components/{icons.ts,AppHeader/{AppHeader.tsx,AppHeader.module.css}}`, `v2/src/frontend/src/pages/chat/{ChatPage.tsx,ChatPage.module.css}`, `v2/src/frontend/src/pages/chat/components/{MessageList.tsx,MessageList.module.css,MessageInput.tsx,MessageInput.module.css,HistoryPanel.tsx,HistoryPanel.module.css}`, `v2/src/frontend/tests/{theme/themeContext.test.tsx,components/AppHeader.test.tsx,AppHistoryToggle.test.tsx,pages/chat/components/MessageList.test.tsx}` | Phase 6 audit | ✅ cleared (2026-05-08, supersedes 2026-05-07 batch 1 + 2026-05-08 batch 2) |
+| S2 / MACAE-RESKIN | 4 (pulled forward) | **MACAE-faithful UI re-skin — pulled forward for boss demo.** Adopt Fluent UI v9 (`@fluentui/react-components@^9.73.8` + `@fluentui/react-icons@^2.0.326`, both verified latest via `npm view`) end-to-end and re-skin v2's chat surface to match MACAE's visual language verbatim, while keeping every existing `data-testid` + `aria-label` + accessible name (Hard Rule #11). **Pure visual re-skin — no SSE/backend wiring touched, no Quick Tasks, no agent badges, no right-side info panel, no team selector** (decisions locked in plan turn: Full Fluent + sidebar LEFT + MsftColor logo + pure-visual scope). **Hard Rule #1 enforced**: 9 sequential units, one class/method per turn, test-first. **U1** new `theme/FluentThemeBridge.tsx` consumes `useTheme()` and wraps the tree in `<FluentProvider theme={teamsLightTheme | teamsDarkTheme}>` so every Fluent component inherits our light/dark state; FluentThemeBridge tested via griffel-class regex DOM check + `vi.doMock` of `@fluentui/react-components` to assert the `theme` prop flips on `setTheme("dark")`. **U2** new `components/CoralShell/{CoralShellColumn,CoralShellRow}.tsx` + `CoralShell.module.css` — pure layout primitives mirroring MACAE's `commonComponents/Layout` pattern (column = `flex column / 100vh / bg: var(--colorNeutralBackground3)` recessed shell; row = `flex: 1 / display: flex / min-height: 0 / overflow: hidden` for sidebar+content split). **U3** new `components/Header/{Header,MsftColorLogo,HeaderTools}.tsx` + `Header.module.css`: 56px header, `var(--colorNeutralBackgroundAlpha)` translucent bg, `<Avatar shape="square" color="neutral">` wrapping inline-SVG `<MsftColorLogo/>` (Microsoft 4-square red `#F25022` / green `#7FBA00` / blue `#00A4EF` / yellow `#FFB900`, hard-coded — must NOT shift with theme), `<h1>{title}</h1> | <span>{subtitle}</span>` pattern with default subtitle "Solution Accelerator", `<HeaderTools>` Fluent `<Toolbar size="small">` housing `<ToolbarButton aria-label="New chat">` + `<ToolbarToggleButton aria-label="History" name="header-actions" value="history">` + `<ToolbarButton aria-label="Switch to {dark|light} mode">` (`Add20Regular` / `History20Regular` / `WeatherMoon20Regular` / `WeatherSunny20Regular` icons replace hand-rolled SVGs); old `components/AppHeader/AppHeader.tsx` collapsed to a thin alias re-export `export {Header as AppHeader}` so no caller needs to change in lock-step (Hard Rule #11 cross-language stability). **U4** rewrite `App.tsx` to wrap content in `<CoralShellColumn><AppHeader/><CoralShellRow><ChatPage/></CoralShellRow></CoralShellColumn>`; flip `pages/chat/ChatPage.module.css` grid from `1fr var(--history-col, 0)` (right-sidebar from H2 batch 2) → `var(--history-col, 0) 1fr` (LEFT — undoes the 2026-05-08 H2 batch 2 right-side decision per user instruction this turn), reorder JSX so `<aside>` precedes `<.main>`, swap `border-left` → `border-right` on the panel, drop the fixed `height: calc(100vh - 60px)` (CoralShellRow now manages height via `flex:1 / min-height:0`). **U5** new `components/CoralShell/PanelLeft.tsx` — `<aside>` primitive providing the left-rail bg + `border-right` so the toggle wrapper in ChatPage stays minimal; restyle `pages/chat/components/HistoryPanel.{tsx,module.css}` — root tag changed from `<aside>` to `<div>` (PanelLeft owns the `complementary` landmark to avoid double-aside), rows render as MACAE-style `.tab` chips (`border-radius: var(--borderRadiusMedium)`, hover `var(--colorSubtleBackgroundHover)`, selected `var(--colorNeutralBackground1Selected)` + 2px `var(--colorCompoundBrandStroke)` `box-shadow: inset 2px 0 0 ...` left tick), every `data-testid` (`history-panel`, `history-new`, `history-item-{id}`, `history-rename-{id}`, `history-delete-{id}`) preserved verbatim. **U6** restyle `pages/chat/components/MessageList.{tsx,module.css}` — assistant runs as full-width prose with NO bubble bg (`background: transparent`, full-width row), user is a brand-tinted right-aligned chip (`background: var(--colorBrandBackground2)`, `border-radius: var(--borderRadiusXLarge)` with bottom-right `--borderRadiusSmall` for the speech-bubble notch), avatars swap lucide `User`/`Sparkles`/`MessageCircle` for Fluent `Person20Regular`/`Bot20Regular`/`Chat48Regular`, empty state becomes `Chat48Regular` icon + "Start a conversation" headline (was previously empty `<p>`); `cwydThink` keyframe + `Thinking…` live-streaming summary (H6 patch) preserved verbatim. **U7** restyle `pages/chat/components/MessageInput.{tsx,module.css}` — composer pill with `var(--colorNeutralBackground1)` bg + `1px solid var(--colorNeutralStroke2)` border + `border-radius: var(--borderRadiusXLarge)` + `:focus-within` border swap to `var(--colorCompoundBrandStroke)` with 1px box-shadow ring; replace inline `SendIcon`/`MicIcon`/`MicOffIcon` SVGs with Fluent `Send24Regular`/`Mic24Regular`/`MicOff24Regular`; replace `<button type="submit">` with Fluent `<Button appearance="primary" shape="circular" type="submit" icon={<Send24Regular/>}>` and `<button type="button" aria-pressed>` with Fluent `<ToggleButton appearance="subtle" shape="circular" checked={isListening} icon={...}>` (Fluent's `<ToggleButton>` natively manages `aria-pressed` via `checked`, drops the hand-rolled attribute); `data-testid="message-input"` + `"message-input-mic"` + the `htmlFor="message-input-field"` "Message" sr-only label preserved verbatim. **U8** cleanup: migrate `HistoryPanel.tsx` lucide imports (`Plus`/`Pencil`/`Trash2`) → Fluent (`Add16Regular`/`Edit16Regular`/`Delete16Regular`); delete `src/components/icons.ts` (lucide barrel — no longer needed, callers import from `@fluentui/react-icons` directly with explicit named imports); delete `src/assets/Azure.svg` (replaced by `MsftColorLogo.tsx` inline SVG); `npm uninstall lucide-react` (drops dep from `package.json` + `package-lock.json`); thin `src/theme/tokens.css` from ~80 lines to ~30 (kept: universal `box-sizing: border-box` reset + `html, body, #root { margin:0; height:100% }` + system-font fallback so the very first paint isn't Times before `<FluentProvider>` mounts; dropped: every `--color-*` / `--space-*` / `--radius-*` / `--shadow-*` / `--focus-ring` / `--font-size-*` / `--font-sans` alias since Fluent injects all of them via `<FluentProvider>`); migrate the last `--space-*` / `--color-*` references in `pages/chat/ChatPage.module.css` (`.column` / `.composer` / `.composerColumn`) to Fluent tokens (`--spacingVerticalXL` / `--spacingHorizontalL` / `--colorNeutralStroke2` / `--colorNeutralBackground1` / `--spacingVerticalM`). **U9** ledger row (this row) + final smoke. **Test count 94 → 104** (+2 FluentThemeBridge — DOM griffel-class check + theme-prop flip via `vi.doMock`; +4 CoralShell — column data-attr + custom-className composition for both column and row; +5 → +7 net for AppHeader rewrite — +2 AppHeader = 7 total: title+default subtitle+Microsoft logo, custom subtitle "Demo Build", theme-toggle click flips `data-theme="dark"`, `onToggleHistory` invocation, `onNewChat` invocation, `aria-pressed="true"` when historyOpen, alias-identity check `expect(AppHeader).toBe(Header)`; +2 PanelLeft — landmark role + custom-className composition); all pre-existing 94 tests stay green throughout (every `data-testid` + `aria-label` + role-based accessible name preserved). **Pillar = Stable Core** declared in every new module's docstring; **Phase = 4 (frontend polish — MACAE re-skin)**. **Hard Rule #10 triggers (all approved this turn via 4-question gate before plan was locked):** new deps `@fluentui/react-components` + `@fluentui/react-icons`; removed dep `lucide-react`; new folder `components/CoralShell/`; new folder `components/Header/` (rename from `components/AppHeader/`, mitigated via thin alias re-export); deleted asset `assets/Azure.svg`; sidebar L↔R swap. **Backend untouched** (zero Python files modified across U1–U9 — confirmed via `git status --short` showing only `v2/src/frontend/**` + `v2/docs/development_plan.md`; no Bicep change, no env-vars row touched). **Note**: U9 final smoke surfaced 4 pre-existing backend failures in `tests/backend/test_admin.py` traced to `admin.py` referencing `starlette.status.HTTP_422_UNPROCESSABLE_CONTENT` (renamed in newer Starlette; installed version only has `HTTP_422_UNPROCESSABLE_ENTITY`) — unrelated to S2/MACAE-RESKIN, queued separately as `BACKEND-422-CONST` per Hard Rule #12. | `v2/src/frontend/package.json` (+2 deps, -1 dep), `v2/src/frontend/src/theme/{FluentThemeBridge.tsx,tokens.css}`, `v2/src/frontend/src/components/CoralShell/{CoralShellColumn.tsx,CoralShellRow.tsx,CoralShell.module.css,PanelLeft.tsx}`, `v2/src/frontend/src/components/Header/{Header.tsx,HeaderTools.tsx,MsftColorLogo.tsx,Header.module.css}`, `v2/src/frontend/src/components/AppHeader/AppHeader.tsx` (collapsed to alias re-export; AppHeader.module.css deleted), `v2/src/frontend/src/components/icons.ts` (deleted), `v2/src/frontend/src/assets/Azure.svg` (deleted), `v2/src/frontend/src/App.tsx`, `v2/src/frontend/src/pages/chat/{ChatPage.tsx,ChatPage.module.css}`, `v2/src/frontend/src/pages/chat/components/{HistoryPanel.tsx,HistoryPanel.module.css,MessageList.tsx,MessageList.module.css,MessageInput.tsx,MessageInput.module.css}`, `v2/src/frontend/tests/theme/FluentThemeBridge.test.tsx` (NEW), `v2/src/frontend/tests/components/{CoralShell.test.tsx,PanelLeft.test.tsx}` (NEW), `v2/src/frontend/tests/components/AppHeader.test.tsx` (REWRITTEN 5→7 tests) | Phase 4 audit | ✅ cleared (2026-05-11) |
+
+Legend: ☐ open · ⏳ in progress · ⏭ next · ⏸ blocked · ✅ cleared (date)
+
+---
+
+## 1. Architecture goals
+
+The v2 architecture rests on three invariants:
+
+1. **Pillars** ([pillars_of_development.md](pillars_of_development.md)) — every new core element declares one of: Stable Core, Scenario Pack, Configuration Layer, Customization Layer. Read-only product policy; never edited by agents.
+2. **Plug-and-play via registry** — all swappable concerns (credentials, llm, embedders, parsers, search, chat_history, orchestrators) live under `v2/src/backend/core/providers/<domain>/` and self-register via `@registry.register("key")`. Caller code does `domain.create(key, ...)` — never `if/elif` provider dispatch (Hard Rule #4).
+3. **Standalone backend, optional functions** (new in Phase 5.5) — backend runs end-to-end (chat + history + admin) without the functions container. Functions is opt-in: it ships only when the operator wants to upload + index their own files. **No code is duplicated**: anything used by both lives in `backend/core/`; functions extends via `functions/core/` (subclass / extension module that imports the base from `backend.core`).
+
+Fourth supporting invariant — **runtime types always available** (Hard Rule #11 sub-rule, ratified 2026-05-05 in CU-013): no `if TYPE_CHECKING:`, no `from __future__ import annotations`. Genuine circular imports get fixed by extracting the shared type to a leaf module (Hard Rule #10 — ask first). Enforced by AST invariant `v2/tests/shared/test_no_type_checking_or_future_annotations.py` (a follow-up turn will move this file to `v2/tests/backend/core/_invariants/` to colocate with the source under test — pending user approval per Hard Rule #10).
+
+---
+
+## 2. What changes from v1 to v2
 
 ### 2.1 Removals
+
+These are **binding** (Hard Rule #7). Never re-introduce.
 
 | Component | Reason |
 |-----------|--------|
@@ -111,571 +88,306 @@ Modernize the Chat With Your Data Solution Accelerator from a monolithic Flask a
 | **Poetry references** | Fully standardized on `uv`; remove any lingering Poetry config |
 | **Prompt Flow orchestrator** | Replaced by Agent Framework; drops Azure ML dependency |
 | **Semantic Kernel orchestrator** | Consolidate to fewer, more strategic orchestrators |
-| **Streamlit admin app** | Admin features merged into the React/Vite frontend |
-| **Direct Azure OpenAI SDK** | Replaced by Foundry IQ for knowledge base and embeddings |
+| **Streamlit admin app** | Admin features merged into the React/Vite frontend (Phase 5) |
+| **Direct Azure OpenAI SDK** | Replaced by Foundry IQ for knowledge base, embeddings, chat, reasoning |
 | **Azure Bot Service / Teams extension** | Deferred to a future version |
-| **Key Vault for app secrets** | Replaced by RBAC + direct env vars (MACAE pattern) |
+| **Key Vault for app secrets** | Replaced by RBAC + UAMI + direct env vars (MACAE pattern) |
 
 ### 2.2 Additions
 
 | Component | Purpose |
 |-----------|---------|
 | **Azure AI Agent Framework** | Modern agent orchestration — replaces Semantic Kernel and Prompt Flow |
-| **Foundry IQ** (Knowledge Base, Embeddings) | Centralized knowledge base, embeddings, and model access (GPT-\*, o-series reasoning) |
+| **Foundry IQ** (Knowledge Base, Embeddings, Models) | Centralized knowledge base, embeddings, and model access (GPT-\*, o-series reasoning) — sole inference + retrieval surface |
+| **LangGraph orchestrator** | Replaces v1's `ZeroShotAgent` / `AgentExecutor` LangChain pattern |
 
 ### 2.3 Updates
 
 | Component | From → To |
 |-----------|-----------|
-| **Web framework** | Flask → **FastAPI** (async-native, OpenAPI docs, dependency injection) |
-| **LangChain orchestrator** | `ZeroShotAgent` / `AgentExecutor` → **LangGraph** (`StateGraph` + `ToolNode`) |
-| **Azure Functions** | Monolithic → **split into modular RAG indexing pipeline** |
-| **Configuration** | `EnvHelper` singleton → **Pydantic `BaseSettings`** (typed, validated, nested) |
-| **Project structure** | Monolithic `code/` → **modular `v2/src/`** (backend, frontend, functions, shared) |
-| **Admin UI** | Standalone Streamlit app → **merged into React/Vite frontend** |
-| **Bicep infrastructure** | Updated to add Foundry IQ resources, remove Azure ML references, remove one-click ARM |
+| **Web framework** | Flask → **FastAPI** (async-native, OpenAPI docs, dependency injection, lifespan-managed singletons) |
+| **Configuration** | `EnvHelper` singleton → **Pydantic `BaseSettings`** (typed, validated, nested) + DB-backed `RuntimeConfig` for live tweaks |
+| **Project structure** | Monolithic `code/` → **modular `v2/src/`** (`backend/`, `backend/core/`, `frontend/`, `functions/`, `functions/core/`) — Phase 5.5 refactor |
+| **Admin UI** | Standalone Streamlit app → **merged into React/Vite frontend** (Phase 5) |
+| **Bicep infrastructure** | AVM-first; UAMI + RBAC; no Key Vault for app secrets; no one-click ARM |
+| **Static type checking** | None → **`pyright --strict`** as a hard CI gate (`include = src/backend, src/functions`; `strict = src/backend/**, src/functions/core/**` post-refactor) |
 
 ---
 
 ## 3. v2 Target Architecture
 
-### 3.1 High-Level Architecture
+### 3.1 High-level
 
 ```
-                    ┌──────────────────────────────────┐
-                    │           USERS (Browser)         │
-                    └───────────────┬──────────────────┘
-                                    │
-                    ┌───────────────▼──────────────────┐
-                    │   React/Vite Frontend             │
-                    │   (Chat + Admin — unified)        │
-                    │   Azure App Service               │
-                    └───────────────┬──────────────────┘
-                                    │ REST API
-                    ┌───────────────▼──────────────────┐
-                    │   FastAPI Backend                  │
-                    │   Routers: conversation, admin,    │
-                    │   chat_history, files, speech,     │
-                    │   auth, health                     │
-                    │   Azure App Service                │
-                    └──┬────────────┬───────────────┬──┘
-                       │            │               │
-              ┌────────▼───┐  ┌─────▼──────┐  ┌────▼──────────────┐
-              │ Orchestrator│  │ Chat       │  │  Foundry IQ       │
-              │ Router      │  │ History    │  │  (Knowledge Base, │
-              │             │  │ CosmosDB   │  │   Embeddings)     │
-              │ ┌─────────┐ │  │ or         │  │  ├─ GPT-*        │
-              │ │LangGraph│ │  │ PostgreSQL │  │  ├─ o-series     │
-              │ └─────────┘ │  └────────────┘  │  │  (reasoning)  │
-              │ ┌─────────┐ │                  │  └─ Embeddings  │
-              │ │Agent    │ │                  └──────────────────┘
-              │ │Framework│ │
-              │ └─────────┘ │
-              │ ┌─────────┐ │
-              │ │OpenAI   │ │
-              │ │Functions │ │
-              │ └─────────┘ │
-              └──────┬──────┘
-                     │
-              ┌──────▼──────────────────────┐
-              │  Shared Tools Layer           │
-              │  Question & Answer            │
-              │  Text Processing              │
-              │  Content Safety               │
-              │  Post-Prompt Formatting       │
-              └──────┬──────────────────────┘
-                     │
-              ┌──────▼──────────────────────┐
-              │  Search Handlers              │
-              │  Azure AI Search              │
-              │  PostgreSQL (pgvector)         │
-              │  Integrated Vectorization      │
-              └──────────────────────────────┘
+                   ┌──────────────────────────────┐
+                   │       USERS (Browser)         │
+                   └───────────────┬──────────────┘
+                                   │
+                   ┌───────────────▼──────────────┐
+                   │  React/Vite Frontend          │
+                   │  Chat + Admin (unified)       │
+                   │  Azure App Service            │
+                   └───────────────┬──────────────┘
+                                   │ REST / SSE
+                   ┌───────────────▼──────────────┐
+                   │  FastAPI Backend              │
+                   │  Routers: conversation,       │
+                   │           history, admin,     │
+                   │           health              │
+                   │  Azure Container App          │
+                   └──┬──────────┬──────────────┬─┘
+                      │          │              │
+              ┌───────▼───┐  ┌───▼────┐  ┌──────▼────────┐
+              │backend.   │  │backend.│  │  Foundry IQ   │
+              │core.      │  │core.   │  │  (Knowledge,  │
+              │orchestra- │  │data-   │  │   Embeddings, │
+              │tors       │  │bases   │  │   Models)     │
+              │ (langgraph│  │(cosmos │  │  ├─ GPT-*    │
+              │  + agent_ │  │ + pg-  │  │  ├─ o-series │
+              │  framework│  │ vector)│  │  └─ Embed.   │
+              └───────────┘  └────────┘  └───────────────┘
 ```
 
-### 3.2 RAG Indexing Pipeline (Split Azure Functions)
+### 3.2 RAG indexing pipeline (Phase 6 — split Azure Functions, **opt-in**)
+
+Functions container only spins up when the operator wants user file uploads. Backend container runs chat end-to-end without it.
 
 ```
- ┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
- │ Blob Storage  │────▶│ Event Grid   │────▶│ Queue Storage    │
- │ (Documents)   │     │ (Trigger)    │     │ (Processing Msgs)│
- └──────────────┘     └──────────────┘     └────────┬─────────┘
-                                                     │
-                      ┌──────────────────────────────▼──────────┐
-                      │      Azure Functions (Split / Modular)   │
-                      │                                          │
-                      │  ┌──────────────────┐                    │
-                      │  │ batch_start      │ List blobs,        │
-                      │  │                  │ queue messages      │
-                      │  └────────┬─────────┘                    │
-                      │           │                              │
-                      │  ┌────────▼─────────┐                    │
-                      │  │ batch_push       │ Parse, chunk,      │
-                      │  │                  │ embed, push to     │
-                      │  │                  │ search index        │
-                      │  └────────┬─────────┘                    │
-                      │           │                              │
-                      │  ┌────────▼─────────┐                    │
-                      │  │ add_url          │ Fetch URL content, │
-                      │  │                  │ parse, embed        │
-                      │  └──────────────────┘                    │
-                      │                                          │
-                      │  ┌──────────────────┐                    │
-                      │  │ search_skill     │ Custom AI Search   │
-                      │  │                  │ skill endpoint     │
-                      │  └──────────────────┘                    │
-                      └──────────────────────────────────────────┘
-                                     │
-                      ┌──────────────▼──────────────────┐
-                      │  LangChain (PostgreSQL indexing)  │
-                      │  pgvector embeddings              │
-                      │  Azure AI Search indexing          │
-                      └───────────────────────────────────┘
+ ┌──────────────┐    ┌──────────────┐    ┌─────────────────┐
+ │ Blob Storage │───▶│ Event Grid   │───▶│ Queue Storage   │
+ │ (Documents)  │    │ (Trigger)    │    │ (Process Msgs)  │
+ └──────────────┘    └──────────────┘    └────────┬────────┘
+                                                  │
+                  ┌───────────────────────────────▼────────────┐
+                  │  Azure Functions (Modular)                  │
+                  │  ┌──────────────┐  ┌──────────────┐         │
+                  │  │ batch_start  │  │ batch_push   │         │
+                  │  │ (list+queue) │  │ (parse+chunk │         │
+                  │  └──────────────┘  │  +embed+push)│         │
+                  │  ┌──────────────┐  └──────────────┘         │
+                  │  │ add_url      │  ┌──────────────┐         │
+                  │  │ (URL fetch+  │  │ search_skill │         │
+                  │  │  embed)      │  │ (custom AI   │         │
+                  │  └──────────────┘  │  Search skill│         │
+                  │                    └──────────────┘         │
+                  │  Each blueprint lives in v2/src/functions/  │
+                  │  Ingestion-only extensions in functions/core│
+                  │  Imports backend.core for shared providers  │
+                  └─────────────────────────────────────────────┘
 ```
 
-### 3.3 Orchestrator Migration (v1 → v2)
+### 3.3 Orchestrator migration (v1 → v2)
 
 ```
-v1 Orchestrators                   v2 Orchestrators
-─────────────────────              ─────────────────────────
-OpenAI Functions      ──────────▶  OpenAI Functions (kept, via Foundry)
-Semantic Kernel       ─────╳────▶  REMOVED
-LangChain Agent       ──────────▶  LangGraph Agent (upgraded)
-Prompt Flow           ─────╳────▶  REMOVED
-                                   Agent Framework (NEW)
+v1 Orchestrators                     v2 Orchestrators
+───────────────────                  ─────────────────────────
+OpenAI Functions     ──────────▶     (Removed; Agent Framework + Foundry replaces)
+Semantic Kernel      ─────╳────▶     REMOVED
+LangChain Agent      ──────────▶     LangGraph (StateGraph + ToolNode)
+Prompt Flow          ─────╳────▶     REMOVED
+                                     Agent Framework (NEW; via Foundry agents)
 
 Model Access:
-v1: Direct Azure OpenAI SDK  ──▶  v2: Foundry IQ
-                                       (Knowledge Base, Embeddings)
-                                       ├── GPT-*
-                                       ├── o-series (reasoning)
-                                       └── Embeddings
+v1: Direct Azure OpenAI SDK   ──▶   v2: Foundry IQ
+                                         ├── GPT-* (chat)
+                                         ├── o-series (reasoning)
+                                         └── text-embedding-3-* (embed)
 ```
 
-### 3.4 Project Structure (v2)
+### 3.4 File-level inventory
+
+> Phase 5.5 closed 2026-05-06: `v2/src/shared/**` was `git mv`'d to `v2/src/backend/core/**` and `v2/src/functions/core/` exists as the empty extension skeleton (populated in Phase 6). The tree below is the **current** on-disk state.
 
 ```
 v2/
-├── src/
-│   ├── backend/                  # FastAPI application
-│   │   ├── app.py                # App factory, lifespan, CORS, OpenTelemetry
-│   │   ├── dependencies.py       # Dependency injection (settings, LLM helper)
-│   │   ├── routers/
-│   │   │   ├── conversation.py   # Chat endpoint (streaming + non-streaming)
-│   │   │   ├── admin.py          # Admin API (config, SAS tokens, orchestrator)
-│   │   │   ├── chat_history.py   # CRUD, feedback, status
-│   │   │   ├── files.py          # Blob serving
-│   │   │   ├── speech.py         # Azure Speech token
-│   │   │   ├── auth.py           # Authentication
-│   │   │   └── health.py         # Health check
-│   │   └── models/               # Pydantic request/response models
-│   │
-│   ├── frontend/                 # React + Vite (Chat + Admin merged)
-│   │   ├── src/
-│   │   │   ├── pages/
-│   │   │   │   ├── chat/         # Chat interface
-│   │   │   │   └── admin/        # Admin pages (ingestion, config, explore)
-│   │   │   ├── stores/           # Zustand state management
-│   │   │   └── api/              # API client layer
-│   │   └── ...
-│   │
-│   ├── functions/                # Azure Functions (split)
-│   │   ├── function_app.py       # Function registration
-│   │   └── blueprints/
-│   │       ├── batch_start.py    # List blobs, queue messages
-│   │       ├── batch_push.py     # Parse, chunk, embed, index
-│   │       ├── add_url.py        # URL fetch + embed
-│   │       └── search_skill.py   # Custom AI Search skill
-│   │
-│   └── shared/                   # Shared logic across backend + functions
-│       ├── config/
-│       │   ├── env_settings.py   # Pydantic BaseSettings (typed, nested)
-│       │   ├── config_helper.py  # active.json loader
-│       │   └── models.py         # Config schema
-│       ├── orchestrator/
-│       │   ├── orchestrator.py   # Strategy router / factory
-│       │   ├── base.py           # Abstract base (safety pipeline)
-│       │   ├── openai_functions.py
-│       │   ├── langgraph_agent.py
-│       │   └── azure_agents.py
-│       ├── llm/
-│       │   └── llm_helper.py     # Foundry IQ client (knowledge base, embeddings)
-│       ├── tools/
-│       │   ├── question_answer.py
-│       │   ├── text_processing.py
-│       │   ├── content_safety.py
-│       │   └── post_prompt.py
-│       ├── search/
-│       │   ├── azure_search_helper.py
-│       │   └── postgres_handler.py
-│       ├── chat_history/
-│       │   ├── database_factory.py
-│       │   ├── cosmosdb.py
-│       │   └── postgres.py
-│       └── embedders/
-│           ├── embedder_factory.py
-│           ├── push_embedder.py
-│           ├── postgres_embedder.py
-│           └── integrated_vectorization.py
-│
-├── infra/                        # Bicep infrastructure
-│   ├── main.bicep                # Entry point with databaseType param
-│   ├── main.parameters.json
-│   └── modules/
-│       ├── ai-services.bicep     # Foundry IQ + OpenAI deployments
-│       ├── cosmosdb.bicep        # Cosmos DB (conditional)
-│       ├── postgresql.bicep      # PostgreSQL Flexible Server (conditional)
-│       ├── search.bicep          # Azure AI Search
-│       ├── storage.bicep         # Blob Storage
-│       ├── container-app.bicep   # Backend hosting
-│       ├── web-app.bicep         # Frontend hosting
-│       ├── identity.bicep        # User-assigned managed identity + RBAC
-│       └── monitoring.bicep      # Log Analytics + App Insights (optional)
-│
-├── data/
-│   └── sample/                   # Sample documents for bootstrap
-│
+├── azure.yaml                          # azd service definitions
+├── pyproject.toml                      # mono-package (backend + functions)
+├── Makefile                            # typecheck / test / lint targets
+├── docker/
+│   ├── docker-compose.dev.yml          # backend-only + frontend-only profiles
+│   ├── Dockerfile.backend
+│   ├── Dockerfile.frontend
+│   ├── Dockerfile.functions            # copies src/backend (for backend.core) + src/functions
+│   └── ci-entrypoint.sh
+├── docs/
+│   ├── development_plan.md             # this file (canonical)
+│   ├── development_plan.old.md         # historical ledger (frozen 2026-05-06)
+│   ├── pillars_of_development.md       # read-only product policy
+│   ├── exception_handling_policy.md    # NEW in Phase 5.5 (Phase C)
+│   ├── env-vars.md
+│   ├── agents.md
+│   └── adr/
+│       ├── 0001..0008-*.md             # accepted ADRs
+│       └── 0009-runtime-type-imports.md (only if Phase B needed leaf-extraction)
+├── infra/                              # Bicep AVM-first
+│   ├── main.bicep
+│   └── modules/...
 ├── scripts/
-│   └── post-deploy.sh            # Post-deployment data loading + index creation
-│
-├── azure.yaml                    # azd service definitions
-├── pyproject.toml                # uv project config
-└── Dockerfile                    # Backend container
+│   ├── post_provision.{sh,ps1}
+│   └── post_provision.py
+├── src/
+│   ├── backend/
+│   │   ├── __init__.py
+│   │   ├── app.py                      # FastAPI app + lifespan
+│   │   ├── dependencies.py             # DI seams
+│   │   ├── core/                       # ← shared/ moved here in Phase B
+│   │   │   ├── __init__.py
+│   │   │   ├── registry.py
+│   │   │   ├── settings.py             # Pydantic BaseSettings + AppSettings
+│   │   │   ├── types.py                # OrchestratorEvent + RuntimeConfig + StrEnums
+│   │   │   ├── agents/
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── definitions.py      # CWYD_AGENT, RAI_AGENT, BUILTIN_AGENTS
+│   │   │   ├── providers/
+│   │   │   │   ├── credentials/        # cli, managed_identity
+│   │   │   │   ├── llm/                # foundry_iq + BaseLLMProvider.complete()
+│   │   │   │   ├── search/             # azure_search, pgvector
+│   │   │   │   ├── databases/          # cosmosdb, postgres
+│   │   │   │   ├── agents/             # foundry (lazy DB-backed bootstrap)
+│   │   │   │   └── orchestrators/      # langgraph, agent_framework
+│   │   │   ├── pipelines/
+│   │   │   │   └── chat.py             # run_chat() — content-safety + RAI gates + orchestrator iteration
+│   │   │   └── tools/                  # content_safety, post_prompt, qa, text_processing, citations
+│   │   ├── models/                     # Pydantic request/response
+│   │   │   ├── conversation.py
+│   │   │   └── health.py
+│   │   └── routers/
+│   │       ├── conversation.py         # POST /api/conversation (SSE)
+│   │       ├── history.py              # /api/history/*
+│   │       ├── health.py               # /api/health, /api/health/ready
+│   │       └── admin.py                # /api/admin/config (GET + PATCH)
+│   ├── frontend/                       # React 19 + Vite + TS (no UI library)
+│   │   ├── src/
+│   │   ├── frontend_app.py             # tiny FastAPI + StaticFiles prod shim
+│   │   └── package.json
+│   └── functions/
+│       ├── __init__.py
+│       ├── function_app.py             # currently a stub; blueprints land in Phase 6
+│       ├── host.json
+│       └── core/                       # ← created empty in Phase B; populated in Phase 6
+│           └── __init__.py             # ingestion-only extensions; imports backend.core
+└── tests/
+    ├── backend/
+    │   ├── core/                       # ← tests/shared/ moved here in Phase B
+    │   ├── test_app_lifespan.py
+    │   ├── test_admin.py
+    │   ├── test_conversation.py
+    │   ├── test_history.py
+    │   └── test_health.py
+    ├── frontend/
+    ├── functions/
+    │   └── core/                       # mirror of src/functions/core/
+    ├── infra/
+    │   └── test_main_bicep.py
+    └── shared/                         # AST invariant tests (cross-cutting)
+        └── test_no_type_checking_or_future_annotations.py
 ```
+
+**The four "what lives where" rules** (locked in for Phase 5.5):
+
+| Rule | Destination |
+|---|---|
+| Used **only** by backend at chat/query time | `v2/src/backend/core/` |
+| Used **only** by functions for indexing/RAG ingestion | `v2/src/functions/core/` |
+| Used by **both** backend and functions | `v2/src/backend/core/` (functions imports from it) |
+| Used **only** by functions but extends a `backend.core` library | `v2/src/functions/core/` (subclass / extension module that imports the base from `backend.core`) |
+
+**Anti-duplication invariant**: no symbol is defined twice. If functions needs to add behavior to a `backend.core` provider (e.g., a chunking strategy on a parser), the subclass lives in `functions.core` and inherits from `backend.core`. Enforced by code review — no automated check today.
 
 ---
 
-## 4. Implementation Phases
+## 4. Phases
 
-> **Principle**: Every phase ends with a working `azd up`. Each phase delivers a vertical slice: infra + data + backend + frontend — even if minimal. This ensures continuous deployability and early validation.
+### Phase 5 (backend closed 2026-05-07) — Admin + Frontend Merge
 
-### Phase 1 — Infrastructure + Project Skeleton
+Backend surface (#35a–#35c, #35e, #35f, #39) all ✅ done. **Open items
+that do NOT block Phase 6:** #35d is FE-team owned (React admin
+routes) and tracked separately; #35g (per-tenant overrides) is
+explicitly deferred to post-#39 hardening, since it requires tenant
+claims that #39's RBAC dependency does not yet surface. Phase 6
+(Functions blueprints — modular RAG indexing pipeline) is unblocked.
 
-**Goal**: `azd up` deploys all Azure resources and stub applications. A browser can hit the frontend and see a placeholder page; the backend responds to `/api/health`.
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 35a | `GET /api/admin/config` | ✅ done | 6-field shape: orchestrator key, OpenAI temperature/max_tokens, search semantic-toggle/top_k, log_level. |
+| 35b | `RuntimeConfig` model + `CosmosItemType.CONFIG` enum | ✅ done | Cosmos `_system` partition (mirrors CU-010b1 `AGENT` precedent); Postgres `runtime_config` single-row JSONB table. |
+| 35c | `PATCH /api/admin/config` (DB-backed, RFC 7396 merge) | ✅ done | `get_runtime_config` + `upsert_runtime_config` on `BaseDatabaseClient` + Cosmos + Postgres impls; PATCH route with `_WRITABLE_FIELDS` frozenset; explicit `null` reverts to env default. |
+| 35d | Frontend admin merge | ☐ open (FE team) | Configuration form + document upload + prompt editor as React routes. |
+| 35e | Live-reload + effective-config GET | ✅ done (2026-05-07) | (a) `app.state.runtime_overrides` channel landed (lifespan seed + PATCH writeback + `get_runtime_overrides` dep); (b) `GET /api/admin/config/effective` landed (env+overrides merge with per-field provenance + audit fields). |
+| 35f | Admin audit log | ✅ done (2026-05-07) | (a) Cosmos `write_admin_audit` + `AdminAuditEntry` type + `CosmosItemType.ADMIN_AUDIT` + ABC method landed; (b) Postgres `write_admin_audit` + `admin_audit` table + `idx_admin_audit_created` landed; (c) router PATCH integration landed (T+8): PATCH `/api/admin/config` snapshots `before` from prior `db.get_runtime_config()` (None on first PATCH, distinct from `RuntimeConfig()`) and fires `db.write_admin_audit(AdminAuditEntry(actor=user_id, action="patch_config", before, after=merged))` after `upsert_runtime_config` + `app.state.runtime_overrides` write-back; **best-effort policy** -- audit failure is `logger.exception`'d but does NOT roll back the PATCH (the override is already persisted + live-reloaded); 422 validation failures skip the audit (no phantom rows). 4 new route tests (success, first-PATCH `before=None`, no-audit-on-422, audit-failure-does-not-roll-back-PATCH). |
+| 35g | Per-tenant overrides | ☐ open (deferred to post-#39) | Requires #39 RBAC tenant claims. |
+| 39 | Admin RBAC narrowing | ✅ done (2026-05-06) | `requires_role("admin")` dependency on all `/api/admin/*` routes; details in §0.1. |
 
-| # | Task | Key Files |
-|---|------|-----------|
-| 1 | Clean Bicep infra with `databaseType` parameter (Cosmos DB or PostgreSQL) | `infra/main.bicep`, `infra/modules/` |
-| 2 | User-assigned managed identity + RBAC roles (no Key Vault secrets) | `infra/modules/identity.bicep` |
-| 3 | Foundry IQ resource (knowledge base, embeddings, model deployments) | `infra/modules/ai-services.bicep` |
-| 4 | `azure.yaml` with v2 service paths (backend, frontend, functions) | `azure.yaml` |
-| 5 | Stub FastAPI backend — `GET /api/health` returns 200 | `backend/app.py`, `backend/routers/health.py` |
-| 6 | Stub React frontend — placeholder page with "CWYD v2" | `frontend/src/` |
-| 7 | Dockerfiles for backend + frontend | `docker/` |
-| 8 | Post-deploy script — loads sample data to Blob Storage | `scripts/post-deploy.sh` |
-| 9 | Sample documents in `data/sample/` for bootstrap | `data/sample/` |
+### Phase 5.5 (closed 2026-05-06) — Stable Core Refactor
 
-**`azd up` result**: All infra provisioned, stub apps running in Azure, sample data loaded, health check passes.
+| Sub | Title | Status | Notes |
+|---|---|---|---|
+| A | Doc swap | ✅ done | Renamed old plan to `.old.md` + banner; wrote fresh canonical doc. |
+| B | `shared/` → `backend/core/` + `functions/core/` skeleton | ✅ done | All 5 sub-units (B1 AST invariant xfail → B5 strict) green. `git log --follow v2/src/backend/core/settings.py` preserves full history. `tests/no_legacy_shared_imports.py` enforces strictly with zero exemptions. |
+| C | Try/catch policy + sweep | ✅ done | C1 policy doc + AST invariant; C2a-e SDK boundary sweep (29 wrapped sites across cosmosdb/postgres/foundry_iq/azure_search/agents); C3 silent-swallow fix in `chat.py`; C4 5 app-level exception handlers in `app.py`. C5 (functions) deferred to Phase 6. 747 tests / 0 pyright errors at close. |
 
-### Phase 2 — Configuration + LLM Integration
-
-**Goal**: Backend has a real configuration system, connects to Foundry IQ, and health check validates all dependencies. Frontend shows a basic chat shell (no backend integration yet).
-
-| # | Task | Key Files |
-|---|------|-----------|
-| 10 | Pydantic `BaseSettings` replacing `EnvHelper` (nested models per Azure service) | `shared/config/env_settings.py` |
-| 11 | Foundry IQ client — knowledge base access + embeddings | `shared/llm/llm_helper.py` |
-| 12 | Azure credential factory (Managed Identity deployed, Azure CLI local) | `shared/common/credentials.py` |
-| 13 | Health router with dependency checks (DB, search, Foundry IQ connectivity) | `backend/routers/health.py` |
-| 14 | Dependency injection wiring (settings → routers) | `backend/dependencies.py` |
-| 15 | Frontend: basic chat UI shell (input box, message list, layout) | `frontend/src/pages/chat/` |
-| 16 | Bicep outputs wired to backend env vars (no Key Vault) | `infra/main.bicep` |
-
-**`azd up` result**: Configured backend with detailed health check, frontend shell visible, all Azure service connections validated.
-
-### Phase 3 — Conversation + RAG (Core Chat)
-
-**Goal**: A user can type a message and get a streamed answer grounded in indexed documents. This is the first "it works!" moment.
-
-| # | Task | Key Files |
-|---|------|-----------|
-| 17 | Orchestrator router / factory (strategy pattern dispatch) | `shared/orchestrator/orchestrator.py` |
-| 18 | OpenAI Functions orchestrator (tool calling via Foundry IQ) | `shared/orchestrator/openai_functions.py` |
-| 19 | LangGraph agent — `StateGraph` + `ToolNode` | `shared/orchestrator/langgraph_agent.py` |
-| 20 | Shared tools layer (QA, text processing, content safety, post-prompt) | `shared/tools/*` |
-| 21 | Azure AI Search handler (async) | `shared/search/azure_search_helper.py` |
-| 22 | Conversation router (streaming SSE + non-streaming, BYOD + custom) | `backend/routers/conversation.py` |
-| 23 | Citation extraction and formatting | `shared/tools/question_answer.py` |
-| 24 | Frontend: chat connected to `/api/conversation`, SSE stream consumption | `frontend/src/pages/chat/` |
-| 25 | Reasoning model support via Foundry IQ (o-series routing) | `shared/llm/llm_helper.py` |
-| 26 | Scripts: create search index + index sample documents | `scripts/post-deploy.sh` |
-
-**`azd up` result**: Working chat experience — user asks a question, gets a streamed answer with citations from sample documents.
-
-### Phase 4 — Chat History + Both Databases
-
-**Goal**: Conversations persist across sessions. Both Cosmos DB and PostgreSQL work as chat history backends. pgvector search enabled for PostgreSQL deployments.
-
-| # | Task | Key Files |
-|---|------|-----------|
-| 27 | Chat history — Cosmos DB async client | `shared/chat_history/cosmosdb.py` |
-| 28 | Chat history — PostgreSQL async client | `shared/chat_history/postgres.py` |
-| 29 | Database factory (selects Cosmos DB or PostgreSQL based on `DATABASE_TYPE`) | `shared/chat_history/database_factory.py` |
-| 30 | PostgreSQL + pgvector search handler (async) | `shared/search/postgres_handler.py` |
-| 31 | Chat history router (CRUD, feedback, status) | `backend/routers/chat_history.py` |
-| 32 | Frontend: conversation history panel (list, select, rename, delete) | `frontend/src/pages/chat/` |
-| 33 | Azure AI Agent Framework orchestrator | `shared/orchestrator/azure_agents.py` |
-| 34 | Bicep: ensure both DB conditional modules output correct env vars | `infra/modules/cosmosdb.bicep`, `postgresql.bicep` |
-
-**`azd up` result**: Chat with persistent history — user returns later and sees previous conversations. Works with either database type.
-
-### Phase 5 — Admin + Frontend Merge
-
-**Goal**: Unified frontend with admin capabilities. Document management, system status, configuration view — all inside the React app.
-
-| # | Task | Key Files |
-|---|------|-----------|
-| 35 | Admin API router (settings, config, SAS tokens, orchestrator switching) | `backend/routers/admin.py` |
-| 36 | Admin pages in React frontend (data ingestion, config, exploration) | `frontend/src/pages/admin/` |
-| 37 | Files router (blob serving) | `backend/routers/files.py` |
-| 38 | Speech router (Azure Speech token) | `backend/routers/speech.py` |
-| 39 | Auth router + middleware (RBAC, role-based admin access) | `backend/routers/auth.py` |
-| 40 | Remove all Streamlit references | project-wide |
-
-**`azd up` result**: Full frontend with chat + admin pages. Users can upload documents, view system config, check index status — all in one app.
+**Phase 5.5 explicit non-goals (held)**: did not introduce new orchestrators; did not change the SSE event contract; did not modify provider interfaces beyond adding narrow SDK catches.
 
 ### Phase 6 — RAG Indexing Pipeline (Split Functions)
 
-**Goal**: Modular Azure Functions process uploaded documents end-to-end: blob → parse → chunk → embed → index. Completes the full ingestion loop.
+Land the four blueprints under `v2/src/functions/`:
 
-| # | Task | Key Files |
-|---|------|-----------|
-| 41 | `batch_start` — list blobs, queue messages | `functions/blueprints/batch_start.py` |
-| 42 | `batch_push` — parse, chunk, embed, push to search index | `functions/blueprints/batch_push.py` |
-| 43 | `add_url` — URL fetch, parse, embed | `functions/blueprints/add_url.py` |
-| 44 | `search_skill` — custom AI Search skill endpoint | `functions/blueprints/search_skill.py` |
-| 45 | LangChain PostgreSQL vector indexing integration | `shared/search/postgres_handler.py` |
-| 46 | Embedder factory + implementations (push, postgres, integrated vectorization) | `shared/embedders/*` |
-| 47 | Bicep: Functions app + storage queues + event grid trigger | `infra/modules/` |
+| # | Blueprint | Trigger | Notes |
+|---|---|---|---|
+| 40 | `batch_start` | HTTP / Timer | List blobs, fan-out to queue. |
+| 41 | `batch_push` | Queue (Storage) | Parse → chunk → embed → push to search index. Uses parser/chunker from `functions.core` (extensions of `backend.core` parsers). |
+| 42 | `add_url` | HTTP | Fetch URL content, parse, embed. |
+| 43 | `search_skill` | HTTP (custom AI Search skill endpoint) | Sync embed-on-the-fly used by AI Search indexer. |
 
-**`azd up` result**: End-to-end pipeline — upload a document via admin UI → functions process it → document appears in search → user can chat about it.
+Each blueprint ships with the per-trigger try/except pattern from Phase 5.5 §C1 policy doc. Poison queue handling per Functions retry policy.
+
+**Phase 6 also lands**: standalone-backend smoke test (CI job that boots `docker compose --profile backend-only up` and runs `/api/conversation` against a mocked OpenAI to prove the "backend works without functions" claim).
 
 ### Phase 7 — Testing + Documentation
 
-**Goal**: Comprehensive test coverage, migration guide, and updated documentation.
+Rolling work; each phase already ends with `azd up` green. Phase 7 adds:
 
-| # | Task | Key Files |
-|---|------|-----------|
-| 48 | Port / rewrite pytest tests for FastAPI (`TestClient`), cover all 3 orchestrators | `tests/` |
-| 49 | Update frontend Jest tests for admin features | `frontend/` |
-| 50 | Update README with new architecture and setup instructions | `README.md` |
-| 51 | Write v2 migration guide | `v2/docs/` |
-| 52 | Update docs for new configuration, deployment, and orchestrator options | `docs/` |
-| 53 | Remove all references to Prompt Flow, Semantic Kernel, Streamlit, Poetry, direct Azure OpenAI SDK | project-wide |
-
-**`azd up` result**: Production-ready deployment — fully tested, documented, and clean.
+- End-to-end Playwright tests against the deployed environment (`v2/tests/e2e/`).
+- Coverage report gate (`uv run pytest --cov=src/backend --cov-fail-under=80`).
+- Operator runbook expansion in `v2/docs/`.
+- ADR backfill for any Phase 5.5 / Phase 6 architectural decisions not already captured.
 
 ---
 
-## 5. Phase Dependency Graph
+## 5. Pillars
+
+See [pillars_of_development.md](pillars_of_development.md) — read-only product policy. Every new module/class in `v2/src/**` opens with:
 
 ```
-Phase 1 (Infra + Skeleton)          ← azd up: stub apps + all Azure resources
-  │
-  ▼
-Phase 2 (Config + LLM)              ← azd up: configured backend, chat UI shell
-  │
-  ▼
-Phase 3 (Conversation + RAG)        ← azd up: working chat with streaming + citations
-  │
-  ├──────────┐
-  │          │
-  ▼          ▼
-Phase 4    Phase 5
-(History    (Admin +
- + DBs)     Frontend)
-  │          │
-  └────┬─────┘
-       ▼
-Phase 6 (RAG Indexing Pipeline)      ← azd up: full ingestion + chat pipeline
-       │
-       ▼
-Phase 7 (Testing + Docs)            ← azd up: production-ready
+Pillar: <Stable Core | Scenario Pack | Configuration Layer | Customization Layer>
+Phase: <1..7 from this development_plan.md>
 ```
+
+Agents reference the pillars file but never edit it. Any proposed change to pillars must be raised with the user as a separate request.
 
 ---
 
-## 6. Configuration & Customization
+## 6. Naming conventions
 
-### 6.1 Configuration Architecture
+Pointer to [.github/copilot-instructions.md](../../.github/copilot-instructions.md) Hard Rule #11. Highlights:
 
-v2 uses a layered configuration system with **no Key Vault secrets**:
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Layer 1: Bicep Parameters                           │
-│  (deploy-time choices: databaseType, region, SKU)    │
-├─────────────────────────────────────────────────────┤
-│  Layer 2: Bicep Outputs → Environment Variables      │
-│  (service endpoints, resource names, connection info) │
-├─────────────────────────────────────────────────────┤
-│  Layer 3: Pydantic Settings (runtime config)         │
-│  (typed, validated, composable, loaded from env)     │
-├─────────────────────────────────────────────────────┤
-│  Layer 4: active.json (assistant/prompt config)      │
-│  (system prompts, orchestrator choice, UI behavior)  │
-└─────────────────────────────────────────────────────┘
-```
-
-### 6.2 Deploy-Time Configuration (Bicep Parameters)
-
-These are set once at `azd up` time and determine what Azure resources are provisioned:
-
-| Parameter | Options | Default | Description |
-|-----------|---------|---------|-------------|
-| `databaseType` | `cosmosdb`, `postgresql` | `cosmosdb` | Which database engine to deploy |
-| `location` | Azure regions | — | Primary deployment region |
-| `azureAiServiceLocation` | AI-supported regions | — | Region for AI model deployments |
-| `enableMonitoring` | `true`, `false` | `false` | Deploy Log Analytics + App Insights |
-| `enableScalability` | `true`, `false` | `false` | Higher SKUs, autoscaling rules |
-| `enableRedundancy` | `true`, `false` | `false` | Multi-region, zone-redundant |
-| `enablePrivateNetworking` | `true`, `false` | `false` | VNet, private endpoints, bastion |
-| `gptModelName` | Model names | `gpt-4.1` | Primary chat model |
-| `embeddingModelName` | Model names | `text-embedding-3-small` | Embedding model |
-
-### 6.3 Runtime Configuration (Environment Variables → Pydantic Settings)
-
-These are set via Bicep outputs (deployed) or `.env` file (local dev):
-
-```python
-# Grouped by service — each group is a nested Pydantic model
-class AzureOpenAISettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="AZURE_OPENAI_")
-    endpoint: str                    # From Bicep output
-    model: str = "gpt-4.1"
-    embedding_model: str = "text-embedding-3-small"
-    temperature: float = 0.0
-    max_tokens: int = 1000
-    api_version: str = "2024-12-01-preview"
-
-class AzureSearchSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="AZURE_SEARCH_")
-    service: str                     # From Bicep output
-    index: str = "cwyd-index"
-    use_semantic_search: bool = True
-    semantic_search_config: str = "my-semantic-config"
-    top_k: int = 5
-
-class DatabaseSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="AZURE_DB_")
-    type: Literal["cosmosdb", "postgresql"] = "cosmosdb"
-    endpoint: str                    # From Bicep output
-    name: str = "cwyd"
-
-class AppSettings(BaseSettings):
-    """Root settings — composes all service settings."""
-    model_config = SettingsConfigDict(env_file=".env")
-    openai: AzureOpenAISettings = AzureOpenAISettings()
-    search: AzureSearchSettings = AzureSearchSettings()
-    database: DatabaseSettings = DatabaseSettings()
-    orchestrator: Literal["openai_functions", "langgraph", "agent_framework"] = "langgraph"
-    auth_type: Literal["rbac"] = "rbac"
-    log_level: str = "INFO"
-```
-
-### 6.4 Assistant / Prompt Customization (active.json)
-
-The assistant behavior, system prompts, and UI customization are controlled by `active.json`:
-
-```json
-{
-  "orchestrator": {
-    "strategy": "langgraph"
-  },
-  "prompts": {
-    "system_message": "You are a helpful AI assistant...",
-    "follow_up_questions_prompt": "Generate 3 follow-up questions...",
-    "post_answering_prompt": "Validate the answer against the sources..."
-  },
-  "document_processors": [
-    { "type": "pdf", "use_document_intelligence": true },
-    { "type": "docx", "chunking_strategy": "layout" },
-    { "type": "txt", "chunk_size": 500 }
-  ],
-  "ui": {
-    "title": "Chat With Your Data",
-    "logo_url": "/static/logo.png",
-    "show_citations": true,
-    "show_follow_up_questions": true
-  }
-}
-```
-
-### 6.5 Customization Points
-
-| What to Customize | How | File(s) |
-|---|---|---|
-| **System prompt** | Edit `active.json` → `prompts.system_message` | `data/active.json` |
-| **Orchestrator strategy** | Set `ORCHESTRATOR` env var or `active.json` | `.env` / `active.json` |
-| **Database backend** | Set `databaseType` Bicep param at deploy time | `main.parameters.json` |
-| **Chat model** | Set `AZURE_OPENAI_MODEL` env var | `.env` |
-| **Embedding model** | Set `AZURE_OPENAI_EMBEDDING_MODEL` env var | `.env` |
-| **Search behavior** | Modify `AzureSearchSettings` defaults or env vars | `env_settings.py` / `.env` |
-| **Document processing** | Edit `active.json` → `document_processors` | `data/active.json` |
-| **UI branding** | Edit `active.json` → `ui` section | `data/active.json` |
-| **Add a new tool** | Implement tool in `shared/tools/`, register in orchestrator | `shared/tools/` |
-| **Add a new orchestrator** | Extend `base.py`, register in `orchestrator.py` factory | `shared/orchestrator/` |
-| **WAF-aligned deployment** | Enable `enableMonitoring`, `enableScalability`, `enableRedundancy`, `enablePrivateNetworking` | `main.parameters.json` |
-
-### 6.6 Local Development Configuration
-
-For local dev, all configuration comes from a `.env` file (generated by `azd env get-values` or manually created):
-
-```bash
-# .env (local development)
-AZURE_OPENAI_ENDPOINT=https://your-ai-services.openai.azure.com/
-AZURE_OPENAI_MODEL=gpt-4.1
-AZURE_SEARCH_SERVICE=your-search-service
-AZURE_SEARCH_INDEX=cwyd-index
-AZURE_DB_TYPE=cosmosdb
-AZURE_DB_ENDPOINT=https://your-cosmos.documents.azure.com:443/
-AZURE_DB_NAME=cwyd
-AZURE_STORAGE_BLOB_URL=https://your-storage.blob.core.windows.net/
-AZURE_AI_PROJECT_ENDPOINT=https://your-foundry.services.ai.azure.com/
-AZURE_CLIENT_ID=your-managed-identity-client-id
-AZURE_TENANT_ID=your-tenant-id
-```
+- **Python**: `snake_case` functions/methods/vars/modules, `PascalCase` classes, `UPPER_SNAKE_CASE` constants, `_leading_underscore` private. Closed-set string literals → `enum.StrEnum` (Python 3.11+), not module constants.
+- **TypeScript**: `camelCase` vars/functions, `PascalCase` types/interfaces/components, `UPPER_SNAKE_CASE` constants, no `I`-prefix on interfaces.
+- **Bicep**: `camelCase` for params/vars/modules/resources/outputs.
+- **Cross-cutting**: env vars `UPPER_SNAKE_CASE` with prefixes (`AZURE_*`, `VITE_*`, `CWYD_*`); Azure resource names `<type-abbrev>-<solutionSuffix>` per `v2/infra/abbreviations.json`.
+- **Public API names** (HTTP routes, OpenAPI operationIds, SSE event types, `OrchestratorEvent` fields) require user confirmation to rename once shipped.
 
 ---
 
-## 7. Key Decisions
+## 7. Local development
 
-| Decision | Rationale |
-|----------|-----------|
-| **Foundry IQ** (Knowledge Base, Embeddings) for knowledge management; **LangChain / Agent Framework** for orchestration | Clean separation: knowledge management vs. agent logic |
-| **Reasoning models** (o-series) enabled through Foundry IQ | Centralized model management; no per-orchestrator model wiring |
-| **Infra is Phase 1** — every phase results in deployable `azd up` | Continuous validation, early issue detection, always-working baseline |
-| **Azure Bot Service + Teams plugin** deferred to future version | Focus v2 on core modernization; extensibility built in for later |
-| **Both Cosmos DB and PostgreSQL** kept as switchable backends | Preserves deployment flexibility for different enterprise needs |
-| **Admin UI** merged into React/Vite frontend | Eliminates Streamlit dependency; unified user experience |
-| **3 orchestrators** in v2: OpenAI Functions, LangGraph, Agent Framework | Covers direct tool calling, graph-based agents, and managed agent service |
-| **`uv`** remains the Python package manager | Fast, modern, already adopted; Poetry fully removed |
-| **No Key Vault for app secrets** | RBAC + Managed Identity; env vars from Bicep outputs (MACAE pattern) |
-| **v2/src scaffolding** is a starting point — implement from scratch where needed | Don't assume scaffolding is complete or correct |
+Pointers to operational tooling:
 
----
-
-## 8. Deferred to Future Versions
-
-- Azure Bot Service integration
-- Microsoft Teams extension / plugin
-- Additional Azure region support
-- Advanced image processing (Computer Vision vectorization)
-- MCP server integration
-- Multi-agent coordination
-
----
-
-## 9. Verification Criteria
-
-1. `uv sync` succeeds with updated dependencies (no Poetry, no Semantic Kernel)
-2. `pytest` passes for all three orchestrator strategies
-3. FastAPI backend starts locally; `/api/health` returns 200
-4. Conversation endpoint works through Foundry IQ (streaming + non-streaming)
-5. Chat history CRUD works with both Cosmos DB and PostgreSQL
-6. Admin pages render in the React frontend; document upload functional
-7. Azure Functions pipeline processes blob uploads → embed → index
-8. `azd up` deploys the full stack (no one-click button)
-9. Frontend Jest tests pass
-10. No references remain to Prompt Flow, Semantic Kernel, Streamlit, Poetry, or direct Azure OpenAI SDK
-11. Every phase from 1–7 can be deployed independently via `azd up`
+- **Editable install**: `uv sync` from repo root.
+- **Backend-only profile** (Phase 5.5 invariant: chat works without functions): `docker compose -f v2/docker/docker-compose.dev.yml --profile backend-only up`.
+- **Frontend-only profile** (`VITE_BACKEND_URL` required): `docker compose -f v2/docker/docker-compose.dev.yml --profile frontend-only up`.
+- **Full dev stack**: `docker compose -f v2/docker/docker-compose.dev.yml up`.
+- **CI validation image**: `docker build -f v2/docker/Dockerfile.ci-validate -t cwyd-ci .` then run.
+- **Type-check gate**: `uv run pyright` (CI hard-gate via `.github/workflows/v2-typecheck.yml` since Q14e closed 2026-05-06).
+- **Test gate**: `uv run pytest` (547/547 baseline at start of Phase 5.5).
+- **Provision-then-deploy**: `azd up` (one-shot) or `azd provision` → `azd deploy` (split).
