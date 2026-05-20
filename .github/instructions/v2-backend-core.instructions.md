@@ -22,29 +22,45 @@ v2/src/backend/
 
 ## Pluggability contract (registry-first)
 
-The generic `Registry[T]` lives in `v2/src/backend/core/registry.py`. Every provider domain follows the same recipe:
+The generic `Registry[T]` lives in `v2/src/backend/core/registry.py`. Per Hard Rule #13 in [.github/copilot-instructions.md](../copilot-instructions.md), every provider `__init__.py` is a **package marker only** (module docstring + nothing else) — the registry, eager imports, and any helpers live in a sibling `registry.py`. The recipe:
 
 ```python
-# v2/src/backend/core/providers/<domain>/__init__.py
+# v2/src/backend/core/providers/<domain>/__init__.py  -- MARKER ONLY
+"""<Domain> provider package.
+
+Pillar: Stable Core
+Phase: <n>
+"""
+```
+
+```python
+# v2/src/backend/core/providers/<domain>/registry.py
 from backend.core.registry import Registry
+from .base import Base<Domain>
 
-registry: Registry[Base<Domain>] = Registry("<domain>")
+registry: Registry[type[Base<Domain>]] = Registry("<domain>")
 
-from . import provider_a, provider_b   # eager-import triggers @register
-
-def create(key: str, **kwargs) -> Base<Domain>:
-    return registry.get(key)(**kwargs)
+# Eager imports trigger @registry.register(...) on each concrete.
+from . import provider_a, provider_b  # noqa: E402, F401
 ```
 
 ```python
 # v2/src/backend/core/providers/<domain>/provider_a.py
-from . import registry
+from .registry import registry
 
 @registry.register("a")
 class ProviderA(Base<Domain>): ...
 ```
 
-Caller code is one line — `domain.create(settings.<key>, ...)`. **Forbidden:** `if/elif` over provider names anywhere outside a registry; lazy `import` of provider classes inside functions; module-level client instantiation.
+Caller code (no `create()` sugar — it added zero behavior over `Registry.get`):
+
+```python
+from backend.core.providers.<domain> import registry as <domain>_registry
+
+instance = <domain>_registry.registry.get(settings.<key>)(**kwargs)
+```
+
+**Forbidden:** `if/elif` over provider names anywhere outside a registry; lazy `import` of provider classes inside functions; module-level client instantiation; **any runtime code in `__init__.py`** (enforced by `v2/tests/shared/test_init_files_are_marker_only.py`); `create(key, **kwargs)` factory wrappers (call `registry.get(key)(**kwargs)` directly).
 
 ## Stack rules
 

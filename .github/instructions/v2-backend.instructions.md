@@ -27,7 +27,7 @@ applyTo: "v2/src/backend/**"
 4. CORS is permissive in dev (`*`) and locked to `BACKEND_CORS_ORIGINS` (Pydantic setting) in deployed envs.
 5. Auth: use the `Depends(require_user)` / `Depends(require_admin)` helpers from `backend/routers/auth.py`. Do not roll JWT parsing inline.
 6. No `print` — use `logging.getLogger(__name__)`. OTel picks it up.
-7. No direct DB clients in routers — call `databases.create(settings.database.db_type, ...)` from `v2/src/backend/core/providers/databases/`. Same rule for search (`backend/core/providers/search/`) and LLM (`backend/core/providers/llm/`).
+7. No direct DB clients in routers — go through the provider registry: `from backend.core.providers.databases import registry as databases_registry; databases_registry.registry.get(settings.database.db_type)(...)`. Same rule for search (`backend/core/providers/search/`) and LLM (`backend/core/providers/llm/`). Per Hard Rule #13, provider `__init__.py` files are package markers — registry instances live in sibling `registry.py`. No `create()` factory wrappers.
 8. Errors raise `HTTPException` with a stable `detail` shape: `{"code": "<snake_case>", "message": "<human>"}`.
 
 ## Anti-patterns

@@ -65,8 +65,9 @@ Most files here will be **Stable Core** (the indexing pipeline is part of the al
 - `semantic_kernel`, `promptflow`.
 - Module-level `client = SomeClient(...)`.
 - Sync DB drivers (`psycopg2`) on runtime paths; `asyncpg` only.
-- `if/elif` over provider names — call the registry from `backend.core.providers.<domain>`.
+- `if/elif` over provider names — call `<domain>_registry.registry.get(key)(**kwargs)` from `backend.core.providers.<domain>.registry`.
 - `from __future__ import annotations` and `if TYPE_CHECKING:` (banned across all of `v2/`; CU-013 amendment).
+- Any runtime code in an `__init__.py` (Hard Rule #13 — package markers only; registry instances + eager imports live in sibling `registry.py`).
 - **Re-defining a symbol that already lives in `backend.core`.** If you find yourself doing this, the right move is to import from `backend.core` (or extract a leaf module under `backend.core/`) — not to copy-paste.
 
 ## Tests

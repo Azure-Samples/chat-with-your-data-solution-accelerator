@@ -11,7 +11,7 @@ domain objects) -- not behavior. Provider classes live under
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 Role = Literal["system", "user", "assistant", "tool"]
 
@@ -68,6 +68,36 @@ class EmbeddingResult(BaseModel):
     @property
     def dimensions(self) -> int:
         return len(self.vectors[0]) if self.vectors else 0
+
+
+class Chunk(BaseModel):
+    """One parsed text fragment ready for embedding + indexing.
+
+    Returned by `BaseParser.parse(...)` (Phase 6 task #41, U8c) and
+    consumed by the batch_push handler (U8h). Carried as the unit of
+    work between the parser, the embedder, and the search writer --
+    no chunker primitive sits in between (decision D2 in
+    development_plan §4.6.1).
+
+    Frozen + `extra="forbid"` so the ingestion pipeline cannot
+    silently smuggle provider-specific fields through `metadata`
+    siblings -- anything provider-specific (page index, bounding box,
+    section heading, source URL) goes inside the `metadata` dict
+    where consumers can opt in.
+
+    `id` is a deterministic chunk identifier (typically
+    `f"{source}__{index}"`) so re-indexing the same source produces
+    stable Search document keys. `source` is the originating filename
+    or URL. `index` is the chunk's position within `source` (0-based).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    content: str
+    source: str = ""
+    index: int = 0
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class OrchestratorEvent(BaseModel):

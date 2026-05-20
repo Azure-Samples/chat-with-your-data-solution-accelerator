@@ -22,9 +22,9 @@ applyTo: "v2/src/functions/**"
 1. **One trigger per file.** No multi-trigger blueprints.
 2. **Idempotent.** Every handler computes a deterministic message key and skips if the key is already processed (track in a small `processing_state` table or blob metadata).
 3. **Poison handling.** Always wrap the handler body in `try/except`; on failure, log with `exc_info=True` and re-raise so the runtime moves the message to `<queue>-poison`. Never silently swallow.
-4. **No direct OpenAI SDK.** Embedders go through `providers.embedders.create(settings.database.index_store, ...)`; LLM access goes through `providers.llm.create("foundry_iq", ...)`. No module-level clients, no `from openai import …`.
+4. **No direct OpenAI SDK.** Embedders + LLM access go through the provider registry: `from backend.core.providers.embedders import registry as embedders_registry; embedders_registry.registry.get(settings.database.index_store)(...)` (and same shape for `providers.llm`). No module-level clients, no `from openai import …`.
 5. **Settings.** Reuse `v2/src/backend/core/settings.py::AppSettings` via `get_settings()` — do not reinvent env loading.
-6. **Pluggability.** Use the registry pattern from `v2/src/backend/core/registry.py`. Forbidden: `if/elif` over backend names (e.g. `if db_type == "cosmosdb": ...`) inside a blueprint — call `domain.create(key, ...)` instead.
+6. **Pluggability.** Use the registry pattern from `v2/src/backend/core/registry.py`. Forbidden: `if/elif` over backend names (e.g. `if db_type == "cosmosdb": ...`) inside a blueprint — call `<domain>_registry.registry.get(key)(**kwargs)` instead. Per Hard Rule #13, provider `__init__.py` files are package markers — registry instances live in sibling `registry.py`. No `create()` factory wrappers.
 7. **Tests.** Every blueprint has a sibling `tests/test_<name>.py` that invokes the handler with a constructed `func.QueueMessage` / `func.EventGridEvent` and asserts the side effects (pipeline called, queue message produced, etc.).
 
 ## Pipeline contract
