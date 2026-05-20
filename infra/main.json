@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "4886009486029521468"
+      "templateHash": "13739588594824498986"
     }
   },
   "parameters": {
@@ -625,6 +625,7 @@
     "bastionHostName": "[format('bas-{0}', variables('solutionSuffix'))]",
     "jumpboxVmName": "[take(format('vm-jumpbox-{0}', variables('solutionSuffix')), 15)]",
     "jumpboxDcrName": "[format('dcr-{0}-security', variables('jumpboxVmName'))]",
+    "dcrLogAnalyticsDestinationName": "[format('la-{0}-destination', variables('jumpboxVmName'))]",
     "userAssignedIdentityResourceName": "[format('id-{0}', variables('solutionSuffix'))]",
     "privateDnsZones": [
       "privatelink.documents.azure.com",
@@ -13303,7 +13304,7 @@
               "destinations": {
                 "logAnalytics": [
                   {
-                    "name": "laDestination",
+                    "name": "[variables('dcrLogAnalyticsDestinationName')]",
                     "workspaceResourceId": "[reference('monitoring').outputs.logAnalyticsWorkspaceId.value]"
                   }
                 ]
@@ -13314,7 +13315,7 @@
                     "Microsoft-Event"
                   ],
                   "destinations": [
-                    "laDestination"
+                    "[variables('dcrLogAnalyticsDestinationName')]"
                   ],
                   "transformKql": "source",
                   "outputStream": "Microsoft-Event"
@@ -13324,7 +13325,7 @@
                     "Microsoft-Perf"
                   ],
                   "destinations": [
-                    "laDestination"
+                    "[variables('dcrLogAnalyticsDestinationName')]"
                   ],
                   "transformKql": "source",
                   "outputStream": "Microsoft-Perf"
@@ -55923,9 +55924,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]

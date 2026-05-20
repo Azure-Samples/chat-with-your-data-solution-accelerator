@@ -574,6 +574,7 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
 
 // Data Collection Rule for jumpbox VM: Windows security audit events + performance counters.
 var jumpboxDcrName = 'dcr-${jumpboxVmName}-security'
+var dcrLogAnalyticsDestinationName = 'la-${jumpboxVmName}-destination'
 module jumpboxSecurityDcr 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
   name: take('avm.res.insights.data-collection-rule.${jumpboxDcrName}', 64)
   params: {
@@ -657,7 +658,7 @@ module jumpboxSecurityDcr 'br/public:avm/res/insights/data-collection-rule:0.11.
       destinations: {
         logAnalytics: [
           {
-            name: 'laDestination'
+            name: dcrLogAnalyticsDestinationName
             workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
           }
         ]
@@ -668,7 +669,7 @@ module jumpboxSecurityDcr 'br/public:avm/res/insights/data-collection-rule:0.11.
             'Microsoft-Event'
           ]
           destinations: [
-            'laDestination'
+            dcrLogAnalyticsDestinationName
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Event'
@@ -678,7 +679,7 @@ module jumpboxSecurityDcr 'br/public:avm/res/insights/data-collection-rule:0.11.
             'Microsoft-Perf'
           ]
           destinations: [
-            'laDestination'
+            dcrLogAnalyticsDestinationName
           ]
           transformKql: 'source'
           outputStream: 'Microsoft-Perf'
