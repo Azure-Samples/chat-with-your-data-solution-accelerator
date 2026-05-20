@@ -7,8 +7,8 @@ import pytest
 from azure.core.exceptions import AzureError
 from azure.storage.queue.aio import QueueClient
 
-from functions.batch_start.queue_message import BatchPushQueueMessage
 from functions.batch_start.queue_writer import enqueue_push_message
+from functions.core.contracts import BatchPushQueueMessage
 
 
 class _FakeQueueClient:

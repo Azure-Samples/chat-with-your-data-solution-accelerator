@@ -27,7 +27,7 @@ import logging
 from azure.core.exceptions import AzureError
 from azure.storage.queue.aio import QueueClient
 
-from functions.batch_start.queue_message import BatchPushQueueMessage
+from functions.core.contracts import BatchPushQueueMessage
 
 logger = logging.getLogger(__name__)
 

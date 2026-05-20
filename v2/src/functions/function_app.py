@@ -14,7 +14,10 @@ import json
 
 import azure.functions as func
 
+from functions.batch_start.blueprint import bp as batch_start_bp
+
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+app.register_functions(batch_start_bp)
 
 
 def _health_payload() -> dict[str, str]:

@@ -1,11 +1,11 @@
-"""Pillar: Stable Core / Phase: 6 — tests for v2/src/functions/batch_start/queue_message.py."""
+"""Pillar: Stable Core / Phase: 6 — tests for v2/src/functions/core/contracts.py."""
 
 import json
 
 import pytest
 from pydantic import ValidationError
 
-from functions.batch_start.queue_message import BatchPushQueueMessage
+from functions.core.contracts import BatchPushQueueMessage
 
 
 def test_happy_path_builds_with_all_fields() -> None:
