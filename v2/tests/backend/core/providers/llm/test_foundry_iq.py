@@ -13,7 +13,7 @@ import openai
 import pytest
 from azure.core.exceptions import AzureError, ServiceRequestError
 
-from backend.core.providers import llm
+from backend.core.providers.llm import registry as llm_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.llm.foundry_iq import FoundryIQ
 from backend.core.settings import AppSettings
@@ -105,13 +105,15 @@ def _build_fake_project_client(openai_client: Any) -> MagicMock:
 
 
 def test_registry_contains_foundry_iq() -> None:
-    assert "foundry_iq" in llm.registry
+    assert "foundry_iq" in llm_registry.registry
 
 
 def test_create_returns_foundry_iq(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
-    provider = llm.create("foundry_iq", settings=settings, credential=fake_credential)
+    provider = llm_registry.registry.get("foundry_iq")(
+        settings=settings, credential=fake_credential
+    )
     assert isinstance(provider, FoundryIQ)
     assert isinstance(provider, BaseLLMProvider)
 
@@ -120,7 +122,9 @@ def test_unknown_key_raises(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
     with pytest.raises(KeyError):
-        llm.create("vllm", settings=settings, credential=fake_credential)
+        llm_registry.registry.get("vllm")(
+            settings=settings, credential=fake_credential
+        )
 
 
 # ---------------------------------------------------------------------------

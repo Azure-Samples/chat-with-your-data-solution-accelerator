@@ -38,7 +38,7 @@ from backend.core.types import (
     OrchestratorEvent,
 )
 
-from . import registry
+from .registry import registry
 from .base import BaseLLMProvider
 
 

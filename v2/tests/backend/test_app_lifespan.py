@@ -71,8 +71,10 @@ def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         "backend.app.credentials_registry.registry", fake_cred_registry
     )
+    fake_llm_registry = MagicMock(name="llm_registry")
+    fake_llm_registry.get.return_value = lambda **_kw: fake_llm
     monkeypatch.setattr(
-        "backend.app.llm.create", lambda *_a, **_kw: fake_llm
+        "backend.app.llm_registry.registry", fake_llm_registry
     )
     monkeypatch.setattr(
         "backend.app.databases.create", lambda *_a, **_kw: fake_db

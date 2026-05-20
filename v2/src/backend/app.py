@@ -29,8 +29,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.routers import conversation, health, history, speech
-from backend.core.providers import agents, databases, llm, search
+from backend.core.providers import agents, databases, search
 from backend.core.providers.credentials import registry as credentials_registry
+from backend.core.providers.llm import registry as llm_registry
 from backend.core.settings import NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -58,8 +59,8 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     cred_key = credentials_registry.select_default(settings.identity.uami_client_id)
     cred_provider = credentials_registry.registry.get(cred_key)(settings=settings)
     credential = await cred_provider.get_credential()
-    llm_provider = llm.create(
-        "foundry_iq", settings=settings, credential=credential
+    llm_provider = llm_registry.registry.get("foundry_iq")(
+        settings=settings, credential=credential
     )
 
     # Agents provider: backs the `agent_framework` orchestrator. Always
