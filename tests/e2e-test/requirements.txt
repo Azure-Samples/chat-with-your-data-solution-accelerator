@@ -1,7 +1,7 @@
 pytest-playwright
 pytest-reporter-html1
-python-dotenv
+python-dotenv==1.2.2
 pytest-check
 pytest-html
 py
-beautifulsoup4
+beautifulsoup4==4.14.3

@@ -1,8 +1,8 @@
 azure-ai-evaluation
 azure-ai-projects
-azure-identity
-openai
+azure-identity==1.25.3
+openai==1.109.1
 openpyxl
-pandas
+pandas==2.3.3
 pathlib
 typing-extensions
