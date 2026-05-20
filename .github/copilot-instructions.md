@@ -11,9 +11,9 @@ These instructions are **always loaded**. Read them before doing anything else.
 
 ## Mandatory references — consult before editing
 
-1. [v2/docs/development_plan.md](../v2/docs/development_plan.md) — phase ordering, file paths, scope, removals, additions. Source of truth for **what** to build and **when**.
-2. [v2/docs/pillars_of_development.md](../v2/docs/pillars_of_development.md) — every new core element must declare its pillar (Stable Core, Scenario Pack, Configuration Layer, or Customization Layer) in the file/class docstring.
-3. Repo memory `cwyd-tech-stack.md` — current stack truth (versions, services, package managers).
+1. [v2/docs/development_plan.md](../v2/docs/development_plan.md) — phase ordering, file paths, scope, removals, additions. Source of truth for **what** to build and **when**. **Always read §0 Status snapshot + the head of §0.1 debt queue before proposing a task.** As of 2026-05-11 the **active phase is Phase 6 — Functions blueprints / modular RAG indexing pipeline** (`batch_start`, `batch_push`, `add_url`, `search_skill` under `v2/src/functions/`; ingestion-only extensions under `v2/src/functions/core/`). Phases 1–5 + 5.5 are closed; #35d (FE admin merge), #35g (per-tenant overrides), and #24 partial (FE SSE polish) are open and explicitly **non-blocking** for Phase 6.
+2. [v2/docs/pillars_of_development.md](../v2/docs/pillars_of_development.md) — every new core element must declare its pillar (Stable Core, Scenario Pack, Configuration Layer, or Customization Layer) in the file/class docstring. **Read-only product policy** — never edited by agents.
+3. Repo memory `cwyd-tech-stack.md` — current stack truth (versions, services, package managers, test counts).
 
 ## External pattern sources — read-only
 
