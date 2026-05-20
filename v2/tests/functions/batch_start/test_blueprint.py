@@ -1,4 +1,14 @@
-"""Pillar: Stable Core / Phase: 6 — tests for v2/src/functions/batch_start/blueprint.py."""
+"""Pillar: Stable Core / Phase: 6 — tests for v2/src/functions/batch_start/blueprint.py.
+
+Post-U7g the blueprint composes ``functions/core/`` helpers (resolve
+endpoints, storage_clients ctx manager, json_response, the
+``map_function_exceptions`` decorator). Exception ladder logging now
+originates from the decorator's logger
+``functions.core.exception_mapping``; ``_resolve_endpoints`` /
+``_json_response`` no longer live here (covered by
+tests/functions/core/test_storage_endpoints.py and
+tests/functions/core/test_http.py respectively).
+"""
 
 import json
 import logging
@@ -10,7 +20,7 @@ from azure.core.exceptions import AzureError
 
 from backend.core.settings import AppSettings, get_settings
 from functions.batch_start import blueprint as bp_module
-from functions.batch_start.blueprint import _resolve_endpoints, batch_start
+from functions.batch_start.blueprint import batch_start
 from functions.batch_start.models import BatchStartRequest
 from functions.core.contracts import BatchPushQueueMessage
 
@@ -74,29 +84,6 @@ def _make_req(body: bytes) -> func.HttpRequest:
         body=body,
         headers={"content-type": "application/json"},
     )
-
-
-def test_resolve_endpoints_uses_explicit_blob_endpoint_when_set(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(
-        "AZURE_STORAGE_BLOB_ENDPOINT", "https://acct.blob.core.usgovcloudapi.net"
-    )
-    settings = AppSettings()
-    blob, queue = _resolve_endpoints(settings)
-    assert blob == "https://acct.blob.core.usgovcloudapi.net"
-    assert queue == "https://acct.queue.core.usgovcloudapi.net"
-
-
-def test_resolve_endpoints_falls_back_to_account_name_in_public_cloud(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("AZURE_STORAGE_ACCOUNT_NAME", "myacct")
-    monkeypatch.setenv("AZURE_STORAGE_BLOB_ENDPOINT", "")
-    settings = AppSettings()
-    blob, queue = _resolve_endpoints(settings)
-    assert blob == "https://myacct.blob.core.windows.net"
-    assert queue == "https://myacct.queue.core.windows.net"
 
 
 @pytest.mark.asyncio
@@ -187,7 +174,7 @@ async def test_azure_error_returns_502_and_logs(
         raise AzureError("upstream boom")
 
     _patch_route_deps(monkeypatch, fake_execute)
-    caplog.set_level(logging.ERROR, logger="functions.batch_start.blueprint")
+    caplog.set_level(logging.ERROR, logger="functions.core.exception_mapping")
     req = _make_req(json.dumps({"container_name": "documents"}).encode())
 
     resp = await batch_start(req)
@@ -197,7 +184,6 @@ async def test_azure_error_returns_502_and_logs(
     record = next(r for r in caplog.records if r.message == "batch_start storage call failed")
     assert record.operation == "batch_start"  # type: ignore[attr-defined]
     assert record.trigger == "http"  # type: ignore[attr-defined]
-    assert record.container == "documents"  # type: ignore[attr-defined]
     assert record.status_code == 502  # type: ignore[attr-defined]
 
 
@@ -211,7 +197,7 @@ async def test_unexpected_exception_returns_500_safety_net(
         raise RuntimeError("totally unexpected")
 
     _patch_route_deps(monkeypatch, fake_execute)
-    caplog.set_level(logging.ERROR, logger="functions.batch_start.blueprint")
+    caplog.set_level(logging.ERROR, logger="functions.core.exception_mapping")
     req = _make_req(json.dumps({"container_name": "documents"}).encode())
 
     resp = await batch_start(req)
