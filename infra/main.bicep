@@ -624,6 +624,8 @@ var privateDnsZones = [
   'privatelink.cognitiveservices.azure.com'
   'privatelink.openai.azure.com'
   'privatelink.vaultcore.azure.net'
+  'privatelink.api.azureml.ms'
+  'privatelink.azurewebsites.net'
 ]
 
 // DNS Zone Index Constants
@@ -637,7 +639,13 @@ var dnsZoneIndex = {
   cognitiveServices: 6
   openAI: 7
   keyVault: 8
+  machinelearning: 9
+  appService: 10
 }
+
+// Function App private networking is enabled for both container and code hosting.
+// The predeploy hook temporarily enables public access for zip deploy during code deployments.
+var enablePrivateNetworkingFunction = enablePrivateNetworking
 
 // ===================================================
 // DEPLOY PRIVATE DNS ZONES
@@ -1434,7 +1442,24 @@ module function 'modules/app/function.bicep' = {
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
-    publicNetworkAccess: 'Enabled' // Always enabling public network access
+    publicNetworkAccess: enablePrivateNetworkingFunction ? 'Disabled' : 'Enabled'
+    privateEndpoints: enablePrivateNetworkingFunction
+      ? [
+          {
+            name: 'pep-${hostingModel == 'container' ? '${functionName}-docker' : functionName}'
+            customNetworkInterfaceName: 'nic-${hostingModel == 'container' ? '${functionName}-docker' : functionName}'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.appService]!.outputs.resourceId
+                }
+              ]
+            }
+            service: 'sites'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+          }
+        ]
+      : []
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName

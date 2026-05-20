@@ -97,6 +97,15 @@ services:
     # Use resourceName
     resourceName: ${SERVICE_FUNCTION_RESOURCE_NAME}
     hooks:
+      predeploy:
+        windows:
+          shell: pwsh
+          run: ../../../scripts/function_network_toggle.ps1 -Action enable
+          continueOnError: false
+        posix:
+          shell: sh
+          run: bash ../../../scripts/function_network_toggle.sh enable
+          continueOnError: false
       prepackage:
         windows:
           shell: pwsh
@@ -105,4 +114,13 @@ services:
         posix:
           shell: sh
           run: poetry export -o requirements.txt --without-hashes; pip install -r requirements.txt
+          continueOnError: false
+      postdeploy:
+        windows:
+          shell: pwsh
+          run: ../../../scripts/function_network_toggle.ps1 -Action disable
+          continueOnError: false
+        posix:
+          shell: sh
+          run: bash ../../../scripts/function_network_toggle.sh disable
           continueOnError: false
