@@ -162,11 +162,6 @@ jobs:
         run: |
           pip install requests
 
-      - name: Upgrade Azure CLI and install extensions
-        run: |
-          az upgrade --yes --all
-          az extension add --name storage-preview --upgrade --yes || true
-
       - name: Verify Azure Login and Discover Resources
         id: discover
         shell: bash

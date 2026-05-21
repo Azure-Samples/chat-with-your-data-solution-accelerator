@@ -21,6 +21,11 @@ on:
         required: false
         default: false
         type: boolean
+      ENABLE_SCALABILITY:
+        description: 'Enable Scalability (only applied when WAF is enabled)'
+        required: false
+        default: 'false'
+        type: string
       EXP:
         description: 'Enable EXP'
         required: false
@@ -438,14 +443,18 @@ jobs:
         run: |
           echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
           set -e
-          echo "Checking if resource group exists..."
+          OWNER_TAG_VALUE="${{ github.actor }}"
+          echo "🔍 Checking if resource group '${{ env.RESOURCE_GROUP_NAME }}' exists..."
           rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
           if [ "$rg_exists" = "false" ]; then
-            echo "Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist. Creating..."
-            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags ${{ env.RG_TAGS }} || { echo "❌ Error creating resource group"; exit 1; }
+            echo "📦 Resource group '${{ env.RESOURCE_GROUP_NAME }}' does not exist. Creating..."
+            echo "🏷️  Adding Owner tag: Owner=${OWNER_TAG_VALUE}"
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags ${{ env.RG_TAGS }} "Owner=${OWNER_TAG_VALUE}" || { echo "❌ Error creating resource group"; exit 1; }
             echo "✅ Resource group '${{ env.RESOURCE_GROUP_NAME }}' created with tags"
           else
             echo "✅ Resource group exists, proceeding with deployment"
+            echo "🏷️  Adding Owner tag on existing resource group: Owner=${OWNER_TAG_VALUE}"
+            az group update --name "${{ env.RESOURCE_GROUP_NAME }}" --set tags.Owner="${OWNER_TAG_VALUE}" --output none || echo "⚠️  Warning: failed to update Owner tag on existing resource group '${{ env.RESOURCE_GROUP_NAME }}'."
           fi
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT
@@ -530,6 +539,7 @@ jobs:
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
       EXP: ${{ inputs.EXP || 'false' }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      ENABLE_SCALABILITY: ${{ inputs.ENABLE_SCALABILITY || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
@@ -550,6 +560,7 @@ jobs:
       IMAGE_TAG: ${{ needs.azure-setup.outputs.IMAGE_TAG }}
       EXP: ${{ inputs.EXP || 'false' }}
       WAF_ENABLED: ${{ inputs.waf_enabled == true && 'true' || 'false' }}
+      ENABLE_SCALABILITY: ${{ inputs.ENABLE_SCALABILITY || 'false' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ inputs.AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ inputs.AZURE_SEARCH_USE_SEMANTIC_SEARCH }}
