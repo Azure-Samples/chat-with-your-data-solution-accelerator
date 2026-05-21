@@ -25,7 +25,7 @@ on:
         default: 'Local'
 
       resource_group_name:
-        description: 'Resource Group Name (Optional - auto-generated if not provided)'
+        description: 'Resource Group Name (Optional)'
         required: false
         default: ''
         type: string
@@ -40,18 +40,26 @@ on:
         default: 'PostgreSQL'
 
       waf_enabled:
-        description: 'Enable WAF'
+        description: 'Deploy WAF'
         required: false
         default: false
         type: boolean
+      ENABLE_SCALABILITY:
+        description: 'Enable Scalability (WAF only)'
+        required: false
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+        default: 'false'
       EXP:
-        description: 'Enable EXP'
+        description: 'Deploy EXP'
         required: false
         default: false
         type: boolean
 
       cleanup_resources:
-        description: 'Cleanup Deployed Resources'
+        description: 'Auto Delete RG'
         required: false
         default: false
         type: boolean
@@ -65,7 +73,7 @@ on:
           - 'Smoke-Testing'
           - 'None'
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID:
-        description: 'Log Analytics Workspace ID (Optional)'
+        description: 'Existing Log Analytics Workspace ID (Optional)'
         required: false
         default: ''
         type: string
@@ -95,13 +103,13 @@ on:
         default: 'false'
 
       existing_webapp_url:
-        description: 'Existing Front-End Web URL (Skips Deployment)'
+        description: 'Run Tests Against Existing RG (Provide Web App URL)'
         required: false
         default: ''
         type: string
 
       existing_admin_app_url:
-        description: 'Existing Admin Web URL (Skips Deployment)'
+        description: 'Run Tests Against Existing RG (Provide Admin Web App URL)'
         required: false
         default: ''
         type: string
@@ -112,10 +120,6 @@ on:
 permissions:
   id-token: write
   contents: read
-
-# concurrency:
-#   group: ${{ github.event_name == 'workflow_dispatch' && format('manual-{0}', github.run_id) || 'deploy-auto-triggered' }}
-#   cancel-in-progress: false
 
 jobs:
   validate-inputs:
@@ -128,6 +132,7 @@ jobs:
       database_type: ${{ steps.validate.outputs.database_type }}
       waf_enabled: ${{ steps.validate.outputs.waf_enabled }}
       exp: ${{ steps.validate.outputs.exp }}
+      enable_scalability: ${{ steps.validate.outputs.enable_scalability }}
       cleanup_resources: ${{ steps.validate.outputs.cleanup_resources }}
       run_e2e_tests: ${{ steps.validate.outputs.run_e2e_tests }}
       azure_env_log_analytics_workspace_id: ${{ steps.validate.outputs.azure_env_log_analytics_workspace_id }}
@@ -146,6 +151,7 @@ jobs:
           INPUT_DATABASE_TYPE: ${{ github.event.inputs.DATABASE_TYPE }}
           INPUT_WAF_ENABLED: ${{ github.event.inputs.waf_enabled }}
           INPUT_EXP: ${{ github.event.inputs.EXP }}
+          INPUT_ENABLE_SCALABILITY: ${{ github.event.inputs.ENABLE_SCALABILITY }}
           INPUT_CLEANUP_RESOURCES: ${{ github.event.inputs.cleanup_resources }}
           INPUT_RUN_E2E_TESTS: ${{ github.event.inputs.run_e2e_tests }}
           INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ github.event.inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
@@ -224,6 +230,16 @@ jobs:
             VALIDATION_FAILED=true
           else
             echo "✅ EXP: '$EXP_ENABLED' is valid"
+          fi
+
+          # Validate ENABLE_SCALABILITY (boolean string)
+          ENABLE_SCALABILITY="${INPUT_ENABLE_SCALABILITY:-false}"
+          if [[ "$ENABLE_SCALABILITY" != "true" && "$ENABLE_SCALABILITY" != "false" ]]; then
+            echo "❌ ERROR: ENABLE_SCALABILITY must be 'true' or 'false', got: '$ENABLE_SCALABILITY'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| ENABLE_SCALABILITY | \`$ENABLE_SCALABILITY\` | Must be 'true' or 'false' |\n"
+            VALIDATION_FAILED=true
+          else
+            echo "✅ ENABLE_SCALABILITY: '$ENABLE_SCALABILITY' is valid"
           fi
 
           # Validate cleanup_resources (boolean)
@@ -362,6 +378,7 @@ jobs:
           echo "database_type=$DATABASE_TYPE" >> $GITHUB_OUTPUT
           echo "waf_enabled=$WAF_ENABLED" >> $GITHUB_OUTPUT
           echo "exp=$EXP_ENABLED" >> $GITHUB_OUTPUT
+          echo "enable_scalability=$ENABLE_SCALABILITY" >> $GITHUB_OUTPUT
           echo "cleanup_resources=$CLEANUP_RESOURCES" >> $GITHUB_OUTPUT
           echo "run_e2e_tests=$TEST_OPTION" >> $GITHUB_OUTPUT
           echo "azure_env_log_analytics_workspace_id=$INPUT_AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID" >> $GITHUB_OUTPUT
@@ -379,6 +396,7 @@ jobs:
       resource_group_name: ${{ needs.validate-inputs.outputs.resource_group_name || '' }}
       waf_enabled: ${{ needs.validate-inputs.outputs.waf_enabled == 'true' }}
       EXP: ${{ needs.validate-inputs.outputs.exp == 'true' }}
+      ENABLE_SCALABILITY: ${{ needs.validate-inputs.outputs.enable_scalability || 'false' }}
       cleanup_resources: ${{ github.event_name != 'workflow_dispatch' || needs.validate-inputs.outputs.cleanup_resources == 'true' }}
       run_e2e_tests: ${{ needs.validate-inputs.outputs.run_e2e_tests || 'GoldenPath-Testing' }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ needs.validate-inputs.outputs.azure_env_log_analytics_workspace_id || '' }}

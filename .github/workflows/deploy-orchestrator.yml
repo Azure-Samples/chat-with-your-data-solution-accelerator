@@ -17,6 +17,11 @@ on:
         required: false
         default: false
         type: boolean
+      ENABLE_SCALABILITY:
+        description: 'Enable Scalability (only applied when WAF is enabled)'
+        required: false
+        default: 'false'
+        type: string
       EXP:
         description: 'Enable EXP'
         required: false
@@ -85,6 +90,7 @@ jobs:
       resource_group_name: ${{ inputs.resource_group_name }}
       waf_enabled: ${{ inputs.waf_enabled }}
       EXP: ${{ inputs.EXP }}
+      ENABLE_SCALABILITY: ${{ inputs.ENABLE_SCALABILITY }}
       existing_webapp_url: ${{ inputs.existing_webapp_url }}
       run_e2e_tests: ${{ inputs.run_e2e_tests }}
       AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID: ${{ inputs.AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID }}
