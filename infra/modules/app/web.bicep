@@ -70,6 +70,9 @@ param publicNetworkAccess string?
 @description('Optional. Configuration details for private endpoints.')
 param privateEndpoints array = []
 
+@description('Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan.')
+param e2eEncryptionEnabled bool = false
+
 // Import AVM types - not using the imports directly but the types are compatible with the parameters
 
 // Calculate the linuxFxVersion based on runtime or docker settings
@@ -128,6 +131,7 @@ module web '../core/host/appservice.bicep' = {
     virtualNetworkSubnetId: virtualNetworkSubnetId
     publicNetworkAccess: empty(publicNetworkAccess) ? null : publicNetworkAccess
     privateEndpoints: privateEndpoints
+    e2eEncryptionEnabled: e2eEncryptionEnabled
     managedIdentities: {
       systemAssigned: false
       userAssignedResourceIds: [

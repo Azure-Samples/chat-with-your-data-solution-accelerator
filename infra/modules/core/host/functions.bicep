@@ -134,6 +134,9 @@ param diagnosticSettings array = []
 ])
 param publicNetworkAccess string = 'Enabled'
 
+@description('Optional. Enable end-to-end TLS encryption between the front end and worker. Requires Premium v2/v3 or Isolated v2 App Service Plan.')
+param e2eEncryptionEnabled bool = false
+
 var appConfigs = [
   {
     name: 'appsettings'
@@ -205,6 +208,7 @@ module functions 'appservice.bicep' = {
     privateEndpoints: privateEndpoints
     diagnosticSettings: diagnosticSettings
     publicNetworkAccess: publicNetworkAccess
+    e2eEncryptionEnabled: e2eEncryptionEnabled
   }
 }
 
