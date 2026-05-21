@@ -382,6 +382,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   properties: {
     tags: union(existingTags, allTags, {
       TemplateName: 'CWYD'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
       CreatedBy: createdBy
     })
   }
@@ -1530,7 +1531,7 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     tags: allTags
     kind: 'FormRecognizer'
 
-    enablePrivateNetworking: false // Temporary: enabling public access to resolve 403 private endpoint errors
+    enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
     subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
@@ -1581,7 +1582,7 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     tags: allTags
     kind: 'ContentSafety'
 
-    enablePrivateNetworking: false // Temporary: enabling public access to resolve 403 private endpoint errors
+    enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
     subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
