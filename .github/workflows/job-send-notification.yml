@@ -99,17 +99,25 @@ jobs:
           echo "TEST_SUITE_NAME=$TEST_SUITE_NAME" >> $GITHUB_OUTPUT
           echo "Test Suite: $TEST_SUITE_NAME"
 
-      - name: Determine Cleanup Status
+      - name: Determine Cleanup Pill
         id: cleanup
         shell: bash
         env:
           CLEANUP_RESULT: ${{ inputs.cleanup_result }}
         run: |
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
           case "$CLEANUP_RESULT" in
-            success) echo "CLEANUP_STATUS=✅ SUCCESS" >> $GITHUB_OUTPUT ;;
-            failure) echo "CLEANUP_STATUS=❌ FAILED (Needs Manual Cleanup)" >> $GITHUB_OUTPUT ;;
-            *) echo "CLEANUP_STATUS=⏭️ SKIPPED (Needs Manual Cleanup)" >> $GITHUB_OUTPUT ;;
+            success)
+              CLEANUP_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
+              ;;
+            failure)
+              CLEANUP_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
+              ;;
+            *)
+              CLEANUP_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
+              ;;
           esac
+          echo "CLEANUP_PILL=$CLEANUP_PILL" >> $GITHUB_OUTPUT
 
       - name: Determine Configuration Label
         id: config
@@ -122,6 +130,9 @@ jobs:
           EXP_LABEL=$( [ "$EXP" = "true" ] && echo "EXP" || echo "Non-EXP" )
           echo "CONFIG_LABEL=${WAF_LABEL} + ${EXP_LABEL}" >> $GITHUB_OUTPUT
 
+      # ------------------------------------------------------------------
+      # Quota failure
+      # ------------------------------------------------------------------
       - name: Send Quota Failure Notification
         if: inputs.deploy_result == 'failure' && inputs.QUOTA_FAILED == 'true'
         shell: bash
@@ -130,51 +141,156 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
+          CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
         run: |
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment has failed due to insufficient quota.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>❌ FAILED (Insufficient Quota)</td></tr><tr><td>E2E Tests</td><td>⏭️ SKIPPED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please resolve the quota issue and retry the deployment.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] Insufficient Quota"
-          }
-          EOF
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
+          DEPLOY_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
+          E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
+
+          BODY_HTML=$(cat <<HTML
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding:40px 20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+            <tr><td align="center">
+              <table role="presentation" width="800" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <tr><td style="background-color:#ef4444; padding:24px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td><h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700;">Pipeline Failed &mdash; Insufficient Quota</h1>
+                        <p style="margin:6px 0 0; color:rgba(255,255,255,0.9); font-size:13px;">${ACCELERATOR_NAME} Accelerator &bull; CI/CD Automation</p></td>
+                    <td align="right" style="vertical-align:middle;">
+                      <span style="background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:4px; font-size:12px; font-weight:600;">${CONFIG_LABEL}</span>
+                    </td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:32px 40px;">
+                  <p style="color:#374151; font-size:14px; line-height:1.7; margin:0 0 28px;">Dear Team,<br>The <strong>${ACCELERATOR_NAME}</strong> deployment has <span style="color:#dc2626; font-weight:700;">failed due to insufficient quota</span>.</p>
+                  <div style="background:#f8f9fb; border-radius:8px; padding:20px; margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px; color:#1a1a2e; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Status Summary</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">Deployment</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${DEPLOY_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">E2E Tests</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${E2E_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; color:#5f6368;">Cleanup</td><td align="right" style="padding:10px 0;">${CLEANUP_PILL}</td></tr>
+                    </table>
+                  </div>
+                  <div style="background:#fff5f5; border-radius:8px; padding:14px 20px; margin-bottom:24px; border-left:4px solid #ef4444;">
+                    <span style="font-size:13px; color:#742a2a;">Please resolve the quota issue and retry the deployment.</span>
+                  </div>
+                  <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Deployment Details</h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Triggered By</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                  </table>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+                    <a href="${RUN_URL}" style="display:inline-block; background:#dc2626; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">VIEW PIPELINE RUN</a>
+                  </td></tr></table>
+                </td></tr>
+                <tr><td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="font-size:11px; color:#9ca3af;">CI/CD Automation Pipeline</td>
+                    <td align="right" style="font-size:11px; color:#9ca3af;">${ACCELERATOR_NAME} Accelerator</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+          HTML
           )
+          BODY_JSON=$(printf '%s' "$BODY_HTML" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          PAYLOAD="{\"subject\":\"\u274C[CI/CD-Automation] [${ACCELERATOR_NAME}] Insufficient Quota\",\"body\":${BODY_JSON}}"
 
           curl -X POST "${LOGICAPP_URL}" \
             -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send quota failure notification"
+            -d "$PAYLOAD" || echo "Failed to send quota failure notification"
 
+      # ------------------------------------------------------------------
+      # Deployment failure (non-quota)
+      # ------------------------------------------------------------------
       - name: Send Deployment Failure Notification
         if: inputs.deploy_result == 'failure' && inputs.QUOTA_FAILED != 'true'
         shell: bash
         env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
-          CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
+          CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
         run: |
-          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
+          DEPLOY_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
+          E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
 
-          EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment has failed.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>❌ FAILED (Deployment Issue)</td></tr><tr><td>E2E Tests</td><td>⏭️ SKIPPED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}</p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the deployment failure at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] Deployment-Failed"
-          }
-          EOF
+          BODY_HTML=$(cat <<HTML
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding:40px 20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+            <tr><td align="center">
+              <table role="presentation" width="800" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <tr><td style="background-color:#ef4444; padding:24px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td><h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700;">Pipeline Failed</h1>
+                        <p style="margin:6px 0 0; color:rgba(255,255,255,0.9); font-size:13px;">${ACCELERATOR_NAME} Accelerator &bull; CI/CD Automation</p></td>
+                    <td align="right" style="vertical-align:middle;">
+                      <span style="background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:4px; font-size:12px; font-weight:600;">${CONFIG_LABEL}</span>
+                    </td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:32px 40px;">
+                  <p style="color:#374151; font-size:14px; line-height:1.7; margin:0 0 28px;">Dear Team,<br>The <strong>${ACCELERATOR_NAME}</strong> deployment has <span style="color:#dc2626; font-weight:700;">failed</span>. Please investigate at your earliest convenience.</p>
+                  <div style="background:#f8f9fb; border-radius:8px; padding:20px; margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px; color:#1a1a2e; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Status Summary</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">Deployment</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${DEPLOY_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">E2E Tests</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${E2E_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; color:#5f6368;">Cleanup</td><td align="right" style="padding:10px 0;">${CLEANUP_PILL}</td></tr>
+                    </table>
+                  </div>
+                  <div style="background:#fff5f5; border-radius:8px; padding:14px 20px; margin-bottom:24px; border-left:4px solid #ef4444;">
+                    <span style="font-size:13px; color:#742a2a;">Please investigate the deployment failure at your earliest convenience.</span>
+                  </div>
+                  <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Deployment Details</h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Resource Group</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${RESOURCE_GROUP}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                  </table>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+                    <a href="${RUN_URL}" style="display:inline-block; background:#dc2626; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">INVESTIGATE FAILURE</a>
+                  </td></tr></table>
+                </td></tr>
+                <tr><td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="font-size:11px; color:#9ca3af;">CI/CD Automation Pipeline</td>
+                    <td align="right" style="font-size:11px; color:#9ca3af;">${ACCELERATOR_NAME} Accelerator</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+          HTML
           )
+          BODY_JSON=$(printf '%s' "$BODY_HTML" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          PAYLOAD="{\"subject\":\"\u274C[CI/CD-Automation] [${ACCELERATOR_NAME}] Deployment-Failed\",\"body\":${BODY_JSON}}"
 
           curl -X POST "${LOGICAPP_URL}" \
             -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send deployment failure notification"
+            -d "$PAYLOAD" || echo "Failed to send deployment failure notification"
 
+      # ------------------------------------------------------------------
+      # Success (deploy + optional E2E)
+      # ------------------------------------------------------------------
       - name: Send Success Notification
         if: inputs.deploy_result == 'success' && (inputs.e2e_test_result == 'skipped' || inputs.TEST_SUCCESS == 'true')
         shell: bash
         env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
           INPUT_WEB_APPURL: ${{ inputs.WEB_APPURL }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
@@ -182,41 +298,91 @@ jobs:
           INPUT_E2E_TEST_RESULT: ${{ inputs.e2e_test_result }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
-          CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
-          RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
+          CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
-
         run: |
+          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
+          }
           RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          WEBAPP_URL="${INPUT_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}"
-          RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
-          TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
+          WEBAPP_URL="$(html_escape "${INPUT_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}")"
+          RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
+          TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
+          DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
 
           if [ "$INPUT_E2E_TEST_RESULT" = "skipped" ]; then
-            EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment has completed successfully.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>✅ SUCCESS</td></tr><tr><td>E2E Tests</td><td>⏭️ SKIPPED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "✅[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
-          }
-          EOF
-            )
+            E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
+            INTRO="The <strong>${ACCELERATOR_NAME}</strong> deployment has completed successfully."
+            TEST_DETAIL_ROWS=""
           else
-            EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that the ${ACCELERATOR_NAME} deployment and test automation has completed successfully.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>✅ SUCCESS</td></tr><tr><td>E2E Tests</td><td>✅ SUCCESS</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "✅[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
-          }
-          EOF
-            )
+            E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
+            INTRO="The <strong>${ACCELERATOR_NAME}</strong> deployment and test automation has completed successfully."
+            TEST_DETAIL_ROWS="<tr><td style=\"padding:8px 0; font-size:13px; color:#6b7280;\">Test Suite</td><td style=\"padding:8px 0; font-size:13px; color:#111827;\">${TEST_SUITE_NAME}</td></tr><tr><td style=\"padding:8px 0; font-size:13px; color:#6b7280;\">Test Report</td><td style=\"padding:8px 0; font-size:13px;\"><a href=\"${TEST_REPORT_URL}\" style=\"color:#2563eb; text-decoration:none;\">&#x1F4C4; View Report</a></td></tr>"
           fi
+
+          BODY_HTML=$(cat <<HTML
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding:40px 20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+            <tr><td align="center">
+              <table role="presentation" width="800" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <tr><td style="background-color:#10b981; padding:24px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td><h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700;">Pipeline Succeeded</h1>
+                        <p style="margin:6px 0 0; color:rgba(255,255,255,0.9); font-size:13px;">${ACCELERATOR_NAME} Accelerator &bull; CI/CD Automation</p></td>
+                    <td align="right" style="vertical-align:middle;">
+                      <span style="background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:4px; font-size:12px; font-weight:600;">${CONFIG_LABEL}</span>
+                    </td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:32px 40px;">
+                  <p style="color:#374151; font-size:14px; line-height:1.7; margin:0 0 28px;">Dear Team,<br>${INTRO}</p>
+                  <div style="background:#f8f9fb; border-radius:8px; padding:20px; margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px; color:#1a1a2e; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Status Summary</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">Deployment</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${DEPLOY_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">E2E Tests</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${E2E_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; color:#5f6368;">Cleanup</td><td align="right" style="padding:10px 0;">${CLEANUP_PILL}</td></tr>
+                    </table>
+                  </div>
+                  <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Deployment Details</h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Resource Group</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${RESOURCE_GROUP}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Web App URL</td>
+                        <td style="padding:8px 0; font-size:13px;"><a href="${WEBAPP_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${WEBAPP_URL}</a></td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                    ${TEST_DETAIL_ROWS}
+                  </table>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+                    <a href="${RUN_URL}" style="display:inline-block; background:#111827; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">VIEW PIPELINE RUN</a>
+                  </td></tr></table>
+                </td></tr>
+                <tr><td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="font-size:11px; color:#9ca3af;">CI/CD Automation Pipeline</td>
+                    <td align="right" style="font-size:11px; color:#9ca3af;">${ACCELERATOR_NAME} Accelerator</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+          HTML
+          )
+          BODY_JSON=$(printf '%s' "$BODY_HTML" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          PAYLOAD="{\"subject\":\"\u2705[CI/CD-Automation] [${ACCELERATOR_NAME}] Success\",\"body\":${BODY_JSON}}"
 
           curl -X POST "${LOGICAPP_URL}" \
             -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send success notification"
+            -d "$PAYLOAD" || echo "Failed to send success notification"
 
+      # ------------------------------------------------------------------
+      # E2E test failure (deploy succeeded)
+      # ------------------------------------------------------------------
       - name: Send Test Failure Notification
         if: inputs.deploy_result == 'success' && inputs.e2e_test_result != 'skipped' && inputs.TEST_SUCCESS != 'true'
         shell: bash
@@ -226,31 +392,88 @@ jobs:
           INPUT_WEB_APPURL: ${{ inputs.WEB_APPURL }}
           INPUT_EXISTING_WEBAPP_URL: ${{ inputs.existing_webapp_url }}
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}
+          INPUT_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
+          CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
           CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
-          RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
-          INPUT_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
         run: |
-          RUN_URL="https://github.com/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}"
-          TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
-          WEBAPP_URL="${INPUT_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}"
-          RESOURCE_GROUP="$INPUT_RESOURCE_GROUP_NAME"
-
-          EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>We would like to inform you that ${ACCELERATOR_NAME} test automation has failed.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>✅ SUCCESS</td></tr><tr><td>E2E Tests</td><td>❌ FAILED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Deployment Details:</strong><br>• Resource Group: ${RESOURCE_GROUP}<br>• Web App URL: <a href='${WEBAPP_URL}'>${WEBAPP_URL}</a><br>• Test Suite: ${TEST_SUITE_NAME}<br>• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a></p><p><strong>Configuration:</strong> ${CONFIG_LABEL}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Please investigate the matter at your earliest convenience.</p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed"
+          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
           }
-          EOF
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          WEBAPP_URL="$(html_escape "${INPUT_WEB_APPURL:-$INPUT_EXISTING_WEBAPP_URL}")"
+          RESOURCE_GROUP="$(html_escape "$INPUT_RESOURCE_GROUP_NAME")"
+          TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
+          DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
+          E2E_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
+
+          BODY_HTML=$(cat <<HTML
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding:40px 20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+            <tr><td align="center">
+              <table role="presentation" width="800" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <tr><td style="background-color:#ef4444; padding:24px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td><h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700;">E2E Tests Failed</h1>
+                        <p style="margin:6px 0 0; color:rgba(255,255,255,0.9); font-size:13px;">${ACCELERATOR_NAME} Accelerator &bull; CI/CD Automation</p></td>
+                    <td align="right" style="vertical-align:middle;">
+                      <span style="background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:4px; font-size:12px; font-weight:600;">${CONFIG_LABEL}</span>
+                    </td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:32px 40px;">
+                  <p style="color:#374151; font-size:14px; line-height:1.7; margin:0 0 28px;">Dear Team,<br>The <strong>${ACCELERATOR_NAME}</strong> test automation has <span style="color:#dc2626; font-weight:700;">failed</span>. Please investigate at your earliest convenience.</p>
+                  <div style="background:#f8f9fb; border-radius:8px; padding:20px; margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px; color:#1a1a2e; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Status Summary</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">Deployment</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${DEPLOY_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">E2E Tests</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${E2E_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; color:#5f6368;">Cleanup</td><td align="right" style="padding:10px 0;">${CLEANUP_PILL}</td></tr>
+                    </table>
+                  </div>
+                  <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Deployment Details</h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Resource Group</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${RESOURCE_GROUP}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Web App URL</td>
+                        <td style="padding:8px 0; font-size:13px;"><a href="${WEBAPP_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${WEBAPP_URL}</a></td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Suite</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${TEST_SUITE_NAME}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Report</td>
+                        <td style="padding:8px 0; font-size:13px;"><a href="${TEST_REPORT_URL}" style="color:#2563eb; text-decoration:none;">&#x1F4C4; View Report</a></td></tr>
+                  </table>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+                    <a href="${RUN_URL}" style="display:inline-block; background:#dc2626; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">INVESTIGATE FAILURE</a>
+                  </td></tr></table>
+                </td></tr>
+                <tr><td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="font-size:11px; color:#9ca3af;">CI/CD Automation Pipeline</td>
+                    <td align="right" style="font-size:11px; color:#9ca3af;">${ACCELERATOR_NAME} Accelerator</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+          HTML
           )
+          BODY_JSON=$(printf '%s' "$BODY_HTML" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          PAYLOAD="{\"subject\":\"\u274C[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed\",\"body\":${BODY_JSON}}"
 
           curl -X POST "${LOGICAPP_URL}" \
             -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send test failure notification"
+            -d "$PAYLOAD" || echo "Failed to send test failure notification"
 
+      # ------------------------------------------------------------------
+      # Existing URL: success
+      # ------------------------------------------------------------------
       - name: Send Existing URL Success Notification
         if: inputs.deploy_result == 'skipped' && inputs.existing_webapp_url != '' && inputs.e2e_test_result == 'success' && (inputs.TEST_SUCCESS == 'true' || inputs.TEST_SUCCESS == '')
         shell: bash
@@ -261,26 +484,86 @@ jobs:
           INPUT_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
-          RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
+          CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
+          CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          RUN_URL="https://github.com/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}"
-          EXISTING_URL="$INPUT_EXISTING_WEBAPP_URL"
-          TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
-
-          EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>The ${ACCELERATOR_NAME} pipeline executed against the <strong>specified Target URL</strong> and test automation has completed successfully.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>⏭️ SKIPPED (Tests executed on Pre-deployed RG)</td></tr><tr><td>E2E Tests</td><td>✅ SUCCESS</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Test Results:</strong><br>• Test Suite: ${TEST_SUITE_NAME}<br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a></p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "✅[CI/CD-Automation] [${ACCELERATOR_NAME}] Success"
+          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
           }
-          EOF
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          EXISTING_URL="$(html_escape "$INPUT_EXISTING_WEBAPP_URL")"
+          TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
+          DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
+          E2E_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x2705; SUCCESS</span>"
+          if [ -n "$TEST_REPORT_URL" ]; then
+            REPORT_ROW="<tr><td style=\"padding:8px 0; font-size:13px; color:#6b7280;\">Test Report</td><td style=\"padding:8px 0; font-size:13px;\"><a href=\"${TEST_REPORT_URL}\" style=\"color:#2563eb; text-decoration:none;\">&#x1F4C4; View Report</a></td></tr>"
+          else
+            REPORT_ROW=""
+          fi
+
+          BODY_HTML=$(cat <<HTML
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding:40px 20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+            <tr><td align="center">
+              <table role="presentation" width="800" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <tr><td style="background-color:#10b981; padding:24px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td><h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700;">Pipeline Succeeded</h1>
+                        <p style="margin:6px 0 0; color:rgba(255,255,255,0.9); font-size:13px;">${ACCELERATOR_NAME} Accelerator &bull; CI/CD Automation</p></td>
+                    <td align="right" style="vertical-align:middle;">
+                      <span style="background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:4px; font-size:12px; font-weight:600;">${CONFIG_LABEL}</span>
+                    </td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:32px 40px;">
+                  <p style="color:#374151; font-size:14px; line-height:1.7; margin:0 0 28px;">Dear Team,<br>The <strong>${ACCELERATOR_NAME}</strong> pipeline executed against the specified Target URL and test automation has completed successfully.</p>
+                  <div style="background:#f8f9fb; border-radius:8px; padding:20px; margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px; color:#1a1a2e; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Status Summary</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">Deployment</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${DEPLOY_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">E2E Tests</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${E2E_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; color:#5f6368;">Cleanup</td><td align="right" style="padding:10px 0;">${CLEANUP_PILL}</td></tr>
+                    </table>
+                  </div>
+                  <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Test Results</h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Target URL</td>
+                        <td style="padding:8px 0; font-size:13px;"><a href="${EXISTING_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${EXISTING_URL}</a></td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Suite</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${TEST_SUITE_NAME}</td></tr>
+                    ${REPORT_ROW}
+                  </table>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+                    <a href="${RUN_URL}" style="display:inline-block; background:#111827; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">VIEW PIPELINE RUN</a>
+                  </td></tr></table>
+                </td></tr>
+                <tr><td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="font-size:11px; color:#9ca3af;">CI/CD Automation Pipeline</td>
+                    <td align="right" style="font-size:11px; color:#9ca3af;">${ACCELERATOR_NAME} Accelerator</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+          HTML
           )
+          BODY_JSON=$(printf '%s' "$BODY_HTML" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          PAYLOAD="{\"subject\":\"\u2705[CI/CD-Automation] [${ACCELERATOR_NAME}] Success\",\"body\":${BODY_JSON}}"
 
           curl -X POST "${LOGICAPP_URL}" \
             -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send existing URL success notification"
+            -d "$PAYLOAD" || echo "Failed to send existing URL success notification"
 
+      # ------------------------------------------------------------------
+      # Existing URL: test failure
+      # ------------------------------------------------------------------
       - name: Send Existing URL Test Failure Notification
         if: inputs.deploy_result == 'skipped' && inputs.existing_webapp_url != '' && inputs.e2e_test_result == 'failure'
         shell: bash
@@ -291,22 +574,79 @@ jobs:
           INPUT_TEST_REPORT_URL: ${{ inputs.TEST_REPORT_URL }}
           ACCELERATOR_NAME: ${{ env.accelerator_name }}
           LOGICAPP_URL: ${{ secrets.EMAILNOTIFICATION_LOGICAPP_URL_TA }}
-          CLEANUP_STATUS: ${{ steps.cleanup.outputs.CLEANUP_STATUS }}
-          RUN_E2E_TESTS: ${{ env.RUN_E2E_TESTS }}
+          CLEANUP_PILL: ${{ steps.cleanup.outputs.CLEANUP_PILL }}
+          CONFIG_LABEL: ${{ steps.config.outputs.CONFIG_LABEL }}
           TEST_SUITE_NAME: ${{ steps.test_suite.outputs.TEST_SUITE_NAME }}
         run: |
-          RUN_URL="https://github.com/${{ env.GITHUB_REPOSITORY }}/actions/runs/${{ env.GITHUB_RUN_ID }}"
-          EXISTING_URL="$INPUT_EXISTING_WEBAPP_URL"
-          TEST_REPORT_URL="$INPUT_TEST_REPORT_URL"
-
-          EMAIL_BODY=$(cat <<EOF
-          {
-            "body": "<p>Dear Team,</p><p>The ${ACCELERATOR_NAME} pipeline executed against the <strong>specified Target URL</strong> and test automation has failed.</p><p><strong>Status Summary:</strong><br><table border='1' cellpadding='5' cellspacing='0'><tr><th>Stage</th><th>Status</th></tr><tr><td>Deployment</td><td>⏭️ SKIPPED (Tests executed on Pre-deployed RG)</td></tr><tr><td>E2E Tests</td><td>❌ FAILED</td></tr><tr><td>Cleanup</td><td>${CLEANUP_STATUS}</td></tr></table></p><p><strong>Failure Details:</strong><br>• Target URL: <a href='${EXISTING_URL}'>${EXISTING_URL}</a><br>${TEST_REPORT_URL:+• Test Report: <a href='${TEST_REPORT_URL}'>View Report</a>}<br>• Test Suite: ${TEST_SUITE_NAME}</p><p><strong>Run URL:</strong> <a href='${RUN_URL}'>${RUN_URL}</a></p><p>Best regards,<br>Your Automation Team</p>",
-            "subject": "❌[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed"
+          # HTML-escape values that get embedded into the email template to avoid HTML/attribute injection from workflow inputs.
+          html_escape() {
+            printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
           }
-          EOF
+          RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          EXISTING_URL="$(html_escape "$INPUT_EXISTING_WEBAPP_URL")"
+          TEST_REPORT_URL="$(html_escape "$INPUT_TEST_REPORT_URL")"
+          PILL_BASE="display:inline-block; min-width:70px; text-align:center; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; line-height:1.4;"
+          DEPLOY_PILL="<span style=\"${PILL_BASE} background:#d4edda; color:#155724;\">&#x23ED;&#xFE0F; SKIPPED</span>"
+          E2E_PILL="<span style=\"${PILL_BASE} background:#f8d7da; color:#721c24;\">&#x274C; FAILED</span>"
+          if [ -n "$TEST_REPORT_URL" ]; then
+            REPORT_ROW="<tr><td style=\"padding:8px 0; font-size:13px; color:#6b7280;\">Test Report</td><td style=\"padding:8px 0; font-size:13px;\"><a href=\"${TEST_REPORT_URL}\" style=\"color:#2563eb; text-decoration:none;\">&#x1F4C4; View Report</a></td></tr>"
+          else
+            REPORT_ROW=""
+          fi
+
+          BODY_HTML=$(cat <<HTML
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#ffffff; padding:40px 20px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;">
+            <tr><td align="center">
+              <table role="presentation" width="800" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+                <tr><td style="background-color:#ef4444; padding:24px 40px;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td><h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:700;">E2E Tests Failed</h1>
+                        <p style="margin:6px 0 0; color:rgba(255,255,255,0.9); font-size:13px;">${ACCELERATOR_NAME} Accelerator &bull; CI/CD Automation</p></td>
+                    <td align="right" style="vertical-align:middle;">
+                      <span style="background:rgba(255,255,255,0.2); color:#fff; padding:6px 14px; border-radius:4px; font-size:12px; font-weight:600;">${CONFIG_LABEL}</span>
+                    </td>
+                  </tr></table>
+                </td></tr>
+                <tr><td style="padding:32px 40px;">
+                  <p style="color:#374151; font-size:14px; line-height:1.7; margin:0 0 28px;">Dear Team,<br>The <strong>${ACCELERATOR_NAME}</strong> pipeline executed against the specified Target URL and test automation has <span style="color:#dc2626; font-weight:700;">failed</span>.</p>
+                  <div style="background:#f8f9fb; border-radius:8px; padding:20px; margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px; color:#1a1a2e; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Status Summary</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">Deployment</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${DEPLOY_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; border-bottom:1px solid #e8eaed; color:#5f6368;">E2E Tests</td><td align="right" style="padding:10px 0; border-bottom:1px solid #e8eaed;">${E2E_PILL}</td></tr>
+                      <tr><td style="padding:10px 0; color:#5f6368;">Cleanup</td><td align="right" style="padding:10px 0;">${CLEANUP_PILL}</td></tr>
+                    </table>
+                  </div>
+                  <h3 style="margin:0 0 14px; font-size:13px; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; border-bottom:2px solid #e5e7eb; padding-bottom:8px;">Failure Details</h3>
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280; width:140px;">Target URL</td>
+                        <td style="padding:8px 0; font-size:13px;"><a href="${EXISTING_URL}" style="color:#2563eb; text-decoration:none; font-family:'Cascadia Code','Courier New',monospace;">${EXISTING_URL}</a></td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Triggered By</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${{ github.actor }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Branch</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827; font-family:'Cascadia Code','Courier New',monospace;">${{ env.BRANCH_NAME }}</td></tr>
+                    <tr><td style="padding:8px 0; font-size:13px; color:#6b7280;">Test Suite</td>
+                        <td style="padding:8px 0; font-size:13px; color:#111827;">${TEST_SUITE_NAME}</td></tr>
+                    ${REPORT_ROW}
+                  </table>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:8px 0;">
+                    <a href="${RUN_URL}" style="display:inline-block; background:#dc2626; color:#ffffff; text-decoration:none; padding:12px 28px; border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.3px;">INVESTIGATE FAILURE</a>
+                  </td></tr></table>
+                </td></tr>
+                <tr><td style="background:#f9fafb; padding:20px 40px; border-top:1px solid #e5e7eb;">
+                  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="font-size:11px; color:#9ca3af;">CI/CD Automation Pipeline</td>
+                    <td align="right" style="font-size:11px; color:#9ca3af;">${ACCELERATOR_NAME} Accelerator</td>
+                  </tr></table>
+                </td></tr>
+              </table>
+            </td></tr>
+          </table>
+          HTML
           )
+          BODY_JSON=$(printf '%s' "$BODY_HTML" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          PAYLOAD="{\"subject\":\"\u274C[CI/CD-Automation] [${ACCELERATOR_NAME}] E2E Test-Failed\",\"body\":${BODY_JSON}}"
 
           curl -X POST "${LOGICAPP_URL}" \
             -H "Content-Type: application/json" \
-            -d "$EMAIL_BODY" || echo "Failed to send existing URL test failure notification"
+            -d "$PAYLOAD" || echo "Failed to send existing URL test failure notification"
