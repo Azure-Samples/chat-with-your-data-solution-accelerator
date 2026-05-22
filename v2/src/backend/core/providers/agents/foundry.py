@@ -32,7 +32,7 @@ from azure.core.exceptions import AzureError
 
 from backend.core.settings import AppSettings
 
-from . import registry
+from .registry import registry
 from .base import BaseAgentsProvider
 
 logger = logging.getLogger(__name__)

@@ -20,7 +20,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend.core.providers import databases
+from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import DatabaseSettings
 
@@ -31,12 +31,12 @@ def test_registry_keys_match_db_type_literal() -> None:
     A mismatch means either (a) a new backend was registered without
     extending the Literal -- the operator can't select it via env var
     -- or (b) the Literal was extended without a registered client --
-    the lifespan blows up at `databases.create(...)`.
+    the lifespan blows up at `databases_registry.registry.get(...)`.
     """
     literal_values = set(
         get_args(DatabaseSettings.model_fields["db_type"].annotation)
     )
-    registered_keys = set(databases.registry.keys())
+    registered_keys = set(databases_registry.registry.keys())
     assert registered_keys == literal_values, (
         "DatabaseSettings.db_type Literal and databases registry keys "
         f"have drifted. Literal={literal_values!r} "
@@ -55,5 +55,5 @@ def test_create_returns_base_client_subclass(key: str) -> None:
     """
     settings = MagicMock(name="AppSettings")
     credential = MagicMock(name="AsyncTokenCredential")
-    client = databases.create(key, settings=settings, credential=credential)
+    client = databases_registry.registry.get(key)(settings=settings, credential=credential)
     assert isinstance(client, BaseDatabaseClient)

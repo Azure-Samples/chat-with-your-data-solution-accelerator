@@ -76,11 +76,15 @@ def _patched_lifespan(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         "backend.app.llm_registry.registry", fake_llm_registry
     )
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.return_value = lambda **_kw: fake_db
     monkeypatch.setattr(
-        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+        "backend.app.databases_registry.registry", fake_databases_registry
     )
+    fake_agents_registry = MagicMock(name="agents_registry")
+    fake_agents_registry.get.return_value = lambda **_kw: fake_agents
     monkeypatch.setattr(
-        "backend.app.agents.create", lambda *_a, **_kw: fake_agents
+        "backend.app.agents_registry.registry", fake_agents_registry
     )
     return fake_credential
 
@@ -141,17 +145,25 @@ async def test_lifespan_constructs_database_client_and_closes_on_shutdown(
 
     captured: dict[str, object] = {}
 
-    def _capture_create(key, **kwargs):
+    def _capture_get(key):
         captured["key"] = key
-        captured["settings"] = kwargs.get("settings")
-        captured["credential"] = kwargs.get("credential")
-        client = MagicMock(name="database_client")
-        client.aclose = AsyncMock()
-        client.get_runtime_config = AsyncMock(return_value=None)
-        captured["client"] = client
-        return client
 
-    monkeypatch.setattr("backend.app.databases.create", _capture_create)
+        def _factory(**kwargs):
+            captured["settings"] = kwargs.get("settings")
+            captured["credential"] = kwargs.get("credential")
+            client = MagicMock(name="database_client")
+            client.aclose = AsyncMock()
+            client.get_runtime_config = AsyncMock(return_value=None)
+            captured["client"] = client
+            return client
+
+        return _factory
+
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.side_effect = _capture_get
+    monkeypatch.setattr(
+        "backend.app.databases_registry.registry", fake_databases_registry
+    )
 
     app = create_app()
     async with app.router.lifespan_context(app):
@@ -166,7 +178,7 @@ async def test_lifespan_constructs_database_client_and_closes_on_shutdown(
 async def test_lifespan_dispatches_postgresql_db_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When db_type=postgresql, lifespan calls databases.create('postgresql', ...)."""
+    """When db_type=postgresql, lifespan dispatches to the 'postgresql' registry key."""
     env = {
         **COSMOS_ENV,
         "AZURE_DB_TYPE": "postgresql",
@@ -181,15 +193,23 @@ async def test_lifespan_dispatches_postgresql_db_type(
 
     captured_key: dict[str, object] = {}
 
-    def _capture(key, **_kw):
+    def _capture_get(key):
         captured_key["key"] = key
-        client = MagicMock()
-        client.aclose = AsyncMock()
-        client.ensure_pool = AsyncMock(return_value=MagicMock(name="pool"))
-        client.get_runtime_config = AsyncMock(return_value=None)
-        return client
 
-    monkeypatch.setattr("backend.app.databases.create", _capture)
+        def _factory(**_kw):
+            client = MagicMock()
+            client.aclose = AsyncMock()
+            client.ensure_pool = AsyncMock(return_value=MagicMock(name="pool"))
+            client.get_runtime_config = AsyncMock(return_value=None)
+            return client
+
+        return _factory
+
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.side_effect = _capture_get
+    monkeypatch.setattr(
+        "backend.app.databases_registry.registry", fake_databases_registry
+    )
     monkeypatch.setattr(
         "backend.app.search.create",
         lambda *_a, **_kw: MagicMock(aclose=AsyncMock()),
@@ -229,8 +249,10 @@ async def test_lifespan_wires_pgvector_with_postgres_pool(
     fake_db.aclose = AsyncMock()
     fake_db.ensure_pool = AsyncMock(return_value=fake_pool)
     fake_db.get_runtime_config = AsyncMock(return_value=None)
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.return_value = lambda **_kw: fake_db
     monkeypatch.setattr(
-        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+        "backend.app.databases_registry.registry", fake_databases_registry
     )
 
     fake_search = MagicMock(name="pgvector_provider")
@@ -281,8 +303,10 @@ async def test_lifespan_pgvector_does_not_require_search_endpoint(
     fake_db.aclose = AsyncMock()
     fake_db.ensure_pool = AsyncMock(return_value=MagicMock())
     fake_db.get_runtime_config = AsyncMock(return_value=None)
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.return_value = lambda **_kw: fake_db
     monkeypatch.setattr(
-        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+        "backend.app.databases_registry.registry", fake_databases_registry
     )
 
     fake_search = MagicMock()
@@ -459,13 +483,19 @@ async def test_lifespan_constructs_agents_provider_via_registry(
     fake_agents = MagicMock(name="agents_provider")
     fake_agents.aclose = AsyncMock()
 
-    def _capture(key, **kwargs):
+    def _capture_get(key):
         captured["key"] = key
-        captured["settings"] = kwargs.get("settings")
-        captured["credential"] = kwargs.get("credential")
-        return fake_agents
 
-    monkeypatch.setattr("backend.app.agents.create", _capture)
+        def _factory(**kwargs):
+            captured["settings"] = kwargs.get("settings")
+            captured["credential"] = kwargs.get("credential")
+            return fake_agents
+
+        return _factory
+
+    fake_agents_registry = MagicMock(name="agents_registry")
+    fake_agents_registry.get.side_effect = _capture_get
+    monkeypatch.setattr("backend.app.agents_registry.registry", fake_agents_registry)
 
     app = create_app()
     async with app.router.lifespan_context(app):
@@ -491,8 +521,10 @@ async def test_lifespan_closes_agents_provider_on_shutdown(
 
     fake_agents = MagicMock(name="agents_provider")
     fake_agents.aclose = AsyncMock()
+    fake_agents_registry = MagicMock(name="agents_registry")
+    fake_agents_registry.get.return_value = lambda **_kw: fake_agents
     monkeypatch.setattr(
-        "backend.app.agents.create", lambda *_a, **_kw: fake_agents
+        "backend.app.agents_registry.registry", fake_agents_registry
     )
 
     app = create_app()
@@ -535,8 +567,10 @@ async def test_lifespan_loads_persisted_runtime_overrides_into_app_state(
     fake_db = MagicMock(name="database_client")
     fake_db.aclose = AsyncMock()
     fake_db.get_runtime_config = AsyncMock(return_value=persisted)
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.return_value = lambda **_kw: fake_db
     monkeypatch.setattr(
-        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+        "backend.app.databases_registry.registry", fake_databases_registry
     )
 
     app = create_app()

@@ -29,8 +29,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.routers import conversation, health, history, speech
-from backend.core.providers import agents, databases, search
+from backend.core.providers import search
+from backend.core.providers.agents import registry as agents_registry
 from backend.core.providers.credentials import registry as credentials_registry
+from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.llm import registry as llm_registry
 from backend.core.settings import NetworkSettings, get_settings
 
@@ -68,8 +70,8 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # the first `get_client()` call), so the `langgraph` orchestrator
     # incurs zero overhead. Registry-only dispatch (Hard Rule #4); the
     # only key today is `"foundry"`.
-    agents_provider = agents.create(
-        "foundry", settings=settings, credential=credential
+    agents_provider = agents_registry.registry.get("foundry")(
+        settings=settings, credential=credential
     )
 
     app.state.credential_provider = cred_provider
@@ -86,8 +88,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # key matches the `Literal` value of `settings.database.db_type`
     # (`cosmosdb` / `postgresql`) so dispatch is registry-only
     # (Hard Rule #4).
-    database_client = databases.create(
-        settings.database.db_type,
+    database_client = databases_registry.registry.get(settings.database.db_type)(
         settings=settings,
         credential=credential,
     )

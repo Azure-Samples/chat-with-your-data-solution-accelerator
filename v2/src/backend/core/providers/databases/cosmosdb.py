@@ -53,7 +53,7 @@ from backend.core.types import (
     RuntimeConfig,
 )
 
-from . import registry
+from .registry import registry
 from .base import BaseDatabaseClient
 
 logger = logging.getLogger(__name__)

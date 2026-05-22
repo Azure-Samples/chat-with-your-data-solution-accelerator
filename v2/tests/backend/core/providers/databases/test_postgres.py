@@ -18,7 +18,7 @@ import uuid
 import asyncpg
 import pytest
 
-from backend.core.providers import databases
+from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.databases.postgres import PostgresClient
 from backend.core.settings import AppSettings, DatabaseSettings
 from backend.core.types import ChatMessage
@@ -129,10 +129,10 @@ _MID = "22222222-2222-2222-2222-222222222222"
 
 def test_postgres_registers_under_expected_key() -> None:
     # Key must equal `settings.database.db_type` Literal value so
-    # `databases.create(db_type, ...)` works without name-mapping
+    # `databases_registry.registry.get(db_type)(...)` works without name-mapping
     # (Hard Rule #4: no if/elif over provider keys).
-    assert "postgresql" in databases.registry.keys()
-    assert databases.registry.get("postgresql") is PostgresClient
+    assert "postgresql" in databases_registry.registry.keys()
+    assert databases_registry.registry.get("postgresql") is PostgresClient
 
 
 # ---------------------------------------------------------------------------

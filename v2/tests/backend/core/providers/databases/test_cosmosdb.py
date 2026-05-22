@@ -20,7 +20,7 @@ from azure.cosmos.exceptions import (
     CosmosResourceNotFoundError,
 )
 
-from backend.core.providers import databases
+from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.databases.cosmosdb import CosmosDBClient
 from backend.core.settings import AppSettings, DatabaseSettings
 from backend.core.types import ChatMessage
@@ -89,8 +89,8 @@ def _make_client(
 
 
 def test_cosmosdb_registers_under_expected_key() -> None:
-    assert "cosmosdb" in databases.registry.keys()
-    assert databases.registry.get("cosmosdb") is CosmosDBClient
+    assert "cosmosdb" in databases_registry.registry.keys()
+    assert databases_registry.registry.get("cosmosdb") is CosmosDBClient
 
 
 # ---------------------------------------------------------------------------

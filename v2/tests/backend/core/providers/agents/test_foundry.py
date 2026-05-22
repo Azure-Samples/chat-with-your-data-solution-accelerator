@@ -20,7 +20,7 @@ import logging
 import pytest
 from azure.core.exceptions import AzureError
 
-from backend.core.providers import agents
+from backend.core.providers.agents import registry as agents_registry
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.agents.foundry import FoundryAgentsProvider
 
@@ -52,19 +52,19 @@ def test_foundry_provider_registered_under_foundry_key() -> None:
     """The registry entry is the public swap-in point. Any rename is a
     breaking config change for every operator's `.env`/Bicep output.
     """
-    assert agents.registry.get("foundry") is FoundryAgentsProvider
+    assert agents_registry.registry.get("foundry") is FoundryAgentsProvider
 
 
 def test_create_returns_base_agents_provider_subclass(
     fake_settings: MagicMock, fake_credential: MagicMock
 ) -> None:
-    """`agents.create(...)` is the only legitimate construction path
-    (Hard Rule #4); it must yield a `BaseAgentsProvider` so the lifespan
+    """`agents_registry.registry.get(...)` is the only legitimate construction path
+    (Hard Rule #4 + #13); it must yield a `BaseAgentsProvider` so the lifespan
     can call `aclose()` and the router can fetch the client via
     `get_client()`.
     """
-    provider = agents.create(
-        "foundry", settings=fake_settings, credential=fake_credential
+    provider = agents_registry.registry.get("foundry")(
+        settings=fake_settings, credential=fake_credential
     )
     assert isinstance(provider, BaseAgentsProvider)
     assert isinstance(provider, FoundryAgentsProvider)
