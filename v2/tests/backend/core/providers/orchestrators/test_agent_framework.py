@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend.core.providers import orchestrators
+from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
 from backend.core.settings import AppSettings
@@ -89,15 +89,14 @@ def _make_orchestrator(
 
 
 def test_agent_framework_is_registered() -> None:
-    assert "agent_framework" in orchestrators.registry.keys()
+    assert "agent_framework" in orchestrators_registry.registry.keys()
     assert (
-        orchestrators.registry.get("agent_framework") is AgentFrameworkOrchestrator
+        orchestrators_registry.registry.get("agent_framework") is AgentFrameworkOrchestrator
     )
 
 
 def test_create_returns_agent_framework_instance() -> None:
-    orch = orchestrators.create(
-        "agent_framework",
+    orch = orchestrators_registry.registry.get("agent_framework")(
         settings=MagicMock(spec=AppSettings),
         llm=MagicMock(spec=BaseLLMProvider),
         agents_client=_make_agents_client(),

@@ -43,7 +43,7 @@ from azure.search.documents.models import (
 from backend.core.settings import AppSettings
 from backend.core.types import SearchResult
 
-from . import registry
+from .registry import registry
 from .base import BaseSearch
 
 

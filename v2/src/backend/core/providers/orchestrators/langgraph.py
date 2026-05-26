@@ -14,7 +14,7 @@ LLM-layer factory ``BaseLLMProvider.complete()`` (CU-004a) already
 auto-routes between ``chat()`` and ``reason()`` so the orchestrator
 never has to branch on model class.
 
-``run()`` calls ``self._llm.complete(...)`` directly, propagates
+``run()`` calls ``self.llm.complete(...)`` directly, propagates
 ``reasoning`` / ``error`` events to the SSE channel as they arrive,
 accumulates ``answer`` chunks into a single buffered event (ADR 0007
 single-answer contract preserved), then emits ``citation`` events for
@@ -51,7 +51,7 @@ from backend.core.tools.citations import (
 )
 from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
-from . import registry
+from .registry import registry
 from .base import OrchestratorBase
 
 
@@ -102,7 +102,7 @@ class LangGraphOrchestrator(OrchestratorBase):
         return graph.compile()
 
     async def _llm_node(self, state: _GraphState) -> _GraphState:
-        reply = await self._llm.chat(state["messages"])
+        reply = await self.llm.chat(state["messages"])
         # Return only the delta -- the `operator.add` reducer on
         # `messages` appends it to the existing log.
         return {"messages": [reply]}
@@ -150,7 +150,7 @@ class LangGraphOrchestrator(OrchestratorBase):
         # task #20 (tool-node wiring) reintroduces it for tool routing.
         answer_parts: list[str] = []
         saw_error = False
-        async for event in self._llm.complete(graph_messages):
+        async for event in self.llm.complete(graph_messages):
             if event.channel == OrchestratorChannel.ANSWER:
                 answer_parts.append(event.content)
             elif event.channel == OrchestratorChannel.ERROR:

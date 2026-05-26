@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend.core.providers import search
+from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.pgvector import PgVector, _format_vector_literal
 from backend.core.settings import AppSettings, DatabaseSettings, SearchSettings
 
@@ -58,9 +58,9 @@ def _row(
 
 def test_pgvector_registers_under_index_store_literal_lowercase() -> None:
     # Key must equal `settings.database.index_store.lower()` so
-    # search.create() dispatches via registry alone (Hard Rule #4).
-    assert "pgvector" in search.registry.keys()
-    assert search.registry.get("pgvector") is PgVector
+    # search registry dispatches via Hard Rule #4 (no name-mapping).
+    assert "pgvector" in search_registry.registry.keys()
+    assert search_registry.registry.get("pgvector") is PgVector
 
 
 def test_format_vector_literal_emits_pgvector_text_form() -> None:
@@ -161,8 +161,7 @@ async def test_aclose_does_not_close_injected_pool() -> None:
 
 def test_search_create_returns_pgvector_instance_via_registry() -> None:
     pool = _make_pool([])
-    provider = search.create(
-        "pgvector",
+    provider = search_registry.registry.get("pgvector")(
         settings=_make_settings(),
         credential=AsyncMock(),
         pool=pool,

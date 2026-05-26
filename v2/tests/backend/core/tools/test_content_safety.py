@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend.core.agents import RAI_AGENT
+from backend.core.agents.definitions import RAI_AGENT
 from backend.core.tools.content_safety import (
     DEFAULT_SEVERITY_THRESHOLD,
     ContentSafetyGuard,

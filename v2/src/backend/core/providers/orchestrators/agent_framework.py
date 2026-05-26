@@ -48,7 +48,7 @@ from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.settings import AppSettings
 from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
-from . import registry
+from .registry import registry
 from .base import OrchestratorBase
 
 

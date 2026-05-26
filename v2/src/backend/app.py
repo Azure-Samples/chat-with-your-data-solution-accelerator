@@ -29,11 +29,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.routers import conversation, health, history, speech
-from backend.core.providers import search
 from backend.core.providers.agents import registry as agents_registry
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.llm import registry as llm_registry
+from backend.core.providers.search import registry as search_registry
 from backend.core.settings import NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             search_kwargs["pool"] = (
                 await database_client.ensure_pool()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
             )
-        search_provider = search.create(search_key, **search_kwargs)
+        search_provider = search_registry.registry.get(search_key)(**search_kwargs)
         logger.info("Search provider ready (%s).", search_key)
     app.state.search_provider = search_provider
 

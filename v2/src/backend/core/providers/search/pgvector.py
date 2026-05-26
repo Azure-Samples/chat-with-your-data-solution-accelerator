@@ -36,7 +36,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 from backend.core.settings import AppSettings
 from backend.core.types import SearchResult
 
-from . import registry
+from .registry import registry
 from .base import BaseSearch
 
 

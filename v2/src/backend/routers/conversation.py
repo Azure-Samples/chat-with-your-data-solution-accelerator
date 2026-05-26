@@ -15,7 +15,7 @@ Two response modes, content-negotiated by the ``Accept`` header:
   (:class:`backend.models.conversation.ConversationResponse`) with the
   concatenated answer plus deduplicated citations.
 
-Orchestrator dispatch goes through ``orchestrators.create(...)`` per
+Orchestrator dispatch goes through the ``orchestrators`` registry per
 ADR 0001 / Hard Rule #4 — *no ``if/elif`` over orchestrator names in
 this module*. The orchestrator stream is wrapped by
 ``pipelines.chat.run_chat`` (#22b), which gives us the seam to plug
@@ -39,9 +39,9 @@ from backend.dependencies import (
     SettingsDep,
 )
 from backend.models.conversation import ConversationRequest, ConversationResponse
-from backend.core.agents import CWYD_AGENT
+from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.pipelines.chat import run_chat
-from backend.core.providers import orchestrators
+from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.types import Citation, OrchestratorChannel, OrchestratorEvent
 
 logger = logging.getLogger(__name__)
@@ -142,18 +142,20 @@ async def conversation(
     #
     # Hard Rule #4 nuance: the `if name == "agent_framework"` check
     # below is *kwarg preparation*, not orchestrator dispatch.
-    # `orchestrators.create(...)` remains the single registry-keyed
-    # factory call -- the router never has a chain of `if/elif` that
-    # *constructs* different orchestrator instances per name. The
-    # invariant is enforced by `test_router_uses_registry_dispatch_
-    # no_hardcoded_provider_names` (asserts exactly one
-    # `orchestrators.create(` call site).
+    # `orchestrators_registry.registry.get(...)` remains the single
+    # registry-keyed factory call -- the router never has a chain of
+    # `if/elif` that *constructs* different orchestrator instances
+    # per name. The invariant is enforced by
+    # `test_router_uses_registry_dispatch_no_hardcoded_provider_names`
+    # (asserts exactly one `orchestrators_registry.registry.get(`
+    # call site).
     agent_id = ""
     if settings.orchestrator.name == "agent_framework":
         agent_id = await agents.get_or_create_agent(CWYD_AGENT, db)
 
-    orchestrator = orchestrators.create(
-        settings.orchestrator.name,
+    orchestrator = orchestrators_registry.registry.get(
+        settings.orchestrator.name
+    )(
         settings=settings,
         llm=llm,
         search=search,

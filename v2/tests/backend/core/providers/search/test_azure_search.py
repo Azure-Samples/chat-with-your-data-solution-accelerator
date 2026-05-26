@@ -15,7 +15,7 @@ from azure.core.exceptions import (
     ServiceRequestError,
 )
 
-from backend.core.providers import search
+from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.azure_search import AzureSearch
 from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings, get_settings
@@ -73,16 +73,15 @@ def test_azure_search_is_registered() -> None:
     # Registry is case-insensitive; the registration key is the
     # `settings.database.index_store` Literal value "AzureSearch"
     # (Hard Rule #4 -- registry key matches settings Literal).
-    assert "azuresearch" in search.registry.keys()
-    assert search.registry.get("AzureSearch") is AzureSearch
+    assert "azuresearch" in search_registry.registry.keys()
+    assert search_registry.registry.get("AzureSearch") is AzureSearch
 
 
 def test_search_create_returns_azure_search_instance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = _settings_for_search(monkeypatch)
-    handler = search.create(
-        "AzureSearch",
+    handler = search_registry.registry.get("AzureSearch")(
         settings=settings,
         credential=MagicMock(),
         client=_make_client(),

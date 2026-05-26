@@ -19,7 +19,7 @@ Validates:
 import pytest
 from pydantic import ValidationError
 
-from backend.core.agents import (
+from backend.core.agents.definitions import (
     BUILTIN_AGENTS,
     CWYD_AGENT,
     RAI_AGENT,

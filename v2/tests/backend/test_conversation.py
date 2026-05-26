@@ -13,8 +13,8 @@ from backend.dependencies import (
     get_database_client,
     get_llm_provider,
 )
-from backend.core.agents import CWYD_AGENT
-from backend.core.providers import orchestrators
+from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.orchestrators.base import OrchestratorBase
 from backend.core.types import ChatMessage, OrchestratorEvent
 
@@ -76,8 +76,9 @@ class _FakeAgentsProvider:
     """Stand-in for `FoundryAgentsProvider` in router tests.
 
     `get_client()` returns a sentinel object so we can assert the
-    router forwards the *exact* client instance into
-    `orchestrators.create(...)` (CU-001d).
+    router forwards the *exact* client instance into the
+    ``orchestrators_registry.registry.get(...)(...)`` dispatch call
+    (CU-001d).
 
     `get_or_create_agent()` is the CU-010c lazy resolver seam --
     CU-010d wires the router to call it on the `agent_framework`
@@ -116,8 +117,8 @@ class _FakeDatabaseClient:
 @pytest.fixture
 def app_with_fakes(monkeypatch: pytest.MonkeyPatch):
     """Build the app, register fakes in the orchestrator registry, and DI-override settings + llm + agents."""
-    monkeypatch.setitem(orchestrators.registry._items, "fake", _FakeOrchestrator)
-    monkeypatch.setitem(orchestrators.registry._items, "boom", _BoomOrchestrator)
+    monkeypatch.setitem(orchestrators_registry.registry._items, "fake", _FakeOrchestrator)
+    monkeypatch.setitem(orchestrators_registry.registry._items, "boom", _BoomOrchestrator)
 
     app = create_app()
     app.dependency_overrides[get_app_settings] = lambda: _FakeSettings()
@@ -270,10 +271,11 @@ async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> No
     ``if settings.orchestrator.name == "agent_framework"`` check, but
     that's *kwarg preparation* for the lazy agent-id resolver, not
     dispatch (the resolved id is then passed into the same single
-    ``orchestrators.create(...)`` call). The Hard Rule #4 invariant
-    is that orchestrator *construction* is registry-keyed -- so the
-    test asserts there is exactly one ``orchestrators.create(...)``
-    *call site* (AST-counted, ignoring docstrings + comments).
+    ``orchestrators_registry.registry.get(...)(...)`` call). The Hard
+    Rule #4 invariant is that orchestrator *construction* is
+    registry-keyed -- so the test asserts there is exactly one
+    ``orchestrators_registry.registry.get(...)`` *call site*
+    (AST-counted, ignoring docstrings + comments).
     """
     import ast
     import inspect
@@ -283,22 +285,27 @@ async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> No
     src = inspect.getsource(conv_module)
     tree = ast.parse(src)
 
-    create_calls = 0
+    get_calls = 0
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
+        # Match `orchestrators_registry.registry.get(...)` -- an
+        # `Attribute(value=Attribute(value=Name("orchestrators_registry"),
+        # attr="registry"), attr="get")`.
         if (
             isinstance(func, ast.Attribute)
-            and func.attr == "create"
-            and isinstance(func.value, ast.Name)
-            and func.value.id == "orchestrators"
+            and func.attr == "get"
+            and isinstance(func.value, ast.Attribute)
+            and func.value.attr == "registry"
+            and isinstance(func.value.value, ast.Name)
+            and func.value.value.id == "orchestrators_registry"
         ):
-            create_calls += 1
+            get_calls += 1
 
-    assert create_calls == 1, (
-        "router must dispatch through `orchestrators.create(...)` exactly "
-        f"once -- found {create_calls} call sites; a parallel `if/elif` "
+    assert get_calls == 1, (
+        "router must dispatch through `orchestrators_registry.registry.get(...)` "
+        f"exactly once -- found {get_calls} call sites; a parallel `if/elif` "
         "chain constructing orchestrators by name is forbidden (Hard Rule #4)"
     )
 
@@ -350,7 +357,8 @@ async def test_router_forwards_agents_client_and_agent_id_to_orchestrator(
 ) -> None:
     """Router must (a) call `agents_provider.get_client()` and pass the
     returned client as `agents_client=`, and (b) forward an `agent_id`
-    kwarg *uniformly* into `orchestrators.create(...)` so dispatch
+    kwarg *uniformly* into ``orchestrators_registry.registry.get(name)(...)``
+    so dispatch
     stays name-free (Hard Rule #4).
 
     CU-009b (2026-05-05): the kwarg value is now an empty literal
@@ -403,12 +411,13 @@ async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
     """
     monkeypatched_keys = ["langgraph", "agent_framework"]
     # Re-register both real keys against the fake so the router's
-    # `orchestrators.create(name, ...)` resolves without hitting the
+    # ``orchestrators_registry.registry.get(name)(...)`` resolves
+    # without hitting the
     # real implementations (which would need an Azure transport).
     # `monkeypatch.setitem` restores the originals on test teardown.
     for name in monkeypatched_keys:
         monkeypatch.setitem(
-            orchestrators.registry._items, name, _FakeOrchestrator
+            orchestrators_registry.registry._items, name, _FakeOrchestrator
         )
 
     sentinel_client = object()
@@ -469,7 +478,7 @@ async def test_agent_framework_branch_resolves_agent_id_via_provider(
     exactly once and forward the resolved id as the `agent_id` kwarg.
     """
     monkeypatch.setitem(
-        orchestrators.registry._items, "agent_framework", _FakeOrchestrator
+        orchestrators_registry.registry._items, "agent_framework", _FakeOrchestrator
     )
 
     fake_provider = _FakeAgentsProvider(agent_id_to_return="asst_resolved_123")
@@ -536,7 +545,7 @@ async def test_resolver_receives_cwyd_definition_and_database_client(
     DI'd database client *instance* (identity check).
     """
     monkeypatch.setitem(
-        orchestrators.registry._items, "agent_framework", _FakeOrchestrator
+        orchestrators_registry.registry._items, "agent_framework", _FakeOrchestrator
     )
 
     fake_provider = _FakeAgentsProvider()

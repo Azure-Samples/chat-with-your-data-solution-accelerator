@@ -34,7 +34,7 @@ from azure.ai.contentsafety.aio import ContentSafetyClient
 from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
 from pydantic import BaseModel, Field
 
-from backend.core.agents import RAI_AGENT
+from backend.core.agents.definitions import RAI_AGENT
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 
