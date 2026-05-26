@@ -215,3 +215,14 @@ async def test_unexpected_exception_in_execute_reraises_safety_net(
     assert record.exc_info is not None
     assert record.operation == "batch_push"  # type: ignore[attr-defined]
     assert record.trigger == "queue"  # type: ignore[attr-defined]
+
+
+def test_batch_push_route_registered_on_app() -> None:
+    # Importing function_app must register the batch_push blueprint.
+    from functions.function_app import app
+
+    function_names = {fb._function._name for fb in app._function_builders}  # type: ignore[attr-defined]
+    assert "batch_push" in function_names
+    # Regression: previously registered routes still present.
+    assert "batch_start" in function_names
+    assert "health" in function_names

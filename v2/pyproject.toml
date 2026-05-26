@@ -79,6 +79,20 @@ prerelease = "if-necessary-or-explicit"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# Import mode is `importlib` (not the legacy `prepend`) so test modules are
+# loaded under their full dotted package path. This is what lets the modular
+# blueprint tree work: `tests.functions.batch_start.test_blueprint` and
+# `tests.functions.batch_push.test_blueprint` co-exist with identical
+# basenames because pytest sees them as different fully-qualified modules.
+# Default `prepend` mode would crash on import because it only inserts the
+# test file's directory on sys.path and imports by basename. See pytest docs
+# https://docs.pytest.org/en/stable/explanation/pythonpath.html#import-modes
+# Locked-in 2026-05-26 as the scaling strategy for every future Phase-6
+# Functions blueprint (add_url, search_skill, …) so each new blueprint can
+# drop `tests/functions/<name>/test_blueprint.py` without renames or new
+# `__init__.py` markers. Note: pytest 9 only recognises the import-mode flag
+# via `addopts` (the bare `import_mode` ini key is rejected as unknown).
+addopts = "--import-mode=importlib"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
