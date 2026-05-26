@@ -347,6 +347,7 @@ var registryName = 'cwydcontainerreg' // Update Registry name
 
 var openAIFunctionsSystemPrompt = '''You help employees to navigate only private information sources.
     You must prioritize the function call over your general knowledge for any question by calling the search_documents function.
+    For greetings or general small talk (e.g., "hi", "hello", "how are you"), reply directly and naturally without calling any function.
     Call the text_processing function when the user request an operation on the current context, such as translate, summarize, or paraphrase. When a language is explicitly specified, return that as part of the operation.
     When directly replying to the user, always reply in the language the user is speaking.
     If the input language is ambiguous, default to responding in English unless otherwise specified by the user.
@@ -382,6 +383,7 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
   properties: {
     tags: union(existingTags, allTags, {
       TemplateName: 'CWYD'
+      Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
       CreatedBy: createdBy
     })
   }
@@ -526,6 +528,18 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
       }
     }
     encryptionAtHost: false // Some Azure subscriptions do not support encryption at host
+
+    extensionMonitoringAgentConfig: enableMonitoring
+      ? {
+          enabled: true
+          dataCollectionRuleAssociations: [
+            {
+              name: 'dcra-${jumpboxVmName}-security'
+              dataCollectionRuleResourceId: jumpboxSecurityDcr!.outputs.resourceId
+            }
+          ]
+        }
+      : { enabled: false }
     nicConfigurations: [
       {
         name: 'nic-${jumpboxVmName}'
@@ -556,6 +570,123 @@ module jumpboxVM 'br/public:avm/res/compute/virtual-machine:0.15.0' = if (enable
       }
     ]
     enableTelemetry: enableTelemetry
+  }
+}
+
+// Data Collection Rule for jumpbox VM: Windows security audit events + performance counters.
+var jumpboxDcrName = 'dcr-${jumpboxVmName}-security'
+var dcrLogAnalyticsDestinationName = 'la-${jumpboxVmName}-destination'
+module jumpboxSecurityDcr 'br/public:avm/res/insights/data-collection-rule:0.11.0' = if (enablePrivateNetworking && enableMonitoring) {
+  name: take('avm.res.insights.data-collection-rule.${jumpboxDcrName}', 64)
+  params: {
+    name: jumpboxDcrName
+    location: location
+    tags: tags
+    enableTelemetry: enableTelemetry
+    dataCollectionRuleProperties: {
+      kind: 'Windows'
+      dataSources: {
+        windowsEventLogs: [
+          {
+            name: 'securityEvents'
+            streams: [
+              'Microsoft-Event'
+            ]
+            xPathQueries: [
+              // Audit Success (0x0020000000000000) + Audit Failure (0x0010000000000000) = 13510798882111488
+              'Security!*[System[(band(Keywords,13510798882111488))]]'
+            ]
+          }
+        ]
+        performanceCounters: [
+          {
+            name: 'perfCounterDataSource60'
+            streams: [
+              'Microsoft-Perf'
+            ]
+            samplingFrequencyInSeconds: 60
+            counterSpecifiers: [
+              '\\Processor Information(_Total)\\% Processor Time'
+              '\\Processor Information(_Total)\\% Privileged Time'
+              '\\Processor Information(_Total)\\% User Time'
+              '\\Processor Information(_Total)\\Processor Frequency'
+              '\\System\\Processes'
+              '\\Process(_Total)\\Thread Count'
+              '\\Process(_Total)\\Handle Count'
+              '\\System\\System Up Time'
+              '\\System\\Context Switches/sec'
+              '\\System\\Processor Queue Length'
+              '\\Memory\\% Committed Bytes In Use'
+              '\\Memory\\Available Bytes'
+              '\\Memory\\Committed Bytes'
+              '\\Memory\\Cache Bytes'
+              '\\Memory\\Pool Paged Bytes'
+              '\\Memory\\Pool Nonpaged Bytes'
+              '\\Memory\\Pages/sec'
+              '\\Memory\\Page Faults/sec'
+              '\\Process(_Total)\\Working Set'
+              '\\Process(_Total)\\Working Set - Private'
+              '\\LogicalDisk(_Total)\\% Disk Time'
+              '\\LogicalDisk(_Total)\\% Disk Read Time'
+              '\\LogicalDisk(_Total)\\% Disk Write Time'
+              '\\LogicalDisk(_Total)\\% Idle Time'
+              '\\LogicalDisk(_Total)\\Disk Bytes/sec'
+              '\\LogicalDisk(_Total)\\Disk Read Bytes/sec'
+              '\\LogicalDisk(_Total)\\Disk Write Bytes/sec'
+              '\\LogicalDisk(_Total)\\Disk Transfers/sec'
+              '\\LogicalDisk(_Total)\\Disk Reads/sec'
+              '\\LogicalDisk(_Total)\\Disk Writes/sec'
+              '\\LogicalDisk(_Total)\\Avg. Disk sec/Transfer'
+              '\\LogicalDisk(_Total)\\Avg. Disk sec/Read'
+              '\\LogicalDisk(_Total)\\Avg. Disk sec/Write'
+              '\\LogicalDisk(_Total)\\Avg. Disk Queue Length'
+              '\\LogicalDisk(_Total)\\Avg. Disk Read Queue Length'
+              '\\LogicalDisk(_Total)\\Avg. Disk Write Queue Length'
+              '\\LogicalDisk(_Total)\\% Free Space'
+              '\\LogicalDisk(_Total)\\Free Megabytes'
+              '\\Network Interface(*)\\Bytes Total/sec'
+              '\\Network Interface(*)\\Bytes Sent/sec'
+              '\\Network Interface(*)\\Bytes Received/sec'
+              '\\Network Interface(*)\\Packets/sec'
+              '\\Network Interface(*)\\Packets Sent/sec'
+              '\\Network Interface(*)\\Packets Received/sec'
+              '\\Network Interface(*)\\Packets Outbound Errors'
+              '\\Network Interface(*)\\Packets Received Errors'
+            ]
+          }
+        ]
+      }
+      destinations: {
+        logAnalytics: [
+          {
+            name: dcrLogAnalyticsDestinationName
+            workspaceResourceId: monitoring!.outputs.logAnalyticsWorkspaceId
+          }
+        ]
+      }
+      dataFlows: [
+        {
+          streams: [
+            'Microsoft-Event'
+          ]
+          destinations: [
+            dcrLogAnalyticsDestinationName
+          ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Event'
+        }
+        {
+          streams: [
+            'Microsoft-Perf'
+          ]
+          destinations: [
+            dcrLogAnalyticsDestinationName
+          ]
+          transformKql: 'source'
+          outputStream: 'Microsoft-Perf'
+        }
+      ]
+    }
   }
 }
 
@@ -943,6 +1074,8 @@ module openai 'modules/core/ai/cognitiveservices.bicep' = {
     sku: azureOpenAISkuName
     deployments: defaultOpenAiDeployments
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
+    // SFI: Azure_AIServices_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
     restrictOutboundNetworkAccess: true
     allowedFqdnList: concat(
       [
@@ -999,6 +1132,9 @@ module computerVision 'modules/core/ai/cognitiveservices.bicep' = if (useAdvance
     location: computerVisionLocation != '' ? computerVisionLocation : 'eastus' // Default to eastus if no location provided
     tags: allTags
     sku: computerVisionSkuName
+    // SFI: Azure_ComputerVision_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
+    // SFI: Azure_ComputerVision_DP_Data_Loss_Prevention - inherited via cognitiveservices module default (restrictOutboundNetworkAccess: true).
 
     enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
@@ -1049,6 +1185,8 @@ module speechService 'modules/core/ai/cognitiveservices.bicep' = {
     subnetResourceId: enablePrivateNetworkingSpeech ? virtualNetwork!.outputs.pepsSubnetResourceId : null
 
     logAnalyticsWorkspaceId: enableMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceId : null
+    // SFI exception: Speech SDK uses key-based websocket authentication from the browser, so local auth must remain enabled.
+    // Tracked control: Azure_AIServices_AuthN_Disable_Local_Auth.
     disableLocalAuth: false
     userAssignedResourceId: managedIdentityModule.outputs.resourceId
     privateDnsZoneResourceId: enablePrivateNetworkingSpeech
@@ -1199,6 +1337,8 @@ module webServerFarm 'br/public:avm/res/web/serverfarm:0.5.0' = {
 }
 
 var postgresDBFqdn = '${postgresResourceName}.postgres.database.azure.com'
+// endToEndEncryptionEnabled is only supported on Premium v2/v3 or Isolated v2 App Service Plans.
+var appServicePlanIsPremium = enableScalability || enableRedundancy
 module web 'modules/app/web.bicep' = {
   name: take('module.web.site.${websiteName}${hostingModel == 'container' ? '-docker' : ''}', 64)
   scope: resourceGroup()
@@ -1223,6 +1363,7 @@ module web 'modules/app/web.bicep' = {
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : ''
     publicNetworkAccess: 'Enabled' // Always enabling public network access
+    e2eEncryptionEnabled: appServicePlanIsPremium
     applicationInsightsName: enableMonitoring ? monitoring!.outputs.applicationInsightsName : ''
     appSettings: union(
       {
@@ -1326,6 +1467,7 @@ module adminweb 'modules/app/adminweb.bicep' = {
     dockerFullImageName: hostingModel == 'container' ? '${registryName}.azurecr.io/rag-adminwebapp:${appversion}' : null
     useDocker: hostingModel == 'container' ? true : false
     userAssignedIdentityResourceId: managedIdentityModule.outputs.resourceId
+    e2eEncryptionEnabled: appServicePlanIsPremium
     // App settings
     appSettings: union(
       {
@@ -1434,6 +1576,7 @@ module function 'modules/app/function.bicep' = {
     vnetRouteAllEnabled: enablePrivateNetworking ? true : false
     vnetImagePullEnabled: enablePrivateNetworking ? true : false
     publicNetworkAccess: 'Enabled' // Always enabling public network access
+    e2eEncryptionEnabled: appServicePlanIsPremium
     appSettings: union(
       {
         AZURE_BLOB_ACCOUNT_NAME: storageAccountName
@@ -1529,8 +1672,10 @@ module formrecognizer 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'FormRecognizer'
+    // SFI: Azure_AIServices_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
 
-    enablePrivateNetworking: false // Temporary: enabling public access to resolve 403 private endpoint errors
+    enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
     subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
@@ -1580,8 +1725,10 @@ module contentsafety 'modules/core/ai/cognitiveservices.bicep' = {
     location: location
     tags: allTags
     kind: 'ContentSafety'
+    // SFI: Azure_AIServices_AuthN_Disable_Local_Auth - force Entra ID authentication.
+    disableLocalAuth: true
 
-    enablePrivateNetworking: false // Temporary: enabling public access to resolve 403 private endpoint errors
+    enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     enableTelemetry: enableTelemetry
     subnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.pepsSubnetResourceId : null
@@ -1623,6 +1770,8 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
     tags: tags
     enableTelemetry: enableTelemetry
     supportsHttpsTrafficOnly: true
+    // SFI: Azure_Storage_DP_Enable_Infrastructure_Encryption - enforce a second layer of encryption at rest.
+    requireInfrastructureEncryption: true
     accessTier: 'Hot'
     skuName: 'Standard_GRS'
     kind: 'StorageV2'
