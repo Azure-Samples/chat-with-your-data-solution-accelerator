@@ -22,7 +22,3 @@ from backend.core.registry import Registry
 from .base import BaseParser
 
 registry: Registry[type[BaseParser]] = Registry("parsers")
-
-# Eager side-effect imports of concrete parsers go here as they land
-# (Phase 6 task #41 follow-ups). Each concrete uses
-# `from .registry import registry` and `@registry.register("<ext>")`.

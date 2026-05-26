@@ -1,0 +1,24 @@
+"""Parsers provider registry (ingestion-only plug-point).
+
+Pillar: Stable Core
+Phase: 6
+
+Holds the `Registry[type[BaseParser]]` instance for ingestion-only parsers (PDF/DOCX/MD/TXT).
+Concrete implementations (text_parser, pdf_parser, docx_parser, md_parser) self-register via `@registry.register("<ext>")`.
+Eager side-effect imports of those concretes are added here as they land (Option SE-1 in dev_plan §2.4.5).
+
+Caller pattern:
+
+    from functions.core.parsers import registry as ingestion_parsers_registry
+    parser = ingestion_parsers_registry.registry.get("txt")()
+"""
+
+from backend.core.registry import Registry
+from backend.core.providers.parsers.base import BaseParser
+
+registry: Registry[type[BaseParser]] = Registry("ingestion_parsers")
+
+# Eager side-effect imports of concrete ingestion-only parsers (Phase 6 task #41 follow-ups).
+# Each concrete uses `from .registry import registry` and `@registry.register("<ext>")`.
+# Imports MUST land at the bottom of the module so `registry` exists before they execute.
+from . import text_parser  # noqa: E402, F401  # pyright: ignore[reportUnusedImport]
