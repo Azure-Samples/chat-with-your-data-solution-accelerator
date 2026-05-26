@@ -9,7 +9,7 @@ import pytest
 from azure.core.exceptions import AzureError
 from pydantic import BaseModel, ValidationError
 
-from functions.core.exception_mapping import map_function_exceptions
+from functions.core.exception_mapping import log_queue_errors, map_function_exceptions
 
 
 class _SampleBody(BaseModel):
@@ -157,3 +157,103 @@ async def test_decorator_preserves_handler_name_and_doc() -> None:
 
     assert my_route.__name__ == "my_route"
     assert my_route.__doc__ == "Original docstring."
+
+
+# ---------------------------------------------------------------------------
+# log_queue_errors -- queue-trigger sibling of map_function_exceptions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_queue_decorator_passthrough_returns_none_and_logs_nothing(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    @log_queue_errors("batch_push")
+    async def handler(_msg: object) -> None:
+        return None
+
+    with caplog.at_level(logging.DEBUG, logger="functions.core.exception_mapping"):
+        result = await handler("ok")
+
+    assert result is None
+    assert not [r for r in caplog.records if r.name == "functions.core.exception_mapping"]
+
+
+@pytest.mark.asyncio
+async def test_queue_decorator_validation_error_reraises_with_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    exc = _force_validation_error()
+
+    @log_queue_errors("batch_push")
+    async def handler(_msg: object) -> None:
+        raise exc
+
+    with caplog.at_level(logging.WARNING, logger="functions.core.exception_mapping"):
+        with pytest.raises(ValidationError):
+            await handler("drifted")
+
+    records = [r for r in caplog.records if r.name == "functions.core.exception_mapping"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelno == logging.WARNING
+    # logger.warning does NOT attach exception info; logger.exception would.
+    assert record.exc_info is None
+    assert record.operation == "batch_push"  # type: ignore[attr-defined]
+    assert record.trigger == "queue"  # type: ignore[attr-defined]
+    # Queue decorator has no wire status code -- field intentionally absent.
+    assert not hasattr(record, "status_code")
+
+
+@pytest.mark.asyncio
+async def test_queue_decorator_azure_error_reraises_with_exception(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    @log_queue_errors("batch_push")
+    async def handler(_msg: object) -> None:
+        raise AzureError("blob 503")
+
+    with caplog.at_level(logging.ERROR, logger="functions.core.exception_mapping"):
+        with pytest.raises(AzureError):
+            await handler("msg")
+
+    records = [r for r in caplog.records if r.name == "functions.core.exception_mapping"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelno == logging.ERROR
+    assert record.exc_info is not None  # logger.exception attaches traceback
+    assert record.operation == "batch_push"  # type: ignore[attr-defined]
+    assert record.trigger == "queue"  # type: ignore[attr-defined]
+    assert not hasattr(record, "status_code")
+
+
+@pytest.mark.asyncio
+async def test_queue_decorator_unexpected_exception_reraises_with_exception(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    @log_queue_errors("batch_push")
+    async def handler(_msg: object) -> None:
+        raise RuntimeError("boom")
+
+    with caplog.at_level(logging.ERROR, logger="functions.core.exception_mapping"):
+        with pytest.raises(RuntimeError):
+            await handler("msg")
+
+    records = [r for r in caplog.records if r.name == "functions.core.exception_mapping"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelno == logging.ERROR
+    assert record.exc_info is not None
+    assert record.operation == "batch_push"  # type: ignore[attr-defined]
+    assert record.trigger == "queue"  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_queue_decorator_preserves_handler_name_and_doc() -> None:
+    @log_queue_errors("batch_push")
+    async def my_consumer(_msg: object) -> None:
+        """Original docstring."""
+        return None
+
+    assert my_consumer.__name__ == "my_consumer"
+    assert my_consumer.__doc__ == "Original docstring."

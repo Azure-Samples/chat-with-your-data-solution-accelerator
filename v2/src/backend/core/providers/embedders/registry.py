@@ -14,8 +14,17 @@ Caller pattern (Hard Rule #13):
     embedder = embedders_registry.registry.get("azure_openai")(...)
 """
 
+# pyright: reportUnusedImport=false
+# `from . import azure_openai` below is an intentional side-effect
+# import that triggers `@registry.register("azure_openai")`; pyright
+# cannot see the side-effect and would flag it as unused.
+
 from backend.core.registry import Registry
 
 from .base import BaseEmbedder
 
 registry: Registry[type[BaseEmbedder]] = Registry("embedders")
+
+# Eager side-effect import: must come AFTER `registry = ...` so the
+# decorator has a target to register against.
+from . import azure_openai  # noqa: E402, F401
