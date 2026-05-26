@@ -122,6 +122,88 @@ Every concrete orchestrator (`langgraph.py`, `agent_framework.py`):
 - Single root `AppSettings` in `v2/src/backend/core/settings.py` (Pydantic-Settings, nested per Azure service). Reads every Bicep output env var.
 - Cached `get_settings()` accessor. Never read env vars directly outside this module.
 
+## Resilience
+
+Per `.github/copilot-instructions.md` Hard Rule #14 (SDK boundary resilience): every external SDK call crossed inside a provider, pipeline, tool, or router must be wrapped in `try/except <SDK error umbrella>` with structured logging + re-raise. This subsection is the canonical code template.
+
+**Canonical pattern** — Azure SDK call inside a provider:
+
+```python
+from azure.core.exceptions import AzureError
+
+logger = logging.getLogger(__name__)
+
+async def search(self, query: str, *, top: int = 10) -> list[SearchResult]:
+    try:
+        response = await self._client.search(query, top=top)
+    except AzureError:
+        logger.exception(
+            "azure_search query failed",
+            extra={"operation": "search", "provider": "azure_search", "top": top},
+        )
+        raise
+    return [SearchResult.model_validate(doc) async for doc in response]
+```
+
+**SDK error umbrellas by domain** (use the narrowest umbrella that covers the SDK's exception tree, never bare `except Exception:`):
+
+| SDK | Catch |
+|---|---|
+| `azure.search.documents.aio`, `azure.storage.*`, `azure.cosmos`, `azure.identity`, any `azure-*` package | `azure.core.exceptions.AzureError` |
+| `openai`, `azure-ai-foundry` LLM clients | `openai.APIError` |
+| `asyncpg` | `asyncpg.PostgresError` |
+| `httpx` | `httpx.HTTPError` |
+| Raw HTTP responses from `azure.core` | `azure.core.exceptions.HttpResponseError` (subclass of `AzureError` — only narrow if you need response-code branching) |
+
+**Three obligations** (all three required; no exceptions):
+
+1. **Log with `logger.exception(...)`** — captures the traceback. Never `logger.error(str(exc))` (loses traceback).
+2. **Structured `extra={...}`** — always include `"operation": "<verb>"` + `"provider": "<registry_key>"`; add domain-specific snake_case keys (`top`, `index_name`, `container`, `model`, `prompt_tokens`, etc.). Operation values are descriptive verbs (`search`, `embed`, `upsert`, `fetch_blob`); they are deliberately NOT a closed set today (per Q1 in plan further considerations — kept as bare strings until central dispatch emerges).
+3. **Re-raise** — bare `raise` to propagate the original; or `raise DomainError(...) from exc` if a domain-typed wrapper adds value (`__cause__` is preserved automatically with `from exc`).
+
+**Cleanup paths own resource release, NOT error reporting.** `finally:` / `async with __aexit__` close pools, sockets, file handles. Logging stays in the `except` block. Do not log inside `finally:` unless reporting a cleanup failure that itself just occurred.
+
+**Status checks classify failures** as `pass | degraded | fail` per `v2/src/backend/models/health.py` (`CheckStatus` / `OverallStatus` — Q12 ledger entry for the `StrEnum` migration). Router code never lets an SDK exception escape:
+
+```python
+async def _check_search(self) -> HealthCheck:
+    try:
+        await self._search.ping()
+    except AzureError:
+        logger.exception("health check failed", extra={"operation": "ping", "provider": "azure_search"})
+        return HealthCheck(name="azure_search", status="fail", message="SDK error")
+    return HealthCheck(name="azure_search", status="pass")
+```
+
+**Silent excepts are forbidden.** `except: pass`, `except Exception: pass`, and `except ...: ...` blocks that swallow without logging or re-raising are AST-enforced banned by `v2/tests/shared/test_no_silent_excepts.py`. The only allowed "consume" pattern is a narrow `except <Specific> as exc: logger.warning(..., extra={...})` followed by a documented fallback value — and the log line is required.
+
+**Module-level clients are forbidden.** Long-lived SDK clients (Cosmos, Search, Storage, OpenAI) are constructed in FastAPI lifespan and injected via `Depends(...)` so cleanup is owned by the framework. Constructor-injected `_client` attributes inside providers are fine; module-level singletons are not.
+
+## Typing standard
+
+Per `.github/copilot-instructions.md` Hard Rule #11 (Python bullet, `Any` only at boundaries): `pyright --strict` runs on `v2/src/backend/**` + `v2/src/functions/core/**` with a 0/0/0 CI target (errors / warnings / information). This subsection is the canonical boundary classification.
+
+**Every method has explicit return type + parameter types.** No bare generic containers (`list` → `list[Chunk]`, `dict` → `dict[str, Any]`). No implicit `Optional` (`x: str = None` → `x: str | None = None`). No missing `-> None` on side-effect-only methods.
+
+**Boundary classification for `Any`** (the only permitted use sites):
+
+| Class | Example | Why permitted |
+|---|---|---|
+| **SDK response shape kept loose** | `rows: list[dict[str, Any]] = await cur.fetch(sql)` | asyncpg/cosmos/azure-search return dicts whose key set is set by the SDK or the schema; narrowing per-call adds zero safety. |
+| **Pydantic extensibility field** | `metadata: dict[str, Any] = Field(default_factory=dict)` on `Chunk`, `OrchestratorEvent`, `ConversationRequest` | Open-shape extension point is the design intent; downstream consumers narrow at use site. |
+| **SDK Protocol stub kwargs** | `async def merge_or_upload_documents(self, *, documents: Sequence[Mapping[str, Any]], **kwargs: Any) -> list[Any]` | Matches the SDK's own signature so the SDK class satisfies our Protocol. `**kwargs: Any` is permitted **only** on Protocol stubs — never inside our own provider implementations. |
+
+**Forbidden:** `Any` in internal plumbing — orchestrator state types, registry value types, provider constructor params, pipeline step return types, router request models. If you reach for `Any` outside the three classes above, declare the missing type or queue a §0.1 debt row.
+
+**`cast(...)` and `# pyright: ignore` discipline.** Every occurrence must either:
+
+1. Carry an inline comment naming the SDK boundary it crosses, e.g. `cast(SupportsMergeOrUploadDocuments, search_client)  # SDK SearchClient satisfies the Protocol at runtime; keyword-only Protocol signature trips pyright — see U8i-SEARCH-WRITER-PROTOCOL-DEBT`; or
+2. Map to a tracked debt row in [v2/docs/development_plan.md](../../v2/docs/development_plan.md) §0.1 by ID, so the workaround has a clear lift path.
+
+`# type: ignore` (mypy-flavored) is treated identically; `# noqa` is not a substitute.
+
+**When an SDK boundary needs structural work** (the Protocol can't match the SDK signature, the SDK class lacks `__aenter__`, the SDK returns an untyped dict where we need a Pydantic model): queue a new §0.1 debt row with the ID prefix matching the unit that surfaced it, ship the `cast(...)` / `# pyright: ignore` workaround with the inline-comment annotation pointing at the ledger ID, and let the dedicated post-phase hardening turn lift the workaround structurally (Hard Rule #10 — structural changes need user confirmation).
+
 ## Constants — closed sets use `enum.StrEnum`
 
 Per `.github/copilot-instructions.md` Hard Rule #11 (Python bullet): whenever ≥2 related string literals form a closed set (type discriminators, modes, channels, status values, sibling partition keys), define a `class Foo(StrEnum)` (Python 3.11+) at module scope and reference members instead of bare `_FOO = "foo"` / `_BAR = "bar"` constants.

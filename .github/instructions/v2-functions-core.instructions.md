@@ -59,6 +59,62 @@ Most files here will be **Stable Core** (the indexing pipeline is part of the al
 
 `functions/core/**` is on `pyright --strict` from day one (`v2/pyproject.toml` `[tool.pyright]` `strict` block). This is non-negotiable per the Phase 5.5 decision: the standalone-functions image must hold the same type-safety bar as the standalone-backend image.
 
+## Resilience
+
+Per `.github/copilot-instructions.md` Hard Rule #14 (SDK boundary resilience): every external SDK call inside a Functions blueprint, helper, or extension class is wrapped in `try/except <SDK error umbrella>` with structured logging + the trigger-type-specific re-raise contract. Functions has two trigger surfaces; each has a distinct contract.
+
+**Queue trigger contract** — the handler must return `None` and re-raise on failure so the Functions host's retry → poison-queue policy engages. The `@log_queue_errors("<op_name>")` decorator in `v2/src/functions/core/exception_mapping.py` (U7i) owns the boundary: it wraps the handler body in `try/except Exception as exc: logger.exception("<op_name> queue handler failed", extra={"operation": "<op_name>", ...}); raise`. Application code inside the handler still wraps its own SDK calls in narrow `except AzureError` / `except asyncpg.PostgresError` blocks with operation-specific `extra=` keys; the decorator is the outer safety net, not the only line of defense.
+
+```python
+@app.queue_trigger(arg_name="msg", queue_name="doc-chunks", connection="AzureWebJobsStorage")
+@log_queue_errors("batch_push")
+async def batch_push(msg: func.QueueMessage) -> None:
+    envelope = parse_push_message(msg)
+    try:
+        await batch_push_handler(envelope, search_writer=search_client, ...)
+    except AzureError:
+        logger.exception(
+            "batch_push pipeline failed",
+            extra={"operation": "batch_push", "document_id": envelope.document_id},
+        )
+        raise
+```
+
+**HTTP trigger contract** — the handler must always return `func.HttpResponse` (never raise into the host, never `return None`). The `@map_function_exceptions("<op_name>")` decorator in `v2/src/functions/core/exception_mapping.py` (U7 series) owns the `ValidationError` → 422 / `AzureError` → 502 / `Exception` → 500 ladder per `v2/docs/exception_handling_policy.md` §"Functions blueprints". Application code inside the handler still wraps SDK calls in narrow excepts so the structured `extra=` log line fires at the boundary; the decorator translates uncaught exceptions into the right `HttpResponse` shape.
+
+```python
+@app.route(route="add_url", methods=["POST"])
+@map_function_exceptions("add_url")
+async def add_url(req: func.HttpRequest) -> func.HttpResponse:
+    body = read_json_body(req, AddUrlRequest)  # raises ValidationError → 422
+    try:
+        bytes_ = await fetch_url(body.url)
+    except httpx.HTTPError:
+        logger.exception("fetch_url failed", extra={"operation": "fetch_url", "url": body.url})
+        raise  # decorator translates to 502
+    return json_response({"status": "queued"}, status=202)
+```
+
+**Three obligations stay identical** to backend-core (logger.exception + structured `extra=` with `operation` + `provider`/domain keys + re-raise). The trigger-type contracts above just set how the re-raise reaches the host.
+
+**Silent excepts are forbidden** under the same `v2/tests/shared/test_no_silent_excepts.py` AST gate that covers backend code.
+
+**Idempotency is the resilience pair to retries.** Because queue triggers re-deliver on failure, every blueprint handler must compute a deterministic message key (document hash, blob path, URL+timestamp) and skip if already processed. The retry loop is correctness only if the side effects are safe to repeat.
+
+## Typing standard
+
+Same discipline as `.github/instructions/v2-backend-core.instructions.md` §Typing standard. `pyright --strict` runs on `v2/src/functions/core/**` with 0/0/0 CI target. Boundary classification for `Any`:
+
+| Class | Functions-side example | Why permitted |
+|---|---|---|
+| **SDK response shape kept loose** | `data: dict[str, Any] = blob_client.download_blob().readall_json()` | azure-storage / azure-functions returns dicts shaped by the SDK; narrow at the use site if a Pydantic envelope exists. |
+| **Pydantic extensibility field** | `metadata: dict[str, Any]` on `BatchPushQueueMessage`, ingestion envelopes, `IngestionEvent` | Open-shape extension point for downstream blueprints; consumers narrow at use site. |
+| **`azure.functions` runtime types** | `req: func.HttpRequest`, `msg: func.QueueMessage`, `func.HttpResponse(body, status_code=...)` | These ARE the typed boundary; `func.*` symbols carry their own pyright stubs and need no `Any`. Do NOT widen them. |
+
+**Forbidden** in `functions/core/**`: `Any` in handler return types (must be `None` for queue, `func.HttpResponse` for HTTP), `Any` in cross-blueprint queue-envelope fields (declare a Pydantic model in `functions/core/contracts.py` instead), `Any` in storage-client factory return types (the SDK provides typed factories — use them).
+
+**`cast(...)` / `# pyright: ignore` discipline** is identical to backend-core: inline comment naming the SDK boundary OR map to a tracked §0.1 debt row in `v2/docs/development_plan.md`. The known Functions-side debt rows today are `U8i-EMBEDDER-CTOR-DEBT` and `U8i-SEARCH-WRITER-PROTOCOL-DEBT` (both ride on the search-writer Protocol boundary).
+
 ## Banned (mirrors v2-backend-core)
 
 - `from openai import …` anywhere in `v2/src/functions/core/**` — Foundry IQ via `backend.core.providers.llm` only.
