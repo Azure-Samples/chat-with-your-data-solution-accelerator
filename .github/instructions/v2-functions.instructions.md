@@ -14,7 +14,7 @@ applyTo: "v2/src/functions/**"
 ## Layout
 
 - `function_app.py` — sole registration entry; imports blueprints and `app.register_functions(bp)`.
-- `blueprints/<name>.py` — one trigger per file. Files: `batch_start.py`, `batch_push.py`, `add_url.py`, `search_skill.py`.
+- `<name>/blueprint.py` — one trigger per file (queue, HTTP, or EventGrid). Sibling helpers under the same folder (`<name>/handler.py`, `<name>/<verb>_fetcher.py`, `<name>/queue_reader.py`, etc.) factor parse / fetch / dispatch logic so the trigger module stays thin. Blueprint folders in v2: `batch_start/`, `batch_push/`, `add_url/`, `search_skill/`. Every blueprint folder carries an `__init__.py` marker per Hard Rule #13 (docstring-only with `Pillar:` / `Phase:` header).
 - Pluggable logic is consumed via the registries in `v2/src/backend/core/providers/`. Specifically: parsers via `from backend.core.providers.parsers import registry as parsers_registry; parsers_registry.registry.get(ext)()`, embedders via `from backend.core.providers.embedders import registry as embedders_registry; embedders_registry.registry.get(key)(...)`, search via `from backend.core.providers.search import registry as search_registry; search_registry.registry.get(key)(...)`. Composition lives in `v2/src/backend/core/pipelines/ingestion.py` — blueprints invoke the pipeline, they do not duplicate parse/chunk/embed logic.
 
 ## Rules
@@ -25,7 +25,7 @@ applyTo: "v2/src/functions/**"
 4. **No direct OpenAI SDK.** Embedders + LLM access go through the provider registry: `from backend.core.providers.embedders import registry as embedders_registry; embedders_registry.registry.get(settings.database.index_store)(...)` (and same shape for `providers.llm`). No module-level clients, no `from openai import …`.
 5. **Settings.** Reuse `v2/src/backend/core/settings.py::AppSettings` via `get_settings()` — do not reinvent env loading.
 6. **Pluggability.** Use the registry pattern from `v2/src/backend/core/registry.py`. Forbidden: `if/elif` over backend names (e.g. `if db_type == "cosmosdb": ...`) inside a blueprint — call `<domain>_registry.registry.get(key)(**kwargs)` instead. Per Hard Rule #13, provider `__init__.py` files are package markers — registry instances live in sibling `registry.py`. No `create()` factory wrappers.
-7. **Tests.** Every blueprint has a sibling `tests/test_<name>.py` that invokes the handler with a constructed `func.QueueMessage` / `func.EventGridEvent` and asserts the side effects (pipeline called, queue message produced, etc.).
+7. **Tests.** Every blueprint has a mirror test folder at `v2/tests/functions/<name>/` containing `test_blueprint.py` (trigger-level — invokes the trigger with a constructed `func.QueueMessage` / `func.HttpRequest` / `func.EventGridEvent` and asserts side effects: pipeline called, queue message produced, etc.) plus per-helper test files (`test_handler.py`, `test_<verb>_fetcher.py`, `test_queue_reader.py`, etc.) mirroring the blueprint folder. Pytest is configured with `--import-mode=importlib` in `v2/pyproject.toml` so identical test basenames across blueprint folders coexist without collision.
 
 ## Pipeline contract
 

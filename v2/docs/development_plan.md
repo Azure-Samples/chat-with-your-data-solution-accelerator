@@ -505,8 +505,8 @@ Each blueprint ships with the per-trigger try/except pattern from Phase 5.5 §C1
 | U8i | ✅ | `batch_push` queue-trigger blueprint (`@log_queue_errors("batch_push")`) | `functions/batch_push/blueprint.py` | U8h, U7i |
 | U8j | ✅ | Register `bp_batch_push` in `function_app.py` | `functions/function_app.py` | U8i |
 | U8k | ✅ | `batch_push` audit close (doc-only) | dev_plan §0.1 | U8j |
-| U9a | ⏭ | `fetch_url(url) -> bytes` (httpx async, `httpx.HTTPError` narrow catch) | `functions/add_url/url_fetcher.py` + `__init__.py` | U8k |
-| U9b | ☐ | `add_url_handler(request, parser, embedder, search_writer)` | `functions/add_url/handler.py` | U9a |
+| U9a | ✅ | `fetch_url(url) -> bytes` (httpx async, `httpx.HTTPError` narrow catch) | `functions/add_url/url_fetcher.py` + `__init__.py` | U8k |
+| U9b | ⏭ | `add_url_handler(request, parser, embedder, search_writer)` | `functions/add_url/handler.py` | U9a |
 | U9c | ☐ | `add_url` HTTP-trigger blueprint + register | `functions/add_url/blueprint.py`, `function_app.py` | U9b |
 | U10a | ☐ | AI Search custom-skill request/response Pydantic models | `functions/search_skill/models.py` + `__init__.py` | U9c |
 | U10b | ☐ | `search_skill_handler(request, embedder)` (embed-on-the-fly, no parser) | `functions/search_skill/handler.py` | U10a |
