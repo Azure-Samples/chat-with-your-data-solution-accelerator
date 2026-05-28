@@ -41,15 +41,15 @@ from backend.core.providers.search.writer import (
     SupportsMergeOrUploadDocuments,
     push_documents,
 )
-from backend.core.types import Chunk
+from backend.core.types import Chunk, SearchDocument
 from functions.batch_push.blob_fetcher import download_blob
 from functions.core.contracts import BatchPushQueueMessage
 
 logger = logging.getLogger(__name__)
 
 
-def _build_document(chunk: Chunk, vector: list[float]) -> dict[str, object]:
-    """Map a parsed chunk + its vector into a Search document.
+def _build_document(chunk: Chunk, vector: list[float]) -> SearchDocument:
+    """Map a parsed chunk + its vector into a :class:`SearchDocument`.
 
     Field names mirror the read-side mapping in
     :class:`backend.core.providers.search.azure_search.AzureSearch` so an
@@ -57,12 +57,12 @@ def _build_document(chunk: Chunk, vector: list[float]) -> dict[str, object]:
     ``title``, ``content_vector``). ``url`` is intentionally omitted --
     blob SAS / source URLs are an ``add_url`` (#42) concern.
     """
-    return {
-        "id": chunk.id,
-        "content": chunk.content,
-        "title": chunk.source,
-        "content_vector": vector,
-    }
+    return SearchDocument(
+        id=chunk.id,
+        content=chunk.content,
+        title=chunk.source,
+        content_vector=vector,
+    )
 
 
 async def batch_push_handler(
@@ -71,7 +71,7 @@ async def batch_push_handler(
     parser: BaseParser,
     embedder: BaseEmbedder,
     search_writer: SupportsMergeOrUploadDocuments,
-) -> list[dict[str, object]]:
+) -> list[SearchDocument]:
     """Download → parse → embed → push one ``batch_push`` message.
 
     Returns the documents handed to :func:`push_documents` (in chunk

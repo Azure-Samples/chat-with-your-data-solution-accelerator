@@ -21,6 +21,7 @@ import pytest
 from azure.core.exceptions import AzureError
 
 from backend.core.settings import AppSettings, get_settings
+from backend.core.types import SearchDocument
 from functions.batch_push import blueprint as bp_module
 from functions.batch_push.blueprint import _parser_key_for_filename, batch_push
 from functions.core.contracts import BatchPushQueueMessage
@@ -70,7 +71,7 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _patch_route_deps(
     monkeypatch: pytest.MonkeyPatch,
-    execute: Callable[[BatchPushQueueMessage, AppSettings], Awaitable[list[dict[str, object]]]],
+    execute: Callable[[BatchPushQueueMessage, AppSettings], Awaitable[list[SearchDocument]]],
     settings: AppSettings | None = None,
 ) -> None:
     resolved = settings or AppSettings()
@@ -116,10 +117,17 @@ async def test_happy_path_parses_envelope_and_dispatches_to_execute(
 
     async def fake_execute(
         message: BatchPushQueueMessage, settings: AppSettings
-    ) -> list[dict[str, object]]:
+    ) -> list[SearchDocument]:
         captured["message"] = message
         captured["settings_type"] = type(settings).__name__
-        return [{"id": "a.txt__0", "content": "x", "title": "a.txt", "content_vector": [0.1]}]
+        return [
+            SearchDocument(
+                id="a.txt__0",
+                content="x",
+                title="a.txt",
+                content_vector=[0.1],
+            )
+        ]
 
     _patch_route_deps(monkeypatch, fake_execute)
 
@@ -171,7 +179,7 @@ async def test_azure_error_in_execute_reraises_and_logs_exception(
 ) -> None:
     async def fake_execute(
         message: BatchPushQueueMessage, settings: AppSettings
-    ) -> list[dict[str, object]]:
+    ) -> list[SearchDocument]:
         raise AzureError("upstream blob 503")
 
     _patch_route_deps(monkeypatch, fake_execute)
@@ -198,7 +206,7 @@ async def test_unexpected_exception_in_execute_reraises_safety_net(
 ) -> None:
     async def fake_execute(
         message: BatchPushQueueMessage, settings: AppSettings
-    ) -> list[dict[str, object]]:
+    ) -> list[SearchDocument]:
         raise RuntimeError("totally unexpected")
 
     _patch_route_deps(monkeypatch, fake_execute)

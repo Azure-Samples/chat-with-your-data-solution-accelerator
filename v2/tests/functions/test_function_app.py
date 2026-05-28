@@ -5,7 +5,7 @@ import json
 import azure.functions as func
 import pytest
 
-from functions.function_app import _health_payload, app, health
+from functions.function_app import HealthPayload, _health_payload, app, health
 
 
 def test_app_is_anonymous_function_app() -> None:
@@ -14,7 +14,18 @@ def test_app_is_anonymous_function_app() -> None:
 
 
 def test_health_payload_shape() -> None:
-    assert _health_payload() == {"status": "ok"}
+    assert _health_payload() == HealthPayload()
+    assert _health_payload().model_dump() == {"status": "ok"}
+
+
+def test_health_payload_is_frozen_and_forbids_extras() -> None:
+    from pydantic import ValidationError
+
+    payload = HealthPayload()
+    with pytest.raises(ValidationError):
+        payload.status = "degraded"  # type: ignore[misc]  -- frozen model rejects mutation
+    with pytest.raises(ValidationError):
+        HealthPayload(status="ok", extra="nope")  # type: ignore[call-arg]  -- extra="forbid"
 
 
 def test_health_route_registered() -> None:

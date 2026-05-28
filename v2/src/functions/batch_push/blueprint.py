@@ -64,6 +64,7 @@ from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.embedders import registry as embedders_registry
 from backend.core.providers.search.writer import SupportsMergeOrUploadDocuments
 from backend.core.settings import AppSettings, get_settings
+from backend.core.types import SearchDocument
 from functions.batch_push.handler import batch_push_handler
 from functions.batch_push.queue_reader import parse_push_message
 from functions.core.contracts import BatchPushQueueMessage
@@ -87,7 +88,7 @@ def _parser_key_for_filename(filename: str) -> str:
 
 async def _execute(
     message: BatchPushQueueMessage, settings: AppSettings
-) -> list[dict[str, object]]:
+) -> list[SearchDocument]:
     """Resolve all collaborators and dispatch to ``batch_push_handler``.
 
     Extracted from :func:`batch_push` so route-level tests can

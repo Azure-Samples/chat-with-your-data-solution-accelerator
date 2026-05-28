@@ -27,7 +27,7 @@ from enum import StrEnum
 import pytest
 from pydantic import ValidationError
 
-from backend.core.types import OrchestratorChannel, OrchestratorEvent, RuntimeConfig
+from backend.core.types import OrchestratorChannel, OrchestratorEvent, RuntimeConfig, SearchDocument
 
 
 def test_orchestrator_channel_is_a_strenum() -> None:
@@ -193,3 +193,69 @@ def test_runtime_config_is_in_module_exports() -> None:
     import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import
 
     assert "RuntimeConfig" in st.__all__
+
+
+def test_search_document_is_frozen_and_forbids_extras() -> None:
+    """Locks Hard Rule #15 invariants for the ingestion wire shape.
+
+    Frozen + ``extra="forbid"`` so:
+
+    * No ingestion blueprint can silently smuggle a provider-specific
+      field through the Azure Search payload.
+    * A typo at the construction site (``cotent_vector`` for
+      ``content_vector``) fails immediately instead of dropping
+      vectors at write time.
+    """
+    from pydantic import ValidationError
+
+    doc = SearchDocument(id="a", content="hello")
+    with pytest.raises(ValidationError):
+        doc.content = "mutated"  # type: ignore[misc]  -- frozen model rejects mutation
+    with pytest.raises(ValidationError):
+        SearchDocument(id="a", content="hello", evil="nope")  # type: ignore[call-arg]
+
+
+def test_search_document_round_trips_via_model_dump() -> None:
+    """Locks the SDK-boundary contract: ``model_dump()`` returns the
+    dict shape ``push_documents`` forwards to the Azure SDK
+    (``merge_or_upload_documents(documents=[...])``).
+
+    The field names exactly mirror the read-side mapping in
+    :class:`backend.core.providers.search.azure_search.AzureSearch`
+    (``id``, ``content``, ``title``, ``content_vector``) so an
+    in-place schema upgrade does not require a reindex.
+    """
+    doc = SearchDocument(
+        id="doc.txt__0",
+        content="hello",
+        title="doc.txt",
+        content_vector=[0.1, 0.2, 0.3],
+    )
+    dumped = doc.model_dump()
+    assert dumped == {
+        "id": "doc.txt__0",
+        "content": "hello",
+        "title": "doc.txt",
+        "content_vector": [0.1, 0.2, 0.3],
+    }
+    assert SearchDocument(**dumped) == doc
+
+
+def test_search_document_defaults_match_read_side_optional_fields() -> None:
+    """Both ``title`` and ``content_vector`` are optional today --
+    ``title`` defaults to ``""`` for sources without a real title
+    (raw HTML, ad-hoc URLs); ``content_vector`` defaults to ``[]``
+    so an ingestion path that hasn't run the embedder yet still
+    type-checks against the model."""
+    doc = SearchDocument(id="a", content="hello")
+    assert doc.title == ""
+    assert doc.content_vector == []
+
+
+def test_search_document_is_in_module_exports() -> None:
+    """Ensures `from backend.core.types import SearchDocument` works
+    for downstream ingestion handlers + the writer helper without a
+    leading-underscore re-export."""
+    import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import
+
+    assert "SearchDocument" in st.__all__

@@ -148,6 +148,40 @@ class SearchResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class SearchDocument(BaseModel):
+    """A document written to the search index by an ingestion handler.
+
+    Wire shape produced by the Functions ingestion pipeline
+    (``batch_push``, ``add_url``, ``search_skill``) and consumed by
+    :func:`backend.core.providers.search.writer.push_documents`, which
+    calls ``model_dump()`` at the Azure Search SDK boundary. Field
+    names mirror the read-side mapping in
+    :class:`backend.core.providers.search.azure_search.AzureSearch._to_result`
+    + its ``_DEFAULT_SELECT_FIELDS`` tuple so an in-place schema
+    upgrade does not require a reindex.
+
+    Frozen + ``extra="forbid"`` so each ingestion path cannot smuggle
+    provider-specific fields through the wire shape -- anything
+    blueprint-specific (page index, bounding box, blob SAS URL,
+    source HTML title) goes elsewhere (currently embedded in
+    ``title`` / ``content``; a future ``metadata`` field would be
+    added here AND mirrored on the read side).
+
+    YAGNI breadcrumb: ``url`` is intentionally omitted today --
+    ``batch_push`` / ``add_url`` do not yet produce a SAS URL or
+    source URL field. When the field arrives, add it here AND to
+    ``_DEFAULT_SELECT_FIELDS`` in ``azure_search.py`` AND to
+    :class:`SearchResult` so read + write stay in lockstep.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    content: str
+    title: str = ""
+    content_vector: list[float] = Field(default_factory=list[float])
+
+
 class Conversation(BaseModel):
     """One stored chat conversation owned by a user.
 
@@ -272,5 +306,6 @@ __all__ = [
     "OrchestratorEvent",
     "Role",
     "RuntimeConfig",
+    "SearchDocument",
     "SearchResult",
 ]

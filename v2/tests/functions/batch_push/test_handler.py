@@ -9,7 +9,7 @@ from azure.storage.blob.aio import ContainerClient
 from backend.core.providers.embedders.base import BaseEmbedder
 from backend.core.providers.parsers.base import BaseParser
 from backend.core.providers.search.writer import SupportsMergeOrUploadDocuments
-from backend.core.types import Chunk, EmbeddingResult
+from backend.core.types import Chunk, EmbeddingResult, SearchDocument
 from functions.batch_push.handler import batch_push_handler
 from functions.core.contracts import BatchPushQueueMessage
 
@@ -92,20 +92,22 @@ async def test_pipeline_pushes_documents_with_vectors_and_returns_them() -> None
     assert parser.calls == [(b"hello\n\nworld", "doc.txt")]
     assert embedder.calls == [chunks]
     assert docs == [
-        {
-            "id": "doc.txt__0",
-            "content": "hello",
-            "title": "doc.txt",
-            "content_vector": [0.1, 0.2],
-        },
-        {
-            "id": "doc.txt__1",
-            "content": "world",
-            "title": "doc.txt",
-            "content_vector": [0.3, 0.4],
-        },
+        SearchDocument(
+            id="doc.txt__0",
+            content="hello",
+            title="doc.txt",
+            content_vector=[0.1, 0.2],
+        ),
+        SearchDocument(
+            id="doc.txt__1",
+            content="world",
+            title="doc.txt",
+            content_vector=[0.3, 0.4],
+        ),
     ]
-    writer.merge_or_upload_documents.assert_awaited_once_with(documents=docs)
+    writer.merge_or_upload_documents.assert_awaited_once_with(
+        documents=[d.model_dump() for d in docs]
+    )
 
 
 @pytest.mark.asyncio
