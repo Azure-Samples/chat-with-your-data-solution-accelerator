@@ -3,8 +3,8 @@
 Pillar: Stable Core
 Phase: 4
 
-Every concrete database client (`cosmosdb` task #27, `postgres` task
-#28, future swap-ins like Redis) inherits from `BaseDatabaseClient`
+Every concrete database client (`cosmosdb`, `postgres`, future
+swap-ins like Redis) inherits from `BaseDatabaseClient`
 and self-registers via `@registry.register("<key>")`.
 
 Per Q10 design: chat-history CRUD lives **on the database client** --

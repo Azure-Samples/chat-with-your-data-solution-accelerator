@@ -9,7 +9,7 @@ for use by Functions ingestion handlers (`batch_push`, `add_url`,
 """
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 import logging
 
@@ -21,19 +21,53 @@ from backend.core.types import SearchDocument
 logger = logging.getLogger(__name__)
 
 
+@runtime_checkable
 class SupportsMergeOrUploadDocuments(Protocol):
     """Narrow client protocol for Azure Search write operations.
 
-    The Azure SDK contract is ``Sequence[Mapping[str, Any]]`` -- a
-    deliberate boundary expressed in the SDK's own type stubs. This
-    Protocol stays in lockstep with the SDK so we don't accidentally
-    over-constrain the third-party shape (Hard Rule #11(a)
-    boundary).
+    Keyword-only ``documents`` is the v2 internal contract. The Azure
+    SDK's ``SearchClient.merge_or_upload_documents`` is positional-
+    or-keyword (``(self, documents, **kwargs)``) and therefore does
+    not satisfy this Protocol structurally -- consumers wrap the SDK
+    client in :class:`SearchWriterAdapter` before handing it to
+    :func:`push_documents` or to anything else that types its
+    write-client parameter as ``SupportsMergeOrUploadDocuments``.
+
+    ``@runtime_checkable`` enables ``isinstance`` checks so tests can
+    assert structural satisfaction without having to import the
+    concrete adapter class everywhere a Protocol satisfaction proof
+    is needed.
     """
 
     async def merge_or_upload_documents(
         self, *, documents: Sequence[Mapping[str, Any]]
     ) -> list[Any]: ...
+
+
+class SearchWriterAdapter:
+    """Adapter wrapping an Azure SDK ``SearchClient`` for keyword-only writes.
+
+    The Azure SDK's ``SearchClient.merge_or_upload_documents`` is
+    positional-or-keyword, so it does not satisfy
+    :class:`SupportsMergeOrUploadDocuments` structurally. This thin
+    wrapper exposes a keyword-only ``documents`` parameter that
+    matches the Protocol and forwards to the SDK using a keyword
+    argument (a shape the SDK already accepts).
+
+    The wrapped client is typed ``Any`` because it is a third-party
+    SDK object whose shape the boundary deliberately does not narrow
+    further (Hard Rule #11(a)). Lifecycle (``__aenter__`` /
+    ``__aexit__``) stays owned by the caller -- the adapter is a
+    structural shim, not a resource owner.
+    """
+
+    def __init__(self, search_client: Any) -> None:
+        self._client = search_client
+
+    async def merge_or_upload_documents(
+        self, *, documents: Sequence[Mapping[str, Any]]
+    ) -> list[Any]:
+        return await self._client.merge_or_upload_documents(documents=documents)
 
 
 async def push_documents(

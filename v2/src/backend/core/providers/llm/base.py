@@ -88,8 +88,6 @@ class BaseLLMProvider(ABC):
         - `OrchestratorChannel.ANSWER` -- the final answer tokens.
 
         Implementations route to the configured reasoning deployment.
-        Wired end-to-end by task #25 in v2/docs/development_plan.md
-        (Phase 7).
         """
 
     async def complete(

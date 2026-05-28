@@ -10,13 +10,12 @@ without the v1 baggage:
 
 - LLM is dependency-injected (any `BaseLLMProvider`); no SDK or
   helper singletons.
-- Async-only -- the chat pipeline (task #22) and orchestrators
+- Async-only -- the chat pipeline and orchestrators
   consume it from an async context.
 - Returns plain text -- citation/wrapping is the caller's job
-  (task #23 owns `Citation` extraction).
+  (the `Citation` extractor owns that).
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.text_processing import TextProcessingHelper
 """

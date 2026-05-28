@@ -3,8 +3,8 @@
 Pillar: Stable Core
 Phase: 3
 
-Every concrete search provider (`azure_search` task #21, `pgvector`
-task #30, `integrated_vectorization` future) inherits from `BaseSearch`
+Every concrete search provider (`azure_search`, `pgvector`,
+`integrated_vectorization` future) inherits from `BaseSearch`
 and self-registers via `@registry.register("<key>")`.
 
 Constructors take `AppSettings` so providers can read their own
@@ -16,7 +16,7 @@ secrets).
 `search(query, *, top_k=None, vector=None, filter=None)` returns
 provider-agnostic `SearchResult` instances. Producers map their native
 shape (search documents, pgvector rows) to `SearchResult` so the chat
-pipeline (task #22) and citation extractor (task #23) consume one
+pipeline and citation extractor consume one
 stable type.
 '''
 

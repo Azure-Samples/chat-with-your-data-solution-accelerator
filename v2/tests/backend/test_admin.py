@@ -1137,3 +1137,162 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         "log_level": "DEBUG",
     }
     assert all(src == "override" for src in body["sources"].values())
+
+
+# ---------------------------------------------------------------------------
+# DEBT-B5: ConfigSource(StrEnum) -- closes Hard Rule #11 closed-set Literal
+# debt on admin `sources` provenance hints. Migrates
+# `dict[str, Literal["env", "override"]]` -> `dict[str, ConfigSource]`
+# with `ConfigSource.ENV` / `ConfigSource.OVERRIDE` producer-side identity.
+# StrEnum subclasses str so wire shape is unchanged (existing
+# `body["sources"][...] == "env"` assertions still pass).
+# ---------------------------------------------------------------------------
+
+
+import backend.routers.admin as _admin_module
+from enum import StrEnum
+from pydantic import ValidationError
+
+
+def test_config_source_enum_is_strenum_subclass() -> None:
+    """`ConfigSource` MUST subclass `StrEnum` (Hard Rule #11) and
+    therefore `str` -- guarantees wire-shape compatibility with the
+    pre-migration `Literal["env", "override"]` JSON serialization.
+    """
+    enum_cls = _admin_module.ConfigSource
+    assert issubclass(enum_cls, StrEnum)
+    assert issubclass(enum_cls, str)
+
+
+@pytest.mark.parametrize(
+    "member_name, expected_value",
+    [
+        ("ENV", "env"),
+        ("OVERRIDE", "override"),
+    ],
+)
+def test_config_source_enum_member_values(
+    member_name: str, expected_value: str
+) -> None:
+    """Each member's string value MUST match the legacy Literal token
+    exactly so the wire shape is preserved byte-for-byte.
+    """
+    member = getattr(_admin_module.ConfigSource, member_name)
+    assert member.value == expected_value
+    assert str(member) == expected_value
+
+
+def test_config_source_enum_has_exactly_two_members() -> None:
+    """The closed-set surface is `{ENV, OVERRIDE}` -- adding a third
+    member is a deliberate decision that MUST update this test and
+    every producer site, not a silent extension.
+    """
+    members = {m.name for m in _admin_module.ConfigSource}
+    assert members == {"ENV", "OVERRIDE"}
+
+
+def test_config_source_enum_is_exported_in_all() -> None:
+    """`ConfigSource` MUST appear in `admin.__all__` so consumers
+    (the upcoming admin SPA OpenAPI client) can import it explicitly
+    and it shows up in generated docs alongside `AdminStatus` /
+    `AdminConfig` / `EffectiveAdminConfig`.
+    """
+    assert "ConfigSource" in _admin_module.__all__
+
+
+def test_config_source_members_distinct_by_identity() -> None:
+    """Identity-comparison sanity check -- enum members are singletons
+    so `is` works as a discriminator. Producer code relies on this.
+    """
+    assert _admin_module.ConfigSource.ENV is not _admin_module.ConfigSource.OVERRIDE
+
+
+@pytest.mark.parametrize(
+    "wire_value, expected_member",
+    [
+        ("env", "ENV"),
+        ("override", "OVERRIDE"),
+    ],
+)
+def test_effective_admin_config_coerces_string_to_enum(
+    wire_value: str, expected_member: str
+) -> None:
+    """`EffectiveAdminConfig.sources` MUST accept the legacy wire
+    strings and coerce them to `ConfigSource` members on construction
+    -- the OpenAPI-generated TS client + cached SPA bundles still emit
+    bare strings, and Pydantic's StrEnum coercion is what keeps that
+    boundary transparent.
+    """
+    from backend.routers.admin import (
+        AdminConfig,
+        ConfigSource,
+        EffectiveAdminConfig,
+    )
+
+    cfg = EffectiveAdminConfig(
+        values=AdminConfig(
+            orchestrator_name="langgraph",
+            openai_temperature=0.0,
+            openai_max_tokens=1000,
+            search_use_semantic_search=True,
+            search_top_k=5,
+            log_level="INFO",
+        ),
+        sources={"orchestrator_name": wire_value},  # type: ignore[dict-item]
+    )
+    member = cfg.sources["orchestrator_name"]
+    assert member is getattr(ConfigSource, expected_member)
+
+
+def test_effective_admin_config_rejects_unknown_source_value() -> None:
+    """A wire string outside `{env, override}` MUST raise
+    `ValidationError` -- the field annotation is the schema gate, not
+    documentation.
+    """
+    from backend.routers.admin import AdminConfig, EffectiveAdminConfig
+
+    with pytest.raises(ValidationError):
+        EffectiveAdminConfig(
+            values=AdminConfig(
+                orchestrator_name="langgraph",
+                openai_temperature=0.0,
+                openai_max_tokens=1000,
+                search_use_semantic_search=True,
+                search_top_k=5,
+                log_level="INFO",
+            ),
+            sources={"orchestrator_name": "fallback"},  # type: ignore[dict-item]
+        )
+
+
+def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> None:
+    """JSON round-trip MUST emit `"env"` / `"override"` exactly --
+    proves the pre-migration HTTP-shape contract is preserved (the
+    existing `body["sources"][...] == "env"` assertions in this file
+    are the live consumer of this guarantee).
+    """
+    from backend.routers.admin import (
+        AdminConfig,
+        ConfigSource,
+        EffectiveAdminConfig,
+    )
+
+    cfg = EffectiveAdminConfig(
+        values=AdminConfig(
+            orchestrator_name="langgraph",
+            openai_temperature=0.0,
+            openai_max_tokens=1000,
+            search_use_semantic_search=True,
+            search_top_k=5,
+            log_level="INFO",
+        ),
+        sources={
+            "orchestrator_name": ConfigSource.ENV,
+            "log_level": ConfigSource.OVERRIDE,
+        },
+    )
+    dumped = cfg.model_dump(mode="json")
+    assert dumped["sources"] == {
+        "orchestrator_name": "env",
+        "log_level": "override",
+    }

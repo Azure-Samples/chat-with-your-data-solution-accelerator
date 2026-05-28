@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #41)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Blob fetcher for the ``batch_push`` blueprint.
 
@@ -8,8 +8,7 @@ hands the consumer a validated :class:`BatchPushQueueMessage`,
 ``batch_push`` needs the actual blob bytes to feed the parser /
 chunker / embedder pipeline. This module owns only the download
 call; credentials provisioning, container-client construction, and
-the parse/chunk/embed/push composition land in follow-up units per
-[v2/docs/development_plan.md] §4 Phase 6 task #41.
+the parse/chunk/embed/push composition land in follow-up units.
 
 Why bytes (not a stream): v1 piped the blob through
 ``EmbedderFactory.embed_file(file_sas, file_name)`` which fetched

@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #39)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Pure orchestration handler for the ``batch_start`` blueprint.
 

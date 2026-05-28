@@ -54,7 +54,6 @@ credential, or a real Search service.
 """
 
 from pathlib import PurePosixPath
-from typing import cast
 
 import azure.functions as func
 from azure.search.documents.aio import SearchClient
@@ -62,7 +61,7 @@ from azure.storage.blob.aio import ContainerClient
 
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.embedders import registry as embedders_registry
-from backend.core.providers.search.writer import SupportsMergeOrUploadDocuments
+from backend.core.providers.search.writer import SearchWriterAdapter
 from backend.core.settings import AppSettings, get_settings
 from backend.core.types import SearchDocument
 from functions.batch_push.handler import batch_push_handler
@@ -106,15 +105,8 @@ async def _execute(
     )
     parser = parser_cls()
     async with await cred_provider.get_credential() as credential:
-        # Debt (dev_plan §0.1 U8i-EMBEDDER-CTOR-DEBT): BaseEmbedder does
-        # not yet declare the (settings, credential) construction
-        # contract nor an aclose() lifecycle. The concrete
-        # AzureOpenAIEmbedder exposes both and is the only registered
-        # implementation today; tightening BaseEmbedder is structural
-        # (Hard Rule #10) and deferred to a dedicated turn after
-        # phase 6.
         embedder_cls = embedders_registry.registry.get("azure_openai")
-        embedder = embedder_cls(settings=settings, credential=credential)  # pyright: ignore[reportCallIssue]
+        embedder = embedder_cls(settings=settings, credential=credential)
         try:
             async with (
                 ContainerClient(
@@ -128,22 +120,15 @@ async def _execute(
                     credential=credential,
                 ) as search_client,
             ):
-                # Debt (dev_plan §0.1 U8i-SEARCH-WRITER-PROTOCOL-DEBT):
-                # SDK ``SearchClient.merge_or_upload_documents`` takes
-                # ``documents`` as positional-or-keyword, while the
-                # ``SupportsMergeOrUploadDocuments`` protocol declares
-                # it keyword-only. Runtime call is keyword (see
-                # push_documents); the cast keeps the static type
-                # honest without loosening the protocol mid-phase.
                 return await batch_push_handler(
                     message=message,
                     container_client=container_client,
                     parser=parser,
                     embedder=embedder,
-                    search_writer=cast(SupportsMergeOrUploadDocuments, search_client),
+                    search_writer=SearchWriterAdapter(search_client),
                 )
         finally:
-            await embedder.aclose()  # pyright: ignore[reportAttributeAccessIssue]
+            await embedder.aclose()
 
 
 @bp.queue_trigger(

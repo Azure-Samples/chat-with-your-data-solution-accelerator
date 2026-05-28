@@ -1,7 +1,7 @@
 """Azure Speech Service AAD token-mint helper.
 
 Pillar: Stable Core
-Phase: 4 (S1 / SPEECH-MVP -- pulled forward from Phase 5 task #38)
+Phase: 4 (S1 / SPEECH-MVP)
 
 Mints a short-lived (10-minute) Azure Speech Service authorization
 token without ever touching a subscription key. The browser SDK

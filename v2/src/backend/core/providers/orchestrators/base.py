@@ -3,8 +3,8 @@
 Pillar: Stable Core
 Phase: 3
 
-Every concrete orchestrator (`langgraph` task #18, `agent_framework`
-task #19, future swap-ins) inherits from `OrchestratorBase` and
+Every concrete orchestrator (`langgraph`, `agent_framework`,
+future swap-ins) inherits from `OrchestratorBase` and
 self-registers via `@registry.register("<key>")`. Constructors take
 `AppSettings` + an `BaseLLMProvider` (so the orchestrator can call into
 Foundry IQ without re-resolving credentials -- see ADR 0005).

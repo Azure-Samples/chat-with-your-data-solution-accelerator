@@ -18,7 +18,7 @@ from backend.core.providers.parsers.base import BaseParser
 
 registry: Registry[type[BaseParser]] = Registry("ingestion_parsers")
 
-# Eager side-effect imports of concrete ingestion-only parsers (Phase 6 task #41 follow-ups).
+# Eager side-effect imports of concrete ingestion-only parsers.
 # Each concrete uses `from .registry import registry` and `@registry.register("<ext>")`.
 # Imports MUST land at the bottom of the module so `registry` exists before they execute.
 from . import text_parser  # noqa: E402, F401  # pyright: ignore[reportUnusedImport]

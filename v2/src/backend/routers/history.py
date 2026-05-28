@@ -1,7 +1,7 @@
 """Chat-history router.
 
 Pillar: Stable Core
-Phase: 4 (task #31; hardened in #32b)
+Phase: 4
 
 Thin REST surface over the registered ``BaseDatabaseClient``
 (``cosmosdb`` or ``postgresql`` -- selected at startup, see

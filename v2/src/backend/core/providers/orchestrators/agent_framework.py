@@ -6,7 +6,7 @@ Phase: 3
 Wraps `azure.ai.agents.aio.AgentsClient` to delegate the conversation
 to a Foundry-hosted Agent. Construction is dependency-injected: both
 the `AgentsClient` instance and the target `agent_id` are passed in
-by the wiring layer (task #22 in `dependencies.py`). This keeps the
+by the wiring layer in `dependencies.py`. This keeps the
 orchestrator free of SDK construction concerns and trivially testable
 with a fake client.
 
@@ -91,7 +91,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             if agent_role is None:
                 # `system` lives in the agent's instructions (set at
                 # create-time), not on the thread. `tool` outputs are
-                # wired in task #20. Silently dropping is safer than
+                # not yet wired. Silently dropping is safer than
                 # demoting to `user` -- demotion would feed prompt or
                 # tool-JSON back to the agent as user input.
                 continue
@@ -143,7 +143,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             )
 
     async def aclose(self) -> None:
-        # The AgentsClient is owned by the wiring layer (task #22); the
+        # The AgentsClient is owned by the wiring layer; the
         # orchestrator must NOT close it -- other callers may still hold
         # a reference. Override the no-op base only when the orchestrator
         # owns disposable resources of its own.
@@ -257,7 +257,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # thread message:
         #   - `system`: belongs in the agent's `instructions` (set at
         #     create-time), NOT on per-thread messages.
-        #   - `tool`: tool-call outputs are wired via task #20
+        #   - `tool`: tool-call outputs are not yet wired
         #     (`shared/tools/`); until then, drop them.
         if role == "user":
             return MessageRole.USER
@@ -271,7 +271,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
 
         Agent message content is a list of typed blocks (text, image,
         file). We concatenate all text blocks in order; non-text blocks
-        are ignored (citations are surfaced separately by task #23).
+        are ignored (citations are surfaced separately by the citation extractor).
         """
         parts: list[str] = []
         for block in getattr(thread_msg, "content", []) or []:

@@ -13,13 +13,12 @@ v2 differences vs v1 `QuestionAnswerTool`:
 - Async-only.
 - Returns a typed `QAResult` -- the answer string plus the
   `SearchResult`s used as context. Citation rendering is the caller's
-  job (task #23).
+  job.
 - No image / vision branch and no few-shot example block. Those were
   v1 admin-config features; if Phase 5 brings them back they slot in
   as a subclass override of `_compose_messages()`.
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.qa import QuestionAnsweringHelper
 """

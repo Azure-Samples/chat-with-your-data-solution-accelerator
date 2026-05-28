@@ -23,8 +23,7 @@ Two parallel safety seams live in this module, by design:
    `AZURE_OPENAI_RAI_DEPLOYMENT_NAME` into the
    `AgentDefinition.deployment_attr` indirection).
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.content_safety import ContentSafetyGuard, rai_check
 """

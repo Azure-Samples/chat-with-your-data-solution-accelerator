@@ -42,7 +42,8 @@ test fixtures.
 
 import logging
 from datetime import UTC, datetime
-from typing import Annotated, Any, Literal
+from enum import StrEnum
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
@@ -61,6 +62,27 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 _APP_VERSION = "2.0.0"
+
+
+# ---------------------------------------------------------------------------
+# Closed-set enums (Hard Rule #11 -- closed-set string literals are StrEnums,
+# not Literals, so producer-side identity dispatch (`is ConfigSource.ENV`)
+# is available and JSON wire shape is preserved unchanged (StrEnum subclasses
+# str -> Pydantic serializes members to their `.value` string).
+# ---------------------------------------------------------------------------
+
+
+class ConfigSource(StrEnum):
+    """Provenance of an `EffectiveAdminConfig.sources` entry.
+
+    `ENV` -- value comes from the `AppSettings` env default snapshot.
+    `OVERRIDE` -- value comes from the persisted `RuntimeConfig` row
+    loaded into `app.state.runtime_overrides` by the lifespan +
+    PATCH writeback channel.
+    """
+
+    ENV = "env"
+    OVERRIDE = "override"
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +187,7 @@ class EffectiveAdminConfig(BaseModel):
     """
 
     values: AdminConfig
-    sources: dict[str, Literal["env", "override"]]
+    sources: dict[str, ConfigSource]
     updated_at: str | None = None
     updated_by: str | None = None
 
@@ -259,8 +281,8 @@ async def config_effective_endpoint(
         "log_level": settings.observability.log_level,
     }
     merged: dict[str, Any] = dict(env_values)
-    sources: dict[str, Literal["env", "override"]] = {
-        name: "env" for name in env_values
+    sources: dict[str, ConfigSource] = {
+        name: ConfigSource.ENV for name in env_values
     }
     if overrides is not None:
         for name in env_values:
@@ -270,7 +292,7 @@ async def config_effective_endpoint(
             # docstring); only non-None values count as overrides.
             if override_value is not None:
                 merged[name] = override_value
-                sources[name] = "override"
+                sources[name] = ConfigSource.OVERRIDE
 
     # Surface audit fields whenever an override row exists, even if
     # every field has been cleared back to env -- the row itself is
@@ -430,4 +452,10 @@ async def patch_config_endpoint(
     return merged
 
 
-__all__ = ["AdminConfig", "AdminStatus", "EffectiveAdminConfig", "router"]
+__all__ = [
+    "AdminConfig",
+    "AdminStatus",
+    "ConfigSource",
+    "EffectiveAdminConfig",
+    "router",
+]

@@ -13,7 +13,7 @@ Design rules (binding):
 
 * No Key Vault. No secrets in fields. Every credential is acquired at
   runtime via Managed Identity through the `providers/credentials/`
-  registry domain (Phase 2 task #11).
+  registry domain.
 * Conditional Bicep outputs (cosmos / postgres / search / monitoring /
   vnet) default to empty strings here, mirroring the Bicep convention
   that "off" emits `''`. A `model_validator` on `DatabaseSettings`

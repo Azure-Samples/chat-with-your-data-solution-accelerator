@@ -5,8 +5,8 @@ Phase: 3
 
 Builds a `StateGraph` with a single LLM node, compiled once per
 orchestrator instance and re-used across requests (no mutable
-per-request state held on `self`). The graph is held for tool-node
-wiring (task #20: ``ToolNode`` + ``add_conditional_edges``) and is
+per-request state held on `self`). The graph is held for future
+tool-node wiring (``ToolNode`` + ``add_conditional_edges``) and is
 **deliberately bypassed** for the LLM call as of CU-004b: live token
 + reasoning streaming is incompatible with
 ``StateGraph.ainvoke``'s buffer-then-return contract, and the unified
@@ -20,7 +20,7 @@ accumulates ``answer`` chunks into a single buffered event (ADR 0007
 single-answer contract preserved), then emits ``citation`` events for
 the markers actually referenced in the answer.
 
-Citation wiring (task #23, audit step 6d): when an optional
+Citation wiring: when an optional
 ``BaseSearch`` provider is supplied at construction time, ``run()``
 retrieves grounding documents for the latest user message, injects
 them as a numbered ``[doc1] / [doc2] / ...`` system message via
@@ -59,8 +59,8 @@ class _GraphState(TypedDict):
     """Shape of the value flowing through the LangGraph state machine.
 
     `messages` carries an append-only conversation log. The
-    `operator.add` reducer makes multi-node writes (e.g., `llm` and the
-    future `tools` node added in task #20) merge instead of overwrite.
+    `operator.add` reducer makes multi-node writes (e.g., `llm` and a
+    future `tools` node) merge instead of overwrite.
     Without this reducer, the second writer would silently clobber the
     first -- a class of bug LangGraph specifically protects against
     when you declare a channel reducer.
@@ -147,7 +147,7 @@ class LangGraphOrchestrator(OrchestratorBase):
         # based on the configured deployment, so o-series `reasoning`
         # tokens flow live to the SSE channel without per-orchestrator
         # branching. The compiled graph is bypassed for the LLM call --
-        # task #20 (tool-node wiring) reintroduces it for tool routing.
+        # future tool-node wiring reintroduces it for tool routing.
         answer_parts: list[str] = []
         saw_error = False
         async for event in self.llm.complete(graph_messages):

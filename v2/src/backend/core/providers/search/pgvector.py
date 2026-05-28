@@ -23,7 +23,7 @@ caller (chat pipeline) is expected to embed the query upstream so
 both modes are exercised.
 
 DI: takes an `asyncpg.Pool` directly so a *single* pool/process is
-shared with the chat-history database client (task #30 contract).
+shared with the chat-history database client.
 The lifespan bootstraps the postgres client (`ensure_pool()`) and
 then hands its pool to this provider.
 """

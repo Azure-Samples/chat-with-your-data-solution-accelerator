@@ -60,7 +60,7 @@ from uuid import uuid4
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from backend.core.providers.embedders.base import BaseEmbedder
+from backend.core.providers.embedders.registry import EmbedderInstance
 from backend.core.providers.parsers.base import BaseParser
 from backend.core.providers.search.writer import (
     SupportsMergeOrUploadDocuments,
@@ -111,7 +111,7 @@ def _build_document(chunk: Chunk, vector: list[float]) -> SearchDocument:
 async def add_url_handler(
     request: AddUrlRequest,
     parser: BaseParser,
-    embedder: BaseEmbedder,
+    embedder: EmbedderInstance,
     search_writer: SupportsMergeOrUploadDocuments,
     *,
     client: httpx.AsyncClient | None = None,

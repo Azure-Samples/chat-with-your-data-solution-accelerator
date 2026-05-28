@@ -21,6 +21,7 @@ a banned pattern that is not covered by a Hard Rule #16 carve-out.
 **Banned patterns** (line-level regex set):
 
 * ``\\bU\\d+[a-z]?\\b`` -- unit IDs (``U7g``, ``U10c``, ``U11``).
+* ``\\btask\\s+#\\d+\\b`` -- dev_plan §4 task numbers (``task #41``).
 * ``\\blands?\\s+next\\b`` -- forward-looking work pointers.
 * ``\\bso\\s+far\\b`` -- phase roll-forward narrative.
 * ``per\\s+\\[?v2/docs/development_plan\\.md`` -- dev_plan citations.
@@ -70,6 +71,7 @@ _SRC_ROOT = _V2_ROOT / "src"
 # --- Banned-pattern regex set -------------------------------------------------
 
 _UNIT_ID_RE = re.compile(r"\bU\d+[a-z]?\b")
+_TASK_NUM_RE = re.compile(r"\btask\s+#\d+\b", re.IGNORECASE)
 _LANDS_NEXT_RE = re.compile(r"\blands?\s+next\b", re.IGNORECASE)
 _SO_FAR_RE = re.compile(r"\bso\s+far\b", re.IGNORECASE)
 _DEVPLAN_RE = re.compile(r"per\s+\[?v2/docs/development_plan\.md")
@@ -82,6 +84,7 @@ _ISO_DATE_RE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b(?!-)")
 # (regex, human-readable label) pairs. Order is presentation-only.
 _CHECKS: tuple[tuple[re.Pattern[str], str], ...] = (
     (_UNIT_ID_RE, "unit ID"),
+    (_TASK_NUM_RE, "task #N"),
     (_LANDS_NEXT_RE, "lands next"),
     (_SO_FAR_RE, "so far"),
     (_DEVPLAN_RE, "dev_plan citation"),

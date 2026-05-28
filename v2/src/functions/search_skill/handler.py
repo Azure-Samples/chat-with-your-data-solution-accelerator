@@ -37,7 +37,7 @@ Design notes:
 
 import logging
 
-from backend.core.providers.embedders.base import BaseEmbedder
+from backend.core.providers.embedders.registry import EmbedderInstance
 from backend.core.types import Chunk
 from functions.search_skill.models import (
     SearchSkillOutputData,
@@ -60,7 +60,7 @@ def _build_chunk(record_id: str, text: str, index: int) -> Chunk:
 
 
 async def search_skill_handler(
-    request: SearchSkillRequest, embedder: BaseEmbedder
+    request: SearchSkillRequest, embedder: EmbedderInstance
 ) -> SearchSkillResponse:
     """Embed every input record's text and return the WebApiSkill response."""
     chunks = [

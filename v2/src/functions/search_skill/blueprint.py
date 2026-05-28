@@ -78,19 +78,12 @@ async def _execute(
         credentials_registry.select_default(settings.identity.uami_client_id)
     )(settings=settings)
     async with await cred_provider.get_credential() as credential:
-        # Debt (dev_plan §0.1 U8i-EMBEDDER-CTOR-DEBT): BaseEmbedder does
-        # not yet declare the (settings, credential) construction
-        # contract nor an aclose() lifecycle. The concrete
-        # AzureOpenAIEmbedder exposes both and is the only registered
-        # implementation today; tightening BaseEmbedder is structural
-        # (Hard Rule #10) and deferred to a dedicated turn after
-        # phase 6.
         embedder_cls = embedders_registry.registry.get("azure_openai")
-        embedder = embedder_cls(settings=settings, credential=credential)  # pyright: ignore[reportCallIssue]
+        embedder = embedder_cls(settings=settings, credential=credential)
         try:
             return await search_skill_handler(request, embedder)
         finally:
-            await embedder.aclose()  # pyright: ignore[reportAttributeAccessIssue]
+            await embedder.aclose()
 
 
 @bp.route(

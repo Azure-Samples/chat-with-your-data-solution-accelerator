@@ -120,7 +120,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     #     is None -- see `providers/orchestrators/langgraph.py`).
     #   - `pgvector` needs the postgres pool injected. The pool lives
     #     on the database client and must be a single per-process
-    #     instance (see Phase 4 task #30); only the lifespan can
+    #     instance (`pgvector` reuses the postgres pool); only the lifespan can
     #     supply it.
     search_key = settings.database.index_store
     search_provider = None

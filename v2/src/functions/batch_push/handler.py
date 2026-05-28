@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #41)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Pure orchestration handler for the ``batch_push`` blueprint.
 
@@ -35,7 +35,7 @@ import logging
 
 from azure.storage.blob.aio import ContainerClient
 
-from backend.core.providers.embedders.base import BaseEmbedder
+from backend.core.providers.embedders.registry import EmbedderInstance
 from backend.core.providers.parsers.base import BaseParser
 from backend.core.providers.search.writer import (
     SupportsMergeOrUploadDocuments,
@@ -69,7 +69,7 @@ async def batch_push_handler(
     message: BatchPushQueueMessage,
     container_client: ContainerClient,
     parser: BaseParser,
-    embedder: BaseEmbedder,
+    embedder: EmbedderInstance,
     search_writer: SupportsMergeOrUploadDocuments,
 ) -> list[SearchDocument]:
     """Download → parse → embed → push one ``batch_push`` message.
