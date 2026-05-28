@@ -1,7 +1,7 @@
 """Cross-blueprint Functions wire contracts.
 
 Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U7b)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 This module owns the DTOs that travel **between** Functions blueprints
 on the storage queue / event grid wire. A blueprint that produces a

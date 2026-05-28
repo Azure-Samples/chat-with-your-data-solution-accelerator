@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U8i)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Queue-trigger blueprint that consumes ``batch_push`` messages and runs
 :func:`functions.batch_push.handler.batch_push_handler` once per
@@ -21,7 +21,7 @@ Wire shape:
   AzureError / generic) and **re-raises** so the runtime applies its
   retry policy and ultimately moves the message to the poison queue.
 
-Post-U7g/U7i thin composition:
+Thin composition over the ``functions/core/`` helpers:
 
 * :func:`functions.batch_push.queue_reader.parse_push_message` --
   decode + Pydantic-validate the envelope.
@@ -94,8 +94,8 @@ async def _execute(
     Extracted from :func:`batch_push` so route-level tests can
     monkeypatch this single seam instead of spinning up Azurite +
     Foundry IQ + a real Search service. Returns the documents pushed
-    to Search (in chunk order) so future smoke / e2e tests can assert
-    on the wire shape end-to-end.
+    to Search (in chunk order) so callers can assert on the wire
+    shape end-to-end.
     """
     blob_endpoint, _queue_endpoint = resolve_storage_endpoints(settings.storage)
     cred_provider = credentials_registry.registry.get(

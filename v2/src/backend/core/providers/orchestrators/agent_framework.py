@@ -25,7 +25,7 @@ The ``llm`` dependency is unused today -- the Agent owns its own
 model deployment in Foundry. We still take it via the ABC contract so
 swapping orchestrators is configuration-only.
 
-Reasoning + tool visibility (CU-004c, 2026-05-05): unlike the
+Reasoning + tool visibility (CU-004c): unlike the
 LangGraph orchestrator (CU-004b), the agent owns its own model and
 its own tool-routing loop, so we can't call
 ``BaseLLMProvider.complete()`` and inherit reasoning streaming. The

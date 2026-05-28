@@ -104,8 +104,7 @@ class BaseLLMProvider(ABC):
         for free without re-implementing the routing logic. Orchestrators
         and pipelines call THIS method instead of ``chat()`` or
         ``reason()`` directly so adding a new orchestrator library
-        never grows per-library reasoning-vs-chat dispatch (CU-004a,
-        2026-05-05 user direction).
+        never grows per-library reasoning-vs-chat dispatch (CU-004a).
 
         Routing rule:
 

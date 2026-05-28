@@ -1,10 +1,11 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #43, U10b)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Pure orchestration handler for the ``search_skill`` HTTP blueprint.
 
 ``search_skill_handler`` takes a :class:`SearchSkillRequest` posted by
-an AI Search indexer (WebApiSkill envelope per U10a) and an injected
+an AI Search indexer (WebApiSkill envelope per
+:mod:`functions.search_skill.models`) and an injected
 :class:`BaseEmbedder`, embeds every record's text on the fly, and
 returns a :class:`SearchSkillResponse` with one
 :class:`SearchSkillOutputRecord` per input record in the same order.
@@ -20,7 +21,7 @@ Design notes:
 * Single batched embedder call. The embedder's SDK boundary is already
   wrapped per [v2/docs/exception_handling_policy.md] "Embedder
   providers" so any failure propagates here; the HTTP-trigger
-  blueprint (U10c) will wrap the handler call in
+  blueprint wraps the handler call in
   ``@map_function_exceptions`` to map ``AzureError`` / generic
   exceptions to 502 / 500. No try/except here -- adding another layer
   would double-log.
@@ -28,10 +29,10 @@ Design notes:
   is a programming bug (the embedder is contract-violating), not a
   per-record data problem; ``RuntimeError`` matches the precedent set
   by :func:`functions.batch_push.handler.batch_push_handler`.
-* The per-record ``errors`` / ``warnings`` envelope (U10a) stays
-  modeled for future per-input validation (e.g., text-too-long) but is
-  unused on the embed path: pure embedder calls are batch-semantic,
-  not per-record-semantic. Both fields default to ``None`` on success.
+* The per-record ``errors`` / ``warnings`` envelope stays modeled for
+  future per-input validation (e.g., text-too-long) but is unused on
+  the embed path: pure embedder calls are batch-semantic, not
+  per-record-semantic. Both fields default to ``None`` on success.
 """
 
 import logging
@@ -76,7 +77,7 @@ async def search_skill_handler(
         )
 
     # ``recordId`` is the wire-protocol field name declared by
-    # ``SearchSkillOutputRecord`` via ``Field(alias="recordId")`` (U10a).
+    # ``SearchSkillOutputRecord`` via ``Field(alias="recordId")``.
     # Construction uses the alias here so the type checker sees the
     # canonical parameter name; ``populate_by_name=True`` is runtime-only
     # and isn't reflected in the synthesized ``__init__`` signature.

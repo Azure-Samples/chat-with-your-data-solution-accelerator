@@ -7,8 +7,8 @@ Builds a `StateGraph` with a single LLM node, compiled once per
 orchestrator instance and re-used across requests (no mutable
 per-request state held on `self`). The graph is held for tool-node
 wiring (task #20: ``ToolNode`` + ``add_conditional_edges``) and is
-**deliberately bypassed** for the LLM call as of CU-004b
-(2026-05-05): live token + reasoning streaming is incompatible with
+**deliberately bypassed** for the LLM call as of CU-004b: live token
++ reasoning streaming is incompatible with
 ``StateGraph.ainvoke``'s buffer-then-return contract, and the unified
 LLM-layer factory ``BaseLLMProvider.complete()`` (CU-004a) already
 auto-routes between ``chat()`` and ``reason()`` so the orchestrator

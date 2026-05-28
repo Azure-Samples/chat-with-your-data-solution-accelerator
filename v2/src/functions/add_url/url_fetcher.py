@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #41)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 URL fetcher for the ``add_url`` blueprint.
 
@@ -7,8 +7,8 @@ URL fetcher for the ``add_url`` blueprint.
 operators POST a URL, the blueprint downloads the page bytes, and
 the same parse / chunk / embed / push pipeline runs against the
 fetched payload. This module owns only the download call; the
-HTTP trigger (``blueprint.py``, U9c) and the orchestrating handler
-(``handler.py``, U9b) compose the pipeline around it.
+HTTP trigger (``blueprint.py``) and the orchestrating handler
+(``handler.py``) compose the pipeline around it.
 
 Why bytes (not a stream): matches the
 :func:`functions.batch_push.blob_fetcher.download_blob` contract so
@@ -18,13 +18,13 @@ ingested through ``add_url`` are HTML / PDF / text in the same
 size class as blob ingestion (tens of MB at most); full
 materialization keeps the pipeline composition simple.
 
-Hard Rule #14 (SDK boundary resilience) — the httpx call is
+Hard Rule #14 (SDK boundary resilience) -- the httpx call is
 wrapped in a narrow ``except httpx.HTTPError`` (umbrella for
 ``ConnectError``, ``TimeoutException``, ``HTTPStatusError``,
 ``ReadError``, etc.) with structured ``logger.exception`` extras
 (``operation``, ``provider``, ``url``) then re-raised so the
 HTTP trigger's ``@map_function_exceptions("add_url")`` decorator
-(U9c) can translate the failure into the right ``HttpResponse``
+can translate the failure into the right ``HttpResponse``
 status (502 for SDK errors per the policy in
 [v2/docs/exception_handling_policy.md] §"Functions blueprints").
 """

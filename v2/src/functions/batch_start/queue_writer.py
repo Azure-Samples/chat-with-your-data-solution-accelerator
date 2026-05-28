@@ -1,17 +1,15 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #40)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Queue writer for the ``batch_start`` blueprint.
 
 ``batch_start`` fans one blob -> one queue message of shape
 :class:`BatchPushQueueMessage` onto the storage queue consumed by
-``batch_push``. This module owns only the send call; queue-client
-construction, credentials wiring, and the fan-out loop land in
-follow-up units per [v2/docs/development_plan.md] §4 Phase 6.
+``batch_push``. This module owns only the send call.
 
-C5 (functions try/except sweep) is folded into this unit per the
-Phase 6 plan: the SDK boundary is wrapped per the policy in
-[v2/docs/exception_handling_policy.md] §"Functions blueprints" -- narrow
+Hard Rule #14 (SDK boundary resilience): the SDK boundary is wrapped
+per the policy in [v2/docs/exception_handling_policy.md] §"Functions
+blueprints" -- narrow
 catch of ``azure.core.exceptions.AzureError`` with structured
 ``logger.exception`` extras, then re-raise so the Functions runtime
 applies its retry / poison-queue semantics.

@@ -1,7 +1,7 @@
 """Async context manager that yields the (ContainerClient, QueueClient) pair.
 
 Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U7e)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Functions-only helper that owns the nested ``async with
 (ContainerClient(...), QueueClient(...))`` boilerplate previously

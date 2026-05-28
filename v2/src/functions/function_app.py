@@ -1,11 +1,9 @@
 """Pillar: Stable Core
 Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
-Modular RAG indexing pipeline host. Registers the Phase 6 blueprint
-set landed so far -- ``batch_start`` (U7g), ``batch_push`` (U8i),
-``add_url`` (U9c), ``search_skill`` (U10c). U11 (standalone-backend
-smoke test CI job) lands next per [v2/docs/development_plan.md]
-§4.6.1.
+Modular RAG indexing pipeline host. Registers the ingestion
+blueprint set: :mod:`functions.batch_start`, :mod:`functions.batch_push`,
+:mod:`functions.add_url`, and :mod:`functions.search_skill`.
 
 Also exposes a single anonymous ``health`` endpoint so the container
 starts cleanly and ``azd up`` succeeds for the Functions app.

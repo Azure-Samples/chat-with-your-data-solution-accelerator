@@ -73,11 +73,10 @@ class EmbeddingResult(BaseModel):
 class Chunk(BaseModel):
     """One parsed text fragment ready for embedding + indexing.
 
-    Returned by `BaseParser.parse(...)` (Phase 6 task #41, U8c) and
-    consumed by the batch_push handler (U8h). Carried as the unit of
-    work between the parser, the embedder, and the search writer --
-    no chunker primitive sits in between (decision D2 in
-    development_plan §4.6.1).
+    Returned by `BaseParser.parse(...)` and consumed by the batch_push
+    handler. Carried as the unit of work between the parser, the
+    embedder, and the search writer -- no chunker primitive sits in
+    between (decision D2 in development_plan §4.6.1).
 
     Frozen + `extra="forbid"` so the ingestion pipeline cannot
     silently smuggle provider-specific fields through `metadata`

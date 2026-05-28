@@ -17,7 +17,7 @@ client object returned by Foundry, but never import its type, so the
 ban is structurally enforced (grep stays clean). We DO declare narrow
 `Protocol` shapes locally for the response objects we read so pyright
 `--strict` can verify our access pattern without coupling to the
-openai stubs (Q14a, 2026-05-05).
+openai stubs (Q14a).
 """
 
 from typing import Any, AsyncIterator, Protocol, Sequence, cast
@@ -411,7 +411,7 @@ class FoundryIQ(BaseLLMProvider):
         *summary* tokens and ``answer``-channel events for the final
         answer tokens (ADR 0007).
 
-        Implementation note (2026-05-08): switched from
+        Implementation note: switched from
         ``oai.chat.completions.create(..., stream=True)`` to
         ``oai.responses.create(..., reasoning={"effort": "...",
         "summary": "auto"}, stream=True)`` because gpt-5 (and other

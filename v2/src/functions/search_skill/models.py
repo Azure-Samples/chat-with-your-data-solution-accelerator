@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #43, U10a)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 AI Search custom-skill request/response Pydantic models.
 
@@ -13,9 +13,8 @@ handler returns the same envelope shape with per-record
 indexer can correlate inputs to outputs by ``recordId``.
 
 This module owns only the request / response DTOs. The
-embed-on-the-fly handler (U10b -- ``handler.py``) and the HTTP
-trigger blueprint (U10c -- ``blueprint.py``) land in follow-up
-units per [v2/docs/development_plan.md] §4.6.1.
+embed-on-the-fly handler lives in ``handler.py`` and the HTTP
+trigger blueprint lives in ``blueprint.py``.
 
 Wire shape (this skill only -- embed input text as a vector)::
 

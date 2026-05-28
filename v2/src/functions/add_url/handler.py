@@ -1,10 +1,10 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #41)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Pure orchestration handler for the ``add_url`` blueprint.
 
 ``add_url_handler`` composes :func:`functions.add_url.url_fetcher.fetch_url`
-(U9a) with the :class:`backend.core.providers.parsers.base.BaseParser`
+with the :class:`backend.core.providers.parsers.base.BaseParser`
 registry, the :class:`backend.core.providers.embedders.base.BaseEmbedder`
 registry, and
 :func:`backend.core.providers.search.writer.push_documents` into the
@@ -22,13 +22,13 @@ Design notes:
 
 * Every collaborator is injected (DI). HTTP request parsing,
   parser selection (by URL extension / content-type), embedder
-  construction, and search-client wiring live in the next unit
-  (U9c — ``functions/add_url/blueprint.py``). Injection keeps this
+  construction, and search-client wiring live in
+  ``functions/add_url/blueprint.py``. Injection keeps this
   handler directly unit-testable without spinning up the Functions
   host or real network calls.
 * ``AddUrlRequest`` is defined inline because it is **not** a
   cross-blueprint wire contract -- only the ``add_url`` HTTP
-  trigger (U9c) constructs it and only this handler consumes it.
+  trigger constructs it and only this handler consumes it.
   Cross-blueprint envelopes (queue messages, event-grid payloads)
   live in :mod:`functions.core.contracts` per the docstring rule
   in that module. Frozen + ``extra="forbid"`` so a malformed HTTP
@@ -44,7 +44,7 @@ Design notes:
   :func:`push_documents` already wrap their SDK boundaries per
   [v2/docs/exception_handling_policy.md] section "Functions
   blueprints". Adding another layer would double-log. Any
-  exception propagates so U9c's
+  exception propagates so the HTTP trigger's
   ``@map_function_exceptions("add_url")`` decorator translates it
   into the right ``HttpResponse`` (422 for ``ValidationError``,
   502 for SDK errors, 500 for everything else).
@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 class AddUrlRequest(BaseModel):
     """Typed parameter contract for :func:`add_url_handler`.
 
-    The HTTP trigger (U9c) builds this from the request JSON body
+    The HTTP trigger builds this from the request JSON body
     so ``url`` validation (non-empty, stripped of whitespace) and
     ``ingestion_job_id`` correlation id assignment both happen at
     a single typed boundary. ``frozen=True`` + ``extra="forbid"``
@@ -119,7 +119,7 @@ async def add_url_handler(
     """Fetch → parse → embed → push one ``add_url`` request.
 
     ``client`` is an optional ``httpx.AsyncClient`` so the HTTP
-    trigger (U9c) can share a single client across requests when
+    trigger can share a single client across requests when
     the Functions host reuses the worker. When omitted, ``fetch_url``
     builds its own per-call client. See :func:`fetch_url` for the
     exact construction semantics.

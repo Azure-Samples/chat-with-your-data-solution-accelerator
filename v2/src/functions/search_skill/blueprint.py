@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U10c)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 HTTP blueprint that exposes the ``search_skill`` embed-on-the-fly
 handler from :mod:`functions.search_skill.handler` as
@@ -17,8 +17,9 @@ Trigger contract:
 
 * ``POST /api/search_skill`` with JSON body validated as
   :class:`functions.search_skill.models.SearchSkillRequest` (AI Search
-  WebApiSkill envelope -- wire field ``recordId`` per record; see U10a
-  ``models.py`` for the camelCase ↔ snake_case bridge).
+  WebApiSkill envelope -- wire field ``recordId`` per record; see
+  :mod:`functions.search_skill.models` for the camelCase ↔ snake_case
+  bridge).
 * 200 response body shape:
   ``{"values": [{"recordId": str, "data": {"embedding": [float...]}},
   ...]}`` -- :meth:`SearchSkillResponse.model_dump` is called with

@@ -1,5 +1,5 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #41)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Queue reader for the ``batch_push`` blueprint.
 
@@ -11,9 +11,6 @@ serialized with ``model_dump_json()``.
 
 This module owns only the parse step: turn the raw
 ``azure.functions.QueueMessage`` body into a validated envelope.
-Blob fetch, parser/chunker dispatch, embedder invocation, and search
-index push land in follow-up units per [v2/docs/development_plan.md]
-§4 Phase 6 task #41.
 
 Failure mode: a malformed / drifted body raises
 ``pydantic.ValidationError`` (the envelope is ``frozen=True,

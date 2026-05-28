@@ -1,21 +1,19 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U7g)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 HTTP blueprint that exposes the ``batch_start`` orchestrator from
 :mod:`functions.batch_start.handler` as ``POST /api/batch_start``.
 
-Post-U7g the blueprint is a thin composition of the
-``functions/core/`` helpers landed in U7c-U7f:
+Thin composition over the ``functions/core/`` helpers:
 
 * :func:`functions.core.storage_endpoints.resolve_storage_endpoints`
-  (U7c) -- derive ``(blob_endpoint, queue_endpoint)``.
-* :func:`functions.core.storage_clients.storage_clients` (U7e) --
-  open the ``(ContainerClient, QueueClient)`` pair via a single
-  ``async with``.
-* :func:`functions.core.http.json_response` + :class:`HTTPStatus` (U7d)
-  -- one place that builds the wire response.
-* :func:`functions.core.exception_mapping.map_function_exceptions`
-  (U7f) -- owns the 422/502/500 ladder (``ValidationError`` -> 422,
+  -- derive ``(blob_endpoint, queue_endpoint)``.
+* :func:`functions.core.storage_clients.storage_clients` -- open the
+  ``(ContainerClient, QueueClient)`` pair via a single ``async with``.
+* :func:`functions.core.http.json_response` + :class:`HTTPStatus` --
+  one place that builds the wire response.
+* :func:`functions.core.exception_mapping.map_function_exceptions` --
+  owns the 422/502/500 ladder (``ValidationError`` -> 422,
   ``AzureError`` -> 502, ``BLE001`` -> 500) with structured logging.
 
 The route body itself is just parse -> dispatch -> respond. The

@@ -1,11 +1,11 @@
 """Exception-to-HTTP mapping decorator for Functions HTTP routes.
 
 Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U7f + U7i)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Functions-only helper that owns the four-arm exception ladder every
-blueprint HTTP route currently repeats inline (see the pre-U7g
-``batch_start`` blueprint, ~60 lines of try/except). Applying
+blueprint HTTP route would otherwise repeat inline (a single
+``batch_start`` blueprint inlined ~60 lines of try/except). Applying
 :func:`map_function_exceptions` reduces each route body to just the
 happy-path logic; the decorator owns:
 

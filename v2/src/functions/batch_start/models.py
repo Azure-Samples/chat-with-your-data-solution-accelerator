@@ -1,13 +1,12 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #39)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Request payload model for the ``batch_start`` blueprint.
 
 The ``batch_start`` HTTP route kicks off (or re-kicks) ingestion for a
 blob-storage prefix by fanning work out onto a queue consumed by the
 ``batch_push`` blueprint. This module owns only the inbound request
-DTO; the route handler, queue binding, and orchestration land in
-follow-up units per [v2/docs/development_plan.md] §4 Phase 6.
+DTO.
 
 Field-name fidelity: v1 ``code/backend/batch/batch_start_processing.py``
 takes no body and reads the container name from environment via

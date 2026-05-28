@@ -1,7 +1,7 @@
 """HTTP response helpers and error discriminator enum for Functions blueprints.
 
 Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, U7d)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Functions-only helper module that owns:
 

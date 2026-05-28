@@ -3,7 +3,7 @@
 Pillar: Stable Core
 Phase: 6
 
-First concrete `BaseParser` to land in v2 (Phase 6 task #41, U8d).
+First concrete `BaseParser` to land in v2.
 Self-registers under key `"txt"` per the registration convention in
 `base.py` (lowercase file extension, no leading dot). Eager-imported
 from `functions/core/parsers/registry.py` so the registration fires at process

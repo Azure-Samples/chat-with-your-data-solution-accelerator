@@ -1,20 +1,17 @@
 """Pillar: Stable Core
-Phase: 6 (Functions blueprints / modular RAG indexing pipeline, task #40)
+Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Blob listing helper for the ``batch_start`` blueprint.
 
 ``batch_start`` needs the set of blob names in a container (optionally
 filtered by prefix) so it can fan out one queue message per blob to
-``batch_push``. This module owns only the listing call; credentials
-provisioning, container-client construction, and queue enqueue land in
-follow-up units per [v2/docs/development_plan.md] §4 Phase 6.
+``batch_push``. This module owns only the listing call.
 
-C5 (functions try/except sweep) is folded into this unit per the
-Phase 6 plan: the SDK boundary is wrapped per the policy in
-[v2/docs/exception_handling_policy.md] §"Functions blueprints" — narrow
-catch of ``azure.core.exceptions.AzureError`` with structured
-``logger.exception`` extras, then re-raise so the Functions runtime
-applies its retry / poison-queue semantics.
+Hard Rule #14 (SDK boundary resilience): the SDK boundary is wrapped
+per the policy in [v2/docs/exception_handling_policy.md] §"Functions
+blueprints" — narrow catch of ``azure.core.exceptions.AzureError``
+with structured ``logger.exception`` extras, then re-raise so the
+Functions runtime applies its retry / poison-queue semantics.
 """
 
 import logging

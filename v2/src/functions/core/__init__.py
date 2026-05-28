@@ -1,7 +1,7 @@
 """Functions-only shared layer for the RAG indexing pipeline.
 
 Pillar: Stable Core
-Phase: 5.5 (Stable Core Refactor, REFACTOR-B sub-unit B2; broadened in Phase 6 U7)
+Phase: 5.5 (Stable Core Refactor; broadened in Phase 6)
 
 This package is the home for code that loads only when the Azure
 Functions container spins up. Backend chat / history / admin runs
@@ -19,8 +19,8 @@ canonical decision tree):
 3. **Functions-runtime helper** -- wraps ``azure.functions`` types
    (``HttpRequest`` / ``HttpResponse`` / ``Blueprint``) or carries a
    Functions-only wire contract (queue envelope, blueprint-to-
-   blueprint message). Examples landed in Phase 6 U7: ``contracts``,
-   ``http``, ``exception_mapping``.
+   blueprint message). Examples include ``contracts``, ``http``,
+   ``exception_mapping``.
 
 Anti-duplication invariant: **no symbol is defined twice.** Storage,
 credentials, settings, registry primitives -- if backend can use it,

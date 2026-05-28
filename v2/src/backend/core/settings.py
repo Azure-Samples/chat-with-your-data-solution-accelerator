@@ -240,7 +240,7 @@ class OrchestratorSettings(BaseSettings):
     infra-pinned value -- the admin UI and tests need to flip it
     without redeploying Bicep.
 
-    CU-009b (2026-05-05) removed the previous `agent_id` field +
+    CU-009b removed the previous `agent_id` field +
     cross-field validator (originally added in CU-001a). Per ADR 0008
     (lazy-foundry-agent-bootstrap), the Foundry agent identity is no
     longer settings-driven -- the `agent_framework` orchestrator must
