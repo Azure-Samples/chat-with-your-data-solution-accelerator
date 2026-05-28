@@ -4,12 +4,15 @@ Pillar: Stable Core
 Phase: 2
 """
 
+from enum import StrEnum
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import ValidationError
 
+import backend.models.health as health_models
 from backend.app import create_app
 from backend.dependencies import (
     get_credential_provider,
@@ -18,6 +21,141 @@ from backend.dependencies import (
 from backend.core.providers.credentials.base import BaseCredentialProvider
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.settings import AppSettings, get_settings
+from backend.models.health import (
+    CheckStatus,
+    DependencyCheck,
+    HealthResponse,
+    OverallStatus,
+)
+from backend.routers.health import _aggregate
+
+
+# ---------------------------------------------------------------------------
+# CheckStatus / OverallStatus -- StrEnum structural tests (Hard Rule #11)
+# ---------------------------------------------------------------------------
+
+
+def test_check_status_is_strenum_subclassing_str() -> None:
+    assert issubclass(CheckStatus, StrEnum)
+    assert issubclass(CheckStatus, str)
+
+
+def test_overall_status_is_strenum_subclassing_str() -> None:
+    assert issubclass(OverallStatus, StrEnum)
+    assert issubclass(OverallStatus, str)
+
+
+@pytest.mark.parametrize(
+    ("member", "value"),
+    [
+        (CheckStatus.PASS, "pass"),
+        (CheckStatus.FAIL, "fail"),
+        (CheckStatus.SKIP, "skip"),
+    ],
+)
+def test_check_status_members_have_expected_values(member: CheckStatus, value: str) -> None:
+    assert member.value == value
+    assert str(member) == value
+
+
+def test_check_status_has_exactly_three_members() -> None:
+    assert {m.value for m in CheckStatus} == {"pass", "fail", "skip"}
+
+
+@pytest.mark.parametrize(
+    ("member", "value"),
+    [
+        (OverallStatus.PASS, "pass"),
+        (OverallStatus.DEGRADED, "degraded"),
+        (OverallStatus.FAIL, "fail"),
+    ],
+)
+def test_overall_status_members_have_expected_values(
+    member: OverallStatus, value: str
+) -> None:
+    assert member.value == value
+    assert str(member) == value
+
+
+def test_overall_status_has_exactly_three_members() -> None:
+    assert {m.value for m in OverallStatus} == {"pass", "degraded", "fail"}
+
+
+def test_sibling_strenums_are_distinct_types_even_for_shared_values() -> None:
+    """`pass` and `fail` exist in both enums; members must not be aliased."""
+    assert CheckStatus.PASS is not OverallStatus.PASS
+    assert CheckStatus.FAIL is not OverallStatus.FAIL
+    assert type(CheckStatus.PASS) is not type(OverallStatus.PASS)
+
+
+@pytest.mark.parametrize("raw", ["pass", "fail", "skip"])
+def test_dependency_check_coerces_string_status_to_check_status(raw: str) -> None:
+    dc = DependencyCheck(name="probe", status=raw)  # type: ignore[arg-type]
+    assert isinstance(dc.status, CheckStatus)
+    assert dc.status == raw
+
+
+def test_dependency_check_rejects_unknown_status() -> None:
+    with pytest.raises(ValidationError):
+        DependencyCheck(name="probe", status="unknown")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("raw", ["pass", "degraded", "fail"])
+def test_health_response_coerces_string_status_to_overall_status(raw: str) -> None:
+    hr = HealthResponse(status=raw)  # type: ignore[arg-type]
+    assert isinstance(hr.status, OverallStatus)
+    assert hr.status == raw
+
+
+def test_health_response_json_round_trip_emits_string_values() -> None:
+    hr = HealthResponse(
+        status=OverallStatus.FAIL,
+        checks=[DependencyCheck(name="probe", status=CheckStatus.FAIL, detail="x")],
+    )
+    dumped = hr.model_dump()
+    assert dumped["status"] == "fail"
+    assert dumped["checks"][0]["status"] == "fail"
+
+
+def test_module_all_includes_both_strenums() -> None:
+    assert "CheckStatus" in health_models.__all__
+    assert "OverallStatus" in health_models.__all__
+
+
+# ---------------------------------------------------------------------------
+# _aggregate -- dispatch logic, must use `is` against StrEnum members
+# ---------------------------------------------------------------------------
+
+
+def test_aggregate_empty_returns_pass() -> None:
+    result = _aggregate([])
+    assert result is OverallStatus.PASS
+
+
+def test_aggregate_all_pass_returns_pass() -> None:
+    checks = [
+        DependencyCheck(name="a", status=CheckStatus.PASS),
+        DependencyCheck(name="b", status=CheckStatus.PASS),
+    ]
+    assert _aggregate(checks) is OverallStatus.PASS
+
+
+def test_aggregate_pass_and_skip_returns_pass() -> None:
+    """`skip` is neutral -- must not drag overall down."""
+    checks = [
+        DependencyCheck(name="a", status=CheckStatus.PASS),
+        DependencyCheck(name="b", status=CheckStatus.SKIP),
+    ]
+    assert _aggregate(checks) is OverallStatus.PASS
+
+
+def test_aggregate_any_fail_returns_fail() -> None:
+    checks = [
+        DependencyCheck(name="a", status=CheckStatus.PASS),
+        DependencyCheck(name="b", status=CheckStatus.FAIL),
+        DependencyCheck(name="c", status=CheckStatus.SKIP),
+    ]
+    assert _aggregate(checks) is OverallStatus.FAIL
 
 
 COSMOS_ENV: dict[str, str] = {

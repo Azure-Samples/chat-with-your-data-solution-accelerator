@@ -489,3 +489,103 @@ def test_env_sample_keys_round_trip_through_appsettings() -> None:
         "or document the exemption in _ENV_EXAMPLE_EXEMPTIONS with a "
         "reason."
     )
+
+
+# ---------------------------------------------------------------------------
+# Environment StrEnum (Hard Rule #11 -- closed-set runtime-dispatch discriminator)
+# ---------------------------------------------------------------------------
+#
+# `AppSettings.environment` is a closed two-value set ("local" / "production")
+# that drives runtime branches in `backend.dependencies` (Easy Auth bypass)
+# and `backend.routers.history` (user-id fallback). Per Hard Rule #11 the
+# field type MUST be a `StrEnum` subclass so dispatch sites compare against
+# enum members via `is`-identity rather than free-form string literals.
+
+import backend.core.settings as _settings_module  # noqa: E402
+
+
+def test_environment_enum_is_strenum_subclass() -> None:
+    """`Environment` is a StrEnum subclass so wire JSON shape is unchanged."""
+    from enum import StrEnum
+
+    assert issubclass(_settings_module.Environment, StrEnum)
+    assert issubclass(_settings_module.Environment, str)
+
+
+@pytest.mark.parametrize(
+    "member_name, expected_value",
+    [
+        ("LOCAL", "local"),
+        ("PRODUCTION", "production"),
+    ],
+)
+def test_environment_enum_member_values(
+    member_name: str, expected_value: str
+) -> None:
+    """Each member carries the lowercase string value used on the wire."""
+    member = getattr(_settings_module.Environment, member_name)
+    assert member.value == expected_value
+    assert str(member) == expected_value
+
+
+def test_environment_enum_has_exactly_two_members() -> None:
+    """Frozen 2-member set -- adding a third value is a Hard Rule #11 change."""
+    members = {m.name for m in _settings_module.Environment}
+    assert members == {"LOCAL", "PRODUCTION"}
+
+
+def test_environment_field_default_is_local_enum_member(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default flips from the Literal string `"local"` to `Environment.LOCAL`."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.delenv("AZURE_ENVIRONMENT", raising=False)
+    settings = AppSettings()
+    assert settings.environment is _settings_module.Environment.LOCAL
+
+
+@pytest.mark.parametrize(
+    "raw_value, expected_member",
+    [
+        ("local", "LOCAL"),
+        ("production", "PRODUCTION"),
+    ],
+)
+def test_environment_field_coerces_string_to_enum(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: str,
+    expected_member: str,
+) -> None:
+    """Pydantic coerces wire string values into the StrEnum member."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_ENVIRONMENT", raw_value)
+
+    settings = AppSettings()
+
+    expected = getattr(_settings_module.Environment, expected_member)
+    assert settings.environment is expected
+
+
+def test_environment_field_rejects_unknown_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown environment string raises ValidationError (closed-set guard)."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_ENVIRONMENT", "staging")
+
+    with pytest.raises(ValidationError):
+        AppSettings()
+
+
+def test_environment_enum_is_exported_in_all() -> None:
+    """`Environment` is part of the public surface of `backend.core.settings`."""
+    assert "Environment" in _settings_module.__all__
+
+
+def test_environment_members_distinct_by_identity() -> None:
+    """LOCAL and PRODUCTION are distinct members -- `is`-dispatch is safe."""
+    env = _settings_module.Environment
+    assert env.LOCAL is not env.PRODUCTION
+    # And both compare equal to their string value (StrEnum invariant)
+    assert env.LOCAL == "local"
+    assert env.PRODUCTION == "production"

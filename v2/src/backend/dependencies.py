@@ -34,7 +34,7 @@ from backend.core.providers.credentials.base import BaseCredentialProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
-from backend.core.settings import AppSettings, get_settings
+from backend.core.settings import AppSettings, Environment, get_settings
 from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
@@ -274,7 +274,7 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
 
         # Local-dev bypass: no headers at all in `local` -> synthetic user.
         if not principal_id and not claims_raw:
-            if settings.environment == "local":
+            if settings.environment is Environment.LOCAL:
                 return _LOCAL_DEV_USER
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -309,7 +309,7 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
         # the header is absent in local environments.
         if principal_id:
             return principal_id
-        if settings.environment == "local":
+        if settings.environment is Environment.LOCAL:
             return _LOCAL_DEV_USER
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

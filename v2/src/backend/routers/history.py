@@ -37,8 +37,9 @@ from typing import Annotated, cast
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from backend.dependencies import DatabaseClientDep, SettingsDep
+from backend.core.settings import Environment
 from backend.core.types import ChatMessage, ChatRole, Conversation, MessageRecord
+from backend.dependencies import DatabaseClientDep, SettingsDep
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/history", tags=["history"])
@@ -64,7 +65,7 @@ def get_user_id(request: Request, settings: SettingsDep) -> str:
     value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
     if value:
         return value
-    if settings.environment == "local":
+    if settings.environment is Environment.LOCAL:
         return _LOCAL_DEV_USER
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

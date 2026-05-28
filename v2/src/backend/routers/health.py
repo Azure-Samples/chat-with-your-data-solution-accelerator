@@ -24,7 +24,7 @@ import logging
 from fastapi import APIRouter, Response, status
 
 from backend.dependencies import SettingsDep
-from backend.models.health import DependencyCheck, HealthResponse, OverallStatus
+from backend.models.health import CheckStatus, DependencyCheck, HealthResponse, OverallStatus
 from backend.core.settings import AppSettings
 
 logger = logging.getLogger(__name__)
@@ -35,16 +35,16 @@ def _check_foundry(settings: AppSettings) -> DependencyCheck:
     if not settings.foundry.project_endpoint:
         return DependencyCheck(
             name="foundry_iq",
-            status="fail",
+            status=CheckStatus.FAIL,
             detail="AZURE_AI_PROJECT_ENDPOINT is not set.",
         )
     if not settings.openai.gpt_deployment:
         return DependencyCheck(
             name="foundry_iq",
-            status="fail",
+            status=CheckStatus.FAIL,
             detail="AZURE_OPENAI_GPT_DEPLOYMENT is not set.",
         )
-    return DependencyCheck(name="foundry_iq", status="pass")
+    return DependencyCheck(name="foundry_iq", status=CheckStatus.PASS)
 
 
 def _check_database(settings: AppSettings) -> DependencyCheck:
@@ -59,11 +59,11 @@ def _check_database(settings: AppSettings) -> DependencyCheck:
     if not endpoint:
         return DependencyCheck(
             name="database",
-            status="fail",
+            status=CheckStatus.FAIL,
             detail=f"No endpoint configured for db_type={db.db_type!r}.",
         )
     return DependencyCheck(
-        name="database", status="pass", detail=f"db_type={db.db_type}"
+        name="database", status=CheckStatus.PASS, detail=f"db_type={db.db_type}"
     )
 
 
@@ -76,13 +76,13 @@ def _check_search(settings: AppSettings) -> DependencyCheck:
         if not settings.search.endpoint:
             return DependencyCheck(
                 name="search",
-                status="fail",
+                status=CheckStatus.FAIL,
                 detail="AZURE_AI_SEARCH_ENDPOINT is not set.",
             )
-        return DependencyCheck(name="search", status="pass", detail="AzureSearch")
+        return DependencyCheck(name="search", status=CheckStatus.PASS, detail="AzureSearch")
     return DependencyCheck(
         name="search",
-        status="skip",
+        status=CheckStatus.SKIP,
         detail=f"index_store={settings.database.index_store} (no separate search service)",
     )
 
@@ -95,9 +95,9 @@ def _aggregate(checks: list[DependencyCheck]) -> OverallStatus:
     drag the overall status down. Reserve `degraded` for future
     optional-check failures.
     """
-    if any(c.status == "fail" for c in checks):
-        return "fail"
-    return "pass"
+    if any(c.status is CheckStatus.FAIL for c in checks):
+        return OverallStatus.FAIL
+    return OverallStatus.PASS
 
 
 def _run_checks(settings: AppSettings) -> HealthResponse:
@@ -125,6 +125,6 @@ async def health(settings: SettingsDep) -> HealthResponse:
 )
 async def ready(settings: SettingsDep, response: Response) -> HealthResponse:
     result = _run_checks(settings)
-    if result.status == "fail":
+    if result.status is OverallStatus.FAIL:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return result

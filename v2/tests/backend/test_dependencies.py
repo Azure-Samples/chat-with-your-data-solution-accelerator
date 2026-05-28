@@ -10,6 +10,7 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
+from backend.core.settings import Environment
 from backend.core.types import RuntimeConfig
 from backend.dependencies import (
     get_agents_provider,
@@ -163,8 +164,18 @@ def _claims(*role_pairs: tuple[str, str]) -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
-def _settings(environment: str = "production") -> Any:
-    return SimpleNamespace(environment=environment)
+def _settings(environment: Environment | str = Environment.PRODUCTION) -> Any:
+    # Accept either an `Environment` member (preferred) or a raw
+    # string (legacy callsites in this module) so the helper stays
+    # stable as new tests are added. Strings are coerced to the
+    # enum so `is Environment.LOCAL` dispatch in `requires_role`
+    # works regardless of how the caller spelled the value.
+    coerced = (
+        environment
+        if isinstance(environment, Environment)
+        else Environment(environment)
+    )
+    return SimpleNamespace(environment=coerced)
 
 
 def _request(headers: dict[str, str] | None = None) -> Request:

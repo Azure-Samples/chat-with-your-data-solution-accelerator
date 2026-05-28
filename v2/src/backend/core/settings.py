@@ -23,11 +23,31 @@ Design rules (binding):
   between env-var permutations and FastAPI can `Depends(get_settings)`.
 """
 
+from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Any, Literal, cast
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+# ---------------------------------------------------------------------------
+# Cross-cutting enums
+# ---------------------------------------------------------------------------
+
+
+class Environment(StrEnum):
+    """Runtime mode discriminator for `AppSettings.environment`.
+
+    Members:
+        LOCAL: developer machine; Easy Auth header-absent fallback to
+            ``local-dev`` user id is permitted (admin + history routes).
+        PRODUCTION: cloud deployment; Easy Auth headers are required
+            and missing-header cases must fail closed with 401.
+    """
+
+    LOCAL = "local"
+    PRODUCTION = "production"
 
 
 # ---------------------------------------------------------------------------
@@ -317,7 +337,7 @@ class AppSettings(BaseSettings):
     # Stable Core code that branches on environment must use this
     # field -- never sniff `os.getenv` ad-hoc -- so the value is
     # type-checked at boot and centrally testable.
-    environment: Literal["local", "production"] = "local"
+    environment: Environment = Environment.LOCAL
 
     identity: IdentitySettings = Field(default_factory=IdentitySettings)
     foundry: FoundrySettings = Field(default_factory=FoundrySettings)
@@ -349,6 +369,7 @@ def get_settings() -> AppSettings:
 __all__ = [
     "AppSettings",
     "DatabaseSettings",
+    "Environment",
     "FoundrySettings",
     "IdentitySettings",
     "NetworkSettings",
