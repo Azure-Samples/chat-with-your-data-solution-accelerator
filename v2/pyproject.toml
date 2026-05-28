@@ -92,12 +92,13 @@ pythonpath = ["src"]
 # drop `tests/functions/<name>/test_blueprint.py` without renames or new
 # `__init__.py` markers. Note: pytest 9 only recognises the import-mode flag
 # via `addopts` (the bare `import_mode` ini key is rejected as unknown).
-addopts = "--import-mode=importlib"
+addopts = "--import-mode=importlib -m 'not smoke'"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "unit: fast unit tests with all I/O mocked",
     "integration: tests requiring a running dependency (azurite, postgres, etc.)",
+    "smoke: CI-only live-container end-to-end checks; excluded from default pytest run by addopts",
 ]
 
 [tool.coverage.run]

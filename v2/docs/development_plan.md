@@ -510,10 +510,11 @@ Each blueprint ships with the per-trigger try/except pattern from Phase 5.5 §C1
 | U9b | ✅ | `add_url_handler(request, parser, embedder, search_writer)` | `functions/add_url/handler.py` | U9a |
 | U9c | ✅ | `add_url` HTTP-trigger blueprint + register | `functions/add_url/blueprint.py`, `function_app.py` | U9b |
 | U10a | ✅ | AI Search custom-skill request/response Pydantic models | `functions/search_skill/models.py` + `__init__.py` | U9c |
-| U10b | ⏭ | `search_skill_handler(request, embedder)` (embed-on-the-fly, no parser) | `functions/search_skill/handler.py` | U10a |
-| U10c | ☐ | `search_skill` HTTP-trigger blueprint + register | `functions/search_skill/blueprint.py`, `function_app.py` | U10b |
-| U11 | ☐ | Standalone-backend smoke test CI job | `.github/workflows/backend-only-smoke.yml` + compose fixture | U10c |
-| U12 | ☐ | Phase 6 close audit (flip Phase 6 ⏳→✅, bump Phase 7 ⏭) | dev_plan only | U11 |
+| U10b | ✅ | `search_skill_handler(request, embedder)` (embed-on-the-fly, no parser) | `functions/search_skill/handler.py` | U10a |
+| U10c | ✅ | `search_skill` HTTP-trigger blueprint + register | `functions/search_skill/blueprint.py`, `function_app.py` | U10b |
+| U11 | ✅ | Standalone-backend smoke test CI job (router smoke, Path A) | `.github/workflows/v2-backend-only-smoke.yml`, `docker/docker-compose.smoke.yml`, `tests/smoke/` | U10c |
+| U11.5 | ⏭ | Comment-scrub policy: codify Hard Rule #16, sweep `v2/src/**`, ship AST gate | `.github/copilot-instructions.md`, `tests/shared/test_no_process_narrative_in_src.py`, scrub of `functions/{function_app,batch_push,batch_start,add_url,search_skill}/*.py` | U11 |
+| U12 | ☐ | Phase 6 close audit (flip Phase 6 ⏳→✅, bump Phase 7 ⏭) | dev_plan only | U11.5 |
 
 **Locked decisions (no future "which path" prompts):**
 

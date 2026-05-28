@@ -3,8 +3,9 @@ Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Modular RAG indexing pipeline host. Registers the Phase 6 blueprint
 set landed so far -- ``batch_start`` (U7g), ``batch_push`` (U8i),
-``add_url`` (U9c). ``search_skill`` (U10c) lands next per
-[v2/docs/development_plan.md] §4.6.1.
+``add_url`` (U9c), ``search_skill`` (U10c). U11 (standalone-backend
+smoke test CI job) lands next per [v2/docs/development_plan.md]
+§4.6.1.
 
 Also exposes a single anonymous ``health`` endpoint so the container
 starts cleanly and ``azd up`` succeeds for the Functions app.
@@ -16,11 +17,13 @@ from pydantic import BaseModel, ConfigDict
 from functions.add_url.blueprint import bp as add_url_bp
 from functions.batch_push.blueprint import bp as batch_push_bp
 from functions.batch_start.blueprint import bp as batch_start_bp
+from functions.search_skill.blueprint import bp as search_skill_bp
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 app.register_functions(batch_start_bp)
 app.register_functions(batch_push_bp)
 app.register_functions(add_url_bp)
+app.register_functions(search_skill_bp)
 
 
 class HealthPayload(BaseModel):
