@@ -30,7 +30,7 @@ from pydantic import BaseModel, Field
 
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
-from backend.core.types import ChatMessage, SearchResult
+from backend.core.types import ChatMessage, ChatRole, SearchResult
 
 
 # Default Azure-OpenAI-On-Your-Data-style prompts. The system message
@@ -94,10 +94,10 @@ class QuestionAnsweringHelper:
         # user message. Subclasses can override for vision / few-shot
         # variants without touching `answer()`.
         return [
-            ChatMessage(role="system", content=self._system_prompt),
+            ChatMessage(role=ChatRole.SYSTEM, content=self._system_prompt),
             *chat_history,
             ChatMessage(
-                role="user",
+                role=ChatRole.USER,
                 content=self._user_prompt.format(
                     question=question,
                     sources=self._format_sources(sources),

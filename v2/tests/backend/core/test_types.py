@@ -27,7 +27,15 @@ from enum import StrEnum
 import pytest
 from pydantic import ValidationError
 
-from backend.core.types import OrchestratorChannel, OrchestratorEvent, RuntimeConfig, SearchDocument
+from backend.core.types import (
+    ChatMessage,
+    ChatRole,
+    MessageRecord,
+    OrchestratorChannel,
+    OrchestratorEvent,
+    RuntimeConfig,
+    SearchDocument,
+)
 
 
 def test_orchestrator_channel_is_a_strenum() -> None:
@@ -92,6 +100,100 @@ def test_orchestrator_channel_equality_is_member_distinct() -> None:
     assert OrchestratorChannel.ANSWER == "answer"
     assert OrchestratorChannel.ANSWER != "error"
     assert OrchestratorChannel.ANSWER != OrchestratorChannel.ERROR
+
+
+# ---------------------------------------------------------------------------
+# ChatRole (Hard Rule #11 closed-set discriminator)
+# ---------------------------------------------------------------------------
+# Same three properties OrchestratorChannel locks: StrEnum subclassing,
+# frozen membership, bidirectional str <-> enum coercion + equality.
+# Required by Hard Rule #11 because `message.role` is dispatched on at
+# runtime in `pipelines/chat.py::_latest_user_text` and
+# `orchestrators/langgraph.py::_latest_user_text`.
+
+
+def test_chat_role_is_a_strenum() -> None:
+    assert issubclass(ChatRole, StrEnum)
+    assert issubclass(ChatRole, str)
+
+
+def test_chat_role_membership_is_frozen() -> None:
+    """The four roles mirror the OpenAI / AzureOpenAI chat message
+    contract; a new role needs an explicit change here AND wherever
+    `ChatMessage` is constructed from external payloads."""
+    assert {member.value for member in ChatRole} == {
+        "system",
+        "user",
+        "assistant",
+        "tool",
+    }
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("system", ChatRole.SYSTEM),
+        ("user", ChatRole.USER),
+        ("assistant", ChatRole.ASSISTANT),
+        ("tool", ChatRole.TOOL),
+    ],
+)
+def test_chat_message_coerces_string_role_to_enum_member(
+    raw: str, expected: ChatRole
+) -> None:
+    """Wire payloads pass `role="user"` as a plain string; Pydantic
+    must coerce to the matching enum member so dispatch sites can use
+    `is ChatRole.USER` (identity, not equality)."""
+    message = ChatMessage(role=raw, content="hi")  # type: ignore[arg-type]
+    assert message.role is expected
+    # Wire shape unchanged: StrEnum members ARE strings.
+    assert message.role == raw
+
+
+def test_chat_message_round_trips_via_model_dump_json() -> None:
+    """JSON round-trip (the request/response shape) preserves role
+    value AND survives Pydantic re-validation back into the enum."""
+    original = ChatMessage(role="assistant", content="hello")  # type: ignore[arg-type]
+    payload = original.model_dump_json()
+    assert '"role":"assistant"' in payload  # wire shape
+    rehydrated = ChatMessage.model_validate_json(payload)
+    assert rehydrated == original
+    assert rehydrated.role is ChatRole.ASSISTANT
+
+
+def test_message_record_coerces_string_role_to_enum_member() -> None:
+    """Persistence read-path: `cosmosdb._read_item` constructs
+    `MessageRecord(role=item.get("role", "user"))` from a plain dict;
+    the coercion must apply equally."""
+    record = MessageRecord(
+        id="m1",
+        conversation_id="c1",
+        role="user",  # type: ignore[arg-type]
+        content="hi",
+    )
+    assert record.role is ChatRole.USER
+    assert record.role == "user"  # str equality preserved for sentinel checks
+
+
+def test_chat_role_dispatch_via_is_operator_matches_after_coercion() -> None:
+    """Mirrors the production dispatch sites in `pipelines/chat.py` and
+    `orchestrators/langgraph.py`: `if msg.role is ChatRole.USER`.
+    StrEnum members are singletons so `is` is the canonical check."""
+    message = ChatMessage(role="user", content="q")  # type: ignore[arg-type]
+    assert message.role is ChatRole.USER
+    assert message.role is not ChatRole.ASSISTANT
+
+
+def test_chat_role_equality_is_member_distinct() -> None:
+    assert ChatRole.USER == "user"
+    assert ChatRole.USER != "assistant"
+    assert ChatRole.USER != ChatRole.ASSISTANT
+
+
+def test_chat_role_is_in_module_exports() -> None:
+    import backend.core.types as types_module
+
+    assert "ChatRole" in types_module.__all__
 
 
 # ---------------------------------------------------------------------------

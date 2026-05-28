@@ -56,6 +56,7 @@ from backend.core.tools.content_safety import ContentSafetyGuard
 from backend.core.tools.post_prompt import PostPromptValidator
 from backend.core.types import (
     ChatMessage,
+    ChatRole,
     Citation,
     OrchestratorChannel,
     OrchestratorEvent,
@@ -75,7 +76,7 @@ RaiScreener = Callable[[str], Awaitable[bool]]
 def _latest_user_text(messages: Sequence[ChatMessage]) -> str:
     """Return the text of the most recent user message (empty string if none)."""
     for message in reversed(messages):
-        if message.role == "user":
+        if message.role is ChatRole.USER:
             return message.content
     return ""
 

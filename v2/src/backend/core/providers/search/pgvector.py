@@ -30,6 +30,8 @@ then hands its pool to this provider.
 
 from typing import Any, Mapping, Sequence, cast
 
+import logging
+
 import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 
@@ -38,6 +40,9 @@ from backend.core.types import SearchResult
 
 from .registry import registry
 from .base import BaseSearch
+
+
+logger = logging.getLogger(__name__)
 
 
 def _format_vector_literal(vector: Sequence[float]) -> str:
@@ -110,10 +115,20 @@ class PgVector(BaseSearch):
             sql += "ORDER BY score DESC LIMIT $2"
             params.append(effective_top_k)
 
-        rows = cast(
-            "list[Mapping[str, Any]]",
-            await self._pool.fetch(sql, *params),  # pyright: ignore[reportUnknownMemberType]
-        )
+        try:
+            rows = cast(
+                "list[Mapping[str, Any]]",
+                await self._pool.fetch(sql, *params),  # pyright: ignore[reportUnknownMemberType]
+            )
+        except asyncpg.PostgresError:
+            # SDK boundary per Hard Rule #14: structured-log with the
+            # canonical extras and re-raise so the router layer can map
+            # to a sanitized HTTPException. Mirrors `azure_search.py`.
+            logger.exception(
+                "pgvector search failed",
+                extra={"operation": "search", "provider": "pgvector"},
+            )
+            raise
         return [
             SearchResult(
                 id=str(r["id"]),

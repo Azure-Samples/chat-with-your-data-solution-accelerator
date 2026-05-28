@@ -22,7 +22,7 @@ imported directly:
 """
 
 from backend.core.providers.llm.base import BaseLLMProvider
-from backend.core.types import ChatMessage
+from backend.core.types import ChatMessage, ChatRole
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -67,8 +67,8 @@ class TextProcessingHelper:
 
         user_content = f"{operation.strip()} the following TEXT:\n\n{text}"
         messages = [
-            ChatMessage(role="system", content=self._system_prompt),
-            ChatMessage(role="user", content=user_content),
+            ChatMessage(role=ChatRole.SYSTEM, content=self._system_prompt),
+            ChatMessage(role=ChatRole.USER, content=user_content),
         ]
         reply = await self._llm.chat(messages, deployment=deployment)
         return reply.content

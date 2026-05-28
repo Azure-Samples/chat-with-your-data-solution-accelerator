@@ -13,11 +13,14 @@ fallback when no vector is supplied, (d) row -> SearchResult mapping,
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import pytest
 
 from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.pgvector import PgVector, _format_vector_literal
 from backend.core.settings import AppSettings, DatabaseSettings, SearchSettings
+
+_PGVECTOR_LOGGER_NAME = "backend.core.providers.search.pgvector"
 
 
 def _make_settings(top_k: int = 5) -> AppSettings:
@@ -194,3 +197,37 @@ async def test_custom_table_name_appears_in_emitted_sql() -> None:
     await provider.search("q", vector=[0.0])
     sql = pool.fetch.await_args.args[0]
     assert "FROM cwyd_chunks " in sql
+
+
+@pytest.mark.asyncio
+async def test_search_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """SDK-level failure on `pool.fetch` must surface via the boundary
+    wrap with canonical extras + re-raise so the router layer can map
+    to a sanitized HTTPException. Mirrors the `azure_search` contract.
+    """
+    pool = MagicMock()
+    pool.fetch = AsyncMock(
+        side_effect=asyncpg.PostgresError("connection terminated")
+    )
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    with caplog.at_level("ERROR", logger=_PGVECTOR_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await provider.search("hello", vector=[0.1])
+
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR"
+        and getattr(r, "operation", None) == "search"
+        and getattr(r, "provider", None) == "pgvector"
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record with operation=search/provider=pgvector, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    pool.fetch.assert_awaited_once()

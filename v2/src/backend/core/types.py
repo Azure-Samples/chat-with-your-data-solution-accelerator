@@ -9,11 +9,30 @@ domain objects) -- not behavior. Provider classes live under
 """
 
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Role = Literal["system", "user", "assistant", "tool"]
+
+class ChatRole(StrEnum):
+    """Closed-set role discriminator for chat messages (Hard Rule #11).
+
+    Four members mirror the OpenAI / AzureOpenAI chat message contract.
+    Used as the type for `ChatMessage.role` and `MessageRecord.role`;
+    dispatched on at runtime in `pipelines/chat.py::_latest_user_text`
+    and `orchestrators/langgraph.py::_latest_user_text` via
+    `is ChatRole.USER` identity comparison. `StrEnum` subclassing keeps
+    every external producer that passes a bare string
+    (`ChatMessage(role="user", ...)`, `cosmosdb._read_item`'s
+    `role=item.get("role", "user")`) working unchanged -- Pydantic
+    coerces the string to the matching enum member, and JSON
+    serialization emits the raw value so the wire shape is preserved.
+    """
+
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+    TOOL = "tool"
 
 
 class OrchestratorChannel(StrEnum):
@@ -47,7 +66,7 @@ class OrchestratorChannel(StrEnum):
 class ChatMessage(BaseModel):
     """One turn in a chat conversation."""
 
-    role: Role
+    role: ChatRole
     content: str
     name: str | None = None
 
@@ -207,7 +226,7 @@ class MessageRecord(BaseModel):
 
     id: str
     conversation_id: str
-    role: Role
+    role: ChatRole
     content: str
     created_at: str = ""
     feedback: str | None = None
@@ -297,13 +316,13 @@ __all__ = [
     "AdminAuditEntry",
     "ChatChunk",
     "ChatMessage",
+    "ChatRole",
     "Citation",
     "Conversation",
     "EmbeddingResult",
     "MessageRecord",
     "OrchestratorChannel",
     "OrchestratorEvent",
-    "Role",
     "RuntimeConfig",
     "SearchDocument",
     "SearchResult",

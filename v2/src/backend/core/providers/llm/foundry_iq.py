@@ -33,6 +33,7 @@ from backend.core.settings import AppSettings
 from backend.core.types import (
     ChatChunk,
     ChatMessage,
+    ChatRole,
     EmbeddingResult,
     OrchestratorChannel,
     OrchestratorEvent,
@@ -312,7 +313,7 @@ class FoundryIQ(BaseLLMProvider):
             )
             raise
         choice = response.choices[0].message
-        return ChatMessage(role="assistant", content=choice.content or "")
+        return ChatMessage(role=ChatRole.ASSISTANT, content=choice.content or "")
 
     async def chat_stream(
         self,

@@ -49,7 +49,7 @@ from backend.core.tools.citations import (
     filter_to_referenced,
     format_sources_block,
 )
-from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
+from backend.core.types import ChatMessage, ChatRole, OrchestratorChannel, OrchestratorEvent
 
 from .registry import registry
 from .base import OrchestratorBase
@@ -114,7 +114,7 @@ class LangGraphOrchestrator(OrchestratorBase):
     @staticmethod
     def _latest_user_text(messages: Sequence[ChatMessage]) -> str:
         for msg in reversed(messages):
-            if msg.role == "user":
+            if msg.role is ChatRole.USER:
                 return msg.content
         return ""
 
@@ -138,7 +138,7 @@ class LangGraphOrchestrator(OrchestratorBase):
                     citations = build_citations(sources)
                     block = format_sources_block(sources)
                     graph_messages = [
-                        ChatMessage(role="system", content=f"Sources:\n{block}"),
+                        ChatMessage(role=ChatRole.SYSTEM, content=f"Sources:\n{block}"),
                         *messages,
                     ]
 
