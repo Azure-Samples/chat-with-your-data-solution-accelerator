@@ -22,6 +22,7 @@ permissions:
 jobs:
   template_validation:
     runs-on: ubuntu-latest
+    environment: production
     name: azd template validation
     steps:
       - uses: actions/checkout@v4
