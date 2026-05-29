@@ -157,12 +157,30 @@ def get_content_safety_guard(
 
     The guard itself is cheap (no network at construction time, the
     first call happens inside ``screen()``), so building a fresh one
-    per request is intentional -- it leaves room for the runtime-
-    override channel to flip ``enabled`` / ``severity_threshold``
-    between requests without rebuilding the underlying client.
+    per request is intentional -- it leaves room for the runtime
+    override channel below to flip ``enabled`` between requests
+    without rebuilding the underlying client.
+
+    Override cascade (in order):
+
+    * ``runtime_overrides.content_safety_enabled is False`` -> the
+      operator explicitly disabled screening from the admin UI;
+      return ``None`` even when the lifespan client is present.
+      Operator-off ALWAYS wins.
+    * ``runtime_overrides.content_safety_enabled is True`` -> defer
+      to env baseline. The override cannot synthesize a client out
+      of thin air (no endpoint/credential at request time), so the
+      lifespan client must already exist for screening to engage.
+    * ``runtime_overrides.content_safety_enabled is None`` (the
+      cold default + post-clear state) -> defer to env baseline.
+    * ``runtime_overrides`` attribute missing or ``None`` -> defer
+      to env baseline. Runtime overrides are an optional layer.
     """
     client = getattr(request.app.state, "content_safety_client", None)
     if client is None:
+        return None
+    overrides = getattr(request.app.state, "runtime_overrides", None)
+    if overrides is not None and overrides.content_safety_enabled is False:
         return None
     return ContentSafetyGuard(
         client=client,

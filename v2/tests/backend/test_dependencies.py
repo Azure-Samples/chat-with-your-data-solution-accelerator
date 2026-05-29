@@ -380,3 +380,111 @@ def test_get_content_safety_guard_threads_default_threshold(
     get_content_safety_guard(request, settings)  # type: ignore[arg-type]
 
     assert ctor_spy.call_args.kwargs["severity_threshold"] == 2
+
+
+# ---------------------------------------------------------------------------
+# U-CS-7: runtime-override cascade. The `RuntimeConfig.content_safety_enabled`
+# override layer wins over the env baseline at request time. Rules:
+#
+#   * override is `None` (the cold default + the post-clear state once an
+#     admin has PATCHed `null`) -> defer to the env baseline (client exists
+#     iff env enabled at lifespan).
+#   * override is `False` (admin explicitly turned the guard off) -> return
+#     None even when the lifespan client exists; operator-off ALWAYS wins.
+#   * override is `True` (admin explicitly turned the guard on) -> the
+#     override cannot synthesize a client out of thin air (no endpoint /
+#     credential at request time), so the lifespan client must already
+#     exist -- when it does, return the guard; when it doesn't, return
+#     None (fail-open, consistent with the "no client" rule above).
+# ---------------------------------------------------------------------------
+
+
+def test_get_content_safety_guard_returns_guard_when_override_enabled_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Override = True + lifespan client present -> guard returned.
+
+    Covers the 'admin explicitly turned screening on AND lifespan was
+    able to build the client' path -- the override doesn't add new
+    behavior beyond the env baseline here, but the test locks in that
+    the cascade doesn't accidentally drop the guard.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    overrides = RuntimeConfig(content_safety_enabled=True)
+    request = _request_with_state(
+        content_safety_client=fake_client,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    fake_guard = MagicMock(name="content_safety_guard")
+    ctor_spy = MagicMock(return_value=fake_guard)
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    result = get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert result is fake_guard
+
+
+def test_get_content_safety_guard_returns_none_when_override_enabled_false() -> None:
+    """Override = False + lifespan client present -> guard MUST be None.
+
+    The load-bearing override case (mirrors U-CS-5's distinguish-False-
+    from-None semantic). Operator-off always wins; the lifespan client
+    stays built (cheap, no network), but no guard is handed to the
+    request, so screening is effectively disabled until the operator
+    PATCHes the override back to True or null.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    overrides = RuntimeConfig(content_safety_enabled=False)
+    request = _request_with_state(
+        content_safety_client=fake_client,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+def test_get_content_safety_guard_returns_guard_when_override_enabled_none_and_client_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Override = None (the cold default + post-clear state) -> defer
+    to env baseline. With a lifespan client present, that means the
+    guard is returned -- proves the cascade doesn't treat None as
+    'disabled' (which would be a regression on the U-CS-3 contract).
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    overrides = RuntimeConfig(content_safety_enabled=None)
+    request = _request_with_state(
+        content_safety_client=fake_client,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    fake_guard = MagicMock(name="content_safety_guard")
+    ctor_spy = MagicMock(return_value=fake_guard)
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    result = get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert result is fake_guard
+
+
+def test_get_content_safety_guard_returns_none_when_override_false_and_no_client() -> None:
+    """Override = False + no lifespan client -> None (vacuously).
+
+    Belt-and-braces: the 'no client' rule already wins on its own, but
+    the test pins the override = False path to 'always None' regardless
+    of whether the client is present. Prevents a future refactor from
+    accidentally short-circuiting the override check above the client
+    check and synthesizing a guard from nothing.
+    """
+    overrides = RuntimeConfig(content_safety_enabled=False)
+    request = _request_with_state(
+        content_safety_client=None,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
