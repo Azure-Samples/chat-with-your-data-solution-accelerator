@@ -12,6 +12,10 @@ on:
       - 'scripts/**'
       - '.github/workflows/azd-template-validation.yml'
 
+  pull_request:
+    branches:
+      - dev
+
 permissions:
   contents: read
   id-token: write
