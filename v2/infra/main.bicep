@@ -658,6 +658,81 @@ module speechService 'br/public:avm/res/cognitive-services/account:0.13.0' = {
 }
 
 // ----------------------------------------------------------------------
+// Azure AI Content Safety.
+//
+// Standalone `Microsoft.CognitiveServices/accounts` of kind
+// `ContentSafety` powers the prompt-shielding guard layered on top
+// of the chat pipeline. The backend `ContentSafetyGuard`
+// (src/backend/core/tools/content_safety.py) screens inbound user
+// prompts via the AnalyzeText API; lifespan wiring in
+// src/backend/app.py constructs the async client behind the
+// `AZURE_CONTENT_SAFETY_ENABLED` + `AZURE_CONTENT_SAFETY_ENDPOINT`
+// gate and stashes it on `app.state.content_safety_client`. The
+// admin runtime toggle (`RuntimeConfig.content_safety_enabled`)
+// flips the guard off per-request without rebuilding the client.
+//
+// Local auth disabled (no subscription keys, no Key Vault). The
+// Cognitive Services User RBAC role assignment to the workload UAMI
+// is wired alongside the backend container app env-var bindings.
+//
+// Always-on (no `if` gate). S0 SKU has no per-resource baseline
+// cost; charges only on actual AnalyzeText calls.
+// ----------------------------------------------------------------------
+var contentSafetyServiceName = 'cs-${solutionSuffix}'
+
+module cogContentSafety 'br/public:avm/res/cognitive-services/account:0.13.0' = {
+  name: take('avm.res.cognitive-services.account.contentsafety.${solutionSuffix}', 64)
+  params: {
+    name: contentSafetyServiceName
+    location: azureAiServiceLocation
+    tags: allTags
+    enableTelemetry: false
+    kind: 'ContentSafety'
+    sku: 'S0'
+    customSubDomainName: contentSafetyServiceName
+    disableLocalAuth: true
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    managedIdentities: {
+      systemAssigned: true
+    }
+    diagnosticSettings: enableMonitoring
+      ? [
+          {
+            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
+          }
+        ]
+      : []
+    roleAssignments: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Cognitive Services User — data-plane role for the AnalyzeText
+        // call used by `ContentSafetyGuard.screen()`.
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+      }
+    ]
+    privateEndpoints: enablePrivateNetworking
+      ? [
+          {
+            name: 'pep-${contentSafetyServiceName}'
+            customNetworkInterfaceName: 'nic-${contentSafetyServiceName}'
+            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
+            service: 'account'
+            privateDnsZoneGroup: {
+              privateDnsZoneGroupConfigs: [
+                {
+                  name: 'cognitiveservices'
+                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+                }
+              ]
+            }
+          }
+        ]
+      : []
+  }
+}
+
+// ----------------------------------------------------------------------
 // Azure AI Search (CONDITIONAL — cosmosdb mode only).
 // In postgresql mode the index store is pgvector inside the Postgres
 // Flexible Server, so Search is not deployed at all. RBAC grants the
@@ -1289,6 +1364,13 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_SPEECH_SERVICE_NAME', value: speechService.outputs.name }
             { name: 'AZURE_SPEECH_SERVICE_REGION', value: azureAiServiceLocation }
             { name: 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', value: speechService.outputs.resourceId }
+            // Content Safety — backend prompt-shielding guard. The
+            // Cognitive Services account is always deployed, so ENABLED
+            // is statically true at infra level; operators flip the guard
+            // OFF per-request via the admin runtime override
+            // (RuntimeConfig.content_safety_enabled).
+            { name: 'AZURE_CONTENT_SAFETY_ENABLED', value: 'true' }
+            { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: cogContentSafety.outputs.endpoint }
             // Default orchestrator (runtime-switchable per request)
             { name: 'ORCHESTRATOR', value: 'agent_framework' }
           ],
@@ -1749,6 +1831,14 @@ output AZURE_SPEECH_SERVICE_REGION string = azureAiServiceLocation
 
 @description('Speech account ARM resource id. Required as the x-ms-cognitiveservices-resource-id header on the AAD-bearer STS issueToken POST.')
 output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = speechService.outputs.resourceId
+
+// --- Content Safety ---
+
+@description('Content Safety account endpoint. Backend reads via ContentSafetySettings.endpoint; lifespan gates client construction on this + AZURE_CONTENT_SAFETY_ENABLED.')
+output AZURE_CONTENT_SAFETY_ENDPOINT string = cogContentSafety.outputs.endpoint
+
+@description('Content Safety account name (kind=ContentSafety). Diagnostic surface only — backend builds the client from the endpoint.')
+output AZURE_CONTENT_SAFETY_NAME string = cogContentSafety.outputs.name
 
 // --- Conditional: Azure AI Search (cosmosdb mode only) ---
 
