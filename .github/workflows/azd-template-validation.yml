@@ -1,0 +1,48 @@
+name: AZD Template Validation
+on:
+  schedule:
+    - cron: '30 1 * * 4'  #  Every Thursday at 7:00 AM IST (1:30 AM UTC)
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'azure.yaml'
+      - 'scripts/**'
+      - '.github/workflows/azd-template-validation.yml'
+
+  pull_request:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  template_validation:
+    runs-on: ubuntu-latest
+    environment: production
+    name: azd template validation
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/template-validation-action@Latest
+        with:
+          validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
+          useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}
+        id: validation
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEMP: /tmp
+          AZURE_PRINCIPAL_ID: ${{ secrets.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
+          AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
+      - name: print result
+        run: cat ${{ steps.validation.outputs.resultFile }}
