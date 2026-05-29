@@ -38,7 +38,7 @@ jobs:
           AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TEMP: /tmp
-          AZURE_PRINCIPAL_ID: ${{ vars.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
+          AZURE_PRINCIPAL_ID: ${{ secrets.PRINCIPAL_ID || secrets.AZURE_CLIENT_ID }}
           AZURE_PRINCIPAL_TYPE: 'ServicePrincipal'
       - name: print result
         run: cat ${{ steps.validation.outputs.resultFile }}
