@@ -4,6 +4,8 @@ Pillar: Stable Core
 Phase: 2
 """
 
+from enum import StrEnum
+
 import pytest
 from pydantic import ValidationError
 
@@ -334,6 +336,104 @@ def test_speech_settings_no_subscription_key_field() -> None:
                 f"(matched '{token}'); Speech tokens must be minted via "
                 "AAD bearer through the credentials provider."
             )
+
+
+# ---------------------------------------------------------------------------
+# ContentSafetySettings
+# ---------------------------------------------------------------------------
+
+
+class _ContentSafetyEnvVar(StrEnum):
+    """Sibling env-var names for `ContentSafetySettings` (Hard Rule #11).
+
+    StrEnum -- members compare equal to their string values, so they
+    drop straight into `monkeypatch.setenv` / `delenv` without `.value`.
+    """
+
+    ENDPOINT = "AZURE_CONTENT_SAFETY_ENDPOINT"
+    ENABLED = "AZURE_CONTENT_SAFETY_ENABLED"
+    SEVERITY_THRESHOLD = "AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD"
+
+
+def test_content_safety_settings_defaults_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    for key in _ContentSafetyEnvVar:
+        monkeypatch.delenv(key, raising=False)
+    settings = AppSettings()
+    assert settings.content_safety.endpoint == ""
+    assert settings.content_safety.enabled is False
+    # Azure Content Safety severity is 0/2/4/6; default trips on
+    # `medium` (4) -- matches `ContentSafetyGuard.DEFAULT_SEVERITY_THRESHOLD`.
+    assert settings.content_safety.severity_threshold == 4
+
+
+def test_content_safety_settings_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(
+        _ContentSafetyEnvVar.ENDPOINT,
+        "https://cs-cwyd001.cognitiveservices.azure.com/",
+    )
+    monkeypatch.setenv(_ContentSafetyEnvVar.ENABLED, "true")
+    monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, "6")
+    settings = AppSettings()
+    assert settings.content_safety.endpoint.endswith(
+        ".cognitiveservices.azure.com/"
+    )
+    assert settings.content_safety.enabled is True
+    assert settings.content_safety.severity_threshold == 6
+
+
+@pytest.mark.parametrize("threshold", [0, 2, 4, 6, 7])
+def test_content_safety_settings_accepts_in_range_threshold(
+    monkeypatch: pytest.MonkeyPatch, threshold: int
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, str(threshold))
+    settings = AppSettings()
+    assert settings.content_safety.severity_threshold == threshold
+
+
+@pytest.mark.parametrize("threshold", [-1, 8, 999])
+def test_content_safety_settings_rejects_out_of_range_threshold(
+    monkeypatch: pytest.MonkeyPatch, threshold: int
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, str(threshold))
+    with pytest.raises(ValidationError):
+        AppSettings()
+
+
+def test_content_safety_settings_no_subscription_key_field() -> None:
+    """Hard Rule #7 (no Key Vault for app secrets) + Hard Rule #4 (UAMI
+    via credentials provider). Content Safety credentials come from
+    AAD/UAMI bearer, never a stored subscription key.
+    """
+    from backend.core.settings import ContentSafetySettings
+
+    forbidden = ("key", "secret", "password")
+    for field_name in ContentSafetySettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"ContentSafetySettings.{field_name} looks secret-bearing "
+                f"(matched '{token}'); Content Safety credentials must be "
+                "minted via AAD bearer through the credentials provider."
+            )
+
+
+def test_content_safety_settings_in_app_settings_exports() -> None:
+    """`ContentSafetySettings` must be re-exported alongside the other
+    per-subsystem settings models so dependent modules can type-import it
+    directly from `backend.core.settings`.
+    """
+    from backend.core import settings as settings_mod
+
+    assert "ContentSafetySettings" in settings_mod.__all__
+    assert settings_mod.ContentSafetySettings is not None
 
 
 # ---------------------------------------------------------------------------

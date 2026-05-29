@@ -277,6 +277,47 @@ class OrchestratorSettings(BaseSettings):
     name: Literal["langgraph", "agent_framework"] = "langgraph"
 
 
+class ContentSafetySettings(BaseSettings):
+    """Azure AI Content Safety guardrail.
+
+    Reads: AZURE_CONTENT_SAFETY_ENDPOINT, AZURE_CONTENT_SAFETY_ENABLED,
+    AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD.
+
+    `endpoint` is the regional Cognitive Services endpoint of the
+    Content Safety account (e.g.
+    ``https://cs-cwyd001.cognitiveservices.azure.com/``). When empty
+    the lifespan wiring leaves ``app.state.content_safety_client`` as
+    ``None`` and `get_content_safety_guard` returns ``None`` so the
+    chat pipeline runs unguarded -- matching the v1
+    ``enable_content_safety: false`` default.
+
+    `enabled` is the operator opt-in. Both `enabled=True` AND a
+    non-empty `endpoint` are required to build the client at lifespan
+    start; either alone is a misconfiguration that the wiring layer
+    treats as "off" (no guard injected, no exception raised).
+
+    `severity_threshold` is the inclusive lower bound at which Content
+    Safety verdicts trip. Azure reports severity 0/2/4/6 (0 = safe,
+    2 = low, 4 = medium, 6 = high); the default 4 matches the v1
+    `enable_content_safety: true` behavior. The validation ceiling of
+    7 leaves room for an operator to set the guard effectively-off
+    (severity > 6 is unreachable) without rejecting the value at
+    settings load time.
+
+    No subscription-key field: the lifespan wiring acquires a token
+    via the `credentials` provider (UAMI -> AAD bearer), per Hard
+    Rule #4 (no Key Vault, no stored secrets).
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="AZURE_CONTENT_SAFETY_", extra="ignore"
+    )
+
+    endpoint: str = ""
+    enabled: bool = False
+    severity_threshold: int = Field(default=4, ge=0, le=7)
+
+
 class SpeechSettings(BaseSettings):
     """Azure Speech Service for browser-side speech-to-text.
 
@@ -349,6 +390,9 @@ class AppSettings(BaseSettings):
     network: NetworkSettings = Field(default_factory=NetworkSettings)
     orchestrator: OrchestratorSettings = Field(default_factory=OrchestratorSettings)
     speech: SpeechSettings = Field(default_factory=SpeechSettings)
+    content_safety: ContentSafetySettings = Field(
+        default_factory=ContentSafetySettings
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -368,6 +412,7 @@ def get_settings() -> AppSettings:
 
 __all__ = [
     "AppSettings",
+    "ContentSafetySettings",
     "DatabaseSettings",
     "Environment",
     "FoundrySettings",

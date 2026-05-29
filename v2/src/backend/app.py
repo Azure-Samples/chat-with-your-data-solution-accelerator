@@ -22,6 +22,8 @@ from typing import Any, AsyncGenerator
 
 import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import openai
+from azure.ai.contentsafety.aio import ContentSafetyClient
+from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 from azure.cosmos.exceptions import CosmosHttpResponseError
 from fastapi import FastAPI, Request
@@ -34,9 +36,33 @@ from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.llm import registry as llm_registry
 from backend.core.providers.search import registry as search_registry
-from backend.core.settings import NetworkSettings, get_settings
+from backend.core.settings import AppSettings, NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _init_content_safety_client(
+    settings: AppSettings,
+    credential: AsyncTokenCredential,
+) -> ContentSafetyClient | None:
+    """Build the singleton ContentSafetyClient when configured, else None.
+
+    Returns None when either `content_safety.enabled` is False OR
+    `content_safety.endpoint` is empty -- the configuration gate is
+    permissive (either alone is treated as 'off'), so a half-set
+    operator config fails open (chat runs unguarded) rather than
+    crashing boot. Consumers MUST treat None as 'screening disabled'
+    and pass user input through.
+
+    No HTTP performed at construction time -- the first network call
+    happens inside `ContentSafetyGuard.screen()` at request time.
+    """
+    if not (settings.content_safety.enabled and settings.content_safety.endpoint):
+        return None
+    return ContentSafetyClient(
+        endpoint=settings.content_safety.endpoint,
+        credential=credential,
+    )
 
 
 @asynccontextmanager
@@ -152,13 +178,30 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Search provider ready (%s).", search_key)
     app.state.search_provider = search_provider
 
+    content_safety_client = _init_content_safety_client(settings, credential)
+    app.state.content_safety_client = content_safety_client
+    if content_safety_client is None:
+        logger.info(
+            "Content Safety disabled (enabled=%s, endpoint_set=%s).",
+            settings.content_safety.enabled,
+            bool(settings.content_safety.endpoint),
+        )
+    else:
+        logger.info("Content Safety client ready.")
+
     try:
         yield
     finally:
-        # Close in reverse order of construction. Search first because
-        # pgvector borrows the postgres pool owned by the database
-        # client -- closing the database client first would leave
-        # search with a dead pool to call `aclose()` on.
+        # Close in reverse order of construction. Content Safety first
+        # (most recently built, no other resource depends on it), then
+        # search (pgvector borrows the postgres pool owned by the
+        # database client -- closing the database client first would
+        # leave search with a dead pool to call `aclose()` on).
+        if content_safety_client is not None:
+            try:
+                await content_safety_client.close()
+            except Exception:  # noqa: BLE001 -- shutdown is best-effort
+                logger.exception("Error closing Content Safety client.")
         if search_provider is not None:
             try:
                 await search_provider.aclose()

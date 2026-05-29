@@ -35,6 +35,9 @@ def _apply_env(monkeypatch: pytest.MonkeyPatch, env: dict[str, str]) -> None:
     for key in list(COSMOS_ENV.keys()) + [
         "AZURE_POSTGRES_ENDPOINT",
         "AZURE_UAMI_CLIENT_ID",
+        "AZURE_CONTENT_SAFETY_ENDPOINT",
+        "AZURE_CONTENT_SAFETY_ENABLED",
+        "AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD",
     ]:
         monkeypatch.delenv(key, raising=False)
     for key, value in env.items():
@@ -615,3 +618,187 @@ async def test_lifespan_runtime_overrides_none_when_no_persisted_config(
     app = create_app()
     async with app.router.lifespan_context(app):
         assert app.state.runtime_overrides is None
+
+
+# ---------------------------------------------------------------------------
+# U-CS-2: Content Safety client lifespan wiring
+# ---------------------------------------------------------------------------
+
+
+_CONTENT_SAFETY_ENABLED_ENV = {
+    "AZURE_CONTENT_SAFETY_ENABLED": "true",
+    "AZURE_CONTENT_SAFETY_ENDPOINT": (
+        "https://cs-cwyd001.cognitiveservices.azure.com/"
+    ),
+}
+
+
+def _patch_search_registry(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Most lifespan tests stub the search registry with a no-op factory
+    so they can focus on whichever subsystem they're asserting on.
+    """
+    fake_sr = MagicMock(name="search_registry")
+    fake_sr.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    monkeypatch.setattr("backend.app.search_registry.registry", fake_sr)
+
+
+def test_init_content_safety_client_returns_none_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When `content_safety.enabled` is False, the helper short-circuits
+    without instantiating `ContentSafetyClient` -- callers receive None
+    and treat it as 'screening disabled'.
+    """
+    from backend.app import _init_content_safety_client
+    from backend.core.settings import AppSettings
+
+    _apply_env(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(
+        "AZURE_CONTENT_SAFETY_ENDPOINT",
+        "https://cs-cwyd001.cognitiveservices.azure.com/",
+    )
+    # AZURE_CONTENT_SAFETY_ENABLED stays unset -> defaults to False
+    settings = AppSettings()
+    assert settings.content_safety.enabled is False
+    assert settings.content_safety.endpoint != ""
+
+    ctor_spy = MagicMock()
+    monkeypatch.setattr("backend.app.ContentSafetyClient", ctor_spy)
+
+    result = _init_content_safety_client(settings, MagicMock(name="credential"))
+
+    assert result is None
+    ctor_spy.assert_not_called()
+
+
+def test_init_content_safety_client_returns_none_when_endpoint_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`enabled=True` alone is not enough -- a missing endpoint is a
+    misconfiguration that fails open (no guard) rather than crashing
+    boot. Helper still short-circuits.
+    """
+    from backend.app import _init_content_safety_client
+    from backend.core.settings import AppSettings
+
+    _apply_env(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_CONTENT_SAFETY_ENABLED", "true")
+    # AZURE_CONTENT_SAFETY_ENDPOINT stays unset
+    settings = AppSettings()
+    assert settings.content_safety.enabled is True
+    assert settings.content_safety.endpoint == ""
+
+    ctor_spy = MagicMock()
+    monkeypatch.setattr("backend.app.ContentSafetyClient", ctor_spy)
+
+    result = _init_content_safety_client(settings, MagicMock(name="credential"))
+
+    assert result is None
+    ctor_spy.assert_not_called()
+
+
+def test_init_content_safety_client_builds_with_endpoint_and_credential(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When both gates are open the helper constructs ContentSafetyClient
+    with `endpoint=` + `credential=` kwargs (matches Azure SDK signature)
+    and returns the resulting client unchanged.
+    """
+    from backend.app import _init_content_safety_client
+    from backend.core.settings import AppSettings
+
+    _apply_env(monkeypatch, {**COSMOS_ENV, **_CONTENT_SAFETY_ENABLED_ENV})
+    settings = AppSettings()
+    assert settings.content_safety.enabled is True
+    assert settings.content_safety.endpoint != ""
+
+    fake_client = MagicMock(name="content_safety_client")
+    ctor_spy = MagicMock(return_value=fake_client)
+    monkeypatch.setattr("backend.app.ContentSafetyClient", ctor_spy)
+
+    fake_credential = MagicMock(name="credential")
+    result = _init_content_safety_client(settings, fake_credential)
+
+    assert result is fake_client
+    ctor_spy.assert_called_once_with(
+        endpoint=settings.content_safety.endpoint,
+        credential=fake_credential,
+    )
+
+
+async def test_lifespan_stashes_none_when_content_safety_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default env -> `app.state.content_safety_client` is None and the
+    chat pipeline runs unguarded (matches v1 `enable_content_safety: false`).
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+    _patch_search_registry(monkeypatch)
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.content_safety_client is None
+
+
+async def test_lifespan_stashes_client_when_content_safety_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When enabled + endpoint set, lifespan stashes the constructed
+    client on `app.state.content_safety_client` so the DI layer
+    (U-CS-3) can inject it into the chat pipeline.
+    """
+    _apply_env(monkeypatch, {**COSMOS_ENV, **_CONTENT_SAFETY_ENABLED_ENV})
+    _patched_lifespan(monkeypatch)
+    _patch_search_registry(monkeypatch)
+
+    fake_client = MagicMock(name="content_safety_client")
+    fake_client.close = AsyncMock()
+    ctor_spy = MagicMock(return_value=fake_client)
+    monkeypatch.setattr("backend.app.ContentSafetyClient", ctor_spy)
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.content_safety_client is fake_client
+
+    ctor_spy.assert_called_once()
+
+
+async def test_lifespan_closes_content_safety_client_on_shutdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The aiohttp transport owned by ContentSafetyClient MUST be closed
+    on shutdown -- forgetting this leaks sockets in long-running test
+    suites and dev reloads.
+    """
+    _apply_env(monkeypatch, {**COSMOS_ENV, **_CONTENT_SAFETY_ENABLED_ENV})
+    _patched_lifespan(monkeypatch)
+    _patch_search_registry(monkeypatch)
+
+    fake_client = MagicMock(name="content_safety_client")
+    fake_client.close = AsyncMock()
+    monkeypatch.setattr(
+        "backend.app.ContentSafetyClient", MagicMock(return_value=fake_client)
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        pass
+
+    fake_client.close.assert_awaited_once()
+
+
+async def test_lifespan_shutdown_tolerates_missing_content_safety_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When the client was never built (default env), shutdown must not
+    raise -- the close path is a no-op, not an AttributeError.
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+    _patch_search_registry(monkeypatch)
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        assert app.state.content_safety_client is None
+    # Reaching here proves shutdown didn't blow up trying to close None.
