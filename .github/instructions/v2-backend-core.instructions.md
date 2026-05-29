@@ -234,3 +234,4 @@ Per `.github/copilot-instructions.md` Hard Rule #11 (Python bullet, **CU-013 ame
 - Sync DB drivers (`psycopg2` for runtime paths, blocking `azure.cosmos.CosmosClient`). `psycopg2-binary` is acceptable for migration scripts only.
 - `if/elif` over provider names anywhere outside a `Registry[T]`.
 - `from __future__ import annotations` and `if TYPE_CHECKING:` — see Runtime types section above (CU-013).
+- In-function imports (lazy stdlib or third-party imports inside `def` / `async def` / `class` bodies, profile-conditional `if/else` import branches, `try/except ImportError` soft-dependency shims) — see Hard Rule #17 in [.github/copilot-instructions.md](../copilot-instructions.md). Enforced by `v2/tests/shared/test_imports_at_top_only.py`.

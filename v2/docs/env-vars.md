@@ -134,6 +134,16 @@ Wires `GET /api/speech` (`v2/src/backend/routers/speech.py`) which mints a 10-mi
 | `AZURE_SPEECH_ACCOUNT_RESOURCE_ID` | str | required | `speech.account_resource_id` | `AZURE_SPEECH_ACCOUNT_RESOURCE_ID` | `""` | Sent as `x-ms-cognitiveservices-resource-id` header on the AAD-bearer STS issueToken POST. |
 | `AZURE_SPEECH_RECOGNIZER_LANGUAGES` | CSV str | optional | `speech.recognizer_languages` | — | `"en-US,fr-FR,de-DE,it-IT"` | Comma-split client-side; passed to `AutoDetectSourceLanguageConfig.fromLanguages(...)`. |
 
+### Content Safety (`ContentSafetySettings`, env_prefix `AZURE_CONTENT_SAFETY_`)
+
+Wires the prompt-shielding guard injected into `run_chat(...)` via `Depends(get_content_safety_guard)`. The guard calls `AnalyzeText` on a standalone Cognitive Services account of kind `ContentSafety` (deployed by the inline `cogContentSafety` module in `v2/infra/main.bicep`). Hard Rule #2 — UAMI must hold **Cognitive Services User** (`a97b65f3-24c7-4388-baec-2e87135dc908`) on the `cs-*` account; no subscription keys. The Bicep deploys the account unconditionally and pins `AZURE_CONTENT_SAFETY_ENABLED='true'` on the backend container app at infra level; operators flip the guard OFF per-request via the admin runtime override `PATCH /api/admin/config {"content_safety_enabled": false}` (`RuntimeConfig.content_safety_enabled` `False` short-circuits to `None` even when the lifespan client is present — operator-off wins over env baseline).
+
+| Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
+|---|---|---|---|---|---|---|
+| `AZURE_CONTENT_SAFETY_ENDPOINT` | str | required for guard | `content_safety.endpoint` | `AZURE_CONTENT_SAFETY_ENDPOINT` | `""` | Regional Cognitive Services endpoint (e.g. `https://cs-cwyd001.cognitiveservices.azure.com/`). Empty → lifespan leaves `app.state.content_safety_client = None`; pipeline runs unguarded. |
+| `AZURE_CONTENT_SAFETY_ENABLED` | bool | required for guard | `content_safety.enabled` | (`'true'` literal on backend container-app `env`) | `False` | Operator opt-in. Both `enabled=true` AND a non-empty endpoint are required at lifespan to build the client; either alone is treated as "off" (no exception raised). |
+| `AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD` | int 0-7 | optional | `content_safety.severity_threshold` | — | `4` | Inclusive lower bound at which verdicts trip. Azure reports 0/2/4/6; default `4` matches v1 `enable_content_safety: true` behavior. Validation ceiling `7` lets operators set the guard effectively-off without rejection at settings load. |
+
 ### Root (`AppSettings`, env_prefix `AZURE_`)
 
 | Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
@@ -178,7 +188,6 @@ Wires `GET /api/speech` (`v2/src/backend/routers/speech.py`) which mints a 10-mi
 | `APP_ENV` | Replaced by `AZURE_ENVIRONMENT` (`local` \| `production`). | Phase 2 |
 | `BACKEND_URL` (read by v1 frontend) | Replaced by `VITE_BACKEND_URL` (build-time) + `AZURE_BACKEND_URL` (runtime). | Phase 1 |
 | `AZURE_SUBSCRIPTION_ID` | Not consumed by v2 runtime (azd reads it from the CLI context). | Phase 1 |
-| `AZURE_CONTENT_SAFETY_ENDPOINT` | Existing `ContentSafetyGuard` REST seam is preserved but its endpoint will be re-introduced as a typed setting only when CU-013 (v1 content-safety audit follow-up) lands. Currently not surfaced in `.env.sample`. | Pending CU-013 |
 
 ---
 
