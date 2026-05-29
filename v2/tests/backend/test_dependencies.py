@@ -14,6 +14,7 @@ from backend.core.settings import Environment
 from backend.core.types import RuntimeConfig
 from backend.dependencies import (
     get_agents_provider,
+    get_content_safety_guard,
     get_database_client,
     get_runtime_overrides,
     get_search_provider,
@@ -296,3 +297,86 @@ def test_requires_role_factory_returns_distinct_callable_per_call() -> None:
     dep_a = requires_role("admin")
     dep_b = requires_role("admin")
     assert dep_a is not dep_b
+
+
+# ---------------------------------------------------------------------------
+# U-CS-3: get_content_safety_guard -- builds the per-request guard from
+# the lifespan-owned ContentSafetyClient. Returns None when the client
+# is absent (content safety disabled) so consumers can treat None as
+# "screening off" and pass the user input through unchanged.
+# ---------------------------------------------------------------------------
+
+
+def _settings_with_threshold(threshold: int) -> Any:
+    """Build a stand-in ``AppSettings`` exposing only the field the dep reads.
+
+    Keeps the test focused on the guard wiring -- a full ``AppSettings()``
+    would force every test to set the full COSMOS_ENV fixture even though
+    only ``content_safety.severity_threshold`` is consumed here.
+    """
+    return SimpleNamespace(
+        content_safety=SimpleNamespace(severity_threshold=threshold)
+    )
+
+
+def test_get_content_safety_guard_returns_none_when_attr_missing() -> None:
+    """Lifespan never ran -> attribute is absent entirely. Dep MUST
+    return None rather than raise -- content safety is an optional
+    layer; missing it means 'guard off', not 500.
+    """
+    request = _request_with_state()
+    settings = _settings_with_threshold(4)
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+def test_get_content_safety_guard_returns_none_when_client_is_none() -> None:
+    """Lifespan ran with content_safety disabled -> attribute is
+    explicitly None. Same handling as the missing-attribute case.
+    """
+    request = _request_with_state(content_safety_client=None)
+    settings = _settings_with_threshold(4)
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+def test_get_content_safety_guard_builds_with_client_and_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When lifespan stashed a real client, the dep constructs a fresh
+    ``ContentSafetyGuard`` per request, threading the configured
+    severity_threshold. ContentSafetyGuard itself is cheap (no
+    network) so per-request construction is intentional -- it keeps
+    the runtime-override channel (U-CS-7) trivial to wire in later.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    request = _request_with_state(content_safety_client=fake_client)
+    settings = _settings_with_threshold(6)
+
+    fake_guard = MagicMock(name="content_safety_guard")
+    ctor_spy = MagicMock(return_value=fake_guard)
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    result = get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert result is fake_guard
+    ctor_spy.assert_called_once_with(
+        client=fake_client, severity_threshold=6
+    )
+
+
+def test_get_content_safety_guard_threads_default_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Threshold flows from ``settings.content_safety.severity_threshold``
+    verbatim -- the dep itself MUST NOT hard-code a default. The
+    Pydantic sub-model owns the default-and-validation contract.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    request = _request_with_state(content_safety_client=fake_client)
+    settings = _settings_with_threshold(2)
+
+    ctor_spy = MagicMock(return_value=MagicMock())
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert ctor_spy.call_args.kwargs["severity_threshold"] == 2

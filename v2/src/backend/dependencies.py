@@ -35,6 +35,7 @@ from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings, Environment, get_settings
+from backend.core.tools.content_safety import ContentSafetyGuard
 from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,41 @@ def get_agents_provider(request: Request) -> BaseAgentsProvider:
 
 AgentsProviderDep = Annotated[
     BaseAgentsProvider, Depends(get_agents_provider)
+]
+
+
+def get_content_safety_guard(
+    request: Request,
+    settings: SettingsDep,
+) -> ContentSafetyGuard | None:
+    """Return a per-request ``ContentSafetyGuard``, or ``None``.
+
+    Lifespan owns the singleton ``ContentSafetyClient`` (built behind
+    the ``content_safety.enabled`` + ``endpoint`` gate). When that
+    client is absent -- either the gate is open False, or lifespan
+    was skipped (some ASGI test transports) -- the dep returns
+    ``None`` and consumers MUST treat that as 'screening disabled'
+    (pass the user input through unchanged). Returning ``None``
+    rather than raising keeps content safety opt-in: a half-set or
+    unset operator config fails open with no guard, not 500.
+
+    The guard itself is cheap (no network at construction time, the
+    first call happens inside ``screen()``), so building a fresh one
+    per request is intentional -- it leaves room for the runtime-
+    override channel to flip ``enabled`` / ``severity_threshold``
+    between requests without rebuilding the underlying client.
+    """
+    client = getattr(request.app.state, "content_safety_client", None)
+    if client is None:
+        return None
+    return ContentSafetyGuard(
+        client=client,
+        severity_threshold=settings.content_safety.severity_threshold,
+    )
+
+
+ContentSafetyGuardDep = Annotated[
+    ContentSafetyGuard | None, Depends(get_content_safety_guard)
 ]
 
 
