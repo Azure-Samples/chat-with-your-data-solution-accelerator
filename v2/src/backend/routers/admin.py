@@ -133,7 +133,7 @@ class AdminStatus(BaseModel):
 class AdminConfig(BaseModel):
     """Runtime-toggle subset of ``AppSettings`` (read-only view, #35b).
 
-    The fields exposed here are exactly the settings that #35c will let
+    The fields exposed here are exactly the settings that #35c lets
     admins mutate at runtime. Selection criteria:
 
     * **Not infra-pinned.** ``orchestrator.name`` lives under the
@@ -141,10 +141,14 @@ class AdminConfig(BaseModel):
       a Bicep redeploy (see ``OrchestratorSettings`` docstring in
       ``backend/core/settings.py``); the OpenAI / Search / Observability
       tunables likewise have safe runtime defaults.
-    * **No new settings.** Adding e.g. content-safety / RAI / post-prompt
-      toggles that v1 had but v2 does not yet model would trigger
-      Hard Rule #10 (new settings field) and Hard Rule #12 (out of
-      this task's numeric scope) -- those land as their own §0.1 row.
+    * **Already modeled in `AppSettings`.** Each field here maps to a
+      concrete attribute on `AppSettings` (so the GET handler is just
+      a serialization, no `getattr` fallbacks) and is mirrored on
+      `RuntimeConfig` as `T | None = None` (so PATCH semantics are
+      RFC 7396-clean: `null` clears, missing leaves untouched).
+      New fields must be added in lockstep across all three surfaces
+      (`AppSettings`, `RuntimeConfig`, `AdminConfig`) and the PATCH
+      allow-list (auto-derived from `RuntimeConfig.model_fields`).
 
     Sensitive fields (UAMI ids, tenant id, connection strings, API
     version) are **never** included; locked in by
@@ -157,6 +161,7 @@ class AdminConfig(BaseModel):
     search_use_semantic_search: bool
     search_top_k: int
     log_level: str
+    content_safety_enabled: bool
 
 
 class EffectiveAdminConfig(BaseModel):
@@ -253,6 +258,7 @@ async def config_endpoint(
         search_use_semantic_search=settings.search.use_semantic_search,
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
+        content_safety_enabled=settings.content_safety.enabled,
     )
 
 
@@ -271,7 +277,7 @@ async def config_effective_endpoint(
     PATCH (#35e(a)), so this endpoint reflects PATCHes immediately
     without a database round-trip.
     """
-    # Env defaults -- same 6-field surface as `GET /api/admin/config`.
+    # Env defaults -- same surface as `GET /api/admin/config`.
     env_values: dict[str, Any] = {
         "orchestrator_name": settings.orchestrator.name,
         "openai_temperature": settings.openai.temperature,
@@ -279,6 +285,7 @@ async def config_effective_endpoint(
         "search_use_semantic_search": settings.search.use_semantic_search,
         "search_top_k": settings.search.top_k,
         "log_level": settings.observability.log_level,
+        "content_safety_enabled": settings.content_safety.enabled,
     }
     merged: dict[str, Any] = dict(env_values)
     sources: dict[str, ConfigSource] = {

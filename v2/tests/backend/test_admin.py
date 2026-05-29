@@ -15,6 +15,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from backend.core.types import RuntimeConfig
 from backend.dependencies import get_app_settings, get_database_client
 from backend.routers.admin import _REQUIRE_ADMIN_USER, router as admin_router
 
@@ -45,6 +46,7 @@ def _settings(
     search_use_semantic_search: bool = True,
     search_top_k: int = 5,
     log_level: str = "INFO",
+    content_safety_enabled: bool = False,
     # Sensitive: must NEVER appear in the status / config response.
     tenant_id: str = "tenant-secret-DO-NOT-LEAK",
     uami_client_id: str = "uami-secret-DO-NOT-LEAK",
@@ -79,6 +81,7 @@ def _settings(
             app_insights_connection_string=app_insights_conn,
             log_level=log_level,
         ),
+        content_safety=NS(enabled=content_safety_enabled),
         identity=NS(tenant_id=tenant_id, uami_client_id=uami_client_id),
         network=NS(cors_origins=cors_origins or []),
     )
@@ -422,6 +425,7 @@ _EXPECTED_CONFIG_KEYS = {
     "search_use_semantic_search",
     "search_top_k",
     "log_level",
+    "content_safety_enabled",
 }
 
 
@@ -484,6 +488,22 @@ async def test_config_maps_log_level(admin_app_factory, level: str) -> None:
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config")
     assert resp.json()["log_level"] == level
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_config_surfaces_content_safety_enabled_from_settings(
+    admin_app_factory, enabled: bool
+) -> None:
+    """GET /api/admin/config must surface `settings.content_safety.enabled`
+    verbatim so the admin UI can render the current env-baseline state
+    of the content-safety guard. Mirrors the surface pattern of the
+    other runtime toggles (`search_use_semantic_search`, etc.) -- the
+    field is the read-only env view; PATCH writes the override layer."""
+    app = admin_app_factory(_settings(content_safety_enabled=enabled))
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config")
+    assert resp.json()["content_safety_enabled"] is enabled
 
 
 @pytest.mark.asyncio
@@ -732,6 +752,54 @@ async def test_patch_config_response_body_matches_persisted_runtime_config(
         RuntimeConfig.model_fields.keys()
     )
     assert resp.json()["search_top_k"] == persisted.search_top_k
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_patch_config_accepts_content_safety_enabled_bool(
+    admin_app_factory, enabled: bool
+) -> None:
+    """PATCH must accept `content_safety_enabled: True|False` as a
+    runtime override. The allow-list is auto-derived from
+    `RuntimeConfig.model_fields`, so U-CS-5's field addition
+    implicitly made this writable -- this test locks in that the
+    derivation actually picks up the new field (and that the
+    Pydantic validation accepts both booleans, including the
+    load-bearing `False` distinct from `None`)."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"content_safety_enabled": enabled},
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.content_safety_enabled is enabled
+    assert resp.json()["content_safety_enabled"] is enabled
+
+
+@pytest.mark.asyncio
+async def test_patch_config_explicit_null_clears_content_safety_override(
+    admin_app_factory,
+) -> None:
+    """RFC 7396 `null` semantics for the new override channel: a
+    PATCH with `content_safety_enabled: null` MUST clear the
+    persisted override (set to None), so the next request falls
+    through to the `AppSettings.content_safety.enabled` env default.
+    Mirrors `test_patch_config_explicit_null_clears_override`
+    behavior for the openai_temperature field."""
+    db = _fake_db(current=RuntimeConfig(content_safety_enabled=True))
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"content_safety_enabled": None},
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.content_safety_enabled is None
+    assert resp.json()["content_safety_enabled"] is None
 
 
 @pytest.mark.asyncio
@@ -1001,6 +1069,7 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "search_use_semantic_search": True,
         "search_top_k": 5,
         "log_level": "INFO",
+        "content_safety_enabled": False,
     }
     assert body["sources"] == {
         "orchestrator_name": "env",
@@ -1009,6 +1078,7 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "search_use_semantic_search": "env",
         "search_top_k": "env",
         "log_level": "env",
+        "content_safety_enabled": "env",
     }
     assert body["updated_at"] is None
     assert body["updated_by"] is None
@@ -1063,6 +1133,7 @@ async def test_config_effective_overlays_partial_overrides(
         "search_use_semantic_search": "env",
         "search_top_k": "env",
         "log_level": "override",
+        "content_safety_enabled": "env",
     }
     # Audit fields surfaced from the override row.
     assert body["updated_at"] == "2026-05-07T12:00:00+00:00"
@@ -1120,6 +1191,7 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         search_use_semantic_search=False,
         search_top_k=10,
         log_level="DEBUG",
+        content_safety_enabled=True,
         updated_at="2026-05-07T14:00:00+00:00",
         updated_by="u-admin",
     )
@@ -1135,8 +1207,51 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         "search_use_semantic_search": False,
         "search_top_k": 10,
         "log_level": "DEBUG",
+        "content_safety_enabled": True,
     }
     assert all(src == "override" for src in body["sources"].values())
+
+
+@pytest.mark.asyncio
+async def test_config_effective_overlays_content_safety_enabled_override(
+    admin_app_factory,
+) -> None:
+    """A RuntimeConfig override on `content_safety_enabled` must flip
+    the merged value + flag the field's source as `override`, while
+    leaving the other env-side fields untouched. Sets up U-CS-7
+    (`get_content_safety_guard` reads the override before returning
+    the guard) -- without this, the override would persist in the DB
+    but never reach the request-time DI surface.
+
+    Verifies both directions of the boolean flip so a test cannot pass
+    by coincidence with the env default value.
+    """
+    # Env baseline disabled; override flips it on.
+    app = admin_app_factory(_settings(content_safety_enabled=False))
+    app.state.runtime_overrides = RuntimeConfig(
+        content_safety_enabled=True,
+        updated_at="2026-05-28T10:00:00+00:00",
+        updated_by="u-admin",
+    )
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    body = resp.json()
+    assert body["values"]["content_safety_enabled"] is True
+    assert body["sources"]["content_safety_enabled"] == "override"
+
+    # Env baseline enabled; override flips it off (the load-bearing
+    # `False`-vs-`None` semantic locked by U-CS-5 distinguish-test).
+    app2 = admin_app_factory(_settings(content_safety_enabled=True))
+    app2.state.runtime_overrides = RuntimeConfig(
+        content_safety_enabled=False,
+        updated_at="2026-05-28T10:00:00+00:00",
+        updated_by="u-admin",
+    )
+    async with _client(app2) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    body = resp.json()
+    assert body["values"]["content_safety_enabled"] is False
+    assert body["sources"]["content_safety_enabled"] == "override"
 
 
 # ---------------------------------------------------------------------------
@@ -1237,6 +1352,7 @@ def test_effective_admin_config_coerces_string_to_enum(
             search_use_semantic_search=True,
             search_top_k=5,
             log_level="INFO",
+            content_safety_enabled=False,
         ),
         sources={"orchestrator_name": wire_value},  # type: ignore[dict-item]
     )
@@ -1260,6 +1376,7 @@ def test_effective_admin_config_rejects_unknown_source_value() -> None:
                 search_use_semantic_search=True,
                 search_top_k=5,
                 log_level="INFO",
+                content_safety_enabled=False,
             ),
             sources={"orchestrator_name": "fallback"},  # type: ignore[dict-item]
         )
@@ -1285,6 +1402,7 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
             search_use_semantic_search=True,
             search_top_k=5,
             log_level="INFO",
+            content_safety_enabled=False,
         ),
         sources={
             "orchestrator_name": ConfigSource.ENV,

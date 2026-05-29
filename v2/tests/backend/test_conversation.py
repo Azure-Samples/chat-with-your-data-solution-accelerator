@@ -578,3 +578,92 @@ async def test_resolver_receives_cwyd_definition_and_database_client(
     assert call["db"] is db_sentinel, (
         "router must forward the DI'd database client by identity"
     )
+
+
+# ---------------------------------------------------------------------------
+# U-CS-4: content-safety guard forwarded into pipelines.chat.run_chat
+# ---------------------------------------------------------------------------
+
+
+def _spy_run_chat_no_op(
+    calls: list[dict[str, Any]],
+):
+    """Build a non-invoking spy: records kwargs, yields no events.
+
+    Using a no-op generator (instead of the real ``run_chat``) keeps
+    these tests focused on the *forwarding contract* -- we never
+    exercise the guard's ``screen()`` method here, so the sentinel
+    passed via DI can be a bare ``object()`` without needing a
+    fully-shaped fake.
+    """
+
+    def _spy(messages: Any, **kwargs: Any) -> AsyncIterator[OrchestratorEvent]:
+        calls.append({"kwargs": kwargs})
+
+        async def _empty() -> AsyncIterator[OrchestratorEvent]:
+            if False:
+                yield  # pragma: no cover
+
+        return _empty()
+
+    return _spy
+
+
+async def test_router_forwards_none_content_safety_when_dep_returns_none(
+    app_with_fakes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Default DI path: ASGITransport skips lifespan so
+    ``app.state.content_safety_client`` is never set ->
+    ``get_content_safety_guard`` returns None -> router must forward
+    ``content_safety=None`` to ``run_chat``.
+    """
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    calls: list[dict[str, Any]] = []
+    from backend.routers import conversation as conv_module
+
+    monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert len(calls) == 1
+    assert "content_safety" in calls[0]["kwargs"], (
+        "router must pass `content_safety` kwarg explicitly to run_chat"
+    )
+    assert calls[0]["kwargs"]["content_safety"] is None
+
+
+async def test_router_forwards_content_safety_guard_when_dep_returns_guard(
+    app_with_fakes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When ``get_content_safety_guard`` returns a guard instance
+    (DI-overridden here with a sentinel object), the router must
+    forward that exact instance into ``run_chat(content_safety=...)``.
+    """
+    from backend.dependencies import get_content_safety_guard
+
+    sentinel_guard = object()
+    app_with_fakes.dependency_overrides[get_content_safety_guard] = (
+        lambda: sentinel_guard
+    )
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    calls: list[dict[str, Any]] = []
+    from backend.routers import conversation as conv_module
+
+    monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert calls[0]["kwargs"]["content_safety"] is sentinel_guard

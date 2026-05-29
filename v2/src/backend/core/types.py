@@ -237,9 +237,10 @@ class RuntimeConfig(BaseModel):
     """Persisted runtime overrides for the admin-mutable subset of
     `AppSettings` (Phase 5 task #35c-1).
 
-    Mirrors the 6 fields exposed read-only by `AdminConfig` in #35b
-    (orchestrator key, OpenAI temperature/max_tokens, search
-    semantic-toggle/top_k, log_level). Persisted via the new
+    Mirrors the runtime-toggle fields exposed read-only by
+    `AdminConfig` in #35b (orchestrator key, OpenAI
+    temperature/max_tokens, search semantic-toggle/top_k, log_level,
+    content_safety_enabled). Persisted via the new
     `BaseDatabaseClient.upsert_runtime_config(...)` (#35c-3) and
     read via `get_runtime_config()` (#35c-2). The CosmosDB row
     pins to the synthetic `_system` partition (mirrors CU-010b1
@@ -247,11 +248,11 @@ class RuntimeConfig(BaseModel):
     `id INT PRIMARY KEY DEFAULT 1` row with `INSERT ... ON CONFLICT`
     upsert semantics (#35c-6).
 
-    All 6 mutable fields are `T | None = None` so the persisted
-    shape can distinguish 'explicitly overridden' from 'not
-    overridden' -- required for booleans like
-    `search_use_semantic_search` where `False` is a legitimate
-    override value distinct from 'fall through to env default'.
+    All mutable fields are `T | None = None` so the persisted shape
+    can distinguish 'explicitly overridden' from 'not overridden' --
+    required for booleans like `search_use_semantic_search` or
+    `content_safety_enabled` where `False` is a legitimate override
+    value distinct from 'fall through to env default'.
     The RFC 7396 merge semantics in #35c-7 rely on this
     distinction: an absent JSON key leaves the override alone, an
     explicit `null` clears the override, an explicit value sets it.
@@ -271,6 +272,7 @@ class RuntimeConfig(BaseModel):
     search_use_semantic_search: bool | None = None
     search_top_k: int | None = None
     log_level: str | None = None
+    content_safety_enabled: bool | None = None
     updated_at: str = ""
     updated_by: str = ""
 

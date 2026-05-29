@@ -33,6 +33,7 @@ from fastapi.responses import StreamingResponse
 
 from backend.dependencies import (
     AgentsProviderDep,
+    ContentSafetyGuardDep,
     DatabaseClientDep,
     LLMProviderDep,
     SearchProviderDep,
@@ -126,6 +127,7 @@ async def conversation(
     search: SearchProviderDep,
     agents: AgentsProviderDep,
     db: DatabaseClientDep,
+    content_safety: ContentSafetyGuardDep,
     accept: str | None = Header(default=None),
 ) -> ConversationResponse | StreamingResponse:
     """Run the configured orchestrator and stream / buffer the result."""
@@ -163,7 +165,11 @@ async def conversation(
         agent_id=agent_id,
     )
 
-    events = run_chat(body.messages, orchestrator=orchestrator)
+    events = run_chat(
+        body.messages,
+        orchestrator=orchestrator,
+        content_safety=content_safety,
+    )
 
     if _wants_sse(accept):
         return StreamingResponse(

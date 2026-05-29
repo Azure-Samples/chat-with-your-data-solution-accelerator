@@ -288,6 +288,64 @@ def test_runtime_config_partial_override_leaves_other_fields_none() -> None:
     assert rc.log_level is None
 
 
+def test_runtime_config_content_safety_enabled_defaults_to_none() -> None:
+    """`content_safety_enabled` joins the existing mutable fields with
+    the same `T | None = None` shape — None means 'no admin override,
+    fall through to `AppSettings.content_safety.enabled` at request
+    time via `get_content_safety_guard`'."""
+    rc = RuntimeConfig()
+    assert rc.content_safety_enabled is None
+
+
+def test_runtime_config_content_safety_enabled_round_trips_true_and_false() -> None:
+    """Both explicit boolean values must round-trip losslessly through
+    `model_dump()` → `model_validate()` because the persisted shape
+    (Cosmos JSON / Postgres JSONB) is the only way the override
+    survives a process restart. Asserts on the field value (not just
+    instance equality) because without `extra="forbid"`, equality
+    alone would be a false positive when the field is absent."""
+    rc_true = RuntimeConfig(content_safety_enabled=True)
+    assert rc_true.content_safety_enabled is True
+    rebuilt_true = RuntimeConfig.model_validate(rc_true.model_dump())
+    assert rebuilt_true.content_safety_enabled is True
+    assert rebuilt_true == rc_true
+
+    rc_false = RuntimeConfig(content_safety_enabled=False)
+    assert rc_false.content_safety_enabled is False
+    rebuilt_false = RuntimeConfig.model_validate(rc_false.model_dump())
+    assert rebuilt_false.content_safety_enabled is False
+    assert rebuilt_false == rc_false
+
+
+def test_runtime_config_content_safety_enabled_distinguishes_false_from_none() -> None:
+    """Same load-bearing semantic as `search_use_semantic_search`: a
+    PATCH that *disables* content safety must persist as `False` (a
+    real override), distinct from an unset field that means 'fall
+    through to env default'. If this collapses, the U-CS-7 override
+    cascade in `get_content_safety_guard` can never honor an explicit
+    admin disable."""
+    explicit_false = RuntimeConfig(content_safety_enabled=False)
+    unset = RuntimeConfig()
+    assert explicit_false.content_safety_enabled is False
+    assert unset.content_safety_enabled is None
+    assert explicit_false != unset
+
+
+def test_runtime_config_partial_override_preserves_content_safety_unset() -> None:
+    """A partial override carrying only `content_safety_enabled` must
+    leave every other mutable field at None — mirrors the existing
+    `test_runtime_config_partial_override_leaves_other_fields_none`
+    pattern from the other direction."""
+    rc = RuntimeConfig(content_safety_enabled=True)
+    assert rc.content_safety_enabled is True
+    assert rc.orchestrator_name is None
+    assert rc.openai_temperature is None
+    assert rc.openai_max_tokens is None
+    assert rc.search_use_semantic_search is None
+    assert rc.search_top_k is None
+    assert rc.log_level is None
+
+
 def test_runtime_config_is_in_module_exports() -> None:
     """Ensures `from backend.core.types import RuntimeConfig` works for
     every downstream consumer (DB clients in #35c-4/5/6, admin
