@@ -23,6 +23,7 @@ from azure.core.exceptions import AzureError, ServiceRequestError
 from azure.cosmos.exceptions import CosmosHttpResponseError
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from backend.app import _install_exception_handlers
 
@@ -204,8 +205,6 @@ def test_request_validation_error_pass_through_returns_422() -> None:
     Demonstrates the framework default still wins for
     `RequestValidationError`.
     """
-    from pydantic import BaseModel
-
     class _Body(BaseModel):
         name: str
 

@@ -524,8 +524,6 @@ def test_subclass_missing_write_admin_audit_remains_abstract() -> None:
     route in #35f-3 could silently drop the audit row, defeating
     the "who flipped temperature to 0.7?" forensic question that
     motivated the audit log."""
-    from backend.core.types import AdminAuditEntry  # noqa: F401 -- contract probe
-
     class _MissingWriteAdminAudit(BaseDatabaseClient):
         async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
             return []
@@ -600,8 +598,6 @@ async def test_stub_write_admin_audit_returns_none_and_does_not_raise() -> None:
     router fires-and-forgets the audit row; the storage layer
     assigns id + created_at on persist (mirrors `add_message`).
     """
-    from backend.core.types import AdminAuditEntry
-
     client = _StubDatabaseClient(
         settings=MagicMock(spec=AppSettings),
         credential=MagicMock(),

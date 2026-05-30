@@ -15,6 +15,7 @@ import pytest
 from azure.core.exceptions import AzureError
 
 from backend.core.settings import AppSettings, get_settings
+from functions.function_app import app
 from functions.search_skill import blueprint as bp_module
 from functions.search_skill.blueprint import search_skill
 from functions.search_skill.models import (
@@ -293,8 +294,6 @@ async def test_unexpected_exception_returns_500_safety_net(
 
 def test_search_skill_route_registered_on_app() -> None:
     # Importing function_app must register the blueprint route.
-    from functions.function_app import app
-
     function_names = {fb._function._name for fb in app._function_builders}  # type: ignore[attr-defined]
     assert "search_skill" in function_names
     # Regression: every previously registered Phase 6 route still present.

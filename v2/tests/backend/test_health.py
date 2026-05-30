@@ -8,13 +8,14 @@ from enum import StrEnum
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
 
 import backend.models.health as health_models
-from backend.app import create_app
+from backend.app import _lifespan, create_app
 from backend.dependencies import (
+    get_app_settings,
     get_credential_provider,
     get_llm_provider,
 )
@@ -342,8 +343,6 @@ async def test_ready_returns_503_when_dependency_fails(
 def test_get_app_settings_returns_settings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from backend.dependencies import get_app_settings
-
     _set_env(monkeypatch, COSMOS_ENV)
     s = get_app_settings()
     assert isinstance(s, AppSettings)
@@ -354,8 +353,6 @@ def test_get_credential_provider_raises_when_lifespan_did_not_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """DI now reads from app.state -- absence is a hard error."""
-    from fastapi import Request
-
     _set_env(monkeypatch, COSMOS_ENV)
     app = create_app()
     fake_request = MagicMock(spec=Request)
@@ -368,8 +365,6 @@ def test_get_credential_provider_raises_when_lifespan_did_not_run(
 def test_get_llm_provider_raises_when_lifespan_did_not_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from fastapi import Request
-
     _set_env(monkeypatch, COSMOS_ENV)
     app = create_app()
     fake_request = MagicMock(spec=Request)
@@ -398,8 +393,6 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     we drive the lifespan context manager directly. This is also a
     truer unit test of `_lifespan` itself.
     """
-    from backend.app import _lifespan
-
     _set_env(monkeypatch, COSMOS_ENV)
 
     fake_credential = MagicMock()

@@ -5,6 +5,7 @@ Phase: 1
 """
 
 import importlib
+import os
 import sys
 from pathlib import Path
 
@@ -13,8 +14,6 @@ from fastapi.testclient import TestClient
 
 def _load_app(dist_dir: Path):
     """(Re)import the module with DIST_DIR pointed at a fixture."""
-    import os
-
     os.environ["DIST_DIR"] = str(dist_dir)
     # Make v2/src/frontend importable as a top-level module.
     frontend_src = Path(__file__).resolve().parents[2] / "src" / "frontend"

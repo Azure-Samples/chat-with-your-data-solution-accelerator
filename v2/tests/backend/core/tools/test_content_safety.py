@@ -10,6 +10,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from azure.ai.agents.models import ListSortOrder, MessageRole
 
 from backend.core.agents.definitions import RAI_AGENT
 from backend.core.tools.content_safety import (
@@ -185,8 +186,6 @@ def _agent_text_message(text: str) -> SimpleNamespace:
     single text block. Matches the structure that
     `_extract_text` walks (block.text.value).
     """
-    from azure.ai.agents.models import MessageRole
-
     return SimpleNamespace(
         role=MessageRole.AGENT,
         content=[SimpleNamespace(text=SimpleNamespace(value=text))],
@@ -198,8 +197,6 @@ def _user_message(text: str) -> SimpleNamespace:
     Used in the run_id-filter test to confirm `rai_check` skips
     non-agent rows.
     """
-    from azure.ai.agents.models import MessageRole
-
     return SimpleNamespace(
         role=MessageRole.USER,
         content=[SimpleNamespace(text=SimpleNamespace(value=text))],
@@ -330,8 +327,6 @@ async def test_rai_check_posts_input_text_to_a_fresh_thread() -> None:
     against the resolved agent_id. Locks the wire shape down so any
     future SDK-method-name regression fails loudly.
     """
-    from azure.ai.agents.models import MessageRole
-
     client = _make_rai_client(thread_id="thr_xyz", run_id="run_abc")
     provider = _FakeRaiAgentsProvider(
         client=client, agent_id_to_return="asst_specific_id"
@@ -359,8 +354,6 @@ async def test_rai_check_filters_messages_list_by_run_id() -> None:
     against future thread-reuse regressions where a stale assistant
     message could be misread as the verdict.
     """
-    from azure.ai.agents.models import ListSortOrder
-
     client = _make_rai_client(run_id="run_specific")
     provider = _FakeRaiAgentsProvider(client=client)
     db = _FakeDatabaseClient()

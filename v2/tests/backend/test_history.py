@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+from fastapi import HTTPException
+from starlette.requests import Request
 
 from backend.app import create_app
 from backend.core.settings import Environment
@@ -82,8 +84,6 @@ def _client(app) -> httpx.AsyncClient:
 
 
 def test_get_user_id_reads_easy_auth_header() -> None:
-    from starlette.requests import Request
-
     scope: dict[str, Any] = {
         "type": "http",
         "headers": [(b"x-ms-client-principal-id", b"00000000-0000-0000-0000-000000000abc")],
@@ -98,8 +98,6 @@ def test_get_user_id_reads_easy_auth_header() -> None:
 
 
 def test_get_user_id_falls_back_to_local_dev_when_header_missing() -> None:
-    from starlette.requests import Request
-
     scope: dict[str, Any] = {"type": "http", "headers": []}
     settings = MagicMock(environment=Environment.LOCAL)
     assert get_user_id(Request(scope), settings) == "local-dev"
@@ -112,9 +110,6 @@ def test_get_user_id_raises_401_in_production_when_header_missing() -> None:
     every anonymous caller into the ``local-dev`` partition. With
     ``AZURE_ENVIRONMENT=production`` and no header, we raise 401.
     """
-    from fastapi import HTTPException
-    from starlette.requests import Request
-
     scope: dict[str, Any] = {"type": "http", "headers": []}
     settings = MagicMock(environment=Environment.PRODUCTION)
     with pytest.raises(HTTPException) as exc:

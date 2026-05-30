@@ -19,12 +19,14 @@ from collections.abc import Awaitable, Callable
 import azure.functions as func
 import pytest
 from azure.core.exceptions import AzureError
+from pydantic import ValidationError
 
 from backend.core.settings import AppSettings, get_settings
 from backend.core.types import SearchDocument
 from functions.batch_push import blueprint as bp_module
 from functions.batch_push.blueprint import _parser_key_for_filename, batch_push
 from functions.core.contracts import BatchPushQueueMessage
+from functions.function_app import app
 
 
 # Minimal env that satisfies AppSettings + nested cross-field validators.
@@ -157,8 +159,6 @@ async def test_malformed_envelope_raises_validation_error_and_logs_warning(
 ) -> None:
     caplog.set_level(logging.WARNING, logger="functions.core.exception_mapping")
 
-    from pydantic import ValidationError
-
     # Missing required ``filename`` + ``container_name`` -> ValidationError
     # bubbles through parse_push_message; the decorator catches, logs
     # warning with structured extras, then re-raises so the runtime
@@ -227,8 +227,6 @@ async def test_unexpected_exception_in_execute_reraises_safety_net(
 
 def test_batch_push_route_registered_on_app() -> None:
     # Importing function_app must register the batch_push blueprint.
-    from functions.function_app import app
-
     function_names = {fb._function._name for fb in app._function_builders}  # type: ignore[attr-defined]
     assert "batch_push" in function_names
     # Regression: previously registered routes still present.

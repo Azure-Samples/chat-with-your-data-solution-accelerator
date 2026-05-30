@@ -20,6 +20,7 @@ from backend.core.types import SearchDocument
 from functions.add_url import blueprint as bp_module
 from functions.add_url.blueprint import _parser_key_for_url, add_url
 from functions.add_url.handler import AddUrlRequest
+from functions.function_app import app
 
 
 # Minimal env that satisfies AppSettings + nested cross-field validators.
@@ -239,8 +240,6 @@ async def test_unexpected_exception_returns_500_safety_net(
 
 def test_add_url_route_registered_on_app() -> None:
     # Importing function_app must register the blueprint route.
-    from functions.function_app import app
-
     function_names = {fb._function._name for fb in app._function_builders}  # type: ignore[attr-defined]
     assert "add_url" in function_names
     # Regression: batch_start, batch_push, and health still registered.

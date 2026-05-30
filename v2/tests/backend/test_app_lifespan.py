@@ -5,8 +5,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend.app import create_app
-from backend.core.settings import get_settings
+from backend.app import _init_content_safety_client, create_app
+from backend.core.settings import AppSettings, get_settings
+from backend.core.types import RuntimeConfig
 
 
 COSMOS_ENV: dict[str, str] = {
@@ -563,8 +564,6 @@ async def test_lifespan_loads_persisted_runtime_overrides_into_app_state(
     `get_runtime_overrides` returns it from the very first request --
     no need to wait for a PATCH to repopulate after a restart.
     """
-    from backend.core.types import RuntimeConfig
-
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)
     _fake_sr7 = MagicMock(name="search_registry")
@@ -643,9 +642,6 @@ def test_init_content_safety_client_returns_none_when_disabled(
     without instantiating `ContentSafetyClient` -- callers receive None
     and treat it as 'screening disabled'.
     """
-    from backend.app import _init_content_safety_client
-    from backend.core.settings import AppSettings
-
     _apply_env(monkeypatch, COSMOS_ENV)
     monkeypatch.setenv(
         "AZURE_CONTENT_SAFETY_ENDPOINT",
@@ -672,9 +668,6 @@ def test_init_content_safety_client_returns_none_when_endpoint_missing(
     misconfiguration that fails open (no guard) rather than crashing
     boot. Helper still short-circuits.
     """
-    from backend.app import _init_content_safety_client
-    from backend.core.settings import AppSettings
-
     _apply_env(monkeypatch, COSMOS_ENV)
     monkeypatch.setenv("AZURE_CONTENT_SAFETY_ENABLED", "true")
     # AZURE_CONTENT_SAFETY_ENDPOINT stays unset
@@ -698,9 +691,6 @@ def test_init_content_safety_client_builds_with_endpoint_and_credential(
     with `endpoint=` + `credential=` kwargs (matches Azure SDK signature)
     and returns the resulting client unchanged.
     """
-    from backend.app import _init_content_safety_client
-    from backend.core.settings import AppSettings
-
     _apply_env(monkeypatch, {**COSMOS_ENV, **_CONTENT_SAFETY_ENABLED_ENV})
     settings = AppSettings()
     assert settings.content_safety.enabled is True

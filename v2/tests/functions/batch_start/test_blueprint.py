@@ -23,6 +23,7 @@ from functions.batch_start import blueprint as bp_module
 from functions.batch_start.blueprint import batch_start
 from functions.batch_start.models import BatchStartRequest
 from functions.core.contracts import BatchPushQueueMessage
+from functions.function_app import app
 
 
 # Minimal env that satisfies AppSettings + nested cross-field validators.
@@ -210,8 +211,6 @@ async def test_unexpected_exception_returns_500_safety_net(
 
 def test_batch_start_route_registered_on_app() -> None:
     # Importing function_app must register the blueprint route.
-    from functions.function_app import app
-
     function_names = {fb._function._name for fb in app._function_builders}  # type: ignore[attr-defined]
     assert "batch_start" in function_names
     assert "health" in function_names  # regression: existing route still present

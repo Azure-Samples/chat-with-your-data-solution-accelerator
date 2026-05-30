@@ -13,7 +13,7 @@ from backend.core.providers.orchestrators import registry as orchestrators_regis
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.langgraph import LangGraphOrchestrator
 from backend.core.settings import AppSettings
-from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent
+from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent, SearchResult
 
 
 # ---------------------------------------------------------------------------
@@ -181,8 +181,6 @@ class _FakeSearch:
     """Minimal `BaseSearch` stub returning canned hits."""
 
     def __init__(self, hits):
-        from backend.core.types import SearchResult
-
         self.hits = [SearchResult(**h) if isinstance(h, dict) else h for h in hits]
         self.calls: list[str] = []
 

@@ -27,6 +27,8 @@ from enum import StrEnum
 import pytest
 from pydantic import ValidationError
 
+import backend.core.types as st
+import backend.core.types as types_module
 from backend.core.types import (
     ChatMessage,
     ChatRole,
@@ -191,8 +193,6 @@ def test_chat_role_equality_is_member_distinct() -> None:
 
 
 def test_chat_role_is_in_module_exports() -> None:
-    import backend.core.types as types_module
-
     assert "ChatRole" in types_module.__all__
 
 
@@ -350,8 +350,6 @@ def test_runtime_config_is_in_module_exports() -> None:
     """Ensures `from backend.core.types import RuntimeConfig` works for
     every downstream consumer (DB clients in #35c-4/5/6, admin
     router in #35c-7) without a leading-underscore re-export."""
-    import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import
-
     assert "RuntimeConfig" in st.__all__
 
 
@@ -366,8 +364,6 @@ def test_search_document_is_frozen_and_forbids_extras() -> None:
       ``content_vector``) fails immediately instead of dropping
       vectors at write time.
     """
-    from pydantic import ValidationError
-
     doc = SearchDocument(id="a", content="hello")
     with pytest.raises(ValidationError):
         doc.content = "mutated"  # type: ignore[misc]  -- frozen model rejects mutation
@@ -416,6 +412,4 @@ def test_search_document_is_in_module_exports() -> None:
     """Ensures `from backend.core.types import SearchDocument` works
     for downstream ingestion handlers + the writer helper without a
     leading-underscore re-export."""
-    import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import
-
     assert "SearchDocument" in st.__all__

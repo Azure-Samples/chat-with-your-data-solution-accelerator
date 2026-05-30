@@ -11,6 +11,7 @@ import pytest
 from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.providers.embedders import registry as embedders_registry
+from backend.core.providers.embedders.azure_openai import AzureOpenAIEmbedder
 from backend.core.providers.embedders.base import BaseEmbedder
 from backend.core.providers.embedders.registry import (
     EmbedderInstance,
@@ -196,8 +197,6 @@ def test_fake_embedder_instance_satisfies_embedder_instance_protocol(
 
 
 def test_azure_openai_embedder_class_satisfies_construction_protocol() -> None:
-    from backend.core.providers.embedders.azure_openai import AzureOpenAIEmbedder
-
     assert isinstance(AzureOpenAIEmbedder, SupportsEmbedderConstruction)
 
 

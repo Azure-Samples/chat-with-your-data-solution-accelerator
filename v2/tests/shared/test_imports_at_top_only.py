@@ -18,10 +18,9 @@ any compound statement (the import's enclosing block is not the module
 body), or (b) at module level but follows a non-import, non-docstring
 statement.
 
-Scope today: `src` and `scripts`. The `tests` root is added in the
-final unit of the IMPORTS-AT-TOP-DEBT refactor pass after all
-in-function imports in `v2/tests/**` have been hoisted to module top
-(see `v2/docs/development_plan.md` §0.1 row `IMPORTS-AT-TOP-DEBT`).
+Scope: `src`, `tests`, and `scripts`. The full v2/ Python surface is
+gated; the `tests` root joined after the IMPORTS-AT-TOP-DEBT refactor
+pass hoisted every in-function import in `v2/tests/**` to module top.
 
 If a circular import surfaces, fix it structurally via leaf-module
 extraction per Hard Rule #11 precedent (extract the shared type /
@@ -38,10 +37,9 @@ import pytest
 # v2/ root resolves from this file: v2/tests/shared/test_*.py -> v2/
 _V2_ROOT = Path(__file__).resolve().parents[2]
 
-# Subtrees under v2/ that get scanned. `tests` joins in the final
-# IMPORTS-AT-TOP-DEBT unit once the in-function imports across
-# v2/tests/** have been hoisted (one file per turn per Hard Rule #1).
-_SCAN_ROOTS = ("src", "scripts")
+# Subtrees under v2/ that get scanned. Full v2/ Python surface
+# (production + scripts + tests) is gated.
+_SCAN_ROOTS = ("src", "tests", "scripts")
 
 # Per-file exemption list. Empty by design -- Hard Rule #17 is absolute
 # with zero carve-outs. If you think you need to add an entry here, you

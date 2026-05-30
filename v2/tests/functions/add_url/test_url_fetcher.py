@@ -5,6 +5,7 @@ import logging
 import httpx
 import pytest
 
+import functions.add_url.url_fetcher as module_under_test
 from functions.add_url.url_fetcher import fetch_url
 
 
@@ -140,8 +141,6 @@ async def test_default_client_branch_is_exercised() -> None:
     def _patched(*args: object, **kwargs: object) -> httpx.AsyncClient:
         kwargs["transport"] = httpx.MockTransport(handler)
         return real_async_client(*args, **kwargs)  # type: ignore[arg-type]
-
-    import functions.add_url.url_fetcher as module_under_test
 
     original = module_under_test.httpx.AsyncClient
     module_under_test.httpx.AsyncClient = _patched  # type: ignore[assignment]

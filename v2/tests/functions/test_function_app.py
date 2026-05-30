@@ -4,6 +4,7 @@ import json
 
 import azure.functions as func
 import pytest
+from pydantic import ValidationError
 
 from functions.function_app import HealthPayload, _health_payload, app, health
 
@@ -19,8 +20,6 @@ def test_health_payload_shape() -> None:
 
 
 def test_health_payload_is_frozen_and_forbids_extras() -> None:
-    from pydantic import ValidationError
-
     payload = HealthPayload()
     with pytest.raises(ValidationError):
         payload.status = "degraded"  # type: ignore[misc]  -- frozen model rejects mutation
