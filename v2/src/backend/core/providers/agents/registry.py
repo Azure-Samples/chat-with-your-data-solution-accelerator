@@ -22,12 +22,5 @@ Caller pattern (Hard Rule #13):
 # that triggers `@registry.register("foundry")`; pyright cannot see
 # the side-effect and would flag it as unused (Hard Rule #4).
 
-from backend.core.registry import Registry
-
-from .base import BaseAgentsProvider
-
-registry: Registry[type[BaseAgentsProvider]] = Registry("agents")
-
-# Eager side-effect import: must come AFTER `registry = ...` so the
-# decorator has a target to register against.
-from . import foundry  # noqa: E402, F401
+from ._instance import registry as registry
+from . import foundry  # noqa: F401

@@ -26,13 +26,6 @@ name-string translation (Hard Rule #4). Lookups are case-insensitive
 # imports that trigger `@registry.register(...)`; pyright cannot see
 # the side-effect and would flag them as unused (Hard Rule #4).
 
-from backend.core.registry import Registry
-
-from .base import BaseSearch
-
-registry: Registry[type[BaseSearch]] = Registry("search")
-
-# Eager side-effect imports: must come AFTER `registry = ...` so the
-# decorators have a target to register against.
-from . import azure_search  # noqa: E402, F401
-from . import pgvector  # noqa: E402, F401
+from ._instance import registry as registry
+from . import azure_search  # noqa: F401
+from . import pgvector  # noqa: F401

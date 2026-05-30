@@ -23,16 +23,8 @@ Caller pattern (Hard Rule #13):
 # side-effect import that triggers `@registry.register(...)`; pyright
 # cannot see the side-effect and would flag it as unused (Hard Rule #4).
 
-from backend.core.registry import Registry
-
-from .base import BaseCredentialProvider
-
-registry: Registry[type[BaseCredentialProvider]] = Registry("credentials")
-
-# Eager imports trigger @registry.register(...) on each provider module.
-# Must come AFTER `registry = Registry(...)` so the decorator has a
-# target to register against.
-from . import cli, managed_identity  # noqa: E402, F401  (side-effect imports)
+from ._instance import registry as registry
+from . import cli, managed_identity  # noqa: F401  (side-effect imports)
 
 
 def select_default(uami_client_id: str | None) -> str:

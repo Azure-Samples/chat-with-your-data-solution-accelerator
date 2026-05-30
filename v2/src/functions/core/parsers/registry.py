@@ -13,12 +13,5 @@ Caller pattern:
     parser = ingestion_parsers_registry.registry.get("txt")()
 """
 
-from backend.core.registry import Registry
-from backend.core.providers.parsers.base import BaseParser
-
-registry: Registry[type[BaseParser]] = Registry("ingestion_parsers")
-
-# Eager side-effect imports of concrete ingestion-only parsers.
-# Each concrete uses `from .registry import registry` and `@registry.register("<ext>")`.
-# Imports MUST land at the bottom of the module so `registry` exists before they execute.
-from . import text_parser  # noqa: E402, F401  # pyright: ignore[reportUnusedImport]
+from ._instance import registry as registry
+from . import text_parser  # noqa: F401  # pyright: ignore[reportUnusedImport]

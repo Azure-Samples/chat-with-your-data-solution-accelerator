@@ -25,13 +25,6 @@ The registry key must match `settings.database.db_type`
 # imports that trigger `@registry.register(...)`; pyright cannot see
 # the side-effect and would flag them as unused (Hard Rule #4).
 
-from backend.core.registry import Registry
-
-from .base import BaseDatabaseClient
-
-registry: Registry[type[BaseDatabaseClient]] = Registry("databases")
-
-# Eager side-effect imports: must come AFTER `registry = ...` so the
-# decorators have a target to register against.
-from . import cosmosdb  # noqa: E402, F401
-from . import postgres  # noqa: E402, F401
+from ._instance import registry as registry
+from . import cosmosdb  # noqa: F401
+from . import postgres  # noqa: F401

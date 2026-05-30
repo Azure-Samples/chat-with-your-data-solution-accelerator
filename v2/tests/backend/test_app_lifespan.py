@@ -373,12 +373,8 @@ async def test_lifespan_configures_app_insights_from_typed_settings(
     def _fake_configure(*, connection_string: str) -> None:
         captured["connection_string"] = connection_string
 
-    # `azure.monitor.opentelemetry` is imported lazily inside the
-    # lifespan; patch the module that the lifespan resolves to.
-    monkeypatch.setitem(
-        __import__("sys").modules,
-        "azure.monitor.opentelemetry",
-        MagicMock(configure_azure_monitor=_fake_configure),
+    monkeypatch.setattr(
+        "backend.app.configure_azure_monitor", _fake_configure
     )
 
     app = create_app()
@@ -416,10 +412,8 @@ async def test_lifespan_skips_app_insights_when_typed_setting_empty(
     def _fake_configure(**_kw) -> None:
         called["count"] += 1
 
-    monkeypatch.setitem(
-        __import__("sys").modules,
-        "azure.monitor.opentelemetry",
-        MagicMock(configure_azure_monitor=_fake_configure),
+    monkeypatch.setattr(
+        "backend.app.configure_azure_monitor", _fake_configure
     )
 
     app = create_app()

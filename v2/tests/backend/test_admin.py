@@ -8,16 +8,30 @@ former ``admin_user_id`` placeholder; the role-claim contract itself
 is unit-tested in ``test_dependencies.py::test_requires_role_*``).
 """
 
+import base64
+import json
+import logging
+from datetime import datetime
+from enum import StrEnum
 from types import SimpleNamespace as NS
 from typing import Any
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 from fastapi import FastAPI
+from pydantic import ValidationError
 
-from backend.core.types import RuntimeConfig
+import backend.routers.admin as _admin_module
+from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import get_app_settings, get_database_client
-from backend.routers.admin import _REQUIRE_ADMIN_USER, router as admin_router
+from backend.routers.admin import (
+    _REQUIRE_ADMIN_USER,
+    AdminConfig,
+    ConfigSource,
+    EffectiveAdminConfig,
+    router as admin_router,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -325,9 +339,6 @@ async def test_status_endpoint_returns_403_when_caller_lacks_admin_role() -> Non
     app WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the real gate
     parses the forged claims blob.
     """
-    import base64
-    import json
-
     payload = {
         "auth_typ": "aad",
         "claims": [{"typ": "roles", "val": "reader"}],
@@ -361,9 +372,6 @@ async def test_status_endpoint_returns_200_when_caller_has_admin_role(
     WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the real gate
     parses the forged claims blob and resolves the user id.
     """
-    import base64
-    import json
-
     payload = {
         "auth_typ": "aad",
         "claims": [{"typ": "roles", "val": "admin"}],
@@ -398,9 +406,7 @@ def test_admin_router_module_declares_pillar_and_phase() -> None:
     Pillar / Phase docstring header so reviewers and future agents
     can map the file to the development plan.
     """
-    import backend.routers.admin as mod
-
-    doc = (mod.__doc__ or "").lower()
+    doc = (_admin_module.__doc__ or "").lower()
     assert "pillar:" in doc
     assert "phase: 5" in doc
 
@@ -576,8 +582,6 @@ def _fake_db(
     `get_runtime_config` returns; `upsert` and `audit` let a test
     pin a custom AsyncMock to capture / fail the call for
     assertion."""
-    from unittest.mock import AsyncMock
-
     db = NS()
     db.get_runtime_config = AsyncMock(return_value=current)
     db.upsert_runtime_config = upsert or AsyncMock(return_value=None)
@@ -594,8 +598,6 @@ async def test_patch_config_persists_single_field_override(
     `RuntimeConfig`, and (b) return 200 with the merged config in the
     response body. Locks the storage call -- without it, the override
     would be ack'd to the operator but lost on container restart."""
-    from backend.core.types import RuntimeConfig
-
     db = _fake_db(current=None)
     app = admin_app_factory(_settings(), db=db)
     async with _client(app) as ac:
@@ -659,8 +661,6 @@ async def test_patch_config_explicit_null_clears_override(
     of `app.state.settings` will then fall through to the env default
     for that field. This is the operator UX for 'undo my override'
     without restarting the container or deleting the row."""
-    from backend.core.types import RuntimeConfig
-
     db = _fake_db(current=RuntimeConfig(openai_temperature=0.5))
     app = admin_app_factory(_settings(), db=db)
     async with _client(app) as ac:
@@ -684,8 +684,6 @@ async def test_patch_config_sparse_update_preserves_other_overrides(
     flipping `openai_temperature` would silently wipe their previous
     `openai_max_tokens` override (because the persisted shape is the
     full RuntimeConfig, not a per-field key)."""
-    from backend.core.types import RuntimeConfig
-
     db = _fake_db(
         current=RuntimeConfig(
             openai_temperature=0.5, openai_max_tokens=2048
@@ -723,8 +721,6 @@ async def test_patch_config_records_caller_id_and_timestamp(
     assert persisted.updated_by == "u-1"
     # ISO-8601 with timezone -- not just "now()" formatted weirdly.
     assert persisted.updated_at
-    from datetime import datetime
-
     parsed = datetime.fromisoformat(persisted.updated_at)
     assert parsed.tzinfo is not None
 
@@ -738,8 +734,6 @@ async def test_patch_config_response_body_matches_persisted_runtime_config(
     follow-up GET. Asserts shape symmetry: every key on the persisted
     RuntimeConfig appears in the response, nothing extra (no leaked
     settings, no internal fields)."""
-    from backend.core.types import RuntimeConfig
-
     db = _fake_db()
     app = admin_app_factory(_settings(), db=db)
     async with _client(app) as ac:
@@ -846,8 +840,6 @@ async def test_patch_config_writes_back_to_app_state_runtime_overrides(
     app = admin_app_factory(_settings(), db=db)
     # Seed `app.state` with a stale override to prove the PATCH
     # actually replaces it (not merely "appends if absent").
-    from backend.core.types import RuntimeConfig
-
     app.state.runtime_overrides = RuntimeConfig(openai_temperature=0.1)
 
     async with _client(app) as ac:
@@ -875,8 +867,6 @@ async def test_patch_config_does_not_touch_app_state_on_validation_failure(
     config to whatever half-merged shape the route reached before
     raising.
     """
-    from backend.core.types import RuntimeConfig
-
     seeded = RuntimeConfig(openai_temperature=0.5, updated_by="u-prev")
     db = _fake_db()
     app = admin_app_factory(_settings(), db=db)
@@ -918,8 +908,6 @@ async def test_patch_config_writes_admin_audit_on_success(
     and `after` is the just-persisted merged shape. Locks the four
     forensic axes a future audit query needs (who / what /
     before / after) at the route boundary."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     prior = RuntimeConfig(openai_temperature=0.5)
     db = _fake_db(current=prior)
     app = admin_app_factory(_settings(), db=db)
@@ -948,8 +936,6 @@ async def test_patch_config_audit_before_is_none_on_first_patch(
     contract `AdminAuditEntry`'s docstring promises and the
     only way a forensic query can answer 'was this the first
     override this environment ever saw?'."""
-    from backend.core.types import AdminAuditEntry
-
     db = _fake_db(current=None)
     app = admin_app_factory(_settings(), db=db)
     async with _client(app) as ac:
@@ -996,9 +982,6 @@ async def test_patch_config_audit_failure_does_not_roll_back_patch(
     500 would mislead the operator into retrying a PATCH that
     actually succeeded. The failure MUST be logged so the gap is
     observable in App Insights."""
-    import logging
-    from unittest.mock import AsyncMock
-
     audit = AsyncMock(side_effect=RuntimeError("audit store down"))
     db = _fake_db(audit=audit)
     app = admin_app_factory(_settings(), db=db)
@@ -1093,8 +1076,6 @@ async def test_config_effective_overlays_partial_overrides(
     Mirrors the RFC 7396 storage shape (`T | None = None` per field
     where None means 'not overridden').
     """
-    from backend.core.types import RuntimeConfig
-
     app = admin_app_factory(
         _settings(
             orchestrator_name="langgraph",
@@ -1149,8 +1130,6 @@ async def test_config_effective_treats_explicit_none_field_as_env(
     `"env"` provenance for that field -- None means 'fall through to
     env default', not 'override the value to null'.
     """
-    from backend.core.types import RuntimeConfig
-
     app = admin_app_factory(
         _settings(openai_temperature=0.3, log_level="WARNING")
     )
@@ -1181,8 +1160,6 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
     """Every field overridden -> every source is "override", every
     value comes from the override row. Sanity check on the merge loop.
     """
-    from backend.core.types import RuntimeConfig
-
     app = admin_app_factory(_settings())
     app.state.runtime_overrides = RuntimeConfig(
         orchestrator_name="agent_framework",
@@ -1264,11 +1241,6 @@ async def test_config_effective_overlays_content_safety_enabled_override(
 # ---------------------------------------------------------------------------
 
 
-import backend.routers.admin as _admin_module
-from enum import StrEnum
-from pydantic import ValidationError
-
-
 def test_config_source_enum_is_strenum_subclass() -> None:
     """`ConfigSource` MUST subclass `StrEnum` (Hard Rule #11) and
     therefore `str` -- guarantees wire-shape compatibility with the
@@ -1338,12 +1310,6 @@ def test_effective_admin_config_coerces_string_to_enum(
     bare strings, and Pydantic's StrEnum coercion is what keeps that
     boundary transparent.
     """
-    from backend.routers.admin import (
-        AdminConfig,
-        ConfigSource,
-        EffectiveAdminConfig,
-    )
-
     cfg = EffectiveAdminConfig(
         values=AdminConfig(
             orchestrator_name="langgraph",
@@ -1365,8 +1331,6 @@ def test_effective_admin_config_rejects_unknown_source_value() -> None:
     `ValidationError` -- the field annotation is the schema gate, not
     documentation.
     """
-    from backend.routers.admin import AdminConfig, EffectiveAdminConfig
-
     with pytest.raises(ValidationError):
         EffectiveAdminConfig(
             values=AdminConfig(
@@ -1388,12 +1352,6 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
     existing `body["sources"][...] == "env"` assertions in this file
     are the live consumer of this guarantee).
     """
-    from backend.routers.admin import (
-        AdminConfig,
-        ConfigSource,
-        EffectiveAdminConfig,
-    )
-
     cfg = EffectiveAdminConfig(
         values=AdminConfig(
             orchestrator_name="langgraph",

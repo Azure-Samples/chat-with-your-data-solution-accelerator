@@ -23,24 +23,6 @@ orchestrator names anywhere downstream (see
 # imports that trigger `@registry.register(...)`; pyright cannot see
 # the side-effect and would flag them as unused (Hard Rule #4).
 
-from typing import Callable
-
-from backend.core.registry import Registry
-
-from .base import OrchestratorBase
-
-# Generic is `Callable[..., OrchestratorBase]` rather than
-# ``type[OrchestratorBase]`` because each concrete orchestrator
-# constructor takes a *different* kwarg shape on top of
-# ``settings`` + ``llm`` (e.g. ``langgraph`` takes ``search``,
-# ``agent_framework`` takes ``agents_client`` + ``agent_id``; both
-# absorb the rest via ``**_extras``). Widening to ``Callable[...]``
-# admits that variance at the type level without leaking it into
-# ``OrchestratorBase.__init__`` -- the router stays a single
-# registry-keyed factory call (Hard Rule #4) and pyright stops
-# flagging the per-provider kwargs as unknown parameters.
-registry: Registry[Callable[..., OrchestratorBase]] = Registry("orchestrators")
-
-# Side-effect imports (eager, one line per concrete orchestrator).
-from . import agent_framework  # noqa: E402, F401
-from . import langgraph  # noqa: E402, F401
+from ._instance import registry as registry
+from . import agent_framework  # noqa: F401
+from . import langgraph  # noqa: F401

@@ -27,6 +27,8 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Any, Literal, cast
 
+import json
+
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
@@ -231,8 +233,6 @@ class NetworkSettings(BaseSettings):
             # Tolerate JSON-list shape so docker-compose can pass either
             # form without surprising the operator.
             if stripped.startswith("[") and stripped.endswith("]"):
-                import json
-
                 try:
                     parsed = json.loads(stripped)
                 except json.JSONDecodeError:

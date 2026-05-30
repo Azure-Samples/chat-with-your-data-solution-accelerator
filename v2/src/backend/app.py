@@ -26,6 +26,7 @@ from azure.ai.contentsafety.aio import ContentSafetyClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 from azure.cosmos.exceptions import CosmosHttpResponseError
+from azure.monitor.opentelemetry import configure_azure_monitor  # pyright: ignore[reportUnknownVariableType]
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -71,12 +72,6 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     conn_str = settings.observability.app_insights_connection_string.strip()
     if conn_str:
-        # Local import: keeps the backend-only profile importable even
-        # if the OTel extras are not yet wheel-resolved in dev.
-        from azure.monitor.opentelemetry import (
-            configure_azure_monitor,  # pyright: ignore[reportUnknownVariableType]
-        )
-
         configure_azure_monitor(connection_string=conn_str)
         logger.info("Application Insights telemetry configured.")
     else:

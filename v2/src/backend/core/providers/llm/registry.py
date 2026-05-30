@@ -22,12 +22,5 @@ Caller pattern (Hard Rule #13):
 # import that triggers `@registry.register("foundry_iq")`; pyright
 # cannot see the side-effect and would flag it as unused (Hard Rule #4).
 
-from backend.core.registry import Registry
-
-from .base import BaseLLMProvider
-
-registry: Registry[type[BaseLLMProvider]] = Registry("llm")
-
-# Eager side-effect import: must come AFTER `registry = ...` so the
-# decorator has a target to register against.
-from . import foundry_iq  # noqa: E402, F401
+from ._instance import registry as registry
+from . import foundry_iq  # noqa: F401
