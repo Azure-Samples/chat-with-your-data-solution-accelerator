@@ -11,17 +11,19 @@ in the WHERE clause), (c) lazy schema bootstrap exactly once, and
 """
 
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
+import asyncio
 import uuid
 
 import asyncpg
 import pytest
 
 from backend.core.providers.databases import registry as databases_registry
-from backend.core.providers.databases.postgres import PostgresClient
+from backend.core.providers.databases.postgres import PostgresClient, _SCHEMA_SQL
 from backend.core.settings import AppSettings, DatabaseSettings
-from backend.core.types import ChatMessage
+from backend.core.types import AdminAuditEntry, ChatMessage, RuntimeConfig
 
 
 # ---------------------------------------------------------------------------
@@ -85,8 +87,6 @@ def _conv_row(
     created_at: Any = None,
     updated_at: Any = None,
 ) -> dict[str, Any]:
-    from datetime import datetime, timezone
-
     return {
         "id": id,
         "user_id": user_id,
@@ -105,8 +105,6 @@ def _msg_row(
     content: str = "hi",
     feedback: str | None = None,
 ) -> dict[str, Any]:
-    from datetime import datetime, timezone
-
     return {
         "id": id,
         "conversation_id": conversation_id,
@@ -200,8 +198,6 @@ async def test_concurrent_ensure_pool_creates_pool_only_once(
     first's pool under the `_init_lock`. Without the lock, both pass
     the `is None` check and both create a pool, leaking one.
     """
-    import asyncio
-
     pool, conn = _make_pool()
     create_calls = {"count": 0}
 
@@ -470,8 +466,6 @@ async def test_schema_sql_creates_agents_table() -> None:
     table -- otherwise the very first `get_agent_id` against a fresh
     deployment raises `UndefinedTable`. CU-010b1 keeps schema
     bootstrap lazy (no post_provision change required)."""
-    from backend.core.providers.databases.postgres import _SCHEMA_SQL
-
     assert "CREATE TABLE IF NOT EXISTS agents" in _SCHEMA_SQL
     assert "name        TEXT PRIMARY KEY" in _SCHEMA_SQL
     assert "agent_id    TEXT NOT NULL" in _SCHEMA_SQL
@@ -556,8 +550,6 @@ async def test_get_runtime_config_round_trips_persisted_payload() -> None:
     `model_validate_json` it back into a `RuntimeConfig` with
     every field round-tripping (booleans included -- explicit
     False must not collapse into None)."""
-    from backend.core.types import RuntimeConfig
-
     persisted = RuntimeConfig(
         orchestrator_name="agent_framework",
         openai_temperature=0.7,
@@ -604,8 +596,6 @@ async def test_get_runtime_config_returns_empty_runtime_config_for_empty_payload
     to env defaults across the board. Asserting this guards the
     'cleared all overrides' UX path against silently returning
     None (cold start) instead."""
-    from backend.core.types import RuntimeConfig
-
     pool, _ = _make_pool()
     pool.fetchrow = AsyncMock(return_value={"payload": "{}"})
     client = _make_client(pool=pool)
@@ -626,8 +616,6 @@ async def test_upsert_runtime_config_emits_canonical_upsert_sql() -> None:
     `updated_at = NOW()` is bumped on every write so an audit can
     distinguish "first written" from "most recently overridden".
     """
-    from backend.core.types import RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     await client.upsert_runtime_config(RuntimeConfig(openai_temperature=0.7))
@@ -652,8 +640,6 @@ async def test_upsert_runtime_config_uses_parameterized_jsonb_binding() -> None:
     (e.g. `log_level="'); DROP TABLE runtime_config;--"`) could
     otherwise inject SQL via the JSON serialization. Asserts the
     $1 placeholder + bound argument pattern."""
-    from backend.core.types import RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     payload = RuntimeConfig(
@@ -673,8 +659,6 @@ async def test_upsert_runtime_config_is_idempotent_on_repeat_call() -> None:
     payload must be forwarded through to the SQL bind args so
     the UPDATE path picks it up. Validates the rewrite path the
     PATCH route in #35c-4 relies on."""
-    from backend.core.types import RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     first = RuntimeConfig(openai_temperature=0.5)
@@ -693,8 +677,6 @@ async def test_schema_sql_creates_runtime_config_table() -> None:
     `get_runtime_config` against a fresh deployment raises
     `UndefinedTable`. #35c keeps schema bootstrap lazy (no
     post_provision change required)."""
-    from backend.core.providers.databases.postgres import _SCHEMA_SQL
-
     assert "CREATE TABLE IF NOT EXISTS runtime_config" in _SCHEMA_SQL
     assert "id          INTEGER PRIMARY KEY DEFAULT 1" in _SCHEMA_SQL
     assert "CHECK (id = 1)" in _SCHEMA_SQL
@@ -730,8 +712,6 @@ async def test_schema_sql_creates_admin_audit_table() -> None:
     lazy (no post_provision change required). The `(created_at DESC)`
     index makes forensic queries ("show me the last N admin
     changes") cheap without a full table scan."""
-    from backend.core.providers.databases.postgres import _SCHEMA_SQL
-
     assert "CREATE TABLE IF NOT EXISTS admin_audit" in _SCHEMA_SQL
     assert "id          UUID PRIMARY KEY" in _SCHEMA_SQL
     assert "actor       TEXT NOT NULL" in _SCHEMA_SQL
@@ -752,8 +732,6 @@ async def test_write_admin_audit_emits_canonical_insert_sql() -> None:
     (`NOW()`) fills it in so the writer never trusts an app-side
     clock. The id is a writer-generated UUID4 (matching the cosmos
     impl in #35f-1) so the same id schema works across providers."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     after = RuntimeConfig(openai_temperature=0.5)
@@ -788,8 +766,6 @@ async def test_write_admin_audit_uses_parameterized_binding() -> None:
     sources `actor` from a header could otherwise inject SQL.
     Asserts the adversarial value lands in the bound args and
     nowhere in the SQL text."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     adversarial = "'); DROP TABLE admin_audit;--"
@@ -812,8 +788,6 @@ async def test_write_admin_audit_assigns_distinct_uuid_per_call() -> None:
     distinct row ids -- otherwise a UNIQUE / PRIMARY KEY violation
     on a future re-PATCH would silently lose the second audit row.
     Each call gets a fresh `uuid.uuid4()`."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     entry = AdminAuditEntry(
@@ -841,8 +815,6 @@ async def test_write_admin_audit_serializes_before_as_json_string_when_set() -> 
     accepts a `str`). Mirrors the `upsert_runtime_config`
     `model_dump_json()` -> JSONB pattern so a single round-trip
     via `model_validate_json` deserializes the audit row."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     pool, _ = _make_pool()
     client = _make_client(pool=pool)
     before = RuntimeConfig(openai_temperature=0.3)
@@ -866,8 +838,6 @@ async def test_write_admin_audit_logs_and_reraises_on_postgres_error(
     `actor=<entry.actor>`, `action=<entry.action>`. The caller
     (router in T+8) decides whether to translate to 500 or treat
     as best-effort -- the provider's job is loud failure."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     pool, _ = _make_pool()
     pool.execute = AsyncMock(side_effect=_pg_error("audit write failed"))
     client = _make_client(pool=pool)
@@ -1190,8 +1160,6 @@ async def test_upsert_agent_id_logs_and_reraises_on_postgres_error(
 async def test_upsert_runtime_config_logs_and_reraises_on_postgres_error(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    from backend.core.types import RuntimeConfig
-
     pool, _conn = _make_pool()
     pool.execute = AsyncMock(side_effect=_pg_error("admin shutdown"))
     client = _make_client(pool=pool)

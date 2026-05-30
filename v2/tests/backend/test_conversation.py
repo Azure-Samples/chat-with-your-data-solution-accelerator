@@ -1,5 +1,7 @@
 """Pillar: Stable Core / Phase: 3 (task #22a) — tests for the conversation router."""
 
+import ast
+import inspect
 import json
 from typing import Any, AsyncIterator, Sequence
 
@@ -10,13 +12,17 @@ from backend.app import create_app
 from backend.dependencies import (
     get_agents_provider,
     get_app_settings,
+    get_content_safety_guard,
     get_database_client,
     get_llm_provider,
+    get_search_provider,
 )
 from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.pipelines import chat as chat_pipeline
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.orchestrators.base import OrchestratorBase
 from backend.core.types import ChatMessage, OrchestratorEvent
+from backend.routers import conversation as conv_module
 
 # ---------------------------------------------------------------------------
 # Fakes
@@ -244,8 +250,6 @@ async def test_router_forwards_search_provider_to_orchestrator(
 ) -> None:
     """Phase 3.5 Q6c: chat route must pass the DI'd search provider into
     orchestrator construction so production langgraph runs in retrieval mode."""
-    from backend.dependencies import get_search_provider
-
     sentinel_search = object()
     app_with_fakes.dependency_overrides[get_search_provider] = lambda: sentinel_search
 
@@ -277,11 +281,6 @@ async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> No
     ``orchestrators_registry.registry.get(...)`` *call site*
     (AST-counted, ignoring docstrings + comments).
     """
-    import ast
-    import inspect
-
-    from backend.routers import conversation as conv_module
-
     src = inspect.getsource(conv_module)
     tree = ast.parse(src)
 
@@ -321,9 +320,6 @@ async def test_router_routes_through_chat_pipeline(
     ]
 
     calls: list[dict[str, Any]] = []
-
-    from backend.routers import conversation as conv_module
-    from backend.core.pipelines import chat as chat_pipeline
 
     real_run_chat = chat_pipeline.run_chat
 
@@ -620,7 +616,6 @@ async def test_router_forwards_none_content_safety_when_dep_returns_none(
     _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
 
     calls: list[dict[str, Any]] = []
-    from backend.routers import conversation as conv_module
 
     monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
 
@@ -645,8 +640,6 @@ async def test_router_forwards_content_safety_guard_when_dep_returns_guard(
     (DI-overridden here with a sentinel object), the router must
     forward that exact instance into ``run_chat(content_safety=...)``.
     """
-    from backend.dependencies import get_content_safety_guard
-
     sentinel_guard = object()
     app_with_fakes.dependency_overrides[get_content_safety_guard] = (
         lambda: sentinel_guard
@@ -655,8 +648,6 @@ async def test_router_forwards_content_safety_guard_when_dep_returns_guard(
     _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
 
     calls: list[dict[str, Any]] = []
-    from backend.routers import conversation as conv_module
-
     monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
 
     async with _client(app_with_fakes) as client:

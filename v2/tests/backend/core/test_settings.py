@@ -5,11 +5,20 @@ Phase: 2
 """
 
 from enum import StrEnum
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from backend.core.settings import AppSettings, get_settings
+import backend.core.settings as _settings_module
+from backend.core import settings as settings_mod
+from backend.core.settings import (
+    AppSettings,
+    ContentSafetySettings,
+    OrchestratorSettings,
+    SpeechSettings,
+    get_settings,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -170,8 +179,6 @@ def test_orchestrator_settings_no_agent_id_field() -> None:
     opened to remove. Pin specific Foundry agents through the
     registry-backed `agents` provider (CU-010a), not via settings.
     """
-    from backend.core.settings import OrchestratorSettings
-
     assert "agent_id" not in OrchestratorSettings.model_fields, (
         "OrchestratorSettings.agent_id must remain absent (CU-009b reversal "
         "of CU-001a). Foundry agent identity is now DB-backed via the agents "
@@ -325,8 +332,6 @@ def test_speech_settings_no_subscription_key_field() -> None:
     a stored subscription key. Guard against accidental re-introduction
     of the v1 `AZURE_SPEECH_KEY` pattern.
     """
-    from backend.core.settings import SpeechSettings
-
     forbidden = ("key", "secret", "password")
     for field_name in SpeechSettings.model_fields:
         lowered = field_name.lower()
@@ -412,8 +417,6 @@ def test_content_safety_settings_no_subscription_key_field() -> None:
     via credentials provider). Content Safety credentials come from
     AAD/UAMI bearer, never a stored subscription key.
     """
-    from backend.core.settings import ContentSafetySettings
-
     forbidden = ("key", "secret", "password")
     for field_name in ContentSafetySettings.model_fields:
         lowered = field_name.lower()
@@ -430,8 +433,6 @@ def test_content_safety_settings_in_app_settings_exports() -> None:
     per-subsystem settings models so dependent modules can type-import it
     directly from `backend.core.settings`.
     """
-    from backend.core import settings as settings_mod
-
     assert "ContentSafetySettings" in settings_mod.__all__
     assert settings_mod.ContentSafetySettings is not None
 
@@ -554,8 +555,6 @@ def test_env_sample_keys_round_trip_through_appsettings() -> None:
     in REFACTOR-B (Phase 5.5, 2026-05-06); parents index bumped 2 -> 3 to
     keep resolving v2/.env.sample.
     """
-    from pathlib import Path
-
     example = (
         Path(__file__).resolve().parents[3]
         / ".env.sample"
@@ -601,13 +600,9 @@ def test_env_sample_keys_round_trip_through_appsettings() -> None:
 # field type MUST be a `StrEnum` subclass so dispatch sites compare against
 # enum members via `is`-identity rather than free-form string literals.
 
-import backend.core.settings as _settings_module  # noqa: E402
-
 
 def test_environment_enum_is_strenum_subclass() -> None:
     """`Environment` is a StrEnum subclass so wire JSON shape is unchanged."""
-    from enum import StrEnum
-
     assert issubclass(_settings_module.Environment, StrEnum)
     assert issubclass(_settings_module.Environment, str)
 
