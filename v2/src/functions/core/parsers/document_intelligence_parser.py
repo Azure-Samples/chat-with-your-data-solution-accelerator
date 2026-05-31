@@ -1,25 +1,34 @@
-"""PDF parser routed through Document Intelligence on the unified Foundry AI Services endpoint.
+"""Document Intelligence parser routed through the unified Foundry AI Services endpoint.
 
 Pillar: Stable Core
 Phase: 7
 
-Self-registers under key ``"pdf"`` per the registration convention in
-``base.py`` (lowercase file extension, no leading dot). Eager-imported
-from ``functions/core/parsers/registry.py`` so the registration fires
-at process start (Option SE-1 in dev_plan §2.4.5).
+Self-registers under multiple file-extension keys (``"pdf"``, ``"docx"``) per
+the registration convention in ``base.py`` (lowercase file extension, no
+leading dot). Eager-imported from ``functions/core/parsers/registry.py`` so
+both registrations fire at process start.
+
+The Document Intelligence ``prebuilt-layout`` model natively analyses PDF,
+DOCX, XLSX, PPTX, HTML and image formats through the same
+``begin_analyze_document`` call and returns the same
+``AnalyzeResult.pages[*].lines[*].content`` shape, so a single class with
+one decorator per supported extension covers every layout-extractable
+format without duplication. Additional formats register by stacking another
+``@registry.register("<ext>")`` decorator on the class -- no new SDK call,
+no new credential, no new client.
 
 Endpoint derivation -- the unified ``kind=AIServices`` account
-(``v2/infra/main.bicep``) exposes Document Intelligence on the same
-host as chat/agents/speech. The SDK appends ``/documentintelligence/``
+(``v2/infra/main.bicep``) exposes Document Intelligence on the same host as
+chat / agents / speech. The SDK appends ``/documentintelligence/``
 internally, so the client just receives ``FoundrySettings.services_endpoint``
 normalised to one trailing slash. Auth is UAMI bearer for
 ``AadScope.COGNITIVE_SERVICES`` per Hard Rule #2 (no keys, no Key Vault).
 
-Chunking strategy -- one ``Chunk`` per Document Intelligence page,
-joining ``page.lines[*].content`` with ``\\n``. Pages with no lines
-(or whitespace-only content) are skipped and ``index`` stays dense
-across emitted chunks so re-ingesting the same PDF produces stable
-Search document keys via ``Chunk.id = f"{source}__{index}"``.
+Chunking strategy -- one ``Chunk`` per Document Intelligence page, joining
+``page.lines[*].content`` with ``\\n``. Pages with no lines (or
+whitespace-only content) are skipped and ``index`` stays dense across
+emitted chunks so re-ingesting the same document produces stable Search
+document keys via ``Chunk.id = f"{source}__{index}"``.
 """
 
 import logging
@@ -38,9 +47,10 @@ from .registry import registry
 logger = logging.getLogger(__name__)
 
 
+@registry.register("docx")
 @registry.register("pdf")
-class PdfParser(BaseParser):
-    """Parse a PDF byte payload into one ``Chunk`` per page via Document Intelligence."""
+class DocumentIntelligenceParser(BaseParser):
+    """Parse a document byte payload into one ``Chunk`` per page via Document Intelligence."""
 
     _settings: AppSettings
     _credential: AsyncTokenCredential
@@ -79,9 +89,9 @@ class PdfParser(BaseParser):
             result = await poller.result()
         except AzureError:
             logger.exception(
-                "pdf parse failed",
+                "document parse failed",
                 extra={
-                    "operation": "parse_pdf",
+                    "operation": "parse",
                     "provider": "document_intelligence",
                     "source": source,
                     "model_id": self._settings.document_intelligence.model_id,

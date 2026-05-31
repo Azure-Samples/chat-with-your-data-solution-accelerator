@@ -194,6 +194,50 @@ class AzureSearch(BaseSearch):
             raise
         return results
 
+    async def delete_by_source(self, source: str) -> int:
+        # OData string literals escape single quotes by doubling them.
+        escaped_source = source.replace("'", "''")
+        filter_expr = f"title eq '{escaped_source}'"
+        client = self._get_client()
+        ids: list[str] = []
+        deleted_count = 0
+        try:
+            paged = cast(
+                AsyncIterable[dict[str, Any]],
+                await client.search(  # pyright: ignore[reportUnknownMemberType]
+                    search_text="*",
+                    filter=filter_expr,
+                    select=["id"],
+                    top=1000,
+                ),
+            )
+            async for doc in paged:
+                doc_id = doc.get("id")
+                if doc_id is not None:
+                    ids.append(str(doc_id))
+            # SDK's delete_documents caps at 1000 docs/batch; chunk to
+            # stay under that even when a single source owns more chunks.
+            batch_size = 1000
+            for batch_start in range(0, len(ids), batch_size):
+                batch = ids[batch_start : batch_start + batch_size]
+                await client.delete_documents(  # pyright: ignore[reportUnknownMemberType]
+                    documents=[{"id": doc_id} for doc_id in batch]
+                )
+                deleted_count += len(batch)
+        except AzureError:
+            logger.exception(
+                "azure_search delete_by_source failed",
+                extra={
+                    "operation": "delete_by_source",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                    "source": source,
+                    "deleted_count": deleted_count,
+                },
+            )
+            raise
+        return deleted_count
+
     async def aclose(self) -> None:
         # Only close the client when we constructed it ourselves.
         if self._client is not None and self._client_override is None:

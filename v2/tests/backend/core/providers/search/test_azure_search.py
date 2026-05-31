@@ -355,3 +355,111 @@ async def test_aclose_swallows_and_warns_on_close_failure(
     client.close.assert_awaited_once()
     # Cached client handle cleared even though close() failed.
     assert handler._client is None  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# delete_by_source
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_collects_ids_then_deletes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        return_value=_FakeAsyncIter(
+            [{"id": "chunk-1"}, {"id": "chunk-2"}, {"id": "chunk-3"}]
+        )
+    )
+    client.delete_documents = AsyncMock(return_value=[])
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    deleted = await handler.delete_by_source("sample.pdf")
+
+    assert deleted == 3
+    search_kwargs = client.search.await_args.kwargs
+    assert search_kwargs["filter"] == "title eq 'sample.pdf'"
+    assert search_kwargs["select"] == ["id"]
+    assert search_kwargs["search_text"] == "*"
+    delete_kwargs = client.delete_documents.await_args.kwargs
+    assert delete_kwargs["documents"] == [
+        {"id": "chunk-1"},
+        {"id": "chunk-2"},
+        {"id": "chunk-3"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_returns_zero_when_no_matches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
+    client.delete_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    deleted = await handler.delete_by_source("nope.pdf")
+
+    assert deleted == 0
+    client.delete_documents.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_escapes_single_quotes_in_odata_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # OData literals escape single quotes by doubling them; failing to
+    # do so opens an OData injection seam on a route that accepts
+    # user-supplied filenames.
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
+    client.delete_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    await handler.delete_by_source("o'reilly.pdf")
+
+    assert (
+        client.search.await_args.kwargs["filter"]
+        == "title eq 'o''reilly.pdf'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        side_effect=HttpResponseError(message="500 server error")
+    )
+    client.delete_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.delete_by_source("sample.pdf")
+
+    record = _find_record(caplog, "delete_by_source")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+    assert record.source == "sample.pdf"
+    assert record.deleted_count == 0
+    client.delete_documents.assert_not_called()

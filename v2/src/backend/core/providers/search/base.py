@@ -61,6 +61,18 @@ class BaseSearch(ABC):
           the `filter()` builtin.
         """
 
+    @abstractmethod
+    async def delete_by_source(self, source: str) -> int:
+        """Delete every indexed chunk whose source matches `source`.
+
+        - `source`: the filename or URL ingestion stored on each chunk
+          (mapped to the `title` field in both Azure Search and the
+          pgvector schema).
+        - Returns the count of chunks deleted. A return of 0 means no
+          matching documents existed; the admin route maps that to a
+          404 response.
+        """
+
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default no-op."""
         return None

@@ -52,10 +52,12 @@ from pydantic import BaseModel, Field, ValidationError
 from backend.dependencies import (
     DatabaseClientDep,
     RuntimeOverridesDep,
+    SearchProviderDep,
     SettingsDep,
     requires_role,
 )
 from backend.core.types import AdminAuditEntry, RuntimeConfig
+from backend.models.admin import DeleteDocumentResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -457,6 +459,62 @@ async def patch_config_endpoint(
         )
 
     return merged
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/admin/documents/{source} -- remove every indexed chunk attached
+# to the given source (filename or URL set at ingestion time).
+# ---------------------------------------------------------------------------
+
+
+@router.delete(
+    "/documents/{source:path}",
+    response_model=DeleteDocumentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def delete_document_endpoint(
+    source: str,
+    search: SearchProviderDep,
+    _user: AdminUserIdDep,
+) -> DeleteDocumentResponse:
+    """Delete every indexed chunk whose source matches ``source``.
+
+    ``source`` is the per-chunk filename or URL set at ingestion (the
+    ``title`` field on every search backend). The ``{source:path}``
+    converter captures URL-typed sources that contain slashes;
+    FastAPI percent-decodes the path segment before the handler runs.
+
+    Status surface:
+
+    * ``200`` + ``{"deleted": N}`` when ``N > 0`` chunks were removed.
+    * ``404`` when no chunks matched.
+    * ``503`` when the deployment has no search backend configured
+      (the route stays mounted so operators discover the gap
+      explicitly instead of routing-404-ing it).
+    * Upstream ``AzureError`` / ``asyncpg.PostgresError`` propagate to
+      the app-level handlers in :mod:`backend.app`, which sanitise
+      both into 503 responses with no SDK detail leaked.
+    """
+    if search is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Search backend is not configured for this deployment.",
+        )
+    deleted = await search.delete_by_source(source)
+    if deleted == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No indexed chunks found for source {source!r}.",
+        )
+    logger.info(
+        "Admin deleted indexed chunks for source.",
+        extra={
+            "operation": "delete_document",
+            "source": source,
+            "deleted_count": deleted,
+        },
+    )
+    return DeleteDocumentResponse(deleted=deleted)
 
 
 __all__ = [

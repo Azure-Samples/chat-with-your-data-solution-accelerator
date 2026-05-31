@@ -1,4 +1,4 @@
-"""Tests for ``PdfParser``.
+"""Tests for ``DocumentIntelligenceParser``.
 
 Pillar: Stable Core
 Phase: 7
@@ -15,9 +15,11 @@ from azure.core.exceptions import AzureError
 from backend.core.providers.parsers.base import BaseParser
 from backend.core.settings import AppSettings
 from backend.core.types import Chunk
-from functions.core.parsers import pdf_parser as pdf_parser_module
+from functions.core.parsers import document_intelligence_parser as di_parser_module
 from functions.core.parsers import registry as ingestion_parsers_registry
-from functions.core.parsers.pdf_parser import PdfParser
+from functions.core.parsers.document_intelligence_parser import (
+    DocumentIntelligenceParser,
+)
 
 
 def _make_settings(
@@ -54,27 +56,34 @@ def _make_fake_client_with_result(result: Any) -> MagicMock:
     return client
 
 
-def test_pdfparser_is_registered_under_pdf() -> None:
-    assert ingestion_parsers_registry.registry.get("pdf") is PdfParser
+@pytest.mark.parametrize("key", ["pdf", "docx"])
+def test_document_intelligence_parser_is_registered_under_key(key: str) -> None:
+    assert (
+        ingestion_parsers_registry.registry.get(key) is DocumentIntelligenceParser
+    )
 
 
-def test_pdfparser_is_a_baseparser_subclass() -> None:
-    assert issubclass(PdfParser, BaseParser)
+def test_document_intelligence_parser_is_a_baseparser_subclass() -> None:
+    assert issubclass(DocumentIntelligenceParser, BaseParser)
 
 
-def test_pdfparser_construction_stores_settings_credential_and_client_seam() -> None:
+def test_construction_stores_settings_credential_and_client_seam() -> None:
     settings = _make_settings()
     credential = _make_credential()
     client = MagicMock()
-    parser = PdfParser(settings=settings, credential=credential, client=client)
+    parser = DocumentIntelligenceParser(
+        settings=settings, credential=credential, client=client
+    )
     assert parser._settings is settings
     assert parser._credential is credential
     assert parser._client is client
     assert parser._client_override is client
 
 
-def test_pdfparser_construction_without_client_leaves_seam_none() -> None:
-    parser = PdfParser(settings=_make_settings(), credential=_make_credential())
+def test_construction_without_client_leaves_seam_none() -> None:
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(), credential=_make_credential()
+    )
     assert parser._client is None
     assert parser._client_override is None
 
@@ -83,9 +92,9 @@ def test_get_client_returns_injected_seam_without_constructing_sdk(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     sdk_ctor = MagicMock(name="DocumentIntelligenceClient_should_not_be_called")
-    monkeypatch.setattr(pdf_parser_module, "DocumentIntelligenceClient", sdk_ctor)
+    monkeypatch.setattr(di_parser_module, "DocumentIntelligenceClient", sdk_ctor)
     injected = MagicMock()
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(),
         credential=_make_credential(),
         client=injected,
@@ -99,13 +108,13 @@ def test_get_client_constructs_sdk_with_endpoint_from_foundry(
 ) -> None:
     constructed = MagicMock()
     sdk_ctor = MagicMock(return_value=constructed)
-    monkeypatch.setattr(pdf_parser_module, "DocumentIntelligenceClient", sdk_ctor)
+    monkeypatch.setattr(di_parser_module, "DocumentIntelligenceClient", sdk_ctor)
     settings = _make_settings(
         endpoint="https://contoso.cognitiveservices.azure.com/",
         api_version="2024-11-30",
     )
     credential = _make_credential()
-    parser = PdfParser(settings=settings, credential=credential)
+    parser = DocumentIntelligenceParser(settings=settings, credential=credential)
     got = parser._get_client()
     assert got is constructed
     sdk_ctor.assert_called_once_with(
@@ -119,8 +128,8 @@ def test_get_client_normalises_endpoint_to_one_trailing_slash(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     sdk_ctor = MagicMock(return_value=MagicMock())
-    monkeypatch.setattr(pdf_parser_module, "DocumentIntelligenceClient", sdk_ctor)
-    parser = PdfParser(
+    monkeypatch.setattr(di_parser_module, "DocumentIntelligenceClient", sdk_ctor)
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(endpoint="https://contoso.cognitiveservices.azure.com"),
         credential=_make_credential(),
     )
@@ -135,8 +144,10 @@ def test_get_client_caches_constructed_sdk_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     sdk_ctor = MagicMock(return_value=MagicMock())
-    monkeypatch.setattr(pdf_parser_module, "DocumentIntelligenceClient", sdk_ctor)
-    parser = PdfParser(settings=_make_settings(), credential=_make_credential())
+    monkeypatch.setattr(di_parser_module, "DocumentIntelligenceClient", sdk_ctor)
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(), credential=_make_credential()
+    )
     first = parser._get_client()
     second = parser._get_client()
     assert first is second
@@ -147,7 +158,7 @@ def test_get_client_caches_constructed_sdk_client(
 async def test_parse_calls_begin_analyze_document_with_model_id_and_bytes_source() -> None:
     fake_result = SimpleNamespace(pages=[_make_fake_page("page 1 content")])
     fake_client = _make_fake_client_with_result(fake_result)
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(model_id="prebuilt-layout"),
         credential=_make_credential(),
         client=fake_client,
@@ -168,7 +179,7 @@ async def test_parse_returns_one_chunk_per_page_with_deterministic_ids() -> None
         ]
     )
     fake_client = _make_fake_client_with_result(fake_result)
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(),
         credential=_make_credential(),
         client=fake_client,
@@ -202,7 +213,7 @@ async def test_parse_skips_pages_with_no_lines_or_whitespace_content() -> None:
         ]
     )
     fake_client = _make_fake_client_with_result(fake_result)
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(),
         credential=_make_credential(),
         client=fake_client,
@@ -215,7 +226,7 @@ async def test_parse_skips_pages_with_no_lines_or_whitespace_content() -> None:
 @pytest.mark.asyncio
 async def test_parse_returns_empty_list_when_result_has_no_pages() -> None:
     fake_client = _make_fake_client_with_result(SimpleNamespace(pages=None))
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(),
         credential=_make_credential(),
         client=fake_client,
@@ -229,19 +240,23 @@ async def test_parse_wraps_azureerror_with_structured_logger_and_reraises(
 ) -> None:
     fake_client = MagicMock()
     fake_client.begin_analyze_document = AsyncMock(side_effect=AzureError("boom"))
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(model_id="prebuilt-layout"),
         credential=_make_credential(),
         client=fake_client,
     )
-    with caplog.at_level(logging.ERROR, logger="functions.core.parsers.pdf_parser"):
+    with caplog.at_level(
+        logging.ERROR, logger="functions.core.parsers.document_intelligence_parser"
+    ):
         with pytest.raises(AzureError):
             await parser.parse(b"...", source="bad.pdf")
     record = next(
-        r for r in caplog.records if r.name == "functions.core.parsers.pdf_parser"
+        r
+        for r in caplog.records
+        if r.name == "functions.core.parsers.document_intelligence_parser"
     )
     assert record.exc_info is not None
-    assert record.__dict__["operation"] == "parse_pdf"
+    assert record.__dict__["operation"] == "parse"
     assert record.__dict__["provider"] == "document_intelligence"
     assert record.__dict__["source"] == "bad.pdf"
     assert record.__dict__["model_id"] == "prebuilt-layout"
@@ -251,7 +266,9 @@ async def test_parse_wraps_azureerror_with_structured_logger_and_reraises(
 async def test_aclose_closes_owned_sdk_client_and_clears_reference() -> None:
     owned = MagicMock()
     owned.close = AsyncMock()
-    parser = PdfParser(settings=_make_settings(), credential=_make_credential())
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(), credential=_make_credential()
+    )
     parser._client = owned
     assert parser._client_override is None
     await parser.aclose()
@@ -263,7 +280,7 @@ async def test_aclose_closes_owned_sdk_client_and_clears_reference() -> None:
 async def test_aclose_does_not_close_injected_client() -> None:
     injected = MagicMock()
     injected.close = AsyncMock()
-    parser = PdfParser(
+    parser = DocumentIntelligenceParser(
         settings=_make_settings(),
         credential=_make_credential(),
         client=injected,
@@ -275,7 +292,9 @@ async def test_aclose_does_not_close_injected_client() -> None:
 
 @pytest.mark.asyncio
 async def test_aclose_is_a_noop_when_no_client_has_been_constructed() -> None:
-    parser = PdfParser(settings=_make_settings(), credential=_make_credential())
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(), credential=_make_credential()
+    )
     assert parser._client is None
     await parser.aclose()
     assert parser._client is None

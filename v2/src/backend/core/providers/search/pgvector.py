@@ -140,6 +140,28 @@ class PgVector(BaseSearch):
             for r in rows
         ]
 
+    async def delete_by_source(self, source: str) -> int:
+        # Same `title` field as Azure Search (ingestion writes source
+        # filename / URL there for every chunk). RETURNING id lets us
+        # report the deletion count without a separate SELECT.
+        sql = f"DELETE FROM {self._table} WHERE title = $1 RETURNING id"
+        try:
+            rows = cast(
+                "list[Mapping[str, Any]]",
+                await self._pool.fetch(sql, source),  # pyright: ignore[reportUnknownMemberType]
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "pgvector delete_by_source failed",
+                extra={
+                    "operation": "delete_by_source",
+                    "provider": "pgvector",
+                    "source": source,
+                },
+            )
+            raise
+        return len(rows)
+
     async def aclose(self) -> None:
         # Pool ownership stays with PostgresClient -- never close it
         # here or we'd kill the chat-history database too.

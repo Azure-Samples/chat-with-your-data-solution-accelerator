@@ -231,3 +231,84 @@ async def test_search_logs_and_reraises_on_postgres_error(
         f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
     )
     pool.fetch.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# delete_by_source
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_emits_parameterized_delete_with_title_filter() -> None:
+    pool = _make_pool([{"id": "chunk-1"}, {"id": "chunk-2"}])
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    deleted = await provider.delete_by_source("sample.pdf")
+
+    assert deleted == 2
+    sql, source_param = pool.fetch.await_args.args
+    assert "DELETE FROM documents" in sql
+    assert "WHERE title = $1" in sql
+    assert "RETURNING id" in sql
+    assert source_param == "sample.pdf"
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_returns_zero_when_no_rows_match() -> None:
+    pool = _make_pool([])
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    deleted = await provider.delete_by_source("nope.pdf")
+
+    assert deleted == 0
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_interpolates_custom_table_name_in_sql() -> None:
+    pool = _make_pool([])
+    provider = PgVector(
+        settings=_make_settings(),
+        credential=AsyncMock(),
+        pool=pool,
+        table="cwyd_chunks",
+    )
+
+    await provider.delete_by_source("any.pdf")
+
+    sql = pool.fetch.await_args.args[0]
+    assert "DELETE FROM cwyd_chunks WHERE title = $1" in sql
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool = MagicMock()
+    pool.fetch = AsyncMock(
+        side_effect=asyncpg.PostgresError("connection terminated")
+    )
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    with caplog.at_level("ERROR", logger=_PGVECTOR_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await provider.delete_by_source("sample.pdf")
+
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR"
+        and getattr(r, "operation", None) == "delete_by_source"
+        and getattr(r, "provider", None) == "pgvector"
+        and getattr(r, "source", None) == "sample.pdf"
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record with operation=delete_by_source/provider=pgvector, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    pool.fetch.assert_awaited_once()

@@ -31,7 +31,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.routers import conversation, health, history, speech
+from backend.routers import admin, conversation, health, history, speech
 from backend.core.providers.agents import registry as agents_registry
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.databases import registry as databases_registry
@@ -399,6 +399,7 @@ def create_app() -> FastAPI:
     app.include_router(conversation.router)
     app.include_router(history.router)
     app.include_router(speech.router)
+    app.include_router(admin.router)
     _install_exception_handlers(app)
     return app
 

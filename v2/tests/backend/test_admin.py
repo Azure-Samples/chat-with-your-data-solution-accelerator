@@ -24,7 +24,11 @@ from pydantic import ValidationError
 
 import backend.routers.admin as _admin_module
 from backend.core.types import AdminAuditEntry, RuntimeConfig
-from backend.dependencies import get_app_settings, get_database_client
+from backend.dependencies import (
+    get_app_settings,
+    get_database_client,
+    get_search_provider,
+)
 from backend.routers.admin import (
     _REQUIRE_ADMIN_USER,
     AdminConfig,
@@ -105,13 +109,17 @@ def _settings(
 def admin_app_factory():
     """Build a minimal FastAPI app exposing only the admin router.
 
-    The app is intentionally NOT the full ``backend.app.create_app()``
-    -- task #35e wires ``app.include_router(admin.router)`` and re-runs
-    the green-gate. Until then the admin router boots in isolation so
-    tests do not depend on lifespan-built providers.
+    Mounts the admin router on a fresh ``FastAPI()`` so tests can
+    override settings / database / search dependencies without
+    pulling in the lifespan-built providers from
+    ``backend.app.create_app()``.
     """
 
-    def _make(settings: Any, db: Any = None) -> FastAPI:
+    def _make(
+        settings: Any,
+        db: Any = None,
+        search: Any = None,
+    ) -> FastAPI:
         app = FastAPI()
         app.include_router(admin_router)
         app.dependency_overrides[get_app_settings] = lambda: settings
@@ -120,6 +128,8 @@ def admin_app_factory():
         app.dependency_overrides[_REQUIRE_ADMIN_USER] = lambda: "u-1"
         if db is not None:
             app.dependency_overrides[get_database_client] = lambda: db
+        if search is not None:
+            app.dependency_overrides[get_search_provider] = lambda: search
         return app
 
     return _make
@@ -1372,3 +1382,81 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
         "orchestrator_name": "env",
         "log_level": "override",
     }
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/admin/documents/{source} -- admin-side delete (#35d)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_document_returns_200_with_count_on_success(
+    admin_app_factory,
+) -> None:
+    """Happy path: search backend removes 2 chunks; route surfaces the
+    count in the typed response body and returns 200.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=2)
+    app = admin_app_factory(_settings(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/report.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 2}
+    search.delete_by_source.assert_awaited_once_with("report.pdf")
+
+
+@pytest.mark.asyncio
+async def test_delete_document_returns_404_when_no_chunks_match(
+    admin_app_factory,
+) -> None:
+    """No chunks matched the source -> 404 with the source name in the
+    operator-facing detail string so the response is self-explanatory.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=0)
+    app = admin_app_factory(_settings(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/missing.pdf")
+    assert resp.status_code == 404
+    assert "missing.pdf" in resp.json()["detail"]
+    search.delete_by_source.assert_awaited_once_with("missing.pdf")
+
+
+@pytest.mark.asyncio
+async def test_delete_document_returns_503_when_search_disabled(
+    admin_app_factory,
+) -> None:
+    """No search backend configured -> 503 with operator-actionable
+    detail. ``SearchProviderDep`` surfaces ``None`` on backend-only
+    dev profiles and on deployments that omit
+    ``AZURE_SEARCH_SERVICE_ENDPOINT``; the route stays mounted so
+    operators see an explicit error instead of a routing 404.
+    """
+    app = admin_app_factory(_settings())
+    # Factory only installs the search override when `search is not
+    # None`; pin it to a lambda returning None to exercise the
+    # 'search disabled' branch.
+    app.dependency_overrides[get_search_provider] = lambda: None
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/report.pdf")
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_document_requires_easy_auth_in_production() -> None:
+    """End-to-end #39 RBAC check: an anonymous DELETE in production
+    must be rejected with 401 by the shared ``_REQUIRE_ADMIN_USER``
+    gate. Mirrors the existing
+    ``test_status_endpoint_requires_easy_auth_in_production`` pattern
+    so every admin route shares the same gating contract.
+    """
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings(
+        environment="production"
+    )
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/report.pdf")
+    assert resp.status_code == 401
