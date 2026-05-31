@@ -1,7 +1,7 @@
 """Chat pipeline.
 
 Pillar: Stable Core
-Phase: 3 (task #22b) + Cleanup audit batch 2 (CU-011b)
+Phase: 3
 
 Pure async generator that wraps the chat flow:
 

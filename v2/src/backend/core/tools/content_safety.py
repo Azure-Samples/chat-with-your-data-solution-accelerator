@@ -1,7 +1,7 @@
 """Content safety guardrail.
 
 Pillar: Stable Core
-Phase: 3 (`ContentSafetyGuard`) + Cleanup audit batch 2 / CU-011a (`rai_check`)
+Phase: 3
 
 Two parallel safety seams live in this module, by design:
 

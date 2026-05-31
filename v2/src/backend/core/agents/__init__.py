@@ -1,7 +1,7 @@
 """Built-in agent definitions for CWYD v2 (package marker only).
 
-Pillar: Stable Core (AgentDefinition abstraction) + Scenario Pack (CWYD + RAI instances)
-Phase: Cleanup audit batch 2 (CU-010a) -- IA-B8: marker collapse per Hard Rule #13.
+Pillar: Stable Core
+Phase: 3
 
 The `agents` package owns *what an agent is* -- a Pydantic-frozen
 declaration of name, instructions, deployment, and tools. It does not

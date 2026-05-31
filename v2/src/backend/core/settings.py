@@ -350,6 +350,41 @@ class SpeechSettings(BaseSettings):
     recognizer_languages: str = "en-US,fr-FR,de-DE,it-IT"
 
 
+class DocumentIntelligenceSettings(BaseSettings):
+    """Azure Document Intelligence (layout/OCR) for ingestion parsers.
+
+    Reads: `AZURE_DOCUMENT_INTELLIGENCE_API_VERSION`,
+    `AZURE_DOCUMENT_INTELLIGENCE_MODEL_ID`.
+
+    The endpoint is intentionally NOT a field on this submodel. Per
+    `v2/infra/main.bicep` the unified AI Services account (`kind=
+    AIServices`, `allowProjectManagement=true`) exposes Document
+    Intelligence at `{foundry.services_endpoint}documentintelligence/`
+    alongside agents, chat, and speech on the same SKU. Parsers derive
+    the endpoint from `FoundrySettings.services_endpoint` at
+    construction time, so a single operator env var
+    (`AZURE_AI_SERVICES_ENDPOINT`) drives every Foundry data plane.
+
+    Auth: UAMI bearer for
+    `https://cognitiveservices.azure.com/.default` (Hard Rule #2 -- no
+    keys, no Key Vault). RBAC: `Cognitive Services User` role on the
+    unified AI Services account, granted to the UAMI in
+    `v2/infra/main.bicep`.
+
+    `api_version` and `model_id` are operator-pinnable because GA cuts
+    of `azure-ai-documentintelligence` occasionally change default
+    behavior; the binding must be auditable from env vars alone, not
+    buried in the SDK's package default.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="AZURE_DOCUMENT_INTELLIGENCE_", extra="ignore"
+    )
+
+    api_version: str = "2024-11-30"
+    model_id: str = "prebuilt-layout"
+
+
 # ---------------------------------------------------------------------------
 # Root settings
 # ---------------------------------------------------------------------------
@@ -393,6 +428,9 @@ class AppSettings(BaseSettings):
     content_safety: ContentSafetySettings = Field(
         default_factory=ContentSafetySettings
     )
+    document_intelligence: DocumentIntelligenceSettings = Field(
+        default_factory=DocumentIntelligenceSettings
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -414,6 +452,7 @@ __all__ = [
     "AppSettings",
     "ContentSafetySettings",
     "DatabaseSettings",
+    "DocumentIntelligenceSettings",
     "Environment",
     "FoundrySettings",
     "IdentitySettings",

@@ -1,7 +1,7 @@
 """AgentDefinition + built-in agents.
 
-Pillar: Stable Core (AgentDefinition class) + Scenario Pack (CWYD_AGENT / RAI_AGENT)
-Phase: Cleanup audit batch 2 (CU-010a)
+Pillar: Stable Core
+Phase: 3
 
 `AgentDefinition` is a frozen Pydantic model -- the BUILTIN_AGENTS
 instances become effectively immutable singletons. Providers consume

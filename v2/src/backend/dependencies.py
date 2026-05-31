@@ -1,7 +1,7 @@
 """FastAPI dependency-injection wiring.
 
 Pillar: Stable Core
-Phase: 2 (DI seam) + Phase 5 (#39 Easy Auth role gate)
+Phase: 2
 
 Single source of truth for how routers obtain settings, credentials,
 and providers. Routers MUST go through `Depends(...)` -- no module-

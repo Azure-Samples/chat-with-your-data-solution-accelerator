@@ -15,6 +15,7 @@ from backend.core import settings as settings_mod
 from backend.core.settings import (
     AppSettings,
     ContentSafetySettings,
+    DocumentIntelligenceSettings,
     OrchestratorSettings,
     SpeechSettings,
     get_settings,
@@ -435,6 +436,83 @@ def test_content_safety_settings_in_app_settings_exports() -> None:
     """
     assert "ContentSafetySettings" in settings_mod.__all__
     assert settings_mod.ContentSafetySettings is not None
+
+
+# ---------------------------------------------------------------------------
+# DocumentIntelligenceSettings
+# ---------------------------------------------------------------------------
+
+
+class _DocIntelEnvVar(StrEnum):
+    """Sibling env-var names for `DocumentIntelligenceSettings` (Hard Rule #11)."""
+
+    API_VERSION = "AZURE_DOCUMENT_INTELLIGENCE_API_VERSION"
+    MODEL_ID = "AZURE_DOCUMENT_INTELLIGENCE_MODEL_ID"
+
+
+def test_document_intelligence_settings_defaults_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    for key in _DocIntelEnvVar:
+        monkeypatch.delenv(key, raising=False)
+    settings = AppSettings()
+    assert settings.document_intelligence.api_version == "2024-11-30"
+    assert settings.document_intelligence.model_id == "prebuilt-layout"
+
+
+def test_document_intelligence_settings_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(_DocIntelEnvVar.API_VERSION, "2024-07-31-preview")
+    monkeypatch.setenv(_DocIntelEnvVar.MODEL_ID, "prebuilt-read")
+    settings = AppSettings()
+    assert settings.document_intelligence.api_version == "2024-07-31-preview"
+    assert settings.document_intelligence.model_id == "prebuilt-read"
+
+
+def test_document_intelligence_settings_no_endpoint_field() -> None:
+    """Endpoint is intentionally derived from `FoundrySettings.services_endpoint`
+    (unified AI Services account per `v2/infra/main.bicep`) rather than a
+    standalone env var. Guard against accidental re-introduction of an
+    `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` field.
+    """
+    forbidden = ("endpoint", "url", "host")
+    for field_name in DocumentIntelligenceSettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"DocumentIntelligenceSettings.{field_name} looks like a "
+                f"standalone endpoint field; endpoint MUST derive from "
+                f"FoundrySettings.services_endpoint per the unified AI "
+                f"Services account in v2/infra/main.bicep."
+            )
+
+
+def test_document_intelligence_settings_no_subscription_key_field() -> None:
+    """Hard Rule #2 (UAMI via credentials provider) + Hard Rule #7 (no Key
+    Vault for app secrets). Document Intelligence credentials must come
+    from AAD/UAMI bearer, never a stored subscription key.
+    """
+    forbidden = ("key", "secret", "password")
+    for field_name in DocumentIntelligenceSettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"DocumentIntelligenceSettings.{field_name} looks "
+                f"secret-bearing (matched '{token}'); DI tokens must be "
+                f"acquired via AAD bearer through the credentials provider."
+            )
+
+
+def test_document_intelligence_settings_in_app_settings_exports() -> None:
+    """`DocumentIntelligenceSettings` must be re-exported alongside the
+    other per-subsystem settings models so dependent modules can
+    type-import it directly from `backend.core.settings`.
+    """
+    assert "DocumentIntelligenceSettings" in settings_mod.__all__
+    assert settings_mod.DocumentIntelligenceSettings is not None
 
 
 # ---------------------------------------------------------------------------
