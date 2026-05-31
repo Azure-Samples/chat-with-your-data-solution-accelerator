@@ -4,12 +4,15 @@ Pillar: Stable Core
 Phase: 6
 """
 
+from unittest.mock import Mock
+
 import pytest
 
 from backend.core.providers.parsers.base import BaseParser
+from backend.core.settings import AppSettings
+from backend.core.types import Chunk
 from functions.core.parsers import registry as ingestion_parsers_registry
 from functions.core.parsers.text_parser import TextParser
-from backend.core.types import Chunk
 
 def test_textparser_is_registered_under_txt() -> None:
     assert ingestion_parsers_registry.registry.get("txt") is TextParser
@@ -20,6 +23,26 @@ def test_textparser_is_a_baseparser_subclass() -> None:
 def test_registry_get_txt_constructs_textparser_instance() -> None:
     parser = ingestion_parsers_registry.registry.get("txt")()
     assert isinstance(parser, TextParser)
+
+def test_textparser_zero_arg_construction_still_works() -> None:
+    """Defaults to `None` on both `BaseParser.__init__` kwargs so
+    pure-CPU parsers stay constructible without arguments and
+    existing zero-arg call sites keep working."""
+    parser = TextParser()
+    assert isinstance(parser, TextParser)
+    assert parser._settings is None
+    assert parser._credential is None
+
+def test_textparser_stores_uniform_construction_kwargs() -> None:
+    """`BaseParser` accepts and stores `(settings, credential)` so
+    every parser can be wired by blueprints with the same
+    `cls(settings=settings, credential=credential)` line as
+    `BaseEmbedder` subclasses (uniform construction contract)."""
+    settings = Mock(spec=AppSettings)
+    credential = Mock()
+    parser = TextParser(settings=settings, credential=credential)
+    assert parser._settings is settings
+    assert parser._credential is credential
 
 @pytest.mark.asyncio
 async def test_single_paragraph_yields_single_chunk() -> None:

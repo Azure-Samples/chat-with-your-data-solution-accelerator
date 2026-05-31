@@ -15,3 +15,4 @@ Caller pattern:
 
 from ._instance import registry as registry
 from . import text_parser  # noqa: F401  # pyright: ignore[reportUnusedImport]
+from . import pdf_parser  # noqa: F401  # pyright: ignore[reportUnusedImport]

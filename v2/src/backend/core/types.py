@@ -14,6 +14,26 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class AadScope(StrEnum):
+    """Closed-set AAD token-scope discriminator for UAMI/AAD auth (Hard Rule #11).
+
+    Single argument to ``AsyncTokenCredential.get_token(...)`` at every
+    Azure SDK boundary in v2 -- Hard Rule #2 bans Key Vault and
+    subscription keys, so every data-plane call goes through one of
+    these scopes. ``COGNITIVE_SERVICES`` covers the unified Foundry AI
+    Services account (Document Intelligence, Content Understanding,
+    OpenAI, Speech) per ``v2/infra/main.bicep``. ``POSTGRES_FLEX``
+    covers Postgres Flexible Server's Entra-only auth.
+
+    ``StrEnum`` subclassing keeps the wire-shape contract intact: SDK
+    methods declared with ``*scopes: str`` accept the enum member
+    transparently because each member IS a ``str``.
+    """
+
+    COGNITIVE_SERVICES = "https://cognitiveservices.azure.com/.default"
+    POSTGRES_FLEX = "https://ossrdbms-aad.database.windows.net/.default"
+
+
 class ChatRole(StrEnum):
     """Closed-set role discriminator for chat messages (Hard Rule #11).
 
@@ -315,6 +335,7 @@ class AdminAuditEntry(BaseModel):
 
 
 __all__ = [
+    "AadScope",
     "AdminAuditEntry",
     "ChatChunk",
     "ChatMessage",

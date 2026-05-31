@@ -30,6 +30,7 @@ from pydantic import ValidationError
 import backend.core.types as st
 import backend.core.types as types_module
 from backend.core.types import (
+    AadScope,
     ChatMessage,
     ChatRole,
     MessageRecord,
@@ -194,6 +195,53 @@ def test_chat_role_equality_is_member_distinct() -> None:
 
 def test_chat_role_is_in_module_exports() -> None:
     assert "ChatRole" in types_module.__all__
+
+
+# ---------------------------------------------------------------------------
+# AadScope
+# ---------------------------------------------------------------------------
+#
+# Closed-set discriminator for the single `*scopes: str` argument to
+# `AsyncTokenCredential.get_token(...)`. Wire shape MUST match the
+# exact literal Azure's AAD endpoint expects -- a typo silently breaks
+# token acquisition only at first request, not at import.
+
+
+def test_aad_scope_is_a_strenum() -> None:
+    """`StrEnum` subclassing is required by Hard Rule #11; assert it
+    so a future refactor can't silently regress to a bare class."""
+    assert issubclass(AadScope, StrEnum)
+    assert issubclass(AadScope, str)
+
+
+def test_aad_scope_membership_is_frozen() -> None:
+    """Each member's value is the exact scope literal that Azure's AAD
+    endpoint expects; a typo here would silently break token
+    acquisition. The wire shape is part of the SDK contract."""
+    assert {member.value for member in AadScope} == {
+        "https://cognitiveservices.azure.com/.default",
+        "https://ossrdbms-aad.database.windows.net/.default",
+    }
+
+
+def test_aad_scope_equality_is_member_distinct() -> None:
+    """Each member equals its own raw scope value but not a sibling's
+    -- so call sites that compare against a literal stay unambiguous."""
+    assert AadScope.COGNITIVE_SERVICES == "https://cognitiveservices.azure.com/.default"
+    assert AadScope.POSTGRES_FLEX == "https://ossrdbms-aad.database.windows.net/.default"
+    assert AadScope.COGNITIVE_SERVICES != AadScope.POSTGRES_FLEX
+
+
+def test_aad_scope_member_is_usable_as_str() -> None:
+    """`AsyncTokenCredential.get_token(*scopes: str)` accepts the enum
+    members transparently because each member IS a `str`."""
+    assert isinstance(AadScope.COGNITIVE_SERVICES, str)
+    assert isinstance(AadScope.POSTGRES_FLEX, str)
+
+
+def test_aad_scope_is_in_module_exports() -> None:
+    assert "AadScope" in types_module.__all__
+    assert types_module.AadScope is AadScope
 
 
 # ---------------------------------------------------------------------------

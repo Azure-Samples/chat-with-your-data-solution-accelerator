@@ -32,6 +32,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
 from backend.core.types import (
+    AadScope,
     AdminAuditEntry,
     ChatMessage,
     Conversation,
@@ -70,8 +71,6 @@ logger = logging.getLogger(__name__)
 #   PostgresError).
 # ---------------------------------------------------------------------------
 
-
-_POSTGRES_AAD_SCOPE = "https://ossrdbms-aad.database.windows.net/.default"
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS conversations (
@@ -278,7 +277,7 @@ class PostgresClient(BaseDatabaseClient):
         """asyncpg-compatible async callable that returns a fresh AAD
         token. asyncpg invokes this on each new connection, so token
         expiry is handled transparently across the pool's lifetime."""
-        token = await self._credential.get_token(_POSTGRES_AAD_SCOPE)
+        token = await self._credential.get_token(AadScope.POSTGRES_FLEX)
         return token.token
 
     async def _ensure_pool(self) -> _Pool:

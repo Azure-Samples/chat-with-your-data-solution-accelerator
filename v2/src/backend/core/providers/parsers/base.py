@@ -6,6 +6,9 @@ Phase: 6
 
 from abc import ABC, abstractmethod
 
+from azure.core.credentials_async import AsyncTokenCredential
+
+from backend.core.settings import AppSettings
 from backend.core.types import Chunk
 
 
@@ -24,6 +27,23 @@ class BaseParser(ABC):
     parsers (text, markdown) can implement it as `async def` that
     returns immediately.
     """
+
+    def __init__(
+        self,
+        settings: AppSettings | None = None,
+        credential: AsyncTokenCredential | None = None,
+    ) -> None:
+        """Accept uniform construction kwargs across all parser implementations.
+
+        Pure-CPU parsers (text, markdown) ignore both arguments via
+        the default `None`s; network parsers (PDF via Document
+        Intelligence, future Content Understanding) consume them.
+        Mirrors the `BaseEmbedder` contract so blueprints can wire
+        every provider with the same
+        `cls(settings=settings, credential=credential)` line.
+        """
+        self._settings = settings
+        self._credential = credential
 
     @abstractmethod
     async def parse(self, content: bytes, *, source: str) -> list[Chunk]:

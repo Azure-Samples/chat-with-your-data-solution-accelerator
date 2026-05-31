@@ -251,18 +251,17 @@ wheels = [
 ]
 
 [[package]]
-name = "azure-ai-formrecognizer"
-version = "3.3.3"
+name = "azure-ai-documentintelligence"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "azure-common" },
     { name = "azure-core" },
-    { name = "msrest" },
+    { name = "isodate" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1c/03/ab76ece556f13e84481d74d79dc74ad8f8e84bd030468f01ae81adebfb52/azure-ai-formrecognizer-3.3.3.tar.gz", hash = "sha256:9fc09788bbb65866630fa870cca1933bfd7298b8055236530bcc0e40d81fcccf", size = 397879, upload-time = "2024-04-09T23:23:33.458Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/7b/8115cd713e2caa5e44def85f2b7ebd02a74ae74d7113ba20bdd41fd6dd80/azure_ai_documentintelligence-1.0.2.tar.gz", hash = "sha256:4d75a2513f2839365ebabc0e0e1772f5601b3a8c9a71e75da12440da13b63484", size = 170940, upload-time = "2025-03-27T02:46:20.606Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6e/c0/88b760e94bb330a1b31af204378563524c72d48f1c62c338fe1d18fdc894/azure_ai_formrecognizer-3.3.3-py3-none-any.whl", hash = "sha256:81fc1abda8bd898426ee3bbc1b9c6bd164514201ce282129a31d4664f9d1f3bc", size = 301373, upload-time = "2024-04-09T23:23:36.545Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/75/c9ec040f23082f54ffb1977ff8f364c2d21c79a640a13d1c1809e7fd6b1a/azure_ai_documentintelligence-1.0.2-py3-none-any.whl", hash = "sha256:e1fb446abbdeccc9759d897898a0fe13141ed29f9ad11fc705f951925822ed59", size = 106005, upload-time = "2025-03-27T02:46:22.356Z" },
 ]
 
 [[package]]
@@ -863,7 +862,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "azure-ai-agents" },
     { name = "azure-ai-contentsafety" },
-    { name = "azure-ai-formrecognizer" },
+    { name = "azure-ai-documentintelligence" },
     { name = "azure-ai-projects" },
     { name = "azure-cosmos" },
     { name = "azure-functions" },
@@ -913,7 +912,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.31,<1.0" },
     { name = "azure-ai-agents", specifier = ">=1.2.0b3" },
     { name = "azure-ai-contentsafety", specifier = ">=1.0,<2.0" },
-    { name = "azure-ai-formrecognizer", specifier = ">=3.3,<4.0" },
+    { name = "azure-ai-documentintelligence", specifier = ">=1.0,<2.0" },
     { name = "azure-ai-projects", specifier = ">=1.0,<2.0" },
     { name = "azure-cosmos", specifier = ">=4.14,<5.0" },
     { name = "azure-functions", specifier = ">=1.24,<2.0" },

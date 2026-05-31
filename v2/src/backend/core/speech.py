@@ -37,11 +37,11 @@ from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
 from backend.core.settings import SpeechSettings
+from backend.core.types import AadScope
 
 logger = logging.getLogger(__name__)
 
 
-_SPEECH_AAD_SCOPE = "https://cognitiveservices.azure.com/.default"
 _TOKEN_MINT_TIMEOUT_SECONDS = 10.0
 
 
@@ -81,7 +81,7 @@ async def mint_speech_token(
     }
 
     try:
-        access_token = await credential.get_token(_SPEECH_AAD_SCOPE)
+        access_token = await credential.get_token(AadScope.COGNITIVE_SERVICES)
     except AzureError:
         logger.exception("speech token mint failed at AAD step", extra=log_extra)
         raise

@@ -107,8 +107,8 @@ async def _execute(
     parser_cls = ingestion_parsers_registry.registry.get(
         _parser_key_for_url(request.url)
     )
-    parser = parser_cls()
     async with await cred_provider.get_credential() as credential:
+        parser = parser_cls(settings=settings, credential=credential)
         embedder_cls = embedders_registry.registry.get("azure_openai")
         embedder = embedder_cls(settings=settings, credential=credential)
         try:
