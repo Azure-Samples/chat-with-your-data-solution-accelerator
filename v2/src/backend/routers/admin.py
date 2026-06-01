@@ -35,186 +35,44 @@ the ``"admin"`` role claim. The factory:
   in ``settings.environment == "local"`` so the admin panel is
   exercisable end-to-end during development without forging claims.
 
-The dependency callable is cached at module import (``_REQUIRE_ADMIN_USER``)
-so ``app.dependency_overrides`` keying stays deterministic across
+The dependency callable is cached at module import in
+``backend.dependencies`` (``REQUIRE_ADMIN_USER``) so
+``app.dependency_overrides`` keying stays deterministic across
 test fixtures.
 """
 
 import logging
-from datetime import UTC, datetime
-from enum import StrEnum
 from typing import Annotated, Any
-from urllib.parse import urlparse
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import APIRouter, Body, HTTPException, Request, status
+from pydantic import ValidationError
 
 from backend.dependencies import (
+    AdminUserIdDep,
     DatabaseClientDep,
     RuntimeOverridesDep,
     SearchProviderDep,
     SettingsDep,
-    requires_role,
 )
 from backend.core.types import AdminAuditEntry, RuntimeConfig
-from backend.models.admin import DeleteDocumentResponse
+from backend.models.admin import (
+    APP_VERSION,
+    AdminConfig,
+    AdminStatus,
+    ConfigSource,
+    DeleteDocumentResponse,
+    EffectiveAdminConfig,
+    WRITABLE_FIELDS,
+)
+from backend.services.admin import host_only, utcnow_iso
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-_APP_VERSION = "2.0.0"
-
-
-# ---------------------------------------------------------------------------
-# Closed-set enums (Hard Rule #11 -- closed-set string literals are StrEnums,
-# not Literals, so producer-side identity dispatch (`is ConfigSource.ENV`)
-# is available and JSON wire shape is preserved unchanged (StrEnum subclasses
-# str -> Pydantic serializes members to their `.value` string).
-# ---------------------------------------------------------------------------
-
-
-class ConfigSource(StrEnum):
-    """Provenance of an `EffectiveAdminConfig.sources` entry.
-
-    `ENV` -- value comes from the `AppSettings` env default snapshot.
-    `OVERRIDE` -- value comes from the persisted `RuntimeConfig` row
-    loaded into `app.state.runtime_overrides` by the lifespan +
-    PATCH writeback channel.
-    """
-
-    ENV = "env"
-    OVERRIDE = "override"
-
-
-# ---------------------------------------------------------------------------
-# Auth gate (#39 -- RBAC narrowed to the "admin" Easy Auth role claim)
-#
-# Cached at import time so `app.dependency_overrides[_REQUIRE_ADMIN_USER]`
-# keying stays deterministic. Each `requires_role("admin")` invocation
-# returns a fresh callable, so reaching for the factory at every test
-# fixture would defeat dependency_overrides.
-# ---------------------------------------------------------------------------
-
-
-_REQUIRE_ADMIN_USER = requires_role("admin")
-
-
-AdminUserIdDep = Annotated[str, Depends(_REQUIRE_ADMIN_USER)]
-
-
-# ---------------------------------------------------------------------------
-# Response models
-# ---------------------------------------------------------------------------
-
-
-class AdminStatus(BaseModel):
-    """Sanitized snapshot of the running configuration.
-
-    Field allow-list is intentional: any new ``AppSettings`` field that
-    surfaces here MUST be added explicitly. Sensitive settings
-    (UAMI ids, tenant id, full Cosmos / Postgres connection strings,
-    OpenAI API version) are deliberately omitted -- locked in by
-    ``test_status_does_not_leak_sensitive_settings``.
-    """
-
-    orchestrator_name: str
-    db_type: str
-    index_store: str
-    environment: str
-    foundry_project_endpoint_host: str
-    gpt_deployment: str
-    embedding_deployment: str
-    reasoning_deployment: str
-    search_enabled: bool
-    app_insights_enabled: bool
-    cors_origins: list[str] = Field(default_factory=list[str])
-    version: str
-
-
-class AdminConfig(BaseModel):
-    """Runtime-toggle subset of ``AppSettings`` (read-only view, #35b).
-
-    The fields exposed here are exactly the settings that #35c lets
-    admins mutate at runtime. Selection criteria:
-
-    * **Not infra-pinned.** ``orchestrator.name`` lives under the
-      ``CWYD_`` namespace precisely so the admin UI can flip it without
-      a Bicep redeploy (see ``OrchestratorSettings`` docstring in
-      ``backend/core/settings.py``); the OpenAI / Search / Observability
-      tunables likewise have safe runtime defaults.
-    * **Already modeled in `AppSettings`.** Each field here maps to a
-      concrete attribute on `AppSettings` (so the GET handler is just
-      a serialization, no `getattr` fallbacks) and is mirrored on
-      `RuntimeConfig` as `T | None = None` (so PATCH semantics are
-      RFC 7396-clean: `null` clears, missing leaves untouched).
-      New fields must be added in lockstep across all three surfaces
-      (`AppSettings`, `RuntimeConfig`, `AdminConfig`) and the PATCH
-      allow-list (auto-derived from `RuntimeConfig.model_fields`).
-
-    Sensitive fields (UAMI ids, tenant id, connection strings, API
-    version) are **never** included; locked in by
-    ``test_config_does_not_leak_sensitive_settings``.
-    """
-
-    orchestrator_name: str
-    openai_temperature: float
-    openai_max_tokens: int
-    search_use_semantic_search: bool
-    search_top_k: int
-    log_level: str
-    content_safety_enabled: bool
-
-
-class EffectiveAdminConfig(BaseModel):
-    """Merged effective view of `AdminConfig` (#35e(b)).
-
-    Combines the env-default snapshot returned by
-    ``GET /api/admin/config`` with the persisted `RuntimeConfig`
-    overrides loaded into ``app.state.runtime_overrides`` by the
-    lifespan + PATCH writeback channel from #35e(a). Each field on
-    `values` is resolved by the rule:
-
-    * Override field is `None` (the cold default and the post-clear
-      state once an admin has PATCHed `null`) -> source is `"env"`,
-      value comes from `AppSettings`.
-    * Override field carries a non-None value -> source is
-      `"override"`, value comes from `app.state.runtime_overrides`.
-
-    The frontend renders `sources` as per-field provenance hints
-    ("this is from env" / "operator overrode this on YYYY-MM-DD")
-    so admins can tell at a glance which knobs are actively being
-    held by an override vs. tracking the deployed env baseline.
-
-    `updated_at` / `updated_by` surface the audit fields from the
-    override row when one exists (even when every field is `None` --
-    the row is the receipt that the operator interacted with the
-    config); both are `None` on cold start when no override row
-    has been persisted yet.
-    """
-
-    values: AdminConfig
-    sources: dict[str, ConfigSource]
-    updated_at: str | None = None
-    updated_by: str | None = None
-
-
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-
-
-def _host_only(url: str) -> str:
-    """Return the host portion of ``url`` or empty string when unset.
-
-    Keeps the project endpoint discoverable for operators (which
-    Foundry account am I pointed at?) without leaking the full URL
-    path / query, which can carry tenant or project identifiers in
-    some Foundry deployment shapes.
-    """
-    if not url:
-        return ""
-    return urlparse(url).netloc
 
 
 @router.get("/status", response_model=AdminStatus)
@@ -229,7 +87,7 @@ async def status_endpoint(
         db_type=settings.database.db_type,
         index_store=settings.database.index_store,
         environment=settings.environment,
-        foundry_project_endpoint_host=_host_only(
+        foundry_project_endpoint_host=host_only(
             settings.foundry.project_endpoint
         ),
         gpt_deployment=settings.openai.gpt_deployment,
@@ -238,7 +96,7 @@ async def status_endpoint(
         search_enabled=bool(settings.search.endpoint),
         app_insights_enabled=bool(obs_conn),
         cors_origins=list(settings.network.cors_origins),
-        version=_APP_VERSION,
+        version=APP_VERSION,
     )
 
 
@@ -336,24 +194,6 @@ async def config_effective_endpoint(
 # ---------------------------------------------------------------------------
 
 
-# Allow-list of writable RuntimeConfig fields (the 6 mutable ones --
-# `updated_at` / `updated_by` are server-set and rejected on input).
-# Computed once at module import so request validation is O(1).
-_WRITABLE_FIELDS: frozenset[str] = frozenset(
-    name
-    for name in RuntimeConfig.model_fields
-    if name not in {"updated_at", "updated_by"}
-)
-
-
-def _utcnow_iso() -> str:
-    """ISO-8601 UTC timestamp with timezone suffix. Matches the
-    `_utcnow_iso` shape in `backend/core/providers/databases/cosmosdb.py`
-    so persisted RuntimeConfig rows are comparable across providers.
-    """
-    return datetime.now(UTC).isoformat()
-
-
 @router.patch("/config", response_model=RuntimeConfig)
 async def patch_config_endpoint(
     request: Request,
@@ -381,14 +221,14 @@ async def patch_config_endpoint(
     breaking the 'undo my override' UX.
     """
     # --- Allow-list lock-in (rejects unknown fields with 422) -------------
-    unknown = set(payload) - _WRITABLE_FIELDS
+    unknown = set(payload) - WRITABLE_FIELDS
     if unknown:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "msg": "Unknown field(s) in PATCH body",
                 "unknown_fields": sorted(unknown),
-                "allowed_fields": sorted(_WRITABLE_FIELDS),
+                "allowed_fields": sorted(WRITABLE_FIELDS),
             },
         )
 
@@ -409,7 +249,7 @@ async def patch_config_endpoint(
     # --- Server-set audit fields -- always overwritten on every PATCH so
     # an operator probing 'what's the latest override state?' can sort
     # by `updated_at` deterministically.
-    merged_data["updated_at"] = _utcnow_iso()
+    merged_data["updated_at"] = utcnow_iso()
     merged_data["updated_by"] = user_id
 
     # --- Type validation on the merged shape (turns wrong-type values
@@ -518,9 +358,6 @@ async def delete_document_endpoint(
 
 
 __all__ = [
-    "AdminConfig",
-    "AdminStatus",
     "ConfigSource",
-    "EffectiveAdminConfig",
     "router",
 ]

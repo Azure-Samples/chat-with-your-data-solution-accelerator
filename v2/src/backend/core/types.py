@@ -280,8 +280,8 @@ class RuntimeConfig(BaseModel):
     `updated_at` is an ISO-8601 string for the same reason
     `Conversation.updated_at` is -- the wire shape stays uniform
     across providers (Cosmos JSON, Postgres). `updated_by` carries
-    the admin caller's user id (from the `_REQUIRE_ADMIN_USER` dep
-    in `backend.routers.admin`, which delegates to
+    the admin caller's user id (from the `REQUIRE_ADMIN_USER` dep
+    in `backend.dependencies`, built via
     `backend.dependencies.requires_role("admin")`) so an audit
     query can answer 'who flipped temperature to 0.7?'.
     """
@@ -308,7 +308,7 @@ class AdminAuditEntry(BaseModel):
     an operator forensic query needs:
 
     * **who** -- `actor` is the admin user id (Entra object id)
-      surfaced by `_REQUIRE_ADMIN_USER` in the admin router.
+      surfaced by `REQUIRE_ADMIN_USER` in `backend.dependencies`.
     * **what** -- `action` is a short verb (today: `"patch_config"`)
       that lets a future audit query filter by operation kind.
     * **before** / **after** -- the `RuntimeConfig` snapshots the

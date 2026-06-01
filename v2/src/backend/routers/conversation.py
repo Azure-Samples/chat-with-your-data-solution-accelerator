@@ -24,10 +24,6 @@ Today both guards default to ``None`` (pipeline streams through
 unchanged), preserving the original router behavior.
 """
 
-import json
-import logging
-from typing import AsyncIterator
-
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
@@ -43,76 +39,10 @@ from backend.models.conversation import ConversationRequest, ConversationRespons
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.pipelines.chat import run_chat
 from backend.core.providers.orchestrators import registry as orchestrators_registry
-from backend.core.types import Citation, OrchestratorChannel, OrchestratorEvent
+from backend.services.conversation import collect_response
+from backend.services.sse import SSE_MEDIA_TYPE, sse_stream, wants_sse
 
-logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["conversation"])
-
-_SSE_MEDIA_TYPE = "text/event-stream"
-
-
-def _wants_sse(accept: str | None) -> bool:
-    """Return True when the client asked for the SSE feed."""
-    if not accept:
-        return False
-    return _SSE_MEDIA_TYPE in accept.lower()
-
-
-def _format_sse(event: OrchestratorEvent) -> bytes:
-    """Encode one ``OrchestratorEvent`` as an SSE frame."""
-    payload = json.dumps(
-        {"content": event.content, "metadata": event.metadata},
-        ensure_ascii=False,
-    )
-    return f"event: {event.channel}\ndata: {payload}\n\n".encode("utf-8")
-
-
-async def _sse_stream(
-    events: AsyncIterator[OrchestratorEvent],
-    request: Request,
-) -> AsyncIterator[bytes]:
-    """Pump orchestrator events to the client; surface errors as ``error`` events."""
-    try:
-        async for event in events:
-            if await request.is_disconnected():
-                logger.info("Client disconnected; aborting SSE stream.")
-                break
-            yield _format_sse(event)
-    except Exception as exc:  # noqa: BLE001 -- surfaced to the client channel
-        logger.exception("Orchestrator failed during SSE stream.")
-        yield _format_sse(
-            OrchestratorEvent(channel=OrchestratorChannel.ERROR, content=str(exc))
-        )
-
-
-async def _collect(
-    events: AsyncIterator[OrchestratorEvent],
-    *,
-    conversation_id: str | None,
-) -> ConversationResponse:
-    """Buffer the event stream into a non-streaming JSON response."""
-    answer_chunks: list[str] = []
-    citations: list[Citation] = []
-    seen_citation_ids: set[str] = set()
-
-    async for event in events:
-        if event.channel == OrchestratorChannel.ANSWER:
-            answer_chunks.append(event.content)
-        elif event.channel == OrchestratorChannel.CITATION:
-            cid = event.metadata.get("id")
-            if isinstance(cid, str) and cid not in seen_citation_ids:
-                citations.append(Citation(**event.metadata))
-                seen_citation_ids.add(cid)
-        elif event.channel == OrchestratorChannel.ERROR:
-            # Bubble orchestrator failures to the caller verbatim; the
-            # FastAPI default handler turns this into a 500.
-            raise RuntimeError(event.content)
-
-    return ConversationResponse(
-        content="".join(answer_chunks),
-        citations=citations,
-        conversation_id=conversation_id,
-    )
 
 
 @router.post(
@@ -171,13 +101,13 @@ async def conversation(
         content_safety=content_safety,
     )
 
-    if _wants_sse(accept):
+    if wants_sse(accept):
         return StreamingResponse(
-            _sse_stream(events, request),
-            media_type=_SSE_MEDIA_TYPE,
+            sse_stream(events, request),
+            media_type=SSE_MEDIA_TYPE,
         )
 
-    return await _collect(events, conversation_id=body.conversation_id)
+    return await collect_response(events, conversation_id=body.conversation_id)
 
 
 __all__ = ["router"]

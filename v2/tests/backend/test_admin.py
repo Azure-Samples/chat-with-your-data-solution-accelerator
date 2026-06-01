@@ -3,7 +3,7 @@
 Covers the read-only ``GET /api/admin/status`` endpoint, the
 ``GET /api/admin/config`` runtime-toggle subset (#35b), the
 ``PATCH /api/admin/config`` merge-patch endpoint (#35c), and the
-#39 RBAC-narrowed ``_REQUIRE_ADMIN_USER`` auth gate (replaces the
+#39 RBAC-narrowed ``REQUIRE_ADMIN_USER`` auth gate (replaces the
 former ``admin_user_id`` placeholder; the role-claim contract itself
 is unit-tested in ``test_dependencies.py::test_requires_role_*``).
 """
@@ -25,17 +25,13 @@ from pydantic import ValidationError
 import backend.routers.admin as _admin_module
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
+    REQUIRE_ADMIN_USER,
     get_app_settings,
     get_database_client,
     get_search_provider,
 )
-from backend.routers.admin import (
-    _REQUIRE_ADMIN_USER,
-    AdminConfig,
-    ConfigSource,
-    EffectiveAdminConfig,
-    router as admin_router,
-)
+from backend.models.admin import AdminConfig, ConfigSource, EffectiveAdminConfig
+from backend.routers.admin import router as admin_router
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +121,7 @@ def admin_app_factory():
         app.dependency_overrides[get_app_settings] = lambda: settings
         # Pin the #39 admin-role gate so route tests that don't probe
         # auth gating can run without forging the Easy Auth headers.
-        app.dependency_overrides[_REQUIRE_ADMIN_USER] = lambda: "u-1"
+        app.dependency_overrides[REQUIRE_ADMIN_USER] = lambda: "u-1"
         if db is not None:
             app.dependency_overrides[get_database_client] = lambda: db
         if search is not None:
@@ -258,7 +254,7 @@ async def test_status_maps_orchestrator_db_index_environment(
         )
     )
     # production mode -> route requires header; forge it via the
-    # already-pinned _REQUIRE_ADMIN_USER override (the fixture pinned
+    # already-pinned REQUIRE_ADMIN_USER override (the fixture pinned
     # "u-1"), so the request still succeeds.
     # "u-1"), so the request still succeeds.
     async with _client(app) as ac:
@@ -330,7 +326,7 @@ async def test_status_does_not_leak_sensitive_settings(
 async def test_status_endpoint_requires_easy_auth_in_production() -> None:
     """End-to-end #39 RBAC check: the route must reject anonymous
     callers in production. Builds the app WITHOUT the
-    ``_REQUIRE_ADMIN_USER`` override so the real role-claim gate runs.
+    ``REQUIRE_ADMIN_USER`` override so the real role-claim gate runs.
     """
     app = FastAPI()
     app.include_router(admin_router)
@@ -346,7 +342,7 @@ async def test_status_endpoint_requires_easy_auth_in_production() -> None:
 async def test_status_endpoint_returns_403_when_caller_lacks_admin_role() -> None:
     """End-to-end #39 RBAC check: an authenticated caller WITHOUT the
     ``admin`` role claim must be rejected with 403, not 200. Builds the
-    app WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the real gate
+    app WITHOUT the ``REQUIRE_ADMIN_USER`` override so the real gate
     parses the forged claims blob.
     """
     payload = {
@@ -379,7 +375,7 @@ async def test_status_endpoint_returns_200_when_caller_has_admin_role(
 ) -> None:
     """End-to-end #39 RBAC check: an authenticated caller WITH the
     ``admin`` role claim reaches the route handler. Builds the app
-    WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the real gate
+    WITHOUT the ``REQUIRE_ADMIN_USER`` override so the real gate
     parses the forged claims blob and resolves the user id.
     """
     payload = {
@@ -549,7 +545,7 @@ async def test_config_does_not_leak_sensitive_settings(
 async def test_config_endpoint_requires_easy_auth_in_production() -> None:
     """#39 RBAC: anonymous callers must be rejected in production.
 
-    Builds the app WITHOUT the ``_REQUIRE_ADMIN_USER`` override so the
+    Builds the app WITHOUT the ``REQUIRE_ADMIN_USER`` override so the
     real dependency runs and the missing Easy Auth header trips the 401.
     """
     app = FastAPI()
@@ -716,7 +712,7 @@ async def test_patch_config_records_caller_id_and_timestamp(
     admin_app_factory,
 ) -> None:
     """Audit trail: every persisted RuntimeConfig must carry the
-    admin caller's user id (from `_REQUIRE_ADMIN_USER`, pinned to "u-1"
+    admin caller's user id (from `REQUIRE_ADMIN_USER`, pinned to "u-1"
     in this fixture) and an ISO-8601 `updated_at` so a future query
     can answer 'who flipped temperature to 0.9 and when?'. Without
     these, the override row is anonymous and undateable."""
@@ -1447,7 +1443,7 @@ async def test_delete_document_returns_503_when_search_disabled(
 @pytest.mark.asyncio
 async def test_delete_document_requires_easy_auth_in_production() -> None:
     """End-to-end #39 RBAC check: an anonymous DELETE in production
-    must be rejected with 401 by the shared ``_REQUIRE_ADMIN_USER``
+    must be rejected with 401 by the shared ``REQUIRE_ADMIN_USER``
     gate. Mirrors the existing
     ``test_status_endpoint_requires_easy_auth_in_production`` pattern
     so every admin route shares the same gating contract.

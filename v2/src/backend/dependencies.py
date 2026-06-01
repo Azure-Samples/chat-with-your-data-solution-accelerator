@@ -318,8 +318,8 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
 
     Each call returns a NEW callable -- modules that need a stable
     key for ``app.dependency_overrides`` MUST cache the returned dep
-    at module import time (see ``backend.routers.admin`` for the
-    ``_REQUIRE_ADMIN_USER`` singleton pattern).
+    at module import time (see ``REQUIRE_ADMIN_USER`` below for the
+    admin-role singleton).
     """
 
     def _checker(request: Request, settings: SettingsDep) -> str:
@@ -373,11 +373,22 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
     return _checker
 
 
+# Cached admin auth gate. ``requires_role("admin")`` returns a fresh
+# callable on every call, so a stable key for
+# ``app.dependency_overrides`` requires caching the dep once at module
+# import. ``REQUIRE_ADMIN_USER`` is that singleton; ``AdminUserIdDep``
+# is the typed alias routers attach to admin-gated route signatures.
+REQUIRE_ADMIN_USER = requires_role("admin")
+AdminUserIdDep = Annotated[str, Depends(REQUIRE_ADMIN_USER)]
+
+
 __all__ = [
+    "AdminUserIdDep",
     "AgentsProviderDep",
     "CredentialProviderDep",
     "DatabaseClientDep",
     "LLMProviderDep",
+    "REQUIRE_ADMIN_USER",
     "RuntimeOverridesDep",
     "SearchProviderDep",
     "SettingsDep",
