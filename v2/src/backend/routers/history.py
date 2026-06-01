@@ -35,27 +35,13 @@ import logging
 from typing import cast
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
 
 from backend.core.types import ChatMessage, ChatRole, Conversation, MessageRecord
 from backend.dependencies import DatabaseClientDep, SettingsDep, UserIdDep
-from backend.models.history import AddMessageRequest, ConversationDetail, CreateConversationRequest, HistoryStatus
+from backend.models.history import AddMessageRequest, ConversationDetail, CreateConversationRequest, HistoryStatus, RenameConversationRequest, SetFeedbackRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/history", tags=["history"])
-
-
-# ---------------------------------------------------------------------------
-# Request models
-# ---------------------------------------------------------------------------
-
-
-class RenameConversationRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=512)
-
-
-class SetFeedbackRequest(BaseModel):
-    feedback: str = Field(min_length=1, max_length=64)
 
 
 # ---------------------------------------------------------------------------

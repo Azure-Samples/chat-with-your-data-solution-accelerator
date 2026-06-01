@@ -10,8 +10,8 @@ Helpers belong in `backend.services.<domain>`, dependency wrappers
 in `backend.dependencies`, request / response models in
 `backend.models.<domain>`, persisted types in `backend.core.types`.
 
-This gate walks the AST body of each router on the cleaned allow-list
-and asserts every top-level node is one of:
+This gate walks the AST body of each router file in
+`v2/src/backend/routers/` and asserts every top-level node is one of:
 
 1. **Module docstring** -- the `Pillar:` / `Phase:` header.
 2. **Imports** -- `ast.Import` / `ast.ImportFrom` (Hard Rule #17 keeps
@@ -31,10 +31,10 @@ the file path, line number, and AST node type. Fix the violation by
 moving the displaced code to the canonical sibling per Hard Rule #10
 (services / dependencies / models / core.types).
 
-The cleaned-routers allow-list (`_CLEANED_ROUTERS`) grows as each
-router in `v2/src/backend/routers/` completes its CLEAN-N pass. The
-goal end-state is "all routers in the directory" -- at that point the
-allow-list collapses to a directory scan.
+`_CLEANED_ROUTERS` is derived from a `*.py` scan of
+`v2/src/backend/routers/` with `__init__.py` excluded as the package
+marker (Hard Rule #13). New router modules dropped into that
+directory are auto-enrolled.
 """
 
 import ast
@@ -46,10 +46,12 @@ import pytest
 _V2_ROOT = Path(__file__).resolve().parents[2]
 _ROUTERS_DIR = _V2_ROOT / "src" / "backend" / "routers"
 
-# Routers that have completed the router-cleanup pass and must remain
-# route-only. Append each filename as its CLEAN-N pass wraps. Pending:
-# `history.py`, `speech.py`.
-_CLEANED_ROUTERS: tuple[str, ...] = ("admin.py", "conversation.py", "health.py")
+# All `*.py` files under `v2/src/backend/routers/` are router modules
+# bound by the route-only invariant. `__init__.py` is excluded as the
+# package marker (Hard Rule #13).
+_CLEANED_ROUTERS: tuple[str, ...] = tuple(
+    sorted(p.name for p in _ROUTERS_DIR.glob("*.py") if p.name != "__init__.py")
+)
 
 # Module-level assignment targets that are part of standard router
 # setup. Anything else assigned at module scope is a violation.
@@ -143,3 +145,25 @@ def test_router_is_route_only(router_filename: str) -> None:
             f"`backend.models.<domain>`, persisted types to "
             f"`backend.core.types`."
         )
+
+
+def test_router_directory_scan_is_non_empty() -> None:
+    """Sanity guard: the directory scan must not be empty.
+
+    If `_ROUTERS_DIR` ever resolves to the wrong path (e.g. tests run
+    from an unexpected cwd), the parametrised test above would
+    generate zero cases and quietly pass. Assert the directory is
+    visible with a non-trivial router count so a silent drop trips
+    the gate.
+    """
+    assert _ROUTERS_DIR.is_dir(), f"router directory missing: {_ROUTERS_DIR}"
+    assert _CLEANED_ROUTERS, (
+        "no `*.py` router files discovered under v2/src/backend/routers/"
+    )
+    # 5 router files at gate-landing. Treat any drop below 5 as a
+    # sign the scan started silently dropping files.
+    assert len(_CLEANED_ROUTERS) >= 5, (
+        f"only {len(_CLEANED_ROUTERS)} router files discovered under "
+        f"v2/src/backend/routers/ -- path resolution likely broken "
+        f"(expected >=5)"
+    )

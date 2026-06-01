@@ -36,4 +36,16 @@ class HistoryStatus(BaseModel):
     db_type: str
 
 
-__all__ = ["AddMessageRequest", "ConversationDetail", "CreateConversationRequest", "HistoryStatus"]
+class RenameConversationRequest(BaseModel):
+    """PATCH /api/history/conversations/{id} request body."""
+
+    title: str = Field(min_length=1, max_length=512)
+
+
+class SetFeedbackRequest(BaseModel):
+    """POST /api/history/messages/{id}/feedback request body."""
+
+    feedback: str = Field(min_length=1, max_length=64)
+
+
+__all__ = ["AddMessageRequest", "ConversationDetail", "CreateConversationRequest", "HistoryStatus", "RenameConversationRequest", "SetFeedbackRequest"]
