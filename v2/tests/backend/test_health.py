@@ -28,7 +28,7 @@ from backend.models.health import (
     HealthResponse,
     OverallStatus,
 )
-from backend.routers.health import _aggregate
+from backend.services.health import _aggregate
 
 
 # ---------------------------------------------------------------------------

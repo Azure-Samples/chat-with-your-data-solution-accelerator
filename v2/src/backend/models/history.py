@@ -1,0 +1,39 @@
+"""Chat-history request/response models.
+
+Pillar: Stable Core
+Phase: 4
+"""
+
+from pydantic import BaseModel, Field
+
+from backend.core.types import Conversation, MessageRecord
+
+
+class AddMessageRequest(BaseModel):
+    """POST /api/history/conversations/{id}/messages request body."""
+
+    role: str = Field(min_length=1, max_length=32)
+    content: str = Field(min_length=1)
+
+
+class ConversationDetail(BaseModel):
+    """GET /api/history/conversations/{id} response body."""
+
+    conversation: Conversation
+    messages: list[MessageRecord]
+
+
+class CreateConversationRequest(BaseModel):
+    """POST /api/history/conversations request body."""
+
+    title: str = Field(default="", max_length=512)
+
+
+class HistoryStatus(BaseModel):
+    """GET /api/history/status response body."""
+
+    enabled: bool
+    db_type: str
+
+
+__all__ = ["AddMessageRequest", "ConversationDetail", "CreateConversationRequest", "HistoryStatus"]

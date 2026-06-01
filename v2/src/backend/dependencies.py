@@ -265,6 +265,36 @@ _ROLE_TYP_SHORT = "roles"
 _ROLE_TYP_FULL = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
 
 
+def get_user_id(request: Request, settings: SettingsDep) -> str:
+    """Return the caller's user id from the Easy Auth principal-id header.
+
+    Reads ``x-ms-client-principal-id`` (the user's Entra object id).
+    When the header is absent we fall back to ``"local-dev"`` **only**
+    when ``settings.environment == "local"`` so the chat-history
+    panel is exercisable end-to-end during development. In
+    ``production`` a missing header raises ``401 Unauthorized`` -- a
+    misconfigured Easy Auth must fail closed, never silently fold
+    every anonymous caller into the ``local-dev`` partition.
+
+    Sibling of ``requires_role`` below: same Easy Auth surface, no
+    role gate. Routers that only need tenant isolation (chat history)
+    consume ``UserIdDep``; routers that need role enforcement (admin)
+    consume ``AdminUserIdDep``.
+    """
+    value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
+    if value:
+        return value
+    if settings.environment is Environment.LOCAL:
+        return _LOCAL_DEV_USER
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Missing client principal; Easy Auth header required.",
+    )
+
+
+UserIdDep = Annotated[str, Depends(get_user_id)]
+
+
 def _decode_easy_auth_principal(raw: str) -> dict[str, Any] | None:
     """Decode the base64 JSON ``x-ms-client-principal`` header.
 
@@ -392,6 +422,7 @@ __all__ = [
     "RuntimeOverridesDep",
     "SearchProviderDep",
     "SettingsDep",
+    "UserIdDep",
     "get_agents_provider",
     "get_app_settings",
     "get_credential_provider",
@@ -399,5 +430,6 @@ __all__ = [
     "get_llm_provider",
     "get_runtime_overrides",
     "get_search_provider",
+    "get_user_id",
     "requires_role",
 ]

@@ -10,8 +10,7 @@ from starlette.requests import Request
 
 from backend.app import create_app
 from backend.core.settings import Environment
-from backend.dependencies import get_app_settings, get_database_client
-from backend.routers.history import get_user_id
+from backend.dependencies import get_app_settings, get_database_client, get_user_id
 from backend.core.types import ChatMessage, Conversation, MessageRecord
 
 

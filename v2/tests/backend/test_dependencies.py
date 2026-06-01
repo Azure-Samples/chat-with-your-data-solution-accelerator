@@ -18,6 +18,7 @@ from backend.dependencies import (
     get_database_client,
     get_runtime_overrides,
     get_search_provider,
+    get_user_id,
     requires_role,
 )
 
@@ -488,3 +489,32 @@ def test_get_content_safety_guard_returns_none_when_override_false_and_no_client
     settings = _settings_with_threshold(4)
 
     assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# get_user_id -- Easy Auth principal extraction (no role gate)
+#
+# Sibling of `requires_role`: reads `x-ms-client-principal-id` and
+# returns the caller's Entra object id. Falls back to "local-dev"
+# only when `settings.environment is Environment.LOCAL` so chat
+# history is exercisable in dev without forging Easy Auth headers;
+# production raises 401 on a missing header (fail-closed).
+# ---------------------------------------------------------------------------
+
+
+def test_get_user_id_returns_principal_id_when_header_present() -> None:
+    request = _request({_PRINCIPAL_ID: "user-oid-42"})
+    assert get_user_id(request, _settings("production")) == "user-oid-42"
+
+
+def test_get_user_id_falls_back_to_local_dev_when_local_and_header_missing() -> None:
+    request = _request({})
+    assert get_user_id(request, _settings(Environment.LOCAL)) == "local-dev"
+
+
+def test_get_user_id_raises_401_when_production_and_header_missing() -> None:
+    request = _request({})
+    with pytest.raises(HTTPException) as exc_info:
+        get_user_id(request, _settings(Environment.PRODUCTION))
+    assert exc_info.value.status_code == 401
+    assert "Missing client principal" in exc_info.value.detail

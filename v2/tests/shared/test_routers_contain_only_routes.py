@@ -48,8 +48,8 @@ _ROUTERS_DIR = _V2_ROOT / "src" / "backend" / "routers"
 
 # Routers that have completed the router-cleanup pass and must remain
 # route-only. Append each filename as its CLEAN-N pass wraps. Pending:
-# `conversation.py`, `health.py`, `history.py`, `speech.py`.
-_CLEANED_ROUTERS: tuple[str, ...] = ("admin.py",)
+# `history.py`, `speech.py`.
+_CLEANED_ROUTERS: tuple[str, ...] = ("admin.py", "conversation.py", "health.py")
 
 # Module-level assignment targets that are part of standard router
 # setup. Anything else assigned at module scope is a violation.
