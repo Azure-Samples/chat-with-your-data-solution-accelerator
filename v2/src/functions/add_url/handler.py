@@ -7,9 +7,10 @@ Pure orchestration handler for the ``add_url`` blueprint.
 with the :class:`backend.core.providers.parsers.base.BaseParser`
 registry, the :class:`backend.core.providers.embedders.base.BaseEmbedder`
 registry, and
-:func:`backend.core.providers.search.writer.push_documents` into the
-per-request ingestion step that consumes one :class:`AddUrlRequest`
-and writes embedded chunks into the configured search index.
+:meth:`backend.core.providers.search.base.BaseSearch.merge_or_upload_documents`
+into the per-request ingestion step that consumes one
+:class:`AddUrlRequest` and writes embedded chunks into the configured
+search index.
 
 Mirrors :func:`functions.batch_push.handler.batch_push_handler` so the
 two ingestion entry points (queue-triggered blob push vs. HTTP-
@@ -20,12 +21,12 @@ httpx vs. blob bytes via Storage SDK) and (b) trigger semantics
 
 Design notes:
 
-* Every collaborator is injected (DI). HTTP request parsing,
-  parser selection (by URL extension / content-type), embedder
-  construction, and search-client wiring live in
-  ``functions/add_url/blueprint.py``. Injection keeps this
-  handler directly unit-testable without spinning up the Functions
-  host or real network calls.
+* Every collaborator is injected (DI). The blueprint dispatches the
+  ``search_provider`` via ``search_registry.registry.get(
+  settings.database.index_store)`` so the handler stays agnostic of
+  whether the write lands in Azure AI Search or in pgvector. Each
+  concrete provider owns its own SDK boundary + structured logging
+  inside its ``merge_or_upload_documents`` override.
 * ``AddUrlRequest`` is defined inline because it is **not** a
   cross-blueprint wire contract -- only the ``add_url`` HTTP
   trigger constructs it and only this handler consumes it.
@@ -41,10 +42,10 @@ Design notes:
   shapes independently (e.g., ``add_url`` may later add a
   ``source_url`` field that ``batch_push`` does not need).
 * No try/except wrapper here. ``fetch_url``, the embedder, and
-  :func:`push_documents` already wrap their SDK boundaries per
-  [v2/docs/exception_handling_policy.md] section "Functions
-  blueprints". Adding another layer would double-log. Any
-  exception propagates so the HTTP trigger's
+  ``search_provider.merge_or_upload_documents`` already wrap their
+  SDK boundaries per [v2/docs/exception_handling_policy.md] section
+  "Functions blueprints". Adding another layer would double-log.
+  Any exception propagates so the HTTP trigger's
   ``@map_function_exceptions("add_url")`` decorator translates it
   into the right ``HttpResponse`` (422 for ``ValidationError``,
   502 for SDK errors, 500 for everything else).
@@ -62,10 +63,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend.core.providers.embedders.registry import EmbedderInstance
 from backend.core.providers.parsers.base import BaseParser
-from backend.core.providers.search.writer import (
-    SupportsMergeOrUploadDocuments,
-    push_documents,
-)
+from backend.core.providers.search.base import BaseSearch
 from backend.core.types import Chunk, SearchDocument
 from functions.add_url.url_fetcher import fetch_url
 
@@ -112,11 +110,11 @@ async def add_url_handler(
     request: AddUrlRequest,
     parser: BaseParser,
     embedder: EmbedderInstance,
-    search_writer: SupportsMergeOrUploadDocuments,
+    search_provider: BaseSearch,
     *,
     client: httpx.AsyncClient | None = None,
 ) -> list[SearchDocument]:
-    """Fetch → parse → embed → push one ``add_url`` request.
+    """Fetch -> parse -> embed -> push one ``add_url`` request.
 
     ``client`` is an optional ``httpx.AsyncClient`` so the HTTP
     trigger can share a single client across requests when
@@ -124,9 +122,10 @@ async def add_url_handler(
     builds its own per-call client. See :func:`fetch_url` for the
     exact construction semantics.
 
-    Returns the documents handed to :func:`push_documents` (in chunk
-    order) so the HTTP trigger can include a count in its response
-    body and tests can assert on the wire shape end-to-end.
+    Returns the documents handed to
+    ``search_provider.merge_or_upload_documents`` (in chunk order) so
+    the HTTP trigger can include a count in its response body and
+    tests can assert on the wire shape end-to-end.
     """
     content = await fetch_url(request.url, client=client)
     chunks = await parser.parse(content, source=request.url)
@@ -152,5 +151,5 @@ async def add_url_handler(
     documents = [
         _build_document(chunk, vector) for chunk, vector in zip(chunks, vectors)
     ]
-    await push_documents(search_writer, documents)
+    await search_provider.merge_or_upload_documents(documents=documents)
     return documents

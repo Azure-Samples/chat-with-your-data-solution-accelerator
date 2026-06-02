@@ -8,7 +8,7 @@ from azure.storage.blob.aio import ContainerClient
 
 from backend.core.providers.embedders.base import BaseEmbedder
 from backend.core.providers.parsers.base import BaseParser
-from backend.core.providers.search.writer import SupportsMergeOrUploadDocuments
+from backend.core.providers.search.base import BaseSearch
 from backend.core.types import Chunk, EmbeddingResult, SearchDocument
 from functions.batch_push.handler import batch_push_handler
 from functions.core.contracts import BatchPushQueueMessage
@@ -77,15 +77,15 @@ async def test_pipeline_pushes_documents_with_vectors_and_returns_them() -> None
         [EmbeddingResult(vectors=[[0.1, 0.2], [0.3, 0.4]], model="fake")]
     )
     container = _FakeContainerClient(payload=b"hello\n\nworld")
-    writer = cast(SupportsMergeOrUploadDocuments, AsyncMock(spec=["merge_or_upload_documents"]))
-    writer.merge_or_upload_documents = AsyncMock(return_value=[])  # type: ignore[method-assign]
+    search_provider = cast(BaseSearch, AsyncMock(spec=["merge_or_upload_documents"]))
+    search_provider.merge_or_upload_documents = AsyncMock(return_value=[])  # type: ignore[method-assign]
 
     docs = await batch_push_handler(
         _message(),
         _as_container(container),
         parser,
         embedder,
-        writer,
+        search_provider,
     )
 
     assert container.calls == ["doc.txt"]
@@ -105,8 +105,8 @@ async def test_pipeline_pushes_documents_with_vectors_and_returns_them() -> None
             content_vector=[0.3, 0.4],
         ),
     ]
-    writer.merge_or_upload_documents.assert_awaited_once_with(
-        documents=[d.model_dump() for d in docs]
+    search_provider.merge_or_upload_documents.assert_awaited_once_with(
+        documents=docs
     )
 
 
@@ -117,8 +117,8 @@ async def test_zero_chunks_short_circuits_embed_and_search(
     parser = _StubParser([])
     embedder = _StubEmbedder([])
     container = _FakeContainerClient(payload=b"   ")
-    writer = cast(SupportsMergeOrUploadDocuments, AsyncMock(spec=["merge_or_upload_documents"]))
-    writer.merge_or_upload_documents = AsyncMock()  # type: ignore[method-assign]
+    search_provider = cast(BaseSearch, AsyncMock(spec=["merge_or_upload_documents"]))
+    search_provider.merge_or_upload_documents = AsyncMock()  # type: ignore[method-assign]
 
     caplog.set_level("INFO", logger="functions.batch_push.handler")
     docs = await batch_push_handler(
@@ -126,12 +126,12 @@ async def test_zero_chunks_short_circuits_embed_and_search(
         _as_container(container),
         parser,
         embedder,
-        writer,
+        search_provider,
     )
 
     assert docs == []
     assert embedder.calls == []
-    writer.merge_or_upload_documents.assert_not_called()
+    search_provider.merge_or_upload_documents.assert_not_called()
     records = [r for r in caplog.records if r.name == "functions.batch_push.handler"]
     assert len(records) == 1
     assert records[0].operation == "batch_push_handler"  # type: ignore[attr-defined]
@@ -150,8 +150,8 @@ async def test_vector_count_mismatch_raises_runtimeerror() -> None:
         [EmbeddingResult(vectors=[[0.1, 0.2]], model="fake")]  # only 1 vector for 2 chunks
     )
     container = _FakeContainerClient(payload=b"hello\n\nworld")
-    writer = cast(SupportsMergeOrUploadDocuments, AsyncMock(spec=["merge_or_upload_documents"]))
-    writer.merge_or_upload_documents = AsyncMock()  # type: ignore[method-assign]
+    search_provider = cast(BaseSearch, AsyncMock(spec=["merge_or_upload_documents"]))
+    search_provider.merge_or_upload_documents = AsyncMock()  # type: ignore[method-assign]
 
     with pytest.raises(RuntimeError, match="vector count mismatch"):
         await batch_push_handler(
@@ -159,6 +159,6 @@ async def test_vector_count_mismatch_raises_runtimeerror() -> None:
             _as_container(container),
             parser,
             embedder,
-            writer,
+            search_provider,
         )
-    writer.merge_or_upload_documents.assert_not_called()
+    search_provider.merge_or_upload_documents.assert_not_called()

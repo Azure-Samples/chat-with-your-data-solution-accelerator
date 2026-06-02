@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from backend.core.providers.embedders.base import BaseEmbedder
 from backend.core.providers.parsers.base import BaseParser
-from backend.core.providers.search.writer import SupportsMergeOrUploadDocuments
+from backend.core.providers.search.base import BaseSearch
 from backend.core.types import Chunk, EmbeddingResult, SearchDocument
 from functions.add_url import handler as handler_module
 from functions.add_url.handler import AddUrlRequest, add_url_handler
@@ -34,10 +34,10 @@ class _StubEmbedder(BaseEmbedder):
         return list(self._results)
 
 
-def _make_writer() -> SupportsMergeOrUploadDocuments:
-    writer = AsyncMock(spec=["merge_or_upload_documents"])
-    writer.merge_or_upload_documents = AsyncMock(return_value=[])
-    return cast(SupportsMergeOrUploadDocuments, writer)
+def _make_search_provider() -> BaseSearch:
+    provider = AsyncMock(spec=["merge_or_upload_documents"])
+    provider.merge_or_upload_documents = AsyncMock(return_value=[])
+    return cast(BaseSearch, provider)
 
 
 def _patch_fetch(
@@ -92,9 +92,9 @@ async def test_pipeline_pushes_documents_with_vectors_and_returns_them(
     embedder = _StubEmbedder(
         [EmbeddingResult(vectors=[[0.1, 0.2], [0.3, 0.4]], model="fake")]
     )
-    writer = _make_writer()
+    search_provider = _make_search_provider()
 
-    docs = await add_url_handler(_request(), parser, embedder, writer)
+    docs = await add_url_handler(_request(), parser, embedder, search_provider)
 
     assert fetch_calls == [("https://example.invalid/page", None)]
     assert parser.calls == [(payload, "https://example.invalid/page")]
@@ -113,8 +113,8 @@ async def test_pipeline_pushes_documents_with_vectors_and_returns_them(
             content_vector=[0.3, 0.4],
         ),
     ]
-    writer.merge_or_upload_documents.assert_awaited_once_with(  # type: ignore[attr-defined]
-        documents=[d.model_dump() for d in docs]
+    search_provider.merge_or_upload_documents.assert_awaited_once_with(  # type: ignore[attr-defined]
+        documents=docs
     )
 
 
@@ -126,14 +126,14 @@ async def test_zero_chunks_short_circuits_embed_and_search(
     _patch_fetch(monkeypatch, b"   ")
     parser = _StubParser([])
     embedder = _StubEmbedder([])
-    writer = _make_writer()
+    search_provider = _make_search_provider()
 
     caplog.set_level("INFO", logger="functions.add_url.handler")
-    docs = await add_url_handler(_request(), parser, embedder, writer)
+    docs = await add_url_handler(_request(), parser, embedder, search_provider)
 
     assert docs == []
     assert embedder.calls == []
-    writer.merge_or_upload_documents.assert_not_called()  # type: ignore[attr-defined]
+    search_provider.merge_or_upload_documents.assert_not_called()  # type: ignore[attr-defined]
     records = [r for r in caplog.records if r.name == "functions.add_url.handler"]
     assert len(records) == 1
     record = records[0]
@@ -167,11 +167,11 @@ async def test_vector_count_mismatch_raises_runtimeerror(
     embedder = _StubEmbedder(
         [EmbeddingResult(vectors=[[0.1, 0.2]], model="fake")]
     )
-    writer = _make_writer()
+    search_provider = _make_search_provider()
 
     with pytest.raises(RuntimeError, match="vector count mismatch"):
-        await add_url_handler(_request(), parser, embedder, writer)
-    writer.merge_or_upload_documents.assert_not_called()  # type: ignore[attr-defined]
+        await add_url_handler(_request(), parser, embedder, search_provider)
+    search_provider.merge_or_upload_documents.assert_not_called()  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
@@ -185,14 +185,14 @@ async def test_injected_client_is_passed_through_to_fetch_url(
     embedder = _StubEmbedder(
         [EmbeddingResult(vectors=[[0.5, 0.6]], model="fake")]
     )
-    writer = _make_writer()
+    search_provider = _make_search_provider()
     sentinel_client = object()
 
     await add_url_handler(
         _request(),
         parser,
         embedder,
-        writer,
+        search_provider,
         client=cast("None", sentinel_client),
     )
 

@@ -52,6 +52,41 @@ class Environment(StrEnum):
     PRODUCTION = "production"
 
 
+class DbType(StrEnum):
+    """Registry key for the chat-history database backend.
+
+    Values are the registry keys passed to
+    `databases_registry.registry.get(...)`. `StrEnum` subclasses `str`
+    so dict lookups and JSON serialization round-trip unchanged; the
+    enum exists to satisfy Hard Rule #11 at the comparison sites.
+
+    Members:
+        COSMOSDB: Azure Cosmos DB for NoSQL.
+        POSTGRESQL: Azure Database for PostgreSQL Flexible Server.
+    """
+
+    COSMOSDB = "cosmosdb"
+    POSTGRESQL = "postgresql"
+
+
+class IndexStore(StrEnum):
+    """Registry key for the vector index store.
+
+    Values are the registry keys passed to
+    `search_registry.registry.get(...)`. `StrEnum` subclasses `str`
+    so dict lookups and JSON serialization round-trip unchanged; the
+    enum exists to satisfy Hard Rule #11 at the comparison sites.
+
+    Members:
+        AZURE_SEARCH: Azure AI Search (index provisioned by Bicep).
+        PGVECTOR: `pgvector` extension on the postgres backend
+            (`documents` table provisioned by `PgVector.ensure_schema`).
+    """
+
+    AZURE_SEARCH = "AzureSearch"
+    PGVECTOR = "pgvector"
+
+
 # ---------------------------------------------------------------------------
 # Per-subsystem settings
 # ---------------------------------------------------------------------------
@@ -96,6 +131,7 @@ class OpenAISettings(BaseSettings):
     gpt_deployment: str = ""
     reasoning_deployment: str = ""
     embedding_deployment: str = ""
+    embedding_dimensions: int = 1536
     temperature: float = 0.0
     max_tokens: int = 1000
 
@@ -116,8 +152,8 @@ class DatabaseSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="AZURE_", extra="ignore")
 
-    db_type: Literal["cosmosdb", "postgresql"] = "cosmosdb"
-    index_store: Literal["AzureSearch", "pgvector"] = "AzureSearch"
+    db_type: DbType | str = DbType.COSMOSDB
+    index_store: IndexStore | str = IndexStore.AZURE_SEARCH
 
     # cosmosdb mode (empty in postgresql mode)
     cosmos_endpoint: str = ""
@@ -137,24 +173,30 @@ class DatabaseSettings(BaseSettings):
         # class instantiation, no behavior branch); registry callers always
         # go through `databases.create(db_type, ...)` / `search.create(
         # index_store, ...)` per Hard Rule #4.
-        if self.db_type == "cosmosdb":  # noqa: registry-dispatch -- config validator
+        if self.db_type == DbType.COSMOSDB:
             if not self.cosmos_endpoint:
                 raise ValueError(
                     "AZURE_DB_TYPE=cosmosdb requires AZURE_COSMOS_ENDPOINT to be set."
                 )
-            if self.index_store != "AzureSearch":
+            if self.index_store != IndexStore.AZURE_SEARCH:
                 raise ValueError(
                     "AZURE_DB_TYPE=cosmosdb requires AZURE_INDEX_STORE=AzureSearch."
                 )
-        else:  # postgresql
+        elif self.db_type == DbType.POSTGRESQL:
             if not self.postgres_endpoint:
                 raise ValueError(
                     "AZURE_DB_TYPE=postgresql requires AZURE_POSTGRES_ENDPOINT to be set."
                 )
-            if self.index_store != "pgvector":
+            if self.index_store != IndexStore.PGVECTOR:
                 raise ValueError(
                     "AZURE_DB_TYPE=postgresql requires AZURE_INDEX_STORE=pgvector."
                 )
+        # Third-party `db_type` (str arm of `DbType | str` /
+        # `IndexStore | str` per Hard Rule #11 registry-driven carve-out).
+        # First-party env-var coupling does not apply: the plugin owns its
+        # own env-var validation at provider construction; the
+        # `databases_registry.registry.get(...)` / `search_registry.registry
+        # .get(...)` boundary is the dispatch-time guard.
         return self
 
 
@@ -452,10 +494,12 @@ __all__ = [
     "AppSettings",
     "ContentSafetySettings",
     "DatabaseSettings",
+    "DbType",
     "DocumentIntelligenceSettings",
     "Environment",
     "FoundrySettings",
     "IdentitySettings",
+    "IndexStore",
     "NetworkSettings",
     "ObservabilitySettings",
     "OpenAISettings",

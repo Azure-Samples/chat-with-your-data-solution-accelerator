@@ -4,7 +4,7 @@ Pillar: Stable Core
 Phase: 7 (router cleanup -- health-probe diagnostic helpers)
 """
 
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, DbType, IndexStore
 from backend.models.health import CheckStatus, DependencyCheck, HealthResponse, OverallStatus
 
 __all__ = ["run_health_checks"]
@@ -24,7 +24,7 @@ def _check_database(settings: AppSettings) -> DependencyCheck:
     # Not provider dispatch (no class instantiation, no behavior branch); database provider selection
     # goes through `databases.create(db.db_type, ...)` per Hard Rule #4.
     endpoint = (
-        db.cosmos_endpoint if db.db_type == "cosmosdb" else db.postgres_endpoint  # noqa: registry-dispatch -- diagnostic
+        db.cosmos_endpoint if db.db_type == DbType.COSMOSDB else db.postgres_endpoint
     )
     if not endpoint:
         return DependencyCheck(name="database", status=CheckStatus.FAIL, detail=f"No endpoint configured for db_type={db.db_type!r}.")
@@ -34,7 +34,7 @@ def _check_database(settings: AppSettings) -> DependencyCheck:
 def _check_search(settings: AppSettings) -> DependencyCheck:
     # Diagnostic display only -- picks which configured search check to report.
     # Not provider dispatch; search provider selection goes through `search.create(db.index_store, ...)` per Hard Rule #4.
-    if settings.database.index_store == "AzureSearch":  # noqa: registry-dispatch -- diagnostic
+    if settings.database.index_store == IndexStore.AZURE_SEARCH:
         if not settings.search.endpoint:
             return DependencyCheck(name="search", status=CheckStatus.FAIL, detail="AZURE_AI_SEARCH_ENDPOINT is not set.")
         return DependencyCheck(name="search", status=CheckStatus.PASS, detail="AzureSearch")

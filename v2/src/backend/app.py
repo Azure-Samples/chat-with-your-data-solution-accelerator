@@ -37,7 +37,7 @@ from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.llm import registry as llm_registry
 from backend.core.providers.search import registry as search_registry
-from backend.core.settings import AppSettings, NetworkSettings, get_settings
+from backend.core.settings import AppSettings, IndexStore, NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     #     supply it.
     search_key = settings.database.index_store
     search_provider = None
-    needs_endpoint = search_key == "AzureSearch"
+    needs_endpoint = search_key == IndexStore.AZURE_SEARCH
     if needs_endpoint and not settings.search.endpoint:
         logger.info(
             "Search disabled (key=%s, no endpoint configured); "
@@ -157,7 +157,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             "settings": settings,
             "credential": credential,
         }
-        if search_key == "pgvector":
+        if search_key == IndexStore.PGVECTOR:
             # pgvector requires the postgres pool. `ensure_pool()` lives
             # only on the postgres client; if the pgvector path is
             # selected but the database client isn't postgres, the
@@ -170,6 +170,13 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                 await database_client.ensure_pool()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
             )
         search_provider = search_registry.registry.get(search_key)(**search_kwargs)
+        # ensure_schema is a no-op on AzureSearch (index owned by
+        # Bicep) and runs the pgvector DDL once-per-process under an
+        # asyncio.Lock + readiness flag. Unconditional call keeps the
+        # wiring provider-agnostic; raising here aborts lifespan startup
+        # before `yield` (the app refuses to boot on a broken schema),
+        # consistent with how earlier setup failures already behave.
+        await search_provider.ensure_schema()
         logger.info("Search provider ready (%s).", search_key)
     app.state.search_provider = search_provider
 

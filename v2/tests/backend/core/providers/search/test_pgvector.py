@@ -13,18 +13,24 @@ fallback when no vector is supplied, (d) row -> SearchResult mapping,
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import asyncio
 import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import pytest
 
 from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.pgvector import PgVector, _format_vector_literal
-from backend.core.settings import AppSettings, DatabaseSettings, SearchSettings
+from backend.core.settings import (
+    AppSettings,
+    DatabaseSettings,
+    OpenAISettings,
+    SearchSettings,
+)
 from backend.core.types import SearchDocument
 
 _PGVECTOR_LOGGER_NAME = "backend.core.providers.search.pgvector"
 
 
-def _make_settings(top_k: int = 5) -> AppSettings:
+def _make_settings(top_k: int = 5, dimensions: int = 1536) -> AppSettings:
     s = MagicMock(spec=AppSettings)
     s.search = SearchSettings(top_k=top_k, use_semantic_search=False)
     s.database = DatabaseSettings(
@@ -33,12 +39,14 @@ def _make_settings(top_k: int = 5) -> AppSettings:
         postgres_endpoint="postgresql://x:5432/cwyd?sslmode=require",
         postgres_admin_principal_name="id-cwyd001",
     )
+    s.openai = OpenAISettings(embedding_dimensions=dimensions)
     return s
 
 
 def _make_pool(rows: list[dict[str, Any]] | None = None) -> MagicMock:
     pool = MagicMock()
     pool.fetch = AsyncMock(return_value=rows or [])
+    pool.execute = AsyncMock(return_value="CREATE")
     pool.close = AsyncMock()
     return pool
 
@@ -413,3 +421,133 @@ async def test_merge_or_upload_documents_logs_and_reraises_on_postgres_error(
         f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
     )
     pool.fetch.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# ensure_schema
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_runs_extension_table_and_index_ddl_in_one_call() -> None:
+    pool = _make_pool()
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    await provider.ensure_schema()
+
+    pool.execute.assert_awaited_once()
+    sql = pool.execute.await_args.args[0]
+    assert "CREATE EXTENSION IF NOT EXISTS vector" in sql
+    assert "CREATE TABLE IF NOT EXISTS documents" in sql
+    assert "content_vector  vector(1536) NOT NULL" in sql
+    assert "CREATE INDEX IF NOT EXISTS documents_vec_hnsw" in sql
+    assert "USING hnsw (content_vector vector_cosine_ops)" in sql
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_uses_configured_embedding_dimensions() -> None:
+    pool = _make_pool()
+    provider = PgVector(
+        settings=_make_settings(dimensions=3072),
+        credential=AsyncMock(),
+        pool=pool,
+    )
+
+    await provider.ensure_schema()
+
+    sql = pool.execute.await_args.args[0]
+    assert "content_vector  vector(3072) NOT NULL" in sql
+    assert "vector(1536)" not in sql
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_interpolates_custom_table_name() -> None:
+    pool = _make_pool()
+    provider = PgVector(
+        settings=_make_settings(),
+        credential=AsyncMock(),
+        pool=pool,
+        table="cwyd_chunks",
+    )
+
+    await provider.ensure_schema()
+
+    sql = pool.execute.await_args.args[0]
+    assert "CREATE TABLE IF NOT EXISTS cwyd_chunks" in sql
+    assert "CREATE INDEX IF NOT EXISTS cwyd_chunks_vec_hnsw" in sql
+    assert "ON cwyd_chunks USING hnsw" in sql
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_is_idempotent_across_repeat_calls() -> None:
+    pool = _make_pool()
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    await provider.ensure_schema()
+    await provider.ensure_schema()
+    await provider.ensure_schema()
+
+    # Single-flight: DDL runs exactly once across N calls in the
+    # same process. The `_schema_ready` flag short-circuits repeats.
+    assert pool.execute.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_concurrent_callers_run_ddl_once() -> None:
+    pool = _make_pool()
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    # Three concurrent first-use callers. The asyncio.Lock + the
+    # double-checked `_schema_ready` flag must ensure only one of
+    # them actually executes the DDL; the other two find the flag
+    # set inside the lock and short-circuit.
+    await asyncio.gather(
+        provider.ensure_schema(),
+        provider.ensure_schema(),
+        provider.ensure_schema(),
+    )
+
+    assert pool.execute.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_ensure_schema_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool = MagicMock()
+    pool.execute = AsyncMock(
+        side_effect=asyncpg.PostgresError("permission denied for schema public")
+    )
+    provider = PgVector(
+        settings=_make_settings(dimensions=1536),
+        credential=AsyncMock(),
+        pool=pool,
+    )
+
+    with caplog.at_level("ERROR", logger=_PGVECTOR_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await provider.ensure_schema()
+
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR"
+        and getattr(r, "operation", None) == "ensure_schema"
+        and getattr(r, "provider", None) == "pgvector"
+        and getattr(r, "table", None) == "documents"
+        and getattr(r, "dimensions", None) == 1536
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record with operation=ensure_schema/provider=pgvector/table=documents/dimensions=1536, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    pool.execute.assert_awaited_once()
+    # Failure must NOT flip the readiness flag -- a retry should
+    # re-attempt the DDL rather than silently no-op.
+    assert provider._schema_ready is False  # type: ignore[attr-defined]

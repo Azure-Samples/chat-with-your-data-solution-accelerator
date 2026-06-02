@@ -37,7 +37,7 @@ Status codes: `200` on success · `401` missing/malformed Easy Auth (production 
 |---|---|---|
 | `orchestrator_name` | `str` | `settings.orchestrator.name` |
 | `db_type` | `str` | `settings.database.type` |
-| `index_store` | `str` | `settings.search.index_store` |
+| `index_store` | `str` | `settings.database.index_store` |
 | `environment` | `str` | `"local"` or `"production"` |
 | `foundry_project_endpoint_host` | `str` | hostname of `settings.foundry.project_endpoint`, path stripped |
 | `gpt_deployment` | `str` | `settings.llm.gpt_deployment` |

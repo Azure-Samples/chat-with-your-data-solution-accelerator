@@ -270,3 +270,134 @@ def test_add_url_route_registered_on_app() -> None:
 )
 def test_parser_key_for_url(url: str, expected_key: str) -> None:
     assert _parser_key_for_url(url) == expected_key
+
+
+# ---------------------------------------------------------------------------
+# _execute integration -- ensure_schema wiring
+# ---------------------------------------------------------------------------
+#
+# Mirrors the batch_push blueprint coverage: the rest of this file
+# monkeypatches `_execute` away; these two tests exercise the real
+# body to prove `await search_provider.ensure_schema()` is wired
+# before the handler and that `aclose` still runs when ensure_schema
+# raises.
+
+
+class _StubCredCM:
+    """Async context manager whose body is a sentinel credential."""
+
+    async def __aenter__(self) -> object:
+        return object()
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+
+class _StubCredProvider:
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+    async def get_credential(self) -> _StubCredCM:
+        return _StubCredCM()
+
+
+def _patch_execute_collaborators(
+    monkeypatch: pytest.MonkeyPatch,
+    search_stub: object,
+    *,
+    record: list[str],
+) -> None:
+    """Wire every registry + handler `_execute` reaches.
+
+    `record` collects a call-order trail across `ensure_schema`,
+    `add_url_handler`, and `aclose` so tests can assert the schema
+    bootstrap runs **before** the handler and that `aclose` still
+    runs when `ensure_schema` raises.
+    """
+    monkeypatch.setattr(bp_module.credentials_registry, "select_default", lambda _cid: "managed_identity")
+    monkeypatch.setattr(
+        bp_module.credentials_registry.registry, "get", lambda _key: _StubCredProvider
+    )
+    parser = type("Parser", (), {"__init__": lambda self, **_kw: None})
+    monkeypatch.setattr(bp_module.ingestion_parsers_registry.registry, "get", lambda _key: parser)
+
+    class _Embedder:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr(bp_module.embedders_registry.registry, "get", lambda _key: _Embedder)
+    monkeypatch.setattr(bp_module.search_registry.registry, "get", lambda _key: lambda **_kw: search_stub)
+
+    async def _stub_handler(*_a: object, **_kw: object) -> list[SearchDocument]:
+        record.append("add_url_handler")
+        return []
+
+    monkeypatch.setattr(bp_module, "add_url_handler", _stub_handler)
+
+
+@pytest.mark.asyncio
+async def test_execute_calls_ensure_schema_before_handler_and_aclose_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record: list[str] = []
+
+    class _StubSearch:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def ensure_schema(self) -> None:
+            record.append("ensure_schema")
+
+        async def aclose(self) -> None:
+            record.append("aclose")
+
+    _patch_execute_collaborators(monkeypatch, _StubSearch(), record=record)
+    settings = AppSettings()
+    request = AddUrlRequest(
+        url="https://example.invalid/file.txt",
+        ingestion_job_id="00000000-0000-0000-0000-000000000099",
+    )
+
+    await bp_module._execute(request, settings)
+
+    # The DDL bootstrap MUST land before the handler runs so the
+    # first add_url request on a fresh pgvector deploy does not hit
+    # `relation "documents" does not exist`. Cleanup still runs.
+    assert record == ["ensure_schema", "add_url_handler", "aclose"]
+
+
+@pytest.mark.asyncio
+async def test_execute_propagates_ensure_schema_failure_and_still_closes_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record: list[str] = []
+
+    class _FailingSearch:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def ensure_schema(self) -> None:
+            record.append("ensure_schema")
+            raise AzureError("ddl rejected")
+
+        async def aclose(self) -> None:
+            record.append("aclose")
+
+    _patch_execute_collaborators(monkeypatch, _FailingSearch(), record=record)
+    settings = AppSettings()
+    request = AddUrlRequest(
+        url="https://example.invalid/file.txt",
+        ingestion_job_id="00000000-0000-0000-0000-000000000099",
+    )
+
+    with pytest.raises(AzureError):
+        await bp_module._execute(request, settings)
+
+    # Handler never runs (schema bootstrap is its precondition); the
+    # `finally: aclose` on the search provider must still fire so we
+    # do not leak the asyncpg pool / HTTP client.
+    assert record == ["ensure_schema", "aclose"]
+    assert "add_url_handler" not in record

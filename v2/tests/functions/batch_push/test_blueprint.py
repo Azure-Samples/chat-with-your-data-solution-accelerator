@@ -232,3 +232,152 @@ def test_batch_push_route_registered_on_app() -> None:
     # Regression: previously registered routes still present.
     assert "batch_start" in function_names
     assert "health" in function_names
+
+
+# ---------------------------------------------------------------------------
+# _execute integration -- ensure_schema wiring
+# ---------------------------------------------------------------------------
+#
+# These tests exercise the real `_execute` (the rest of the file
+# monkeypatches it away). They stub every collaborator the body
+# touches so we never hit Azurite, Foundry IQ, a real Search service,
+# or a real asyncpg pool. The point of these two tests is narrow:
+# prove that `await search_provider.ensure_schema()` is wired into
+# `_execute` and that ordering + cleanup semantics are correct.
+
+
+class _StubCredCM:
+    """Async context manager whose body is a sentinel credential."""
+
+    async def __aenter__(self) -> object:
+        return object()
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+
+class _StubCredProvider:
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+    async def get_credential(self) -> _StubCredCM:
+        return _StubCredCM()
+
+
+class _StubContainerClient:
+    """Async CM standing in for azure.storage.blob.aio.ContainerClient."""
+
+    def __init__(self, **_kwargs: object) -> None:
+        pass
+
+    async def __aenter__(self) -> "_StubContainerClient":
+        return self
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+
+def _patch_execute_collaborators(
+    monkeypatch: pytest.MonkeyPatch,
+    search_stub: object,
+    *,
+    record: list[str],
+) -> None:
+    """Wire every registry + transient `_execute` reaches.
+
+    `record` collects a call-order trail across `ensure_schema`,
+    `batch_push_handler`, and `aclose` so tests can assert the
+    schema bootstrap runs **before** the handler and that `aclose`
+    still runs when `ensure_schema` raises.
+    """
+    monkeypatch.setattr(bp_module.credentials_registry, "select_default", lambda _cid: "managed_identity")
+    monkeypatch.setattr(
+        bp_module.credentials_registry.registry, "get", lambda _key: _StubCredProvider
+    )
+    parser = type("Parser", (), {"__init__": lambda self, **_kw: None})
+    monkeypatch.setattr(bp_module.ingestion_parsers_registry.registry, "get", lambda _key: parser)
+
+    class _Embedder:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr(bp_module.embedders_registry.registry, "get", lambda _key: _Embedder)
+    monkeypatch.setattr(bp_module.search_registry.registry, "get", lambda _key: lambda **_kw: search_stub)
+    monkeypatch.setattr(bp_module, "ContainerClient", _StubContainerClient)
+    monkeypatch.setattr(
+        bp_module,
+        "resolve_storage_endpoints",
+        lambda _s: ("https://stcwyd001.blob.core.windows.net", ""),
+    )
+
+    async def _stub_handler(**_kw: object) -> list[SearchDocument]:
+        record.append("batch_push_handler")
+        return []
+
+    monkeypatch.setattr(bp_module, "batch_push_handler", _stub_handler)
+
+
+@pytest.mark.asyncio
+async def test_execute_calls_ensure_schema_before_handler_and_aclose_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record: list[str] = []
+
+    class _StubSearch:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def ensure_schema(self) -> None:
+            record.append("ensure_schema")
+
+        async def aclose(self) -> None:
+            record.append("aclose")
+
+    _patch_execute_collaborators(monkeypatch, _StubSearch(), record=record)
+    settings = AppSettings()
+    envelope = BatchPushQueueMessage(
+        container_name="documents", filename="a.txt", ingestion_job_id="job-x"
+    )
+
+    await bp_module._execute(envelope, settings)
+
+    # The DDL bootstrap MUST land before the handler runs (otherwise
+    # the first ingestion message on a fresh pgvector deploy hits
+    # `relation "documents" does not exist`). Cleanup must still run.
+    assert record == ["ensure_schema", "batch_push_handler", "aclose"]
+
+
+@pytest.mark.asyncio
+async def test_execute_propagates_ensure_schema_failure_and_still_closes_provider(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    record: list[str] = []
+
+    class _FailingSearch:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def ensure_schema(self) -> None:
+            record.append("ensure_schema")
+            raise AzureError("ddl rejected")
+
+        async def aclose(self) -> None:
+            record.append("aclose")
+
+    _patch_execute_collaborators(monkeypatch, _FailingSearch(), record=record)
+    settings = AppSettings()
+    envelope = BatchPushQueueMessage(
+        container_name="documents", filename="a.txt", ingestion_job_id="job-x"
+    )
+
+    with pytest.raises(AzureError):
+        await bp_module._execute(envelope, settings)
+
+    # Handler never runs (schema bootstrap is its precondition); the
+    # `finally: aclose` on the search provider must still fire so we
+    # do not leak the asyncpg pool / HTTP client.
+    assert record == ["ensure_schema", "aclose"]
+    assert "batch_push_handler" not in record

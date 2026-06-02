@@ -7,20 +7,24 @@ Pure orchestration handler for the ``batch_push`` blueprint.
 :func:`functions.batch_push.blob_fetcher.download_blob`, the
 :class:`backend.core.providers.parsers.base.BaseParser` registry, the
 :class:`backend.core.providers.embedders.base.BaseEmbedder` registry,
-and :func:`backend.core.providers.search.writer.push_documents` -- into
-the per-message ingestion step that consumes one
+and :meth:`backend.core.providers.search.base.BaseSearch.merge_or_upload_documents`
+-- into the per-message ingestion step that consumes one
 :class:`BatchPushQueueMessage` and writes embedded chunks into the
 configured search index.
 
 Design notes:
 
-* Every collaborator is injected (DI). Credentials wiring, container /
-  search-client construction, and the queue-trigger binding live in
-  the next units (function_app.py blueprint registration). Client
-  injection keeps the handler directly unit-testable without spinning
-  up Azurite / a real Search service.
+* Every collaborator is injected (DI). The blueprint dispatches the
+  ``search_provider`` via ``search_registry.registry.get(
+  settings.database.index_store)`` so the handler stays agnostic of
+  whether the write lands in Azure AI Search or in pgvector. Each
+  concrete provider owns its own SDK boundary + structured logging
+  inside its ``merge_or_upload_documents`` override (see
+  :class:`backend.core.providers.search.azure_search.AzureSearch` /
+  :class:`backend.core.providers.search.pgvector.PgVector`).
 * No try/except wrapper here. ``download_blob``, the embedder, and
-  :func:`push_documents` already wrap their SDK boundaries per
+  ``search_provider.merge_or_upload_documents`` already wrap their
+  SDK boundaries per
   [v2/docs/exception_handling_policy.md] section "Functions
   blueprints". Adding another layer would double-log. Any exception
   propagates so the Functions runtime applies its retry / poison-queue
@@ -37,10 +41,7 @@ from azure.storage.blob.aio import ContainerClient
 
 from backend.core.providers.embedders.registry import EmbedderInstance
 from backend.core.providers.parsers.base import BaseParser
-from backend.core.providers.search.writer import (
-    SupportsMergeOrUploadDocuments,
-    push_documents,
-)
+from backend.core.providers.search.base import BaseSearch
 from backend.core.types import Chunk, SearchDocument
 from functions.batch_push.blob_fetcher import download_blob
 from functions.core.contracts import BatchPushQueueMessage
@@ -70,13 +71,14 @@ async def batch_push_handler(
     container_client: ContainerClient,
     parser: BaseParser,
     embedder: EmbedderInstance,
-    search_writer: SupportsMergeOrUploadDocuments,
+    search_provider: BaseSearch,
 ) -> list[SearchDocument]:
-    """Download → parse → embed → push one ``batch_push`` message.
+    """Download -> parse -> embed -> push one ``batch_push`` message.
 
-    Returns the documents handed to :func:`push_documents` (in chunk
-    order) so the future HTTP / queue-trigger wrapper can include a
-    count in traces and tests can assert on the wire shape end-to-end.
+    Returns the documents handed to
+    ``search_provider.merge_or_upload_documents`` (in chunk order) so
+    the future HTTP / queue-trigger wrapper can include a count in
+    traces and tests can assert on the wire shape end-to-end.
     """
     content = await download_blob(container_client, message.filename)
     chunks = await parser.parse(content, source=message.filename)
@@ -103,5 +105,5 @@ async def batch_push_handler(
     documents = [
         _build_document(chunk, vector) for chunk, vector in zip(chunks, vectors)
     ]
-    await push_documents(search_writer, documents)
+    await search_provider.merge_or_upload_documents(documents=documents)
     return documents

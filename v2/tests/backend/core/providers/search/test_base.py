@@ -84,3 +84,30 @@ def test_merge_or_upload_signature_is_keyword_only() -> None:
     sig = inspect.signature(BaseSearch.merge_or_upload_documents)
     documents_param = sig.parameters["documents"]
     assert documents_param.kind is inspect.Parameter.KEYWORD_ONLY
+
+
+@pytest.mark.asyncio
+async def test_default_ensure_schema_is_noop() -> None:
+    """`ensure_schema` default body returns None without raising.
+
+    Providers whose index is managed out-of-band (Azure Search index
+    created by Bicep, future managed-vector services) inherit the
+    default and require no override. Callers wire
+    `await provider.ensure_schema()` unconditionally; the no-op base
+    keeps that callsite provider-agnostic.
+    """
+    instance = _MinimalSearch(_make_settings(), MagicMock())
+    result = await instance.ensure_schema()
+    assert result is None
+
+
+def test_ensure_schema_signature_takes_no_required_args() -> None:
+    """`ensure_schema()` must be callable with zero arguments other than self."""
+    sig = inspect.signature(BaseSearch.ensure_schema)
+    non_self_params = [
+        p for name, p in sig.parameters.items() if name != "self"
+    ]
+    assert non_self_params == [], (
+        f"ensure_schema must take no required args beyond self; "
+        f"got {[p.name for p in non_self_params]}"
+    )

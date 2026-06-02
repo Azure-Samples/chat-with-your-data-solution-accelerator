@@ -3,18 +3,28 @@
 Pillar: Stable Core
 Phase: 4
 
-Reads from a `documents` table populated by the Postgres ingestion
-pipeline (Phase 5). Schema (created by the ingestion side, not here):
+Reads from / writes to a ``documents`` table whose schema is
+auto-created on first use by :meth:`PgVector.ensure_schema` (called
+by the backend lifespan and the Functions ingestion blueprints).
+Canonical shape:
 
-    CREATE TABLE documents (
+    CREATE EXTENSION IF NOT EXISTS vector;
+    CREATE TABLE IF NOT EXISTS documents (
         id              TEXT PRIMARY KEY,
         content         TEXT NOT NULL,
         title           TEXT,
         url             TEXT,
-        content_vector  vector(1536) NOT NULL
+        content_vector  vector(<dims>) NOT NULL
     );
-    CREATE INDEX documents_vec_hnsw
+    CREATE INDEX IF NOT EXISTS documents_vec_hnsw
         ON documents USING hnsw (content_vector vector_cosine_ops);
+
+Vector column dimensionality is sourced from
+``settings.openai.embedding_dimensions`` so deploys targeting
+``text-embedding-3-large`` (3072) or shortened-output variants pick
+up the right column width at first bootstrap. Changing the
+dimension on an existing deploy requires a manual drop+recreate;
+``CREATE TABLE IF NOT EXISTS`` does not alter an existing column.
 
 Hybrid retrieval is approximated as **cosine similarity over the
 embedding** when a `vector` is provided; without one we fall back to
@@ -28,6 +38,7 @@ The lifespan bootstraps the postgres client (`ensure_pool()`) and
 then hands its pool to this provider.
 """
 
+import asyncio
 from typing import Any, Mapping, Sequence, cast
 
 import logging
@@ -72,6 +83,12 @@ class PgVector(BaseSearch):
         # per concern).
         self._pool = pool
         self._table = table
+        # Single-flight schema bootstrap. The lock serializes the
+        # first N concurrent `ensure_schema()` callers so only one
+        # executes the DDL; the flag short-circuits every subsequent
+        # call. Mirrors `PostgresClient._ensure_pool` precedent.
+        self._schema_ready: bool = False
+        self._schema_init_lock: asyncio.Lock = asyncio.Lock()
 
     async def search(
         self,
@@ -220,3 +237,45 @@ class PgVector(BaseSearch):
         # Pool ownership stays with PostgresClient -- never close it
         # here or we'd kill the chat-history database too.
         return None
+
+    async def ensure_schema(self) -> None:
+        # Fast path: already bootstrapped this process.
+        if self._schema_ready:
+            return
+        async with self._schema_init_lock:
+            # Double-check inside the lock -- a concurrent caller may
+            # have completed the bootstrap while we waited to acquire.
+            if self._schema_ready:
+                return
+            dimensions = self._settings.openai.embedding_dimensions
+            # Table name + dimensions are allow-listed at
+            # construction / settings load (never user-supplied) so
+            # interpolation is safe; the DDL itself has no
+            # parameters that asyncpg could parameterize.
+            sql = (
+                "CREATE EXTENSION IF NOT EXISTS vector;\n"
+                f"CREATE TABLE IF NOT EXISTS {self._table} (\n"
+                "    id              TEXT PRIMARY KEY,\n"
+                "    content         TEXT NOT NULL,\n"
+                "    title           TEXT,\n"
+                "    url             TEXT,\n"
+                f"    content_vector  vector({dimensions}) NOT NULL\n"
+                ");\n"
+                f"CREATE INDEX IF NOT EXISTS {self._table}_vec_hnsw "
+                f"ON {self._table} USING hnsw "
+                "(content_vector vector_cosine_ops);"
+            )
+            try:
+                await self._pool.execute(sql)  # pyright: ignore[reportUnknownMemberType]
+            except asyncpg.PostgresError:
+                logger.exception(
+                    "pgvector ensure_schema failed",
+                    extra={
+                        "operation": "ensure_schema",
+                        "provider": "pgvector",
+                        "table": self._table,
+                        "dimensions": dimensions,
+                    },
+                )
+                raise
+            self._schema_ready = True

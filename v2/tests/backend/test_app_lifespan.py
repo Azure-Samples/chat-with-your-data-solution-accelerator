@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from azure.core.exceptions import AzureError
 
 from backend.app import _init_content_safety_client, create_app
 from backend.core.settings import AppSettings, get_settings
@@ -102,6 +103,7 @@ async def test_lifespan_constructs_search_provider_when_endpoint_set(
 
     fake_search = MagicMock(name="search_provider")
     fake_search.aclose = AsyncMock()
+    fake_search.ensure_schema = AsyncMock()
     fake_search_registry = MagicMock(name="search_registry")
     fake_search_registry.get.return_value = lambda **_kw: fake_search
     monkeypatch.setattr(
@@ -147,7 +149,9 @@ async def test_lifespan_constructs_database_client_and_closes_on_shutdown(
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)
     _fake_sr = MagicMock(name="search_registry")
-    _fake_sr.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr("backend.app.search_registry.registry", _fake_sr)
 
     captured: dict[str, object] = {}
@@ -218,7 +222,9 @@ async def test_lifespan_dispatches_postgresql_db_type(
         "backend.app.databases_registry.registry", fake_databases_registry
     )
     _fake_sr2 = MagicMock(name="search_registry")
-    _fake_sr2.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr2.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr2
     )
@@ -265,6 +271,7 @@ async def test_lifespan_wires_pgvector_with_postgres_pool(
 
     fake_search = MagicMock(name="pgvector_provider")
     fake_search.aclose = AsyncMock()
+    fake_search.ensure_schema = AsyncMock()
     captured: dict[str, object] = {}
 
     def _capture_search_get(key):
@@ -325,6 +332,7 @@ async def test_lifespan_pgvector_does_not_require_search_endpoint(
 
     fake_search = MagicMock()
     fake_search.aclose = AsyncMock()
+    fake_search.ensure_schema = AsyncMock()
     fake_search_registry = MagicMock(name="search_registry")
     fake_search_registry.get.return_value = lambda **_kw: fake_search
     monkeypatch.setattr(
@@ -337,8 +345,74 @@ async def test_lifespan_pgvector_does_not_require_search_endpoint(
 
 
 # ---------------------------------------------------------------------------
-# CU-002b: typed Application Insights + CORS wiring
+# ensure_schema wiring (PGVECTOR-SCHEMA-BOOTSTRAP-DEBT sub-unit 1d)
 # ---------------------------------------------------------------------------
+
+
+async def test_lifespan_calls_ensure_schema_once_before_yield(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`await search_provider.ensure_schema()` must run once during
+    startup, before the lifespan yields to the app. Provider-agnostic:
+    AzureSearch inherits the no-op default; pgvector runs the DDL.
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+
+    record: list[str] = []
+
+    async def _record_ensure_schema() -> None:
+        record.append("ensure_schema")
+
+    fake_search = MagicMock(name="search_provider")
+    fake_search.aclose = AsyncMock()
+    fake_search.ensure_schema = AsyncMock(side_effect=_record_ensure_schema)
+    fake_search_registry = MagicMock(name="search_registry")
+    fake_search_registry.get.return_value = lambda **_kw: fake_search
+    monkeypatch.setattr(
+        "backend.app.search_registry.registry", fake_search_registry
+    )
+
+    app = create_app()
+    async with app.router.lifespan_context(app):
+        # By the time the app is yielding, ensure_schema must already
+        # have run. Subsequent assertions confirm it ran exactly once
+        # (not per-request, not in shutdown).
+        assert record == ["ensure_schema"]
+        fake_search.ensure_schema.assert_awaited_once()
+
+    # No second call during shutdown.
+    fake_search.ensure_schema.assert_awaited_once()
+
+
+async def test_lifespan_propagates_ensure_schema_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`ensure_schema` failure must abort startup -- the app refuses to
+    boot rather than yielding into a request loop that will crash on
+    every first query/ingestion. Consistent with how earlier setup
+    failures (credentials, database client) already behave.
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    _patched_lifespan(monkeypatch)
+
+    fake_search = MagicMock(name="search_provider")
+    fake_search.aclose = AsyncMock()
+    fake_search.ensure_schema = AsyncMock(
+        side_effect=AzureError("ddl rejected")
+    )
+    fake_search_registry = MagicMock(name="search_registry")
+    fake_search_registry.get.return_value = lambda **_kw: fake_search
+    monkeypatch.setattr(
+        "backend.app.search_registry.registry", fake_search_registry
+    )
+
+    app = create_app()
+    with pytest.raises(AzureError):
+        async with app.router.lifespan_context(app):
+            pass  # pragma: no cover -- startup must raise
+
+    fake_search.ensure_schema.assert_awaited_once()
 
 
 async def test_lifespan_configures_app_insights_from_typed_settings(
@@ -364,7 +438,9 @@ async def test_lifespan_configures_app_insights_from_typed_settings(
     _apply_env(monkeypatch, env)
     _patched_lifespan(monkeypatch)
     _fake_sr3 = MagicMock(name="search_registry")
-    _fake_sr3.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr3.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr3
     )
@@ -403,7 +479,9 @@ async def test_lifespan_skips_app_insights_when_typed_setting_empty(
     monkeypatch.delenv("AZURE_APP_INSIGHTS_CONNECTION_STRING", raising=False)
     _patched_lifespan(monkeypatch)
     _fake_sr4 = MagicMock(name="search_registry")
-    _fake_sr4.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr4.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr4
     )
@@ -487,7 +565,9 @@ async def test_lifespan_constructs_agents_provider_via_registry(
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)
     _fake_sr5 = MagicMock(name="search_registry")
-    _fake_sr5.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr5.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr5
     )
@@ -528,7 +608,9 @@ async def test_lifespan_closes_agents_provider_on_shutdown(
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)
     _fake_sr6 = MagicMock(name="search_registry")
-    _fake_sr6.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr6.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr6
     )
@@ -567,7 +649,9 @@ async def test_lifespan_loads_persisted_runtime_overrides_into_app_state(
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)
     _fake_sr7 = MagicMock(name="search_registry")
-    _fake_sr7.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr7.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr7
     )
@@ -603,7 +687,9 @@ async def test_lifespan_runtime_overrides_none_when_no_persisted_config(
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)  # default fake_db returns None
     _fake_sr8 = MagicMock(name="search_registry")
-    _fake_sr8.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    _fake_sr8.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr(
         "backend.app.search_registry.registry", _fake_sr8
     )
@@ -631,7 +717,9 @@ def _patch_search_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     so they can focus on whichever subsystem they're asserting on.
     """
     fake_sr = MagicMock(name="search_registry")
-    fake_sr.get.return_value = lambda **_kw: MagicMock(aclose=AsyncMock())
+    fake_sr.get.return_value = lambda **_kw: MagicMock(
+        aclose=AsyncMock(), ensure_schema=AsyncMock()
+    )
     monkeypatch.setattr("backend.app.search_registry.registry", fake_sr)
 
 

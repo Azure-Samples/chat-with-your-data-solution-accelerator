@@ -15,7 +15,9 @@ from backend.core import settings as settings_mod
 from backend.core.settings import (
     AppSettings,
     ContentSafetySettings,
+    DbType,
     DocumentIntelligenceSettings,
+    IndexStore,
     OrchestratorSettings,
     SpeechSettings,
     get_settings,
@@ -129,9 +131,84 @@ def test_loads_from_env_postgresql_mode(monkeypatch: pytest.MonkeyPatch) -> None
 # ---------------------------------------------------------------------------
 
 
-def test_db_type_validation_rejects_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_db_type_validation_rejects_first_party_postgresql_without_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Selecting the first-party `postgresql` key without the matching env
+    coupling still fails at Pydantic load. Confirms Unit 3 carve-out did
+    not silently weaken first-party validation.
+    """
     _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.setenv("AZURE_DB_TYPE", "mongodb")
+    monkeypatch.setenv("AZURE_DB_TYPE", "postgresql")
+    monkeypatch.setenv("AZURE_INDEX_STORE", "pgvector")
+    with pytest.raises(ValidationError):
+        AppSettings()
+
+
+@pytest.mark.parametrize(
+    "third_party_key",
+    ["mongodb", "dynamodb", "Cassandra-Custom"],
+)
+def test_db_type_accepts_third_party_registry_key(
+    monkeypatch: pytest.MonkeyPatch,
+    third_party_key: str,
+) -> None:
+    """Hard Rule #11 registry-driven carve-out: `DatabaseSettings.db_type`
+    is typed `DbType | str` so a third-party-registered key flows through
+    Pydantic validation unmodified. Dispatch-time validation moves to the
+    registry boundary (`databases_registry.registry.get(...)`); first-party
+    cosmos/postgres env-var coupling does not apply.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_DB_TYPE", third_party_key)
+    settings = AppSettings()
+    assert settings.database.db_type == third_party_key
+    # Pydantic took the `str` arm of the union, not a coerced `DbType` member.
+    assert not isinstance(settings.database.db_type, DbType)
+    # The first-party mode-consistency check did not fire: cosmos_endpoint
+    # is still populated from COSMOS_ENV but no AzureSearch coupling was
+    # enforced because the key is third-party.
+    assert settings.database.cosmos_endpoint.startswith("https://cosmos-")
+
+
+@pytest.mark.parametrize(
+    ("db_key", "index_key"),
+    [
+        ("mongodb", "mongodb_search"),
+        ("dynamodb", "opensearch"),
+        ("Cassandra-Custom", "Cassandra-Vector"),
+    ],
+)
+def test_index_store_accepts_third_party_registry_key(
+    monkeypatch: pytest.MonkeyPatch,
+    db_key: str,
+    index_key: str,
+) -> None:
+    """Hard Rule #11 registry-driven carve-out: `DatabaseSettings.index_store`
+    is typed `IndexStore | str`. A third-party `index_store` paired with a
+    third-party `db_type` flows through Pydantic unmodified; the validator's
+    fall-through skips first-party env-var coupling. Dispatch-time validation
+    moves to the `search_registry.registry.get(...)` boundary.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_DB_TYPE", db_key)
+    monkeypatch.setenv("AZURE_INDEX_STORE", index_key)
+    settings = AppSettings()
+    assert settings.database.index_store == index_key
+    # Pydantic took the `str` arm of the union, not a coerced `IndexStore` member.
+    assert not isinstance(settings.database.index_store, IndexStore)
+
+
+def test_index_store_validation_rejects_third_party_with_first_party_cosmos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A third-party `index_store` paired with first-party `db_type=cosmosdb`
+    is rejected: the first-party branch still enforces
+    `index_store == AzureSearch`. Third-party index stores only make sense
+    when paired with a third-party `db_type` that skips the coupling check.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_INDEX_STORE", "mongodb_search")
     with pytest.raises(ValidationError):
         AppSettings()
 
@@ -284,6 +361,31 @@ def test_observability_optional(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = AppSettings()
     assert settings.observability.app_insights_connection_string == ""
     assert settings.observability.log_level == "INFO"
+
+
+# ---------------------------------------------------------------------------
+# OpenAISettings
+# ---------------------------------------------------------------------------
+
+
+def test_openai_embedding_dimensions_defaults_to_1536(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.delenv("AZURE_OPENAI_EMBEDDING_DIMENSIONS", raising=False)
+    settings = AppSettings()
+    # 1536 matches text-embedding-ada-002 / text-embedding-3-small and
+    # the pgvector(N) literal hard-coded in the schema docstring.
+    assert settings.openai.embedding_dimensions == 1536
+
+
+def test_openai_embedding_dimensions_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_OPENAI_EMBEDDING_DIMENSIONS", "3072")
+    settings = AppSettings()
+    assert settings.openai.embedding_dimensions == 3072
 
 
 # ---------------------------------------------------------------------------

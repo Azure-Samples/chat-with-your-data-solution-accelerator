@@ -118,6 +118,29 @@ class BaseSearch(ABC):
             "override on the concrete provider class."
         )
 
+    async def ensure_schema(self) -> None:
+        """Bootstrap any index/table/extension the provider needs to serve.
+
+        Called once per process by the lifespan wiring (backend
+        startup) and once per blueprint invocation by the Functions
+        ingestion path (idempotent on the concrete side). Lets
+        providers that own a lazy schema -- pgvector creates
+        ``documents`` + the HNSW index on first use -- self-bootstrap
+        on a fresh deploy without an out-of-band DDL step.
+
+        Default implementation is a **no-op**. Providers whose index
+        is managed out-of-band (Azure Search index created by Bicep
+        / admin tooling; future managed-vector services) inherit the
+        default and require no override. Only providers that own
+        their DDL override this method.
+
+        Concrete overrides are responsible for their own idempotency
+        (typically a ``_schema_ready`` flag guarded by
+        :class:`asyncio.Lock` for single-flight under concurrent
+        callers) and for wrapping SDK errors per Hard Rule #14.
+        """
+        return None
+
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default no-op."""
         return None

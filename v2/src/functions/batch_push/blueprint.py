@@ -42,11 +42,15 @@ Registry-first collaborator wiring (Hard Rule #4):
   is ``"azure_openai"`` (single concrete embedder today; an alternate
   concrete would land in §4.6.1 and the lookup key would be lifted
   to settings then).
-
-The Azure Search write client is constructed directly here (one-shot
-SDK wiring with no provider variants -- the writer protocol exists
-precisely so :func:`batch_push_handler` does not care which client
-satisfies it; see decision D4 in dev_plan §4.6.1).
+* Search write target via ``search_registry`` keyed on
+  ``settings.database.index_store`` -- ``"AzureSearch"`` returns an
+  :class:`backend.core.providers.search.azure_search.AzureSearch`
+  instance that owns its own SDK client; ``"pgvector"`` returns a
+  :class:`backend.core.providers.search.pgvector.PgVector` instance
+  that needs the asyncpg pool wired via
+  :class:`functions.core.pgvector_pool.PgVectorPool`. Both concretes
+  satisfy ``BaseSearch.merge_or_upload_documents`` so the handler
+  stays provider-agnostic.
 
 The private :func:`_execute` helper remains the single seam that
 unit tests monkeypatch so they do not need Azurite, a real
@@ -54,21 +58,22 @@ credential, or a real Search service.
 """
 
 from pathlib import PurePosixPath
+from typing import Any
 
 import azure.functions as func
-from azure.search.documents.aio import SearchClient
 from azure.storage.blob.aio import ContainerClient
 
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.embedders import registry as embedders_registry
-from backend.core.providers.search.writer import SearchWriterAdapter
-from backend.core.settings import AppSettings, get_settings
+from backend.core.providers.search import registry as search_registry
+from backend.core.settings import AppSettings, IndexStore, get_settings
 from backend.core.types import SearchDocument
 from functions.batch_push.handler import batch_push_handler
 from functions.batch_push.queue_reader import parse_push_message
 from functions.core.contracts import BatchPushQueueMessage
 from functions.core.exception_mapping import log_queue_errors
 from functions.core.parsers import registry as ingestion_parsers_registry
+from functions.core.pgvector_pool import PgVectorPool
 from functions.core.storage_endpoints import resolve_storage_endpoints
 
 bp = func.Blueprint()
@@ -103,31 +108,60 @@ async def _execute(
     parser_cls = ingestion_parsers_registry.registry.get(
         _parser_key_for_filename(message.filename)
     )
+    search_key = settings.database.index_store
     async with await cred_provider.get_credential() as credential:
         parser = parser_cls(settings=settings, credential=credential)
         embedder_cls = embedders_registry.registry.get("azure_openai")
         embedder = embedder_cls(settings=settings, credential=credential)
+        # PgVectorPool is constructed only on the pgvector path so the
+        # AzureSearch path stays free of any postgres SDK touch. The
+        # helper's `acquire()` is single-flight + idempotent; the pool
+        # is closed in the `finally` so the credential context fully
+        # owns the connection lifecycle (no dangling sockets after
+        # token expiry).
+        pool_helper: PgVectorPool | None = None
         try:
-            async with (
-                ContainerClient(
+            # `Any` is justified here per Hard Rule #11 boundary carve-out:
+            # the registry callable accepts heterogeneous kwargs across
+            # provider concretes (AzureSearch takes settings+credential;
+            # PgVector additionally takes `pool`). Same pattern as
+            # backend/app.py:lifespan.
+            search_kwargs: dict[str, Any] = {
+                "settings": settings,
+                "credential": credential,
+            }
+            if search_key == IndexStore.PGVECTOR:
+                pool_helper = PgVectorPool(
+                    settings=settings, credential=credential
+                )
+                search_kwargs["pool"] = await pool_helper.acquire()
+            search_provider = search_registry.registry.get(search_key)(
+                **search_kwargs
+            )
+            try:
+                # ensure_schema is a no-op on AzureSearch (index owned
+                # by Bicep) and runs the pgvector DDL once-per-process
+                # under an asyncio.Lock + readiness flag. Unconditional
+                # call keeps the wiring provider-agnostic; raising here
+                # still triggers `finally: aclose` below.
+                await search_provider.ensure_schema()
+                async with ContainerClient(
                     account_url=blob_endpoint,
                     container_name=message.container_name,
                     credential=credential,
-                ) as container_client,
-                SearchClient(
-                    endpoint=settings.search.endpoint,
-                    index_name=settings.search.index,
-                    credential=credential,
-                ) as search_client,
-            ):
-                return await batch_push_handler(
-                    message=message,
-                    container_client=container_client,
-                    parser=parser,
-                    embedder=embedder,
-                    search_writer=SearchWriterAdapter(search_client),
-                )
+                ) as container_client:
+                    return await batch_push_handler(
+                        message=message,
+                        container_client=container_client,
+                        parser=parser,
+                        embedder=embedder,
+                        search_provider=search_provider,
+                    )
+            finally:
+                await search_provider.aclose()
         finally:
+            if pool_helper is not None:
+                await pool_helper.aclose()
             await embedder.aclose()
 
 
