@@ -26,6 +26,13 @@ name-string translation (Hard Rule #4). Lookups are case-insensitive
 # imports that trigger `@registry.register(...)`; pyright cannot see
 # the side-effect and would flag them as unused (Hard Rule #4).
 
+from backend.core.discovery import load_entry_points
+
 from ._instance import registry as registry
 from . import azure_search  # noqa: F401
 from . import pgvector  # noqa: F401
+
+# Third-party plugins self-register via the `cwyd.providers.search`
+# entry-point group per Hard Rule #11 registry-driven carve-out. See
+# backend.core.discovery.load_entry_points for the loading contract.
+load_entry_points("cwyd.providers.search")
