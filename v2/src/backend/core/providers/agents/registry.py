@@ -22,5 +22,12 @@ Caller pattern (Hard Rule #13):
 # that triggers `@registry.register("foundry")`; pyright cannot see
 # the side-effect and would flag it as unused (Hard Rule #4).
 
+from backend.core.discovery import load_entry_points
+
 from ._instance import registry as registry
 from . import foundry  # noqa: F401
+
+# Third-party plugins self-register via the `cwyd.providers.agents`
+# entry-point group per Hard Rule #11 registry-driven carve-out. See
+# backend.core.discovery.load_entry_points for the loading contract.
+load_entry_points("cwyd.providers.agents")

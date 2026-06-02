@@ -4,6 +4,9 @@ Pillar: Stable Core
 Phase: 6
 """
 
+import importlib
+from unittest.mock import patch
+
 import pytest
 
 from backend.core.providers.parsers import registry as parsers_registry
@@ -103,3 +106,29 @@ async def test_concrete_parser_returns_chunks() -> None:
     chunks = await parser.parse(b"hello", source="greeting.txt")
 
     assert chunks == [Chunk(id="greeting.txt__0", content="hello", source="greeting.txt", index=0)]
+
+
+# ---------------------------------------------------------------------------
+# Entry-point discovery wiring (Hard Rule #11 registry-driven carve-out).
+# ---------------------------------------------------------------------------
+
+
+def test_load_entry_points_fires_for_canonical_group() -> None:
+    """Third-party discovery hook fires at registry import time with the
+    canonical `cwyd.providers.parsers` group string. Patches the
+    discovery module then reloads the registry so the freshly bound
+    name resolves to the mock; restores the real binding in `finally`
+    to keep test isolation.
+
+    Note: this domain has no first-party side-effect imports at backend
+    startup (PDF/DOCX/MD/HTML/TXT concretes live under
+    `v2/src/functions/core/parsers/` and self-register at Functions
+    startup), so there is no `test_first_party_key_registered_at_import`
+    companion case.
+    """
+    with patch("backend.core.discovery.load_entry_points") as mock_load:
+        importlib.reload(parsers_registry)
+        try:
+            mock_load.assert_called_once_with("cwyd.providers.parsers")
+        finally:
+            importlib.reload(parsers_registry)

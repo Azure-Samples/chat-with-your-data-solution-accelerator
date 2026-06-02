@@ -219,11 +219,26 @@ def test_orchestrator_default_is_langgraph(monkeypatch: pytest.MonkeyPatch) -> N
     assert settings.orchestrator.name == "langgraph"
 
 
-def test_orchestrator_validation_rejects_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    "third_party_key",
+    ["crewai", "semantic-kernel-custom", "my_orchestrator"],
+)
+def test_orchestrator_accepts_third_party_registry_key(
+    monkeypatch: pytest.MonkeyPatch,
+    third_party_key: str,
+) -> None:
+    """Hard Rule #11 registry-driven carve-out: `OrchestratorSettings.name`
+    is typed `Literal["langgraph", "agent_framework"] | str` so a
+    third-party-registered orchestrator key flows through Pydantic
+    unmodified. Settings-time rejection of unknown keys is gone; dispatch-
+    time validation moves to the registry boundary
+    (`orchestrators_registry.registry.get(name)` raises `KeyError`
+    listing every registered key).
+    """
     _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", "crewai")
-    with pytest.raises(ValidationError):
-        AppSettings()
+    monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", third_party_key)
+    settings = AppSettings()
+    assert settings.orchestrator.name == third_party_key
 
 
 def test_orchestrator_can_be_set_to_agent_framework(

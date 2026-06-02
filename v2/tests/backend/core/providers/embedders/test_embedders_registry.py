@@ -4,8 +4,9 @@ Pillar: Stable Core
 Phase: 6
 """
 
+import importlib
 from typing import cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from azure.core.credentials_async import AsyncTokenCredential
@@ -256,3 +257,34 @@ async def test_registered_embedder_aclose_lifecycle(
     await embedder.aclose()
 
     assert embedder.aclose_calls == 1
+
+
+# ---------------------------------------------------------------------------
+# Entry-point discovery wiring (Hard Rule #11 registry-driven carve-out).
+# ---------------------------------------------------------------------------
+
+
+def test_first_party_key_registered_at_import() -> None:
+    """First-party side-effect import (`azure_openai`) triggers
+    `@registry.register("azure_openai")` at module-load time.
+    """
+    registered = set(embedders_registry.registry.keys())
+    assert "azure_openai" in registered, (
+        f"first-party `azure_openai` key missing from embedders registry: "
+        f"registered={registered!r}"
+    )
+
+
+def test_load_entry_points_fires_for_canonical_group() -> None:
+    """Third-party discovery hook fires at registry import time with the
+    canonical `cwyd.providers.embedders` group string. Patches the
+    discovery module then reloads the registry so the freshly bound
+    name resolves to the mock; restores the real binding in `finally`
+    to keep test isolation.
+    """
+    with patch("backend.core.discovery.load_entry_points") as mock_load:
+        importlib.reload(embedders_registry)
+        try:
+            mock_load.assert_called_once_with("cwyd.providers.embedders")
+        finally:
+            importlib.reload(embedders_registry)

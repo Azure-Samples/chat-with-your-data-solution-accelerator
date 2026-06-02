@@ -23,8 +23,15 @@ Caller pattern (Hard Rule #13):
 # side-effect import that triggers `@registry.register(...)`; pyright
 # cannot see the side-effect and would flag it as unused (Hard Rule #4).
 
+from backend.core.discovery import load_entry_points
+
 from ._instance import registry as registry
 from . import cli, managed_identity  # noqa: F401  (side-effect imports)
+
+# Third-party plugins self-register via the `cwyd.providers.credentials`
+# entry-point group per Hard Rule #11 registry-driven carve-out. See
+# backend.core.discovery.load_entry_points for the loading contract.
+load_entry_points("cwyd.providers.credentials")
 
 
 def select_default(uami_client_id: str | None) -> str:

@@ -4,6 +4,9 @@ Pillar: Stable Core
 Phase: 2
 """
 
+import importlib
+from unittest.mock import patch
+
 import pytest
 from azure.identity.aio import AzureCliCredential, DefaultAzureCredential
 
@@ -129,3 +132,35 @@ def test_provider_stores_settings_reference(settings_with_uami: AppSettings) -> 
     # contract guards against future regressions where a provider
     # forgets to call super().__init__().
     assert provider._settings is settings_with_uami  # noqa: SLF001
+
+
+# ---------------------------------------------------------------------------
+# Entry-point discovery wiring (Hard Rule #11 registry-driven carve-out).
+# ---------------------------------------------------------------------------
+
+
+def test_first_party_keys_registered_at_import() -> None:
+    """The eager `from . import cli, managed_identity` side-effect import
+    must populate both first-party keys against the credentials registry
+    by the time the module finishes loading.
+    """
+    registered = set(credentials_registry.registry.keys())
+    assert {"cli", "managed_identity"}.issubset(registered), (
+        f"first-party credentials keys missing from registry: "
+        f"registered={registered!r}"
+    )
+
+
+def test_load_entry_points_fires_for_canonical_group() -> None:
+    """Third-party discovery hook fires at registry import time with the
+    canonical `cwyd.providers.credentials` group string. Patches the
+    discovery module then reloads the registry so the freshly bound
+    name resolves to the mock; restores the real binding in `finally`
+    to keep test isolation.
+    """
+    with patch("backend.core.discovery.load_entry_points") as mock_load:
+        importlib.reload(credentials_registry)
+        try:
+            mock_load.assert_called_once_with("cwyd.providers.credentials")
+        finally:
+            importlib.reload(credentials_registry)

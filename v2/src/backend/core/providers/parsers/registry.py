@@ -17,8 +17,18 @@ Caller pattern (Hard Rule #13):
     parser = parsers_registry.registry.get("txt")()
 """
 
+from backend.core.discovery import load_entry_points
 from backend.core.registry import Registry
 
 from .base import BaseParser
 
 registry: Registry[type[BaseParser]] = Registry("parsers")
+
+# Third-party plugins self-register via the `cwyd.providers.parsers`
+# entry-point group per Hard Rule #11 registry-driven carve-out. First-
+# party concretes (PDF/DOCX/MD/HTML/TXT) live under
+# `v2/src/functions/core/parsers/` and self-register from there at
+# Functions startup; the backend itself ships no first-party parser
+# imports against this registry. See backend.core.discovery
+# .load_entry_points for the loading contract.
+load_entry_points("cwyd.providers.parsers")

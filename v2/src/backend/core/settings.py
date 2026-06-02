@@ -316,7 +316,13 @@ class OrchestratorSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="CWYD_ORCHESTRATOR_", extra="ignore")
 
-    name: Literal["langgraph", "agent_framework"] = "langgraph"
+    # `Literal[...] | str` widening per Hard Rule #11 registry-driven
+    # carve-out: the first-party closed set stays `"langgraph" |
+    # "agent_framework"`, but the `str` arm admits any third-party
+    # orchestrator key registered against `cwyd.providers.orchestrators`
+    # via `backend.core.discovery.load_entry_points`. Validation moves
+    # to the registry boundary (`orchestrators_registry.registry.get(...)`).
+    name: Literal["langgraph", "agent_framework"] | str = "langgraph"
 
 
 class ContentSafetySettings(BaseSettings):
