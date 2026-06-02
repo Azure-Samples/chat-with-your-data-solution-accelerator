@@ -5,6 +5,8 @@
 **Last updated:** 2026-05-05
 **See also:** [ADR 0008](adr/0008-lazy-foundry-agent-bootstrap.md), [env-vars.md](env-vars.md)
 
+> **Naming caveat (`B1-MAF-MISLABEL`, [development_plan.md](development_plan.md) §0.1):** every reference to the orchestrator value `agent_framework` in this document is the **registry key**, not the OSS [`agent-framework`](https://pypi.org/project/agent-framework-core/) PyPI package. The orchestrator behind that key today wraps the `azure.ai.agents` SDK (Foundry hosted-agents) — which is exactly the lazy-bootstrap layer this document describes. The swap to the real OSS `agent_framework` + `agent-framework-foundry` packages is Phase B-IMPL work; the registry key `"agent_framework"` will be preserved across that swap, so every code path, env var, and operator instruction below stays valid.
+
 This document is the contributor + operator runbook for the v2 Foundry-agent layer. It covers:
 
 1. Why agent identity is **not** in env vars.

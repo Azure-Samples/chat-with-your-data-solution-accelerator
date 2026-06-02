@@ -27,6 +27,7 @@ import logging
 from collections.abc import Callable
 from typing import Annotated, Any, cast
 
+from azure.core.credentials_async import AsyncTokenCredential
 from fastapi import Depends, HTTPException, Request, status
 
 from backend.core.providers.agents.base import BaseAgentsProvider
@@ -67,6 +68,28 @@ def get_credential_provider(request: Request) -> BaseCredentialProvider:
 CredentialProviderDep = Annotated[
     BaseCredentialProvider, Depends(get_credential_provider)
 ]
+
+
+def get_credential(request: Request) -> AsyncTokenCredential:
+    """Return the lifespan-cached `AsyncTokenCredential` from app.state.
+
+    Lifespan resolves the credential provider once (`select_default`),
+    constructs a single `AsyncTokenCredential`, and stashes it on
+    `app.state.credential`. Routers that need to hand a credential to
+    an SDK client (e.g. the `agent_framework` orchestrator constructing
+    a per-request `FoundryAgent`) reuse that same instance via this
+    dep so we don't build a fresh `DefaultAzureCredential` (which is
+    not free) on every request.
+    """
+    credential = getattr(request.app.state, "credential", None)
+    if credential is None:
+        raise RuntimeError(
+            "credential missing on app.state -- lifespan did not run."
+        )
+    return credential
+
+
+CredentialDep = Annotated[AsyncTokenCredential, Depends(get_credential)]
 
 
 def get_llm_provider(request: Request) -> BaseLLMProvider:

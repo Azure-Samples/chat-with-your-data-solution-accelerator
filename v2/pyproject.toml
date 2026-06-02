@@ -18,7 +18,7 @@ dependencies = [
     "jsonschema>=4.25,<5.0",
 
     # Foundry IQ + Azure AI
-    "azure-ai-projects>=1.0,<2.0",
+    "azure-ai-projects>=2.1.0,<3.0",
     "azure-ai-agents>=1.2.0b3",
     "azure-ai-documentintelligence>=1.0,<2.0",
     "azure-ai-contentsafety>=1.0,<2.0",
@@ -30,6 +30,14 @@ dependencies = [
     "langchain>=0.3,<1.0",
     "langgraph>=0.4,<1.0",
     "langchain-openai>=0.3,<1.0",
+
+    # OSS Microsoft Agent Framework (orchestrator backend behind the
+    # `agent_framework` registry key; see development_plan.md §0.1
+    # `B1-MAF-MISLABEL`). `agent-framework-core` provides the runtime
+    # primitives; `agent-framework-foundry` adds the Foundry hosted-agent
+    # adapter that supersedes the current `azure.ai.agents` wrapping.
+    "agent-framework-core>=1.7,<2.0",
+    "agent-framework-foundry>=1.7,<2.0",
 
     # Azure data plane (passwordless via Managed Identity)
     "azure-identity>=1.25,<2.0",

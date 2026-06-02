@@ -64,7 +64,7 @@ The `db_type` switch determines which side of the table is required.
 | Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
 |---|---|---|---|---|---|---|
 | `AZURE_DB_TYPE` | `cosmosdb` \| `postgresql` | required | `database.db_type` | `AZURE_DB_TYPE` | `cosmosdb` | Registry key for `databases.create(...)`. |
-| `AZURE_INDEX_STORE` | `AzureSearch` \| `pgvector` | required | `database.index_store` | `AZURE_INDEX_STORE` | `AzureSearch` | Registry key for `search.create(...)`. Validator enforces `AzureSearch` ↔ `cosmosdb` and `pgvector` ↔ `postgresql`. |
+| `AZURE_INDEX_STORE` | `AzureSearch` \| `pgvector` | required | `database.index_store` | `AZURE_INDEX_STORE` | `AzureSearch` | Registry key for `search.create(...)`. Validator enforces `AzureSearch` ↔ `cosmosdb` and `pgvector` ↔ `postgresql`. **Known limitation (`B2-INGEST-PGVECTOR`, dev_plan §0.1):** the Functions ingest blueprints `batch_push` and `add_url` currently hard-code an Azure-Search `SearchClient` and do **not** dispatch through the search registry — so setting `AZURE_INDEX_STORE=pgvector` makes the chat-side search work but leaves the Functions ingest path broken. Cosmos+AzureSearch is the only fully-wired combination for ingestion today. |
 | `AZURE_COSMOS_ENDPOINT` | str | required (cosmosdb) | `database.cosmos_endpoint` | `AZURE_COSMOS_ENDPOINT` | `""` | Required when `db_type=cosmosdb`. |
 | `AZURE_COSMOS_ACCOUNT_NAME` | str | optional | `database.cosmos_account_name` | `AZURE_COSMOS_ACCOUNT_NAME` | `""` | |
 | `AZURE_COSMOS_DATABASE_NAME` | str | optional | `database.cosmos_database_name` | — | `cwyd` | Operator override; not a Bicep output (constant). |
@@ -93,7 +93,7 @@ Cosmosdb-mode only; ignored in pgvector-mode (where the search provider lives in
 | `AZURE_STORAGE_ACCOUNT_NAME` | str | required (RAG) | `storage.storage_account_name` | `AZURE_STORAGE_ACCOUNT_NAME` | `""` | |
 | `AZURE_STORAGE_BLOB_ENDPOINT` | str | required (RAG) | `storage.storage_blob_endpoint` | `AZURE_STORAGE_BLOB_ENDPOINT` | `""` | Primary blob URL. |
 | `AZURE_DOCUMENTS_CONTAINER` | str | required (RAG) | `storage.documents_container` | `AZURE_DOCUMENTS_CONTAINER` | `""` | Source container for ingestion. |
-| `AZURE_DOC_PROCESSING_QUEUE` | str | required (RAG) | `storage.doc_processing_queue` | `AZURE_DOC_PROCESSING_QUEUE` | `""` | Storage queue consumed by `batch_push`. |
+| `AZURE_DOC_PROCESSING_QUEUE` | str | required (RAG) | `storage.doc_processing_queue` | `AZURE_DOC_PROCESSING_QUEUE` | `""` | Storage queue consumed by `batch_push`. See `AZURE_INDEX_STORE` note — `batch_push` writes through a hard-coded Azure-Search `SearchClient` regardless of `index_store` (`B2-INGEST-PGVECTOR`). |
 
 ### Observability (`ObservabilitySettings`, env_prefix `AZURE_`)
 
@@ -121,7 +121,7 @@ Distinct namespace because the orchestrator is **runtime-tunable**, not infra-pi
 
 | Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
 |---|---|---|---|---|---|---|
-| `CWYD_ORCHESTRATOR_NAME` | `langgraph` \| `agent_framework` | optional | `orchestrator.name` | — | `langgraph` | Registry key passed to `orchestrators.create(...)`. |
+| `CWYD_ORCHESTRATOR_NAME` | `langgraph` \| `agent_framework` | optional | `orchestrator.name` | — | `langgraph` | Registry key passed to `orchestrators.create(...)`. **Naming caveat (`B1-MAF-MISLABEL`, dev_plan §0.1):** the value `agent_framework` is the *registry key*, not the OSS `agent-framework` PyPI package. The orchestrator behind that key today wraps the `azure.ai.agents` SDK (Foundry hosted-agents). The swap to the real OSS `agent_framework` / `agent-framework-foundry` packages is Phase B-IMPL work and will preserve the key. |
 
 ### Speech (`SpeechSettings`, env_prefix `AZURE_SPEECH_`)
 
