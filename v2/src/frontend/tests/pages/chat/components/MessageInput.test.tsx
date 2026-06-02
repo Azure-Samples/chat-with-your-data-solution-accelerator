@@ -5,7 +5,8 @@ import {
   useChat,
 } from "../../../../src/pages/chat/ChatContext";
 import { MessageInput } from "../../../../src/pages/chat/components/MessageInput";
-import { streamChat, type StreamEvent } from "../../../../src/api/streamChat";
+import { streamChat } from "../../../../src/api/streamChat";
+import type { StreamEvent } from "../../../../src/models/chat";
 import { useSpeechRecognition } from "../../../../src/hooks/useSpeechRecognition";
 
 vi.mock("../../../../src/api/streamChat", () => ({

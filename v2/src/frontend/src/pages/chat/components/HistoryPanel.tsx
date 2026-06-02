@@ -36,15 +36,10 @@ import {
   Delete16Regular,
   Edit16Regular,
 } from "@fluentui/react-icons";
+import type { HistoryConversation } from "../../../models/chat";
 import styles from "./HistoryPanel.module.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
-
-export interface HistoryConversation {
-  id: string;
-  title: string;
-  updated_at: string;
-}
 
 interface HistoryStatus {
   enabled: boolean;

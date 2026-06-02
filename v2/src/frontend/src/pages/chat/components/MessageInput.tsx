@@ -39,8 +39,9 @@ import {
   MicOff24Regular,
   Send24Regular,
 } from "@fluentui/react-icons";
-import { useChat, type ChatMessage } from "../ChatContext";
-import { streamChat, type StreamMessage } from "../../../api/streamChat";
+import { useChat } from "../ChatContext";
+import { streamChat } from "../../../api/streamChat";
+import type { ChatMessage, StreamMessage } from "../../../models/chat";
 import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
 import styles from "./MessageInput.module.css";
 

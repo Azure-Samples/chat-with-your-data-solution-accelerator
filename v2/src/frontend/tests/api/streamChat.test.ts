@@ -10,7 +10,8 @@
  * SSE line parser (no network).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { streamChat, type StreamEvent } from "../../src/api/streamChat";
+import { streamChat } from "../../src/api/streamChat";
+import type { StreamEvent } from "../../src/models/chat";
 
 const enc = new TextEncoder();
 

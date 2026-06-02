@@ -6,7 +6,8 @@
  * `fetch` with a JSON body so the unit test runs offline.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getAdminStatus, type AdminStatus } from "../../src/api/admin";
+import { getAdminStatus } from "../../src/api/admin";
+import type { AdminStatus } from "../../src/models/admin";
 
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {

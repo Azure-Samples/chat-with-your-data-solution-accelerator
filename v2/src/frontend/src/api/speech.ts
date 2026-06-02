@@ -14,12 +14,7 @@
  * Azure Speech directly; no audio ever flows back through this
  * backend.
  */
-
-export interface SpeechConfigPayload {
-  token: string;
-  region: string;
-  languages: string[];
-}
+import type { SpeechConfigPayload } from "../models/speech";
 
 const SPEECH_URL = "/api/speech";
 

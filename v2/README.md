@@ -16,6 +16,7 @@ third-party provider extensions side-by-side.
 | Roadmap, phases, scope     | [docs/development_plan.md](docs/development_plan.md)                       |
 | Architecture pillars       | [docs/pillars_of_development.md](docs/pillars_of_development.md)           |
 | Extend with a plugin       | [docs/extending.md](docs/extending.md)                                     |
+| Environment variables      | [docs/env-vars.md](docs/env-vars.md)                                       |
 | Infrastructure (Bicep/azd) | [docs/infrastructure.md](docs/infrastructure.md)                           |
 | Architecture decision log  | [docs/adr/](docs/adr/)                                                     |
 | Repo-wide rules            | [../.github/copilot-instructions.md](../.github/copilot-instructions.md)   |

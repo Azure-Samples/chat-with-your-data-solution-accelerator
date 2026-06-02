@@ -5,8 +5,8 @@ import {
   chatReducer,
   initialChatState,
   useChat,
-  type ChatMessage,
 } from "../../../src/pages/chat/ChatContext";
+import type { ChatMessage } from "../../../src/models/chat";
 
 const userMsg: ChatMessage = { id: "1", role: "user", content: "hello" };
 const botMsg: ChatMessage = { id: "2", role: "assistant", content: "hi" };
