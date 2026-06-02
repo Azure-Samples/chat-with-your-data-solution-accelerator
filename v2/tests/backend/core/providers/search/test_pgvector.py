@@ -19,6 +19,7 @@ import pytest
 from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.pgvector import PgVector, _format_vector_literal
 from backend.core.settings import AppSettings, DatabaseSettings, SearchSettings
+from backend.core.types import SearchDocument
 
 _PGVECTOR_LOGGER_NAME = "backend.core.providers.search.pgvector"
 
@@ -309,6 +310,106 @@ async def test_delete_by_source_logs_and_reraises_on_postgres_error(
     ]
     assert len(matches) == 1, (
         f"expected exactly 1 ERROR record with operation=delete_by_source/provider=pgvector, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    pool.fetch.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# merge_or_upload_documents
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_returns_empty_without_pool_call() -> None:
+    pool = _make_pool([])
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    result = await provider.merge_or_upload_documents(documents=[])
+
+    assert result == []
+    pool.fetch.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_emits_upsert_with_returning_id() -> None:
+    # Use literal Records (just dicts here since the provider only
+    # forwards them) so the test verifies the RETURNING shape is
+    # preserved through the boundary.
+    pool = _make_pool([{"id": "a"}, {"id": "b"}])
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+    docs = [
+        SearchDocument(id="a", content="hello", title="t1", content_vector=[0.1, 0.2]),
+        SearchDocument(id="b", content="world", title="t2", content_vector=[0.3, 0.4]),
+    ]
+
+    result = await provider.merge_or_upload_documents(documents=docs)
+
+    assert result == [{"id": "a"}, {"id": "b"}]
+    sql, *params = pool.fetch.await_args.args
+    assert "INSERT INTO documents (id, content, title, content_vector)" in sql
+    # Two-row VALUES list: $1..$4 then $5..$8.
+    assert "($1, $2, $3, $4::vector)" in sql
+    assert "($5, $6, $7, $8::vector)" in sql
+    assert "ON CONFLICT (id) DO UPDATE SET" in sql
+    assert "content = EXCLUDED.content" in sql
+    assert "title = EXCLUDED.title" in sql
+    assert "content_vector = EXCLUDED.content_vector" in sql
+    assert "RETURNING id" in sql
+    assert params == [
+        "a", "hello", "t1", "[0.1,0.2]",
+        "b", "world", "t2", "[0.3,0.4]",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_interpolates_custom_table_name() -> None:
+    pool = _make_pool([])
+    provider = PgVector(
+        settings=_make_settings(),
+        credential=AsyncMock(),
+        pool=pool,
+        table="cwyd_chunks",
+    )
+    docs = [SearchDocument(id="a", content="hello", content_vector=[0.0])]
+
+    await provider.merge_or_upload_documents(documents=docs)
+
+    sql = pool.fetch.await_args.args[0]
+    assert "INSERT INTO cwyd_chunks (id, content, title, content_vector)" in sql
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool = MagicMock()
+    pool.fetch = AsyncMock(
+        side_effect=asyncpg.PostgresError("connection terminated")
+    )
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+    docs = [SearchDocument(id="a", content="hello", content_vector=[0.1])]
+
+    with caplog.at_level("ERROR", logger=_PGVECTOR_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await provider.merge_or_upload_documents(documents=docs)
+
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR"
+        and getattr(r, "operation", None) == "merge_or_upload_documents"
+        and getattr(r, "provider", None) == "pgvector"
+        and getattr(r, "document_count", None) == 1
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record with operation=merge_or_upload_documents/provider=pgvector/document_count=1, "
         f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
     )
     pool.fetch.assert_awaited_once()

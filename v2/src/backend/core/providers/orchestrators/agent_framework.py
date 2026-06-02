@@ -37,7 +37,13 @@ from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
 from agent_framework import AgentResponseUpdate, Message
-from agent_framework_foundry import FoundryAgent
+# Debt (dev_plan §0.1 B-IMPL-FOUNDRY-STUBS-DEBT): the OSS
+# `agent_framework_foundry` PyPI distribution ships no `py.typed`
+# marker, so pyright cannot find stubs even though the package is
+# installed and importable. Suppress at the SDK boundary per Hard Rule
+# #11(a); clears when the SDK ships a `py.typed` marker or when we
+# vendor a minimal local stub.
+from agent_framework_foundry import FoundryAgent  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 

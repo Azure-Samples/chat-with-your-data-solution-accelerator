@@ -19,7 +19,7 @@ from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.azure_search import AzureSearch
 from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings, get_settings
-from backend.core.types import SearchResult
+from backend.core.types import SearchDocument, SearchResult
 
 
 # ---------------------------------------------------------------------------
@@ -463,3 +463,79 @@ async def test_delete_by_source_logs_and_reraises_on_azure_error(
     assert record.source == "sample.pdf"
     assert record.deleted_count == 0
     client.delete_documents.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# merge_or_upload_documents
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_calls_sdk_with_keyword_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.merge_or_upload_documents = AsyncMock(
+        return_value=[{"key": "a", "succeeded": True}]
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    docs = [
+        SearchDocument(id="a", content="hello", content_vector=[0.1, 0.2]),
+        SearchDocument(id="b", content="world", content_vector=[0.3, 0.4]),
+    ]
+
+    result = await handler.merge_or_upload_documents(documents=docs)
+
+    client.merge_or_upload_documents.assert_awaited_once_with(
+        documents=[d.model_dump() for d in docs]
+    )
+    assert result == [{"key": "a", "succeeded": True}]
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_returns_empty_without_sdk_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.merge_or_upload_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    result = await handler.merge_or_upload_documents(documents=[])
+
+    assert result == []
+    client.merge_or_upload_documents.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.merge_or_upload_documents = AsyncMock(
+        side_effect=ServiceRequestError(message="search unavailable")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    docs = [SearchDocument(id="a", content="hello")]
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.merge_or_upload_documents(documents=docs)
+
+    record = _find_record(caplog, "merge_or_upload_documents")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+    assert record.document_count == 1
+    client.merge_or_upload_documents.assert_awaited_once()

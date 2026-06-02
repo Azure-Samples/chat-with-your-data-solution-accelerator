@@ -41,7 +41,7 @@ from azure.search.documents.models import (
 )
 
 from backend.core.settings import AppSettings
-from backend.core.types import SearchResult
+from backend.core.types import SearchDocument, SearchResult
 
 from .registry import registry
 from .base import BaseSearch
@@ -237,6 +237,37 @@ class AzureSearch(BaseSearch):
             )
             raise
         return deleted_count
+
+    async def merge_or_upload_documents(
+        self,
+        *,
+        documents: Sequence[SearchDocument],
+    ) -> list[Any]:
+        if not documents:
+            return []
+        # Hard Rule #15: SearchDocument is the source of truth; the
+        # `dict[str, Any]` payload below is the SDK boundary shape that
+        # `SearchClient.merge_or_upload_documents` accepts.
+        payload: list[dict[str, Any]] = [doc.model_dump() for doc in documents]
+        client = self._get_client()
+        try:
+            return cast(
+                list[Any],
+                await client.merge_or_upload_documents(  # pyright: ignore[reportUnknownMemberType]
+                    documents=payload
+                ),
+            )
+        except AzureError:
+            logger.exception(
+                "azure_search merge_or_upload_documents failed",
+                extra={
+                    "operation": "merge_or_upload_documents",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                    "document_count": len(payload),
+                },
+            )
+            raise
 
     async def aclose(self) -> None:
         # Only close the client when we constructed it ourselves.

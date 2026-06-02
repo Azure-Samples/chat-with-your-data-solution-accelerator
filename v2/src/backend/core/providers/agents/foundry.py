@@ -4,16 +4,20 @@ Pillar: Stable Core
 Phase: 4
 
 Wraps `azure.ai.agents.aio.AgentsClient` against the typed Foundry
-project endpoint (`AppSettings.foundry.project_endpoint`). The
-constructed `AgentsClient` is the same SDK object the
-`agent_framework` orchestrator already consumes -- this provider is
-just the swap-in seam (Hard Rule #4) and the lifecycle owner.
+project endpoint (`AppSettings.foundry.project_endpoint`). Owns the
+hosted-agent control-plane surface only -- create-if-missing for
+named agents (`BaseAgentsProvider.get_or_create_agent`), consumed by
+the conversation router bootstrap (`CWYD_AGENT`) and the RAI tool
+(`RAI_AGENT`). Runtime invocation lives in the orchestrator layer
+(`backend.core.providers.orchestrators.agent_framework`) and uses the
+open-source `agent_framework_foundry.FoundryAgent` client directly,
+not this provider.
 
 Construction is lazy: no HTTP session is opened at __init__ time,
 so module import stays cheap. The first `get_client()` call builds
 the client; subsequent calls return the cached instance.
 
-Try/except policy (Phase C2e):
+Try/except policy:
   * `aclose()` is shutdown best-effort per the policy doc Lifespan
     row -- catches `(AzureError, OSError)`, logs at WARNING with
     structured extras, and clears the cached client so a restart
@@ -21,7 +25,7 @@ Try/except policy (Phase C2e):
     transport drop on the way out must NOT crash the lifespan
     shutdown sequence.
   * The `get_or_create_agent` path lives on the base class; its
-    SDK boundaries are wrapped there (see `base.py` C2e block).
+    SDK boundaries are wrapped there (see `base.py`).
 """
 
 import logging

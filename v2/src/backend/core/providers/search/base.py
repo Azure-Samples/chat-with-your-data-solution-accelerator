@@ -18,15 +18,22 @@ provider-agnostic `SearchResult` instances. Producers map their native
 shape (search documents, pgvector rows) to `SearchResult` so the chat
 pipeline and citation extractor consume one
 stable type.
+
+`merge_or_upload_documents(*, documents)` is the symmetric write
+surface used by ingestion blueprints. Concrete providers override
+with their native upsert (Azure Search SDK call / Postgres ON
+CONFLICT UPDATE / etc.); the default body raises
+`NotImplementedError` so a provider that forgets to implement fails
+loudly at the ingestion call site rather than silently no-oping.
 '''
 
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Any, Sequence
 
 from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
-from backend.core.types import SearchResult
+from backend.core.types import SearchDocument, SearchResult
 
 
 class BaseSearch(ABC):
@@ -72,6 +79,44 @@ class BaseSearch(ABC):
           matching documents existed; the admin route maps that to a
           404 response.
         """
+
+    async def merge_or_upload_documents(
+        self,
+        *,
+        documents: Sequence[SearchDocument],
+    ) -> list[Any]:
+        """Upsert ingestion documents into the provider's index.
+
+        Symmetric write counterpart to :meth:`search` /
+        :meth:`delete_by_source`. Concrete providers override with
+        their native upsert path (Azure Search SDK
+        ``merge_or_upload_documents`` / Postgres
+        ``ON CONFLICT (id) DO UPDATE`` / etc.); each implementation
+        owns the ``SearchDocument`` -> wire-shape translation at its
+        own SDK boundary (Hard Rule #15: the ingestion model is the
+        source of truth; the dict/row passed to the SDK is a
+        transport detail).
+
+        Keyword-only ``documents`` matches the
+        ``SupportsMergeOrUploadDocuments`` Protocol in
+        :mod:`backend.core.providers.search.writer` so adapter sites
+        and provider sites share one signature.
+
+        Returns provider-specific result objects (Azure SDK
+        ``IndexingResult``, asyncpg ``Record``, etc.) typed
+        ``list[Any]`` per Hard Rule #11(a) boundary carve-out --
+        callers that need a uniform success/failure shape build it on
+        top of the raw return rather than forcing every backend into
+        a synthetic envelope.
+
+        Default implementation raises ``NotImplementedError`` so a
+        provider class that forgets to override the method fails at
+        the ingestion call site rather than silently dropping data.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement merge_or_upload_documents; "
+            "override on the concrete provider class."
+        )
 
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default no-op."""

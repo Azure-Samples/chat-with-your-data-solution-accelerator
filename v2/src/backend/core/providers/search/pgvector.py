@@ -36,7 +36,7 @@ import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
-from backend.core.types import SearchResult
+from backend.core.types import SearchDocument, SearchResult
 
 from .registry import registry
 from .base import BaseSearch
@@ -161,6 +161,60 @@ class PgVector(BaseSearch):
             )
             raise
         return len(rows)
+
+    async def merge_or_upload_documents(
+        self,
+        *,
+        documents: Sequence[SearchDocument],
+    ) -> list[Any]:
+        if not documents:
+            return []
+        # Single-statement upsert: one VALUES list keeps the batch to
+        # one round-trip. Each row contributes 4 positional params,
+        # well under Postgres's 65 535-param ceiling for typical
+        # ingestion batches. `$N::vector` casts each text literal
+        # (built by `_format_vector_literal`) to pgvector inline
+        # because asyncpg has no native vector codec.
+        placeholders: list[str] = []
+        params: list[Any] = []
+        for index, doc in enumerate(documents):
+            base = index * 4
+            placeholders.append(
+                f"(${base + 1}, ${base + 2}, ${base + 3}, ${base + 4}::vector)"
+            )
+            params.extend(
+                (
+                    doc.id,
+                    doc.content,
+                    doc.title,
+                    _format_vector_literal(doc.content_vector),
+                )
+            )
+        sql = (
+            f"INSERT INTO {self._table} (id, content, title, content_vector) "
+            f"VALUES {', '.join(placeholders)} "
+            f"ON CONFLICT (id) DO UPDATE SET "
+            f"content = EXCLUDED.content, "
+            f"title = EXCLUDED.title, "
+            f"content_vector = EXCLUDED.content_vector "
+            f"RETURNING id"
+        )
+        try:
+            rows = cast(
+                "list[Mapping[str, Any]]",
+                await self._pool.fetch(sql, *params),  # pyright: ignore[reportUnknownMemberType]
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "pgvector merge_or_upload_documents failed",
+                extra={
+                    "operation": "merge_or_upload_documents",
+                    "provider": "pgvector",
+                    "document_count": len(documents),
+                },
+            )
+            raise
+        return list(rows)
 
     async def aclose(self) -> None:
         # Pool ownership stays with PostgresClient -- never close it
