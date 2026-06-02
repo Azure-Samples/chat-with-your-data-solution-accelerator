@@ -36,6 +36,15 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Inline error notice from a `channel: "error"` SSE frame. */
   error?: string;
+  /**
+   * Persisted feedback value for this message, mirrored from
+   * `MessageRecord.feedback`. `null` (or absent) means the user has not
+   * submitted feedback yet; a non-empty string is the freeform value the
+   * backend stored (e.g. `"positive"`, `"negative"`, or a structured
+   * reason payload). `<FeedbackButtons>` reads this to drive the
+   * selected-state visualization.
+   */
+  feedback?: string | null;
 }
 
 export interface ChatState {
@@ -48,6 +57,7 @@ export type ChatAction =
   | { type: "append_reasoning"; id: string; chunk: string }
   | { type: "finish_stream"; id: string }
   | { type: "set_error"; id: string; error: string }
+  | { type: "set_feedback"; id: string; feedback: string | null }
   | { type: "reset" };
 
 export const initialChatState: ChatState = { messages: [] };
@@ -88,6 +98,11 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...m,
         streaming: false,
         error: action.error,
+      }));
+    case "set_feedback":
+      return mapMessage(state, action.id, (m) => ({
+        ...m,
+        feedback: action.feedback,
       }));
     case "reset":
       return initialChatState;

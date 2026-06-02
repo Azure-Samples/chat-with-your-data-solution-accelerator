@@ -27,10 +27,18 @@ from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
     REQUIRE_ADMIN_USER,
     get_app_settings,
+    get_credential,
     get_database_client,
     get_search_provider,
 )
-from backend.models.admin import AdminConfig, ConfigSource, EffectiveAdminConfig
+from backend.models.admin import (
+    AdminConfig,
+    ConfigSource,
+    EffectiveAdminConfig,
+    IngestUrlResponse,
+    ReprocessResponse,
+    UploadResponse,
+)
 from backend.routers.admin import router as admin_router
 
 
@@ -115,6 +123,7 @@ def admin_app_factory():
         settings: Any,
         db: Any = None,
         search: Any = None,
+        credential: Any = None,
     ) -> FastAPI:
         app = FastAPI()
         app.include_router(admin_router)
@@ -122,6 +131,10 @@ def admin_app_factory():
         # Pin the #39 admin-role gate so route tests that don't probe
         # auth gating can run without forging the Easy Auth headers.
         app.dependency_overrides[REQUIRE_ADMIN_USER] = lambda: "u-1"
+        # Pin a sentinel credential so routes consuming ``CredentialDep``
+        # don't trip on the lifespan-less ASGI test transport.
+        cred = credential if credential is not None else AsyncMock()
+        app.dependency_overrides[get_credential] = lambda: cred
         if db is not None:
             app.dependency_overrides[get_database_client] = lambda: db
         if search is not None:
@@ -1455,4 +1468,356 @@ async def test_delete_document_requires_easy_auth_in_production() -> None:
     )
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/report.pdf")
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents/url -- URL ingestion
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ingest_url_returns_200_with_job_receipt_on_success(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Happy path: service helper resolves; route surfaces the typed
+    receipt + 200. ``backend.services.ingestion.ingest_url`` is the
+    seam so the test stays focused on route wiring (auth gate, 503
+    branch, response shape) and doesn't double-cover the helper
+    (covered separately in ``test_services_ingestion.py``).
+    """
+    captured: dict[str, Any] = {}
+
+    async def fake_ingest_url(body, **kwargs):  # type: ignore[no-untyped-def]
+        captured["body"] = body
+        captured["kwargs"] = kwargs
+        return IngestUrlResponse(
+            ingestion_job_id="job-42",
+            url=body.url,
+            document_count=7,
+        )
+
+    monkeypatch.setattr(_admin_module, "ingest_url", fake_ingest_url)
+    search = AsyncMock()
+    app = admin_app_factory(_settings(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents/url",
+            json={"url": "https://example.com/article.pdf"},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body == {
+        "ingestion_job_id": "job-42",
+        "url": "https://example.com/article.pdf",
+        "document_count": 7,
+    }
+    assert captured["body"].url == "https://example.com/article.pdf"
+    # Service helper receives the lifespan-cached search + settings.
+    assert captured["kwargs"]["search_provider"] is search
+
+
+@pytest.mark.asyncio
+async def test_ingest_url_returns_422_for_empty_url(
+    admin_app_factory,
+) -> None:
+    """Empty URL -> Pydantic validation 422 with no service call."""
+    app = admin_app_factory(_settings(), search=AsyncMock())
+    async with _client(app) as ac:
+        resp = await ac.post("/api/admin/documents/url", json={"url": ""})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_ingest_url_returns_422_for_oversize_url(
+    admin_app_factory,
+) -> None:
+    """URL >2048 chars -> 422. Defends against unbounded fetch sources."""
+    app = admin_app_factory(_settings(), search=AsyncMock())
+    oversize = "https://example.com/" + ("x" * 2050)
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents/url", json={"url": oversize}
+        )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_ingest_url_returns_503_when_search_disabled(
+    admin_app_factory,
+) -> None:
+    """No search backend -> 503 with operator-actionable detail.
+    Mirrors the parallel branch in ``DELETE /api/admin/documents``.
+    """
+    app = admin_app_factory(_settings())
+    app.dependency_overrides[get_search_provider] = lambda: None
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents/url",
+            json={"url": "https://example.com/article.pdf"},
+        )
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_ingest_url_requires_easy_auth_in_production() -> None:
+    """End-to-end #39 RBAC check: anonymous POST in production -> 401.
+    Same gating contract as every other admin route.
+    """
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings(
+        environment="production"
+    )
+    # Pin a credential + search so the gate fails first instead of
+    # the lifespan-less dependencies tripping.
+    app.dependency_overrides[get_credential] = lambda: AsyncMock()
+    app.dependency_overrides[get_search_provider] = lambda: AsyncMock()
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents/url",
+            json={"url": "https://example.com/article.pdf"},
+        )
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents -- multipart file upload
+# ---------------------------------------------------------------------------
+
+
+def _settings_with_storage(
+    *,
+    documents_container: str = "docs",
+    doc_processing_queue: str = "doc-processing",
+    **kwargs: Any,
+) -> Any:
+    """Return a settings stub whose ``storage`` slot carries the
+    container + queue names the upload route reads.
+    """
+    settings = _settings(**kwargs)
+    settings.storage = NS(
+        documents_container=documents_container,
+        doc_processing_queue=doc_processing_queue,
+    )
+    return settings
+
+
+@pytest.mark.asyncio
+async def test_upload_document_returns_200_with_receipt_on_success(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Happy path: route validates extension + size, hands bytes to
+    ``upload_document``, surfaces the typed receipt + 200.
+    """
+    captured: dict[str, Any] = {}
+
+    async def fake_upload_document(**kwargs):  # type: ignore[no-untyped-def]
+        captured["kwargs"] = kwargs
+        return UploadResponse(
+            filename=kwargs["filename"],
+            blob_path=f"docs/{kwargs['filename']}",
+            ingestion_job_id="job-up-1",
+            queued=True,
+        )
+
+    monkeypatch.setattr(_admin_module, "upload_document", fake_upload_document)
+    app = admin_app_factory(_settings_with_storage())
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("report.pdf", b"hello world", "application/pdf")},
+        )
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "filename": "report.pdf",
+        "blob_path": "docs/report.pdf",
+        "ingestion_job_id": "job-up-1",
+        "queued": True,
+    }
+    # Bytes flowed through; the lifespan-cached credential reached the
+    # service helper.
+    assert captured["kwargs"]["filename"] == "report.pdf"
+    assert captured["kwargs"]["content"] == b"hello world"
+    assert "credential" in captured["kwargs"]
+    assert "settings" in captured["kwargs"]
+
+
+@pytest.mark.asyncio
+async def test_upload_document_returns_415_for_unknown_extension(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Filename with an extension not registered in the parser
+    registry -> 415 carrying the supported set so the FE can render
+    an actionable hint.
+    """
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "upload_document", sentinel)
+    app = admin_app_factory(_settings_with_storage())
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("virus.exe", b"x", "application/octet-stream")},
+        )
+    assert resp.status_code == 415
+    detail = resp.json()["detail"]
+    assert detail["extension"] == "exe"
+    assert isinstance(detail["supported"], list)
+    assert "txt" in detail["supported"]  # parser registry is wired
+    sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_document_returns_422_for_missing_filename(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Empty filename -> 422 with no service call."""
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "upload_document", sentinel)
+    app = admin_app_factory(_settings_with_storage())
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("   ", b"x", "text/plain")},
+        )
+    assert resp.status_code == 422
+    sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_document_returns_413_when_over_size_cap(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Oversize file -> 413 carrying the byte counts so the FE can
+    surface the cap to the operator.
+    """
+    # Force the cap to a tiny value so the test stays fast and small.
+    monkeypatch.setattr(
+        "backend.routers.admin.MAX_UPLOAD_SIZE_BYTES", 16
+    )
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "upload_document", sentinel)
+    app = admin_app_factory(_settings_with_storage())
+    payload = b"x" * 32
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("big.txt", payload, "text/plain")},
+        )
+    assert resp.status_code == 413
+    detail = resp.json()["detail"]
+    assert detail["byte_count"] == 32
+    assert detail["max_byte_count"] == 16
+    sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_document_returns_503_when_storage_unconfigured(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Empty documents container / queue name -> 503 with operator-
+    actionable detail. The route stays mounted so the gap is
+    discoverable instead of routing-404-ing.
+    """
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "upload_document", sentinel)
+    app = admin_app_factory(_settings_with_storage(documents_container=""))
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("report.pdf", b"x", "application/pdf")},
+        )
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"].lower()
+    sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_document_requires_easy_auth_in_production() -> None:
+    """End-to-end #39 RBAC check: anonymous POST in production -> 401."""
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings_with_storage(
+        environment="production"
+    )
+    app.dependency_overrides[get_credential] = lambda: AsyncMock()
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("report.pdf", b"x", "application/pdf")},
+        )
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents/reprocess -- fan every blob in the documents
+# container onto the push queue.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reprocess_all_returns_200_with_receipt_on_success(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Happy path: route delegates to ``reprocess_all`` with the
+    lifespan-cached credential + settings, surfaces the typed
+    receipt + 200.
+    """
+    captured: dict[str, Any] = {}
+
+    async def fake_reprocess_all(**kwargs):  # type: ignore[no-untyped-def]
+        captured["kwargs"] = kwargs
+        return ReprocessResponse(ingestion_job_id="job-rp-99", enqueued_count=7)
+
+    monkeypatch.setattr(_admin_module, "reprocess_all", fake_reprocess_all)
+    app = admin_app_factory(_settings_with_storage())
+    async with _client(app) as ac:
+        resp = await ac.post("/api/admin/documents/reprocess")
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "ingestion_job_id": "job-rp-99",
+        "enqueued_count": 7,
+    }
+    assert "credential" in captured["kwargs"]
+    assert "settings" in captured["kwargs"]
+
+
+@pytest.mark.asyncio
+async def test_reprocess_all_returns_503_when_storage_unconfigured(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Empty documents container / queue name -> 503; the helper is
+    never called so we don't attempt a fan-out against an unconfigured
+    deployment.
+    """
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "reprocess_all", sentinel)
+    app = admin_app_factory(_settings_with_storage(doc_processing_queue=""))
+    async with _client(app) as ac:
+        resp = await ac.post("/api/admin/documents/reprocess")
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"].lower()
+    sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reprocess_all_requires_easy_auth_in_production() -> None:
+    """End-to-end #39 RBAC check: anonymous POST in production -> 401."""
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings_with_storage(
+        environment="production"
+    )
+    app.dependency_overrides[get_credential] = lambda: AsyncMock()
+    async with _client(app) as ac:
+        resp = await ac.post("/api/admin/documents/reprocess")
     assert resp.status_code == 401

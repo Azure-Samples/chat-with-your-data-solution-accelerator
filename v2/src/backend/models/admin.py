@@ -5,8 +5,9 @@ Phase: 5 (admin surface request/response models)
 """
 
 from enum import StrEnum
+from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.core.types import RuntimeConfig
 
@@ -113,6 +114,108 @@ class DeleteDocumentResponse(BaseModel):
     )
 
 
+class IngestUrlRequest(BaseModel):
+    """Request body for ``POST /api/admin/documents/url``.
+
+    ``url`` is constrained but intentionally NOT typed as ``HttpUrl``:
+    Pydantic's ``HttpUrl`` enforces TLDs which trips on intranet hosts
+    (``http://docs.internal/article``) that v1's admin upload happily
+    accepted. We instead validate non-empty + length-cap + parse-shape
+    at the handler layer (``functions.add_url.url_fetcher.fetch_url``
+    already raises on malformed URLs).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid", str_strip_whitespace=True)
+
+    url: str = Field(
+        ...,
+        min_length=1,
+        max_length=2048,
+        description="URL of the document to fetch and index.",
+    )
+    ingestion_job_id: str = Field(
+        default_factory=lambda: str(uuid4()),
+        min_length=1,
+        description="Correlation id surfaced in logs across the ingest pipeline.",
+    )
+
+
+class IngestUrlResponse(BaseModel):
+    """Response shape for ``POST /api/admin/documents/url``."""
+
+    ingestion_job_id: str = Field(
+        ..., description="Correlation id for cross-log tracing."
+    )
+    url: str = Field(..., description="Echo of the URL that was ingested.")
+    document_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of chunks written to the search index.",
+    )
+
+
+class UploadResponse(BaseModel):
+    """Response shape for ``POST /api/admin/documents`` (multipart upload).
+
+    The route writes the file to the source blob container and
+    enqueues a single ``BatchPushQueueMessage`` so the existing
+    ``batch_push`` queue consumer picks it up and runs the same
+    parse / embed / push pipeline used by ``batch_start``. The
+    response is the operator-facing receipt: filename echo, blob
+    path for storage-explorer lookup, ``queued=True`` once the push
+    envelope is on the wire, and the correlation id propagated into
+    every downstream log line.
+    """
+
+    filename: str = Field(
+        ..., description="Echo of the uploaded filename."
+    )
+    blob_path: str = Field(
+        ...,
+        description=(
+            "Storage path the blob was written to, formatted as "
+            "``<container>/<filename>``."
+        ),
+    )
+    ingestion_job_id: str = Field(
+        ..., description="Correlation id for cross-log tracing."
+    )
+    queued: bool = Field(
+        ...,
+        description=(
+            "True once the push-queue message is enqueued so the "
+            "``batch_push`` consumer will pick it up."
+        ),
+    )
+
+
+class ReprocessResponse(BaseModel):
+    """Response shape for ``POST /api/admin/documents/reprocess``.
+
+    The route fans every blob in the documents container out to the
+    push queue (single ``batch_start`` invocation under the hood), so
+    every existing document is re-parsed + re-embedded + re-pushed
+    through the same pipeline a freshly-uploaded file traverses.
+    ``ingestion_job_id`` is the correlation id shared by every
+    enqueued envelope (mirrors the Functions ``batch_start`` shape so
+    operators can pivot between the two entry points by job id) and
+    is ``None`` when the container is empty.
+    """
+
+    ingestion_job_id: str | None = Field(
+        ...,
+        description=(
+            "Correlation id shared by every enqueued envelope, or "
+            "``None`` when the container had no blobs to enqueue."
+        ),
+    )
+    enqueued_count: int = Field(
+        ...,
+        ge=0,
+        description="Number of push-queue envelopes written for this fan-out.",
+    )
+
+
 class EffectiveAdminConfig(BaseModel):
     """Merged effective view of `AdminConfig` (#35e(b)).
 
@@ -153,5 +256,9 @@ __all__ = [
     "ConfigSource",
     "DeleteDocumentResponse",
     "EffectiveAdminConfig",
+    "IngestUrlRequest",
+    "IngestUrlResponse",
+    "ReprocessResponse",
+    "UploadResponse",
     "WRITABLE_FIELDS",
 ]

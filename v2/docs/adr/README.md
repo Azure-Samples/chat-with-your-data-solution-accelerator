@@ -21,3 +21,8 @@ Architectural decisions for CWYD v2. Each ADR captures a single decision, the co
 | [0006](0006-health-endpoint-split.md) | Split `/api/health` (always 200) from `/api/health/ready` (503 on fail) | Accepted | 2 |
 | [0007](0007-orchestrator-event-typed-sse-channel.md) | `OrchestratorEvent` typed SSE channel — `reasoning` separate from `answer` | Accepted | 2 |
 | [0008](0008-lazy-foundry-agent-bootstrap.md) | Foundry agents bootstrapped lazily on first request, cached in app DB; supersedes CU-001a/e | Accepted | Cleanup audit batch 2 (Phase 4 prep) |
+| [0009](0009-single-owner-no-separate-team-framing.md) | Single-owner v2; `development_plan.md` rows describe work by tier, not by team | Accepted | 7 (close-out) |
+| [0010](0010-chronological-debt-queue-drainage.md) | `development_plan.md` §0.1 debt rows drain in chronological-creation order during end-of-phase audit | Accepted | 7 (close-out) |
+| [0011](0011-frontend-model-extraction.md) | Frontend wire shapes + domain state types extracted into `src/models/<domain>.tsx` | Accepted | 7 (close-out, FE conventions refactor) |
+| [0012](0012-frontend-test-folder-mirror.md) | Frontend tests live under `v2/src/frontend/tests/` mirroring the `src/` tree (no colocation) | Accepted | 7 (close-out, FE conventions refactor) |
+| [0013](0013-frontend-strict-ts-and-tsx-everywhere.md) | Frontend ships strict TypeScript end-to-end with `.tsx` everywhere | Accepted | 7 (close-out, FE conventions refactor) |

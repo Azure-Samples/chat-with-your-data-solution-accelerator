@@ -438,6 +438,7 @@ AdminUserIdDep = Annotated[str, Depends(REQUIRE_ADMIN_USER)]
 __all__ = [
     "AdminUserIdDep",
     "AgentsProviderDep",
+    "CredentialDep",
     "CredentialProviderDep",
     "DatabaseClientDep",
     "LLMProviderDep",
@@ -448,6 +449,7 @@ __all__ = [
     "UserIdDep",
     "get_agents_provider",
     "get_app_settings",
+    "get_credential",
     "get_credential_provider",
     "get_database_client",
     "get_llm_provider",

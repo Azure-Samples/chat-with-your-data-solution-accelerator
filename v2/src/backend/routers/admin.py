@@ -42,13 +42,23 @@ test fixtures.
 """
 
 import logging
+from pathlib import PurePosixPath
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, HTTPException, Request, status
+from fastapi import (
+    APIRouter,
+    Body,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from pydantic import ValidationError
 
 from backend.dependencies import (
     AdminUserIdDep,
+    CredentialDep,
     DatabaseClientDep,
     RuntimeOverridesDep,
     SearchProviderDep,
@@ -62,9 +72,20 @@ from backend.models.admin import (
     ConfigSource,
     DeleteDocumentResponse,
     EffectiveAdminConfig,
+    IngestUrlRequest,
+    IngestUrlResponse,
+    ReprocessResponse,
+    UploadResponse,
     WRITABLE_FIELDS,
 )
 from backend.services.admin import host_only, utcnow_iso
+from backend.services.ingestion import (
+    MAX_UPLOAD_SIZE_BYTES,
+    ingest_url,
+    reprocess_all,
+    upload_document,
+)
+from functions.core.parsers import registry as ingestion_parsers_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -355,6 +376,181 @@ async def delete_document_endpoint(
         },
     )
     return DeleteDocumentResponse(deleted=deleted)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents/url -- fetch one URL, parse + embed + index its
+# chunks. FE-facing entry point so the admin UI can drive URL ingest
+# through FastAPI instead of reaching into the Functions HTTP trigger.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents/url",
+    response_model=IngestUrlResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def ingest_url_endpoint(
+    body: IngestUrlRequest,
+    settings: SettingsDep,
+    credential: CredentialDep,
+    search: SearchProviderDep,
+    _user: AdminUserIdDep,
+) -> IngestUrlResponse:
+    """Fetch ``body.url`` and write its embedded chunks to the search index.
+
+    Delegates the fetch / parse / embed / push pipeline to
+    :func:`backend.services.ingestion.ingest_url` -- same orchestration
+    the Functions HTTP trigger uses, so an URL ingested via this route
+    lands in the same shape as one ingested via the queue path.
+
+    Status surface:
+
+    * ``200`` + :class:`IngestUrlResponse` on success.
+    * ``422`` when the body fails Pydantic validation (URL empty or
+      too long).
+    * ``503`` when the deployment has no search backend configured
+      (the route stays mounted so operators discover the gap
+      explicitly instead of routing-404-ing it).
+    * Upstream ``httpx.HTTPError`` (bad URL, dead host) /
+      ``AzureError`` (embedder / search) propagate to the app-level
+      handlers in :mod:`backend.app`.
+    """
+    if search is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Search backend is not configured for this deployment.",
+        )
+    return await ingest_url(
+        body,
+        settings=settings,
+        credential=credential,
+        search_provider=search,
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents -- multipart file upload. Writes to the source
+# blob container and enqueues a push message so the existing ``batch_push``
+# queue consumer runs the same parse + embed + push pipeline used by
+# ``batch_start``.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents",
+    response_model=UploadResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_document_endpoint(
+    settings: SettingsDep,
+    credential: CredentialDep,
+    _user: AdminUserIdDep,
+    file: Annotated[UploadFile, File(...)],
+) -> UploadResponse:
+    """Upload a single document and enqueue it for indexing.
+
+    Status surface:
+
+    * ``200`` + :class:`UploadResponse` on success.
+    * ``413`` when the uploaded file exceeds
+      :data:`backend.services.ingestion.MAX_UPLOAD_SIZE_BYTES`.
+    * ``415`` when the filename has no extension or an extension
+      that is not registered in the parser registry -- the parser
+      registry is the authoritative source of "supported file
+      types" for the whole pipeline (Hard Rule #4).
+    * ``422`` when the multipart body is missing the ``file`` part
+      or the filename is empty (FastAPI / Pydantic native).
+    * ``503`` when the deployment has no documents container or
+      doc-processing queue configured -- the route stays mounted so
+      operators discover the gap explicitly instead of
+      routing-404-ing it.
+    * Upstream ``AzureError`` (blob upload, queue send) propagates
+      to the app-level handlers in :mod:`backend.app`, which
+      sanitise it into a 503 response with no SDK detail leaked.
+    """
+    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Document storage is not configured for this deployment."
+            ),
+        )
+    filename = (file.filename or "").strip()
+    if not filename:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Uploaded file must carry a non-empty filename.",
+        )
+    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
+    if extension not in ingestion_parsers_registry.registry:
+        supported = sorted(ingestion_parsers_registry.registry.keys())
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail={
+                "msg": "Unsupported file extension.",
+                "extension": extension,
+                "supported": supported,
+            },
+        )
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail={
+                "msg": "Uploaded file exceeds the maximum allowed size.",
+                "byte_count": len(content),
+                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
+            },
+        )
+    return await upload_document(
+        filename=filename,
+        content=content,
+        settings=settings,
+        credential=credential,
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents/reprocess -- re-fan every blob in the documents
+# container onto the push queue so every existing document is re-parsed,
+# re-embedded, and re-pushed through the same pipeline a freshly-uploaded
+# file traverses. Single ``batch_start_handler`` invocation under the hood.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents/reprocess",
+    response_model=ReprocessResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def reprocess_all_endpoint(
+    settings: SettingsDep,
+    credential: CredentialDep,
+    _user: AdminUserIdDep,
+) -> ReprocessResponse:
+    """Fan every blob in the documents container out to the push queue.
+
+    Status surface:
+
+    * ``200`` + :class:`ReprocessResponse` on success.
+      ``ingestion_job_id`` is ``None`` when the container is empty so
+      the FE can distinguish "nothing to do" from "queued N items".
+    * ``503`` when the deployment has no documents container or
+      doc-processing queue configured -- the route stays mounted so
+      operators discover the gap explicitly instead of
+      routing-404-ing it.
+    * Upstream ``AzureError`` (blob listing, queue send) propagates
+      to the app-level handlers in :mod:`backend.app`.
+    """
+    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Document storage is not configured for this deployment."
+            ),
+        )
+    return await reprocess_all(settings=settings, credential=credential)
 
 
 __all__ = [

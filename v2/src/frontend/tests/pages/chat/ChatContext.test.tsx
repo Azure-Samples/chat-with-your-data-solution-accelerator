@@ -135,6 +135,73 @@ describe("chatReducer streaming actions", () => {
     expect(next.messages[0].streaming).toBe(false);
   });
 
+  it("'set_feedback' stores the feedback string on the matching message", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: "add",
+      message: botMsg,
+    });
+    const next = chatReducer(seeded, {
+      type: "set_feedback",
+      id: "2",
+      feedback: "positive",
+    });
+    expect(next.messages[0].feedback).toBe("positive");
+  });
+
+  it("'set_feedback' overwrites an existing feedback value", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: "add",
+      message: { ...botMsg, feedback: "positive" },
+    });
+    const next = chatReducer(seeded, {
+      type: "set_feedback",
+      id: "2",
+      feedback: "negative",
+    });
+    expect(next.messages[0].feedback).toBe("negative");
+  });
+
+  it("'set_feedback' clears the feedback value when passed null", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: "add",
+      message: { ...botMsg, feedback: "positive" },
+    });
+    const next = chatReducer(seeded, {
+      type: "set_feedback",
+      id: "2",
+      feedback: null,
+    });
+    expect(next.messages[0].feedback).toBeNull();
+  });
+
+  it("'set_feedback' is a no-op when the id is unknown", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: "add",
+      message: botMsg,
+    });
+    const next = chatReducer(seeded, {
+      type: "set_feedback",
+      id: "missing",
+      feedback: "positive",
+    });
+    expect(next).toBe(seeded);
+  });
+
+  it("'set_feedback' does not touch unrelated message fields", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: "add",
+      message: streamingBot,
+    });
+    const next = chatReducer(seeded, {
+      type: "set_feedback",
+      id: "s1",
+      feedback: "positive",
+    });
+    expect(next.messages[0].streaming).toBe(true);
+    expect(next.messages[0].content).toBe("");
+    expect(next.messages[0].reasoning).toEqual([]);
+  });
+
   it("does not mutate previous state on streaming actions", () => {
     const seeded = chatReducer(initialChatState, {
       type: "add",

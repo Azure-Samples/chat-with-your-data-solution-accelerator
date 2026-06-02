@@ -36,6 +36,13 @@ applyTo: "v2/src/frontend/**"
 - State is updated through a single `useReducer` per context — actions are typed unions, no setter sprawl.
 - No cross-context imports. Cross-domain state goes via prop drilling at the page boundary or, when warranted, a thin `AppContext` composed at `src/main.tsx`.
 - If a context starts shouldering large lists or selector-driven re-renders, raise the question in a dedicated turn before reaching for an external state lib.
+
+## Models
+
+- **Wire shapes + domain state types live in `v2/src/frontend/src/models/<domain>.tsx`** — one file per backend domain module. `models/admin.tsx` mirrors `backend/models/admin.py`; `models/chat.tsx` mirrors the conversation + history wire shapes; `models/speech.tsx` mirrors the speech wire shapes; `models/feedback.tsx` mirrors the feedback wire shapes. Models declare nothing else — no helpers, no constants, no React. Rationale + ADR: [v2/docs/adr/0011-frontend-model-extraction.md](../../v2/docs/adr/0011-frontend-model-extraction.md).
+- **Inline carve-outs:** component prop interfaces (e.g. `HeaderProps`, `ChatPageProps`, `FeedbackButtonsProps`), hook-shape interfaces (e.g. `UseSpeechRecognition`), and reducer action-union types stay next to their consumer. These are local contracts, not wire / domain shapes.
+- **Imports go through the models barrel paths, not inline duplicates.** Once a shape lives in `models/<domain>.tsx`, do not redeclare it at the call site or in the API client — `import type { AdminStatus } from "../models/admin";` is the only correct form.
+
 ## Routing
 
 - Phase 1 / Phase 2 stub: **no router**. A single `<App />` renders the (eventual) chat shell.
@@ -43,10 +50,12 @@ applyTo: "v2/src/frontend/**"
 - Admin pages will live under `src/pages/admin/`. They are part of the same SPA — no separate Streamlit, ever.
 ## Conventions
 
-- TypeScript `strict: true`.
+- TypeScript strictness: `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`. The three flags are non-negotiable — `tsconfig.json` is the single source of truth. Rationale + ADR: [v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md](../../v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md).
+- ESLint runs `@typescript-eslint/strict-type-checked` + `@typescript-eslint/stylistic-type-checked` on `src/**` and `tests/**`. `npm run lint` is CI-gated; the FE lint step fails the build on any error.
+- File extension: all first-party files under `src/` and `tests/` use `.tsx`, regardless of JSX content. Tooling configs (`vite.config.ts`, `tsconfig.json`) stay at their tool-pinned names. See [Hard Rule #11](../copilot-instructions.md) + ADR 0013 above.
 - No `any`. Use `unknown` + type narrowing.
 - Plain CSS Modules (`*.module.css`) for component styling — no global CSS leaks. If a UI library is later adopted, prefer its idiomatic styling primitive (e.g. Fluent UI `makeStyles`) over CSS Modules for new components in that library's scope.
-- **Tests live under `v2/src/frontend/tests/`, mirroring the `src/` tree** (e.g. `src/pages/chat/ChatPage.tsx` → `tests/pages/chat/ChatPage.test.tsx`). Every new component ships with a corresponding `tests/.../<Component>.test.tsx` covering at least one behavioral assertion. **Do not colocate `*.test.tsx` next to source files.** The Vitest `include` glob in `vite.config.ts` only scans `tests/**`, so colocated tests will be silently skipped.
+- **Tests live under `v2/src/frontend/tests/`, mirroring the `src/` tree** (e.g. `src/pages/chat/ChatPage.tsx` → `tests/pages/chat/ChatPage.test.tsx`). Every new component ships with a corresponding `tests/.../<Component>.test.tsx` covering at least one behavioral assertion. **Do not colocate `*.test.tsx` next to source files.** The Vitest `include` glob in `vite.config.ts` only scans `tests/**`, so colocated tests will be silently skipped. Rationale + ADR: [v2/docs/adr/0012-frontend-test-folder-mirror.md](../../v2/docs/adr/0012-frontend-test-folder-mirror.md).
 ## Branding / customization
 
 - All branding text/logo loaded at runtime from `/api/admin/ui-config` (backed by `active.json`). *(That endpoint lands in Phase 5 — dev_plan task #35. Until then, the placeholder shell may use a single hard-coded title; replace it the moment the endpoint exists.)*

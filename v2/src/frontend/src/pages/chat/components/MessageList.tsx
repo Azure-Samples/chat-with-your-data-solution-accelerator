@@ -6,7 +6,11 @@
  *        4 (MACAE re-skin — assistant runs as full-width prose with no
  *           bubble; user is a brand-tinted right-aligned chip; avatars
  *           use Fluent v9 icons; empty state uses Fluent Chat48 +
- *           Title2 "Start a conversation".)
+ *           Title2 "Start a conversation".) +
+ *        7 (Testing + Documentation — wire <FeedbackButtons> per
+ *           assistant message; optimistic set_feedback dispatch then
+ *           POST /api/history/messages/{id}/feedback via setFeedback();
+ *           rollback the dispatch on API failure.)
  *
  * Renders the chat transcript from ChatContext. Each message renders a
  * single <li> with a per-row layout: a 28x28 round avatar (Fluent
@@ -26,19 +30,48 @@
  *   - `error?: string`                   → inline `role="alert"` notice.
  * Both decorations are skipped when neither field applies.
  *
+ * Finished assistant messages (`streaming !== true`) additionally
+ * render a <FeedbackButtons> row. Click flow is optimistic: dispatch
+ * `set_feedback` first so the thumb visually "locks in" before the
+ * fetch round-trip, then call `setFeedback()`. If the POST fails the
+ * dispatch rolls back to the prior value so the UI matches reality.
+ * The reasoning panel and error notice render unchanged when feedback
+ * is present — feedback is a sibling, not a wrapper.
+ *
  * All `data-testid` and `data-role` attributes are preserved verbatim
  * from the Phase-5 contract — visual changes only.
  */
+import { useCallback } from "react";
 import {
   Bot20Regular,
   Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
-import { useChat } from "../ChatContext";
+import { useChat, type ChatMessage } from "../ChatContext";
+import { setFeedback } from "../../../api/feedback";
+import { FeedbackButtons } from "./FeedbackButtons";
 import styles from "./MessageList.module.css";
 
 export function MessageList() {
-  const { state } = useChat();
+  const { state, dispatch } = useChat();
+
+  const handleFeedback = useCallback(
+    async (m: ChatMessage, value: string): Promise<void> => {
+      const previous = m.feedback ?? null;
+      dispatch({ type: "set_feedback", id: m.id, feedback: value });
+      try {
+        await setFeedback(m.id, value);
+      } catch {
+        // Rollback: the backend rejected the feedback (404/422/5xx),
+        // so revert the optimistic dispatch and let the UI reflect
+        // reality. We intentionally swallow the error — there is no
+        // user-visible error surface for feedback failures today,
+        // and the rollback is the only visible-tier correction.
+        dispatch({ type: "set_feedback", id: m.id, feedback: previous });
+      }
+    },
+    [dispatch],
+  );
 
   if (state.messages.length === 0) {
     return (
@@ -108,6 +141,13 @@ export function MessageList() {
             >
               {m.error}
             </p>
+          )}
+          {m.role === "assistant" && m.streaming !== true && (
+            <FeedbackButtons
+              messageId={m.id}
+              feedback={m.feedback}
+              onSubmit={(value) => handleFeedback(m, value)}
+            />
           )}
         </li>
       ))}
