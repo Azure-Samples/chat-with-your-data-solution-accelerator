@@ -33,7 +33,26 @@ export interface StreamEvent {
   metadata: Record<string, unknown>;
 }
 
+/**
+ * One source citation surfaced alongside an answer. Mirrors
+ * `backend.core.types.Citation`: `id` is the provider-specific
+ * source / chunk id (used for dedupe and `[docN]` token wiring);
+ * `title`, `url`, `snippet` are renderable display fields; `score`
+ * is the normalized 0..1 relevance when the provider exposes one;
+ * `metadata` carries the rest of the provider payload verbatim so
+ * the panel can surface per-provider extras without a wire change.
+ */
+export interface Citation {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string;
+  score: number | null;
+  metadata: Record<string, unknown>;
+}
+
 export type MessageRole = "user" | "assistant";
+
 
 export interface ChatMessage {
   id: string;
