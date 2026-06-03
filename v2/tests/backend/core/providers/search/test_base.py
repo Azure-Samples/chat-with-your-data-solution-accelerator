@@ -9,8 +9,9 @@ from unittest.mock import MagicMock
 
 import inspect
 import pytest
+from pydantic import ValidationError
 
-from backend.core.providers.search.base import BaseSearch
+from backend.core.providers.search.base import BaseSearch, SourceListing
 from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
 
@@ -111,3 +112,92 @@ def test_ensure_schema_signature_takes_no_required_args() -> None:
         f"ensure_schema must take no required args beyond self; "
         f"got {[p.name for p in non_self_params]}"
     )
+
+
+def test_source_listing_is_frozen() -> None:
+    """`SourceListing` is immutable per Pydantic v2 frozen config."""
+    listing = SourceListing(
+        source="contract.pdf",
+        chunk_count=3,
+        last_modified="2026-01-01T00:00:00Z",
+    )
+    with pytest.raises(ValidationError):
+        listing.source = "other.pdf"  # type: ignore[misc]
+
+
+def test_source_listing_forbids_extra_fields() -> None:
+    """Unknown keys raise `ValidationError` per `extra="forbid"`."""
+    with pytest.raises(ValidationError):
+        SourceListing.model_validate(
+            {
+                "source": "a.pdf",
+                "chunk_count": 1,
+                "last_modified": None,
+                "foo": "bar",
+            }
+        )
+
+
+def test_source_listing_last_modified_optional_defaults_none() -> None:
+    """`last_modified` defaults to ``None`` when omitted."""
+    listing = SourceListing(source="a.pdf", chunk_count=0)
+    assert listing.last_modified is None
+
+
+def test_source_listing_round_trip_via_model_dump_and_validate() -> None:
+    """`model_validate(model_dump())` is the identity for `SourceListing`."""
+    original = SourceListing(
+        source="contract.pdf",
+        chunk_count=7,
+        last_modified="2026-05-31T12:34:56Z",
+    )
+    rebuilt = SourceListing.model_validate(original.model_dump())
+    assert rebuilt == original
+
+
+def test_source_listing_requires_source_and_chunk_count() -> None:
+    """Omitting either required field raises `ValidationError`."""
+    with pytest.raises(ValidationError):
+        SourceListing.model_validate({"chunk_count": 1})
+    with pytest.raises(ValidationError):
+        SourceListing.model_validate({"source": "a.pdf"})
+
+
+@pytest.mark.asyncio
+async def test_default_list_sources_raises_not_implemented() -> None:
+    """Calling the default body raises NotImplementedError with the class name.
+
+    Mirrors the fail-loud contract of
+    :meth:`BaseSearch.merge_or_upload_documents` -- a provider that
+    forgets to override fails at the admin route call site rather
+    than silently returning an empty list.
+    """
+    instance = _MinimalSearch(_make_settings(), MagicMock())
+    with pytest.raises(NotImplementedError) as exc_info:
+        await instance.list_sources()
+    assert "_MinimalSearch" in str(exc_info.value)
+    assert "list_sources" in str(exc_info.value)
+
+
+def test_list_sources_signature_takes_no_required_args() -> None:
+    """`list_sources()` must be callable with zero arguments other than self."""
+    sig = inspect.signature(BaseSearch.list_sources)
+    non_self_params = [
+        p for name, p in sig.parameters.items() if name != "self"
+    ]
+    assert non_self_params == [], (
+        f"list_sources must take no required args beyond self; "
+        f"got {[p.name for p in non_self_params]}"
+    )
+
+
+def test_list_sources_is_not_abstract() -> None:
+    """`list_sources` ships with a default body, not as @abstractmethod.
+
+    The default raises NotImplementedError so existing providers
+    that have not yet landed their override still instantiate (their
+    other abstract methods stay enforced). If this test fails, the
+    method became abstract by mistake and breaks `AzureSearch` /
+    `PgVector` construction.
+    """
+    assert "list_sources" not in BaseSearch.__abstractmethods__

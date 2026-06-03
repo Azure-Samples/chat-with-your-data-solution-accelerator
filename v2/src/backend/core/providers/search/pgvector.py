@@ -50,7 +50,7 @@ from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
 
 from .registry import registry
-from .base import BaseSearch
+from .base import BaseSearch, SourceListing
 
 
 logger = logging.getLogger(__name__)
@@ -178,6 +178,44 @@ class PgVector(BaseSearch):
             )
             raise
         return len(rows)
+
+    async def list_sources(self) -> list[SourceListing]:
+        # The schema has no timestamp column, so `last_modified` is
+        # always None for this backend -- deploys that need per-source
+        # freshness use the indexer-written `last_modified` on the
+        # Azure Search backend or query the source blob directly.
+        # NULL titles are excluded so the admin grid never shows a
+        # blank-name row (a chunk with no source can't be deleted by
+        # the matching `delete_by_source` route anyway).
+        sql = (
+            f"SELECT title AS source, COUNT(*) AS chunk_count "
+            f"FROM {self._table} "
+            f"WHERE title IS NOT NULL "
+            f"GROUP BY title "
+            f"ORDER BY title"
+        )
+        try:
+            rows = cast(
+                "list[Mapping[str, Any]]",
+                await self._pool.fetch(sql),  # pyright: ignore[reportUnknownMemberType]
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "pgvector list_sources failed",
+                extra={
+                    "operation": "list_sources",
+                    "provider": "pgvector",
+                },
+            )
+            raise
+        return [
+            SourceListing(
+                source=str(row["source"]),
+                chunk_count=int(row["chunk_count"]),
+                last_modified=None,
+            )
+            for row in rows
+        ]
 
     async def merge_or_upload_documents(
         self,

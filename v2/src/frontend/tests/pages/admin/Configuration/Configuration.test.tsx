@@ -1,0 +1,426 @@
+/**
+ * Pillar: Stable Core
+ * Phase: 7 (Testing + Documentation)
+ *
+ * Vitest suite for the admin Configuration page. Mocks
+ * `src/api/admin.tsx` so each scenario (loading / loaded / dirty /
+ * saving / save success / save failure) is asserted against the
+ * typed client surface without hitting the network.
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  Configuration,
+} from "../../../../src/pages/admin/Configuration/Configuration";
+import {
+  getAdminConfig,
+  patchAdminConfig,
+} from "../../../../src/api/admin";
+import type {
+  AdminConfig,
+  RuntimeConfig,
+} from "../../../../src/models/admin";
+
+vi.mock("../../../../src/api/admin", () => ({
+  getAdminConfig: vi.fn(),
+  patchAdminConfig: vi.fn(),
+}));
+
+const getMock = vi.mocked(getAdminConfig);
+const patchMock = vi.mocked(patchAdminConfig);
+
+const CONFIG_FIXTURE: AdminConfig = {
+  orchestrator_name: "langgraph",
+  openai_temperature: 0.0,
+  openai_max_tokens: 4096,
+  search_use_semantic_search: true,
+  search_top_k: 5,
+  log_level: "INFO",
+  content_safety_enabled: false,
+};
+
+const PATCHED_CONFIG_FIXTURE: AdminConfig = {
+  ...CONFIG_FIXTURE,
+  orchestrator_name: "agent_framework",
+  openai_temperature: 0.7,
+};
+
+const RUNTIME_FIXTURE: RuntimeConfig = {
+  orchestrator_name: "agent_framework",
+  openai_temperature: 0.7,
+  openai_max_tokens: null,
+  search_use_semantic_search: null,
+  search_top_k: null,
+  log_level: null,
+  content_safety_enabled: null,
+  updated_at: "2026-06-03T11:00:00Z",
+  updated_by: "admin-user-id",
+};
+
+beforeEach(() => {
+  getMock.mockReset();
+  patchMock.mockReset();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe("Configuration -- page shell", () => {
+  it("renders the page heading and the Runtime settings section header", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    expect(
+      screen.getByRole("heading", { name: /configuration/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /runtime settings/i }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getMock).toHaveBeenCalledTimes(1);
+    });
+  });
+});
+
+describe("Configuration -- initial load", () => {
+  it("fires getAdminConfig on mount and renders one row per writable field", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    expect(getMock).toHaveBeenCalledTimes(1);
+    expect(getMock).toHaveBeenCalledWith();
+    for (const key of [
+      "orchestrator_name",
+      "openai_temperature",
+      "openai_max_tokens",
+      "search_use_semantic_search",
+      "search_top_k",
+      "log_level",
+      "content_safety_enabled",
+    ]) {
+      expect(screen.getByTestId(`config-field-${key}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`config-input-${key}`)).toBeInTheDocument();
+    }
+  });
+
+  it("populates each input with the server-supplied value", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const orchestratorInput = screen.getByTestId(
+      "config-input-orchestrator_name",
+    ) as HTMLInputElement;
+    expect(orchestratorInput.value).toBe("langgraph");
+    const temperatureInput = screen.getByTestId(
+      "config-input-openai_temperature",
+    ) as HTMLInputElement;
+    expect(temperatureInput.value).toBe("0");
+    const maxTokensInput = screen.getByTestId(
+      "config-input-openai_max_tokens",
+    ) as HTMLInputElement;
+    expect(maxTokensInput.value).toBe("4096");
+    const semanticSwitch = screen.getByTestId(
+      "config-input-search_use_semantic_search",
+    ) as HTMLInputElement;
+    expect(semanticSwitch.checked).toBe(true);
+  });
+
+  it("shows the loading state before the GET resolves", async () => {
+    let resolveGet: (value: AdminConfig) => void = () => {};
+    getMock.mockReturnValueOnce(
+      new Promise<AdminConfig>((resolve) => {
+        resolveGet = resolve;
+      }),
+    );
+
+    render(<Configuration />);
+
+    expect(screen.getByTestId("config-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("config-form")).not.toBeInTheDocument();
+    // Resolve the still-pending promise and let React flush the
+    // state update so test cleanup leaves no act() warnings.
+    resolveGet(CONFIG_FIXTURE);
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+  });
+
+  it("surfaces the load failure message and retry button on GET rejection", async () => {
+    getMock.mockRejectedValueOnce(new Error("getAdminConfig: 503"));
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-load-error")).toHaveTextContent(
+        /503/,
+      );
+    });
+    expect(screen.getByTestId("config-load-retry")).toBeInTheDocument();
+    expect(screen.queryByTestId("config-form")).not.toBeInTheDocument();
+  });
+
+  it("re-fires getAdminConfig when the load retry button is clicked", async () => {
+    getMock.mockRejectedValueOnce(new Error("getAdminConfig: 503"));
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-load-retry")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("config-load-retry"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    expect(getMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Configuration -- form editing", () => {
+  it("keeps Save and Discard disabled when the form is clean", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByTestId("config-discard-button") as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
+  it("enables Save once any field is edited", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "agent_framework" },
+    });
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(
+      (
+        screen.getByTestId("config-discard-button") as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+  });
+
+  it("reverts edits when Discard is clicked", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "agent_framework" },
+    });
+    fireEvent.click(screen.getByTestId("config-discard-button"));
+
+    const orchestratorInput = screen.getByTestId(
+      "config-input-orchestrator_name",
+    ) as HTMLInputElement;
+    expect(orchestratorInput.value).toBe("langgraph");
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("surfaces a per-field validation error for empty text fields", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "" },
+    });
+    expect(
+      screen.getByTestId("config-field-error-orchestrator_name"),
+    ).toHaveTextContent(/cannot be empty/i);
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("surfaces a per-field validation error for an out-of-range temperature", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-openai_temperature"), {
+      target: { value: "5" },
+    });
+    expect(
+      screen.getByTestId("config-field-error-openai_temperature"),
+    ).toHaveTextContent(/2 or less/i);
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+});
+
+describe("Configuration -- save flow", () => {
+  it("PATCHes only the changed fields (RFC 7396 delta) and reports success", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(PATCHED_CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "agent_framework" },
+    });
+    fireEvent.change(screen.getByTestId("config-input-openai_temperature"), {
+      target: { value: "0.7" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(patchMock).toHaveBeenCalledTimes(1);
+    });
+    expect(patchMock).toHaveBeenCalledWith({
+      orchestrator_name: "agent_framework",
+      openai_temperature: 0.7,
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("config-save-status")).toHaveTextContent(
+        /saved/i,
+      );
+    });
+    expect(getMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("surfaces the audit footer with the runtime updated_at / updated_by metadata after save", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(PATCHED_CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "agent_framework" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-audit-footer")).toBeInTheDocument();
+    });
+    const footer = screen.getByTestId("config-audit-footer");
+    expect(footer).toHaveTextContent("2026-06-03T11:00:00Z");
+    expect(footer).toHaveTextContent("admin-user-id");
+  });
+
+  it("re-syncs the form to the refreshed server config after save", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(PATCHED_CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "agent_framework" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-save-status")).toBeInTheDocument();
+    });
+    expect(
+      (
+        screen.getByTestId(
+          "config-input-orchestrator_name",
+        ) as HTMLInputElement
+      ).value,
+    ).toBe("agent_framework");
+    // Form is now clean against the refreshed server config.
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("surfaces the failure message when the PATCH rejects", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockRejectedValueOnce(new Error("patchAdminConfig: 422"));
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+      target: { value: "agent_framework" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-save-error")).toHaveTextContent(
+        /422/,
+      );
+    });
+    // Form stays dirty so the operator can fix + retry.
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("re-fires getAdminConfig when the Reload button is clicked", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    getMock.mockResolvedValueOnce(PATCHED_CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("config-reload-button"));
+
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByTestId(
+            "config-input-orchestrator_name",
+          ) as HTMLInputElement
+        ).value,
+      ).toBe("agent_framework");
+    });
+    expect(getMock).toHaveBeenCalledTimes(2);
+  });
+});

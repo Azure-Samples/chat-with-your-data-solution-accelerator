@@ -44,7 +44,7 @@ from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
 
 from .registry import registry
-from .base import BaseSearch
+from .base import BaseSearch, SourceListing
 
 
 logger = logging.getLogger(__name__)
@@ -237,6 +237,45 @@ class AzureSearch(BaseSearch):
             )
             raise
         return deleted_count
+
+    async def list_sources(self) -> list[SourceListing]:
+        # `facets=["title,count:10000,sort:value"]` asks the service to
+        # bucket all chunks by their `title` field (the source filename
+        # / URL), cap at 10_000 distinct values, and return them sorted
+        # alphabetically -- saves a Python-side sort and keeps the
+        # admin UI ordering deterministic. `top=0` skips the document
+        # body of the response; we only consume the facet aggregate.
+        client = self._get_client()
+        try:
+            paged = await client.search(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+                search_text="*",
+                facets=["title,count:10000,sort:value"],
+                top=0,
+            )
+            facets = cast(
+                dict[str, list[dict[str, Any]]] | None,
+                await paged.get_facets(),  # pyright: ignore[reportUnknownMemberType]
+            )
+        except AzureError:
+            logger.exception(
+                "azure_search list_sources failed",
+                extra={
+                    "operation": "list_sources",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                },
+            )
+            raise
+        title_facets = (facets or {}).get("title", [])
+        return [
+            SourceListing(
+                source=str(entry.get("value", "")),
+                chunk_count=int(entry.get("count", 0) or 0),
+                last_modified=None,
+            )
+            for entry in title_facets
+            if entry.get("value")
+        ]
 
     async def merge_or_upload_documents(
         self,

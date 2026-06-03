@@ -63,7 +63,7 @@ def _iter_v2_init_files() -> list[Path]:
             # Skip any cached / venv / build output that may have been
             # dropped under one of the scan roots.
             parts = set(path.parts)
-            if "__pycache__" in parts or ".venv" in parts or "build" in parts:
+            if "__pycache__" in parts or ".venv" in parts or "build" in parts or "node_modules" in parts:
                 continue
             files.append(path)
     return sorted(files)

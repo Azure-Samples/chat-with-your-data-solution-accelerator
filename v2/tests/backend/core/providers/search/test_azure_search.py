@@ -17,7 +17,7 @@ from azure.core.exceptions import (
 
 from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.azure_search import AzureSearch
-from backend.core.providers.search.base import BaseSearch
+from backend.core.providers.search.base import BaseSearch, SourceListing
 from backend.core.settings import AppSettings, get_settings
 from backend.core.types import SearchDocument, SearchResult
 
@@ -539,3 +539,111 @@ async def test_merge_or_upload_documents_logs_and_reraises_on_azure_error(
     assert record.index_name == "cwyd-index"
     assert record.document_count == 1
     client.merge_or_upload_documents.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# list_sources
+# ---------------------------------------------------------------------------
+
+
+def _make_facet_client(
+    facets: dict[str, list[dict[str, Any]]] | None,
+) -> MagicMock:
+    """Build a fake SearchClient whose `search()` returns a paged
+    object exposing `get_facets()` -- the only paged-iterator method
+    `list_sources` uses.
+    """
+    paged = MagicMock()
+    paged.get_facets = AsyncMock(return_value=facets)
+    client = MagicMock()
+    client.search = AsyncMock(return_value=paged)
+    client.close = AsyncMock()
+    return client
+
+
+@pytest.mark.asyncio
+async def test_list_sources_returns_listings_from_title_facets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = _make_facet_client(
+        {
+            "title": [
+                {"value": "alpha.pdf", "count": 3},
+                {"value": "beta.pdf", "count": 7},
+            ]
+        }
+    )
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    listings = await handler.list_sources()
+
+    assert listings == [
+        SourceListing(source="alpha.pdf", chunk_count=3, last_modified=None),
+        SourceListing(source="beta.pdf", chunk_count=7, last_modified=None),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_sources_passes_facet_expression_and_top_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = _make_facet_client({"title": []})
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    await handler.list_sources()
+
+    search_kwargs = client.search.await_args.kwargs
+    assert search_kwargs["search_text"] == "*"
+    assert search_kwargs["facets"] == ["title,count:10000,sort:value"]
+    assert search_kwargs["top"] == 0
+
+
+@pytest.mark.asyncio
+async def test_list_sources_returns_empty_when_no_facets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # `get_facets()` can legitimately return None on an empty index or
+    # when the facet field has no values. Treat both as empty list.
+    settings = _settings_for_search(monkeypatch)
+    client = _make_facet_client(None)
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    assert await handler.list_sources() == []
+
+    client = _make_facet_client({})
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    assert await handler.list_sources() == []
+
+
+@pytest.mark.asyncio
+async def test_list_sources_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        side_effect=HttpResponseError(message="500 server error")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.list_sources()
+
+    record = _find_record(caplog, "list_sources")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"

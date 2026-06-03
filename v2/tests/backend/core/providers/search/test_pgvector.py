@@ -18,6 +18,7 @@ import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import pytest
 
 from backend.core.providers.search import registry as search_registry
+from backend.core.providers.search.base import SourceListing
 from backend.core.providers.search.pgvector import PgVector, _format_vector_literal
 from backend.core.settings import (
     AppSettings,
@@ -318,6 +319,95 @@ async def test_delete_by_source_logs_and_reraises_on_postgres_error(
     ]
     assert len(matches) == 1, (
         f"expected exactly 1 ERROR record with operation=delete_by_source/provider=pgvector, "
+        f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
+    )
+    pool.fetch.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# list_sources
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_sources_emits_group_by_title_with_count_aggregate() -> None:
+    pool = _make_pool(
+        [
+            {"source": "alpha.pdf", "chunk_count": 3},
+            {"source": "beta.pdf", "chunk_count": 7},
+        ]
+    )
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    listings = await provider.list_sources()
+
+    sql = pool.fetch.await_args.args[0]
+    assert "FROM documents" in sql
+    assert "GROUP BY title" in sql
+    assert "COUNT(*) AS chunk_count" in sql
+    assert "ORDER BY title" in sql
+    assert "WHERE title IS NOT NULL" in sql
+    # Single positional arg -- no params.
+    assert len(pool.fetch.await_args.args) == 1
+    assert listings == [
+        SourceListing(source="alpha.pdf", chunk_count=3, last_modified=None),
+        SourceListing(source="beta.pdf", chunk_count=7, last_modified=None),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_sources_returns_empty_when_no_rows() -> None:
+    pool = _make_pool([])
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    assert await provider.list_sources() == []
+
+
+@pytest.mark.asyncio
+async def test_list_sources_interpolates_custom_table_name_in_sql() -> None:
+    pool = _make_pool([])
+    provider = PgVector(
+        settings=_make_settings(),
+        credential=AsyncMock(),
+        pool=pool,
+        table="cwyd_chunks",
+    )
+
+    await provider.list_sources()
+
+    sql = pool.fetch.await_args.args[0]
+    assert "FROM cwyd_chunks" in sql
+
+
+@pytest.mark.asyncio
+async def test_list_sources_logs_and_reraises_on_postgres_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    pool = MagicMock()
+    pool.fetch = AsyncMock(
+        side_effect=asyncpg.PostgresError("connection terminated")
+    )
+    provider = PgVector(
+        settings=_make_settings(), credential=AsyncMock(), pool=pool
+    )
+
+    with caplog.at_level("ERROR", logger=_PGVECTOR_LOGGER_NAME):
+        with pytest.raises(asyncpg.PostgresError):
+            await provider.list_sources()
+
+    matches = [
+        r
+        for r in caplog.records
+        if r.levelname == "ERROR"
+        and getattr(r, "operation", None) == "list_sources"
+        and getattr(r, "provider", None) == "pgvector"
+    ]
+    assert len(matches) == 1, (
+        f"expected exactly 1 ERROR record with operation=list_sources/provider=pgvector, "
         f"got {len(matches)}: {[r.getMessage() for r in caplog.records]}"
     )
     pool.fetch.assert_awaited_once()

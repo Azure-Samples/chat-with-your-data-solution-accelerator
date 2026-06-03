@@ -2,15 +2,23 @@
  * Pillar: Stable Core
  * Phase: 1 +
  *        6 (visual polish — header + theme + history toggle, pulled forward for boss demo) +
- *        4 (MACAE re-skin — Fluent UI v9 provider via FluentThemeBridge)
+ *        4 (MACAE re-skin — Fluent UI v9 provider via FluentThemeBridge) +
+ *        7 (Testing + Documentation — admin Delete data routing)
  *
  * App shell. Pings `/api/health` against the configured backend (so
- * docker compose can verify `VITE_BACKEND_URL` wiring) and mounts
- * the chat page from dev_plan #15. SSE wiring lands in #24; routing
- * lands with the admin merge in #36. Phase-6 polish wraps the tree in
- * a `<ThemeProvider>` and renders the Coral `<Header>` that owns the
- * light/dark toggle and the history-panel toggle (state lives here so
- * a single source of truth feeds both header and `<ChatPage>`).
+ * docker compose can verify `VITE_BACKEND_URL` wiring) and mounts the
+ * chat page or one of the admin pages (Ingest data / Delete data)
+ * depending on the active `view`. Admin nav visibility is driven by
+ * a one-shot `getAdminStatus()` probe on mount: a 2xx response
+ * surfaces the Admin links in the header, any non-2xx (or transport
+ * failure) keeps them hidden so non-admin sessions never see a
+ * dead-end link.
+ *
+ * Phase-6 polish wraps the tree in a `<ThemeProvider>` and renders the
+ * Coral `<Header>` that owns the light/dark toggle, the
+ * history-panel toggle, and (when wired) the primary nav. State for
+ * `historyOpen`, `view`, and `adminAvailable` lives here so a single
+ * source of truth feeds both header and the routed view.
  *
  * MACAE re-skin (S2): a `<FluentThemeBridge>` lives between
  * `<ThemeProvider>` and the rest of the tree so every Fluent UI v9
@@ -21,10 +29,14 @@
  * layout matches MACAE's recessed-shell-with-raised-panels pattern.
  */
 import { useState, useEffect, type JSX } from "react";
-import { Header } from "./components/Header/Header";
+import { Header, type AppView } from "./components/Header/Header";
 import { CoralShellColumn } from "./components/CoralShell/CoralShellColumn";
 import { CoralShellRow } from "./components/CoralShell/CoralShellRow";
 import { ChatPage } from "./pages/chat/ChatPage";
+import { IngestData } from "./pages/admin/IngestData/IngestData";
+import { DeleteData } from "./pages/admin/DeleteData/DeleteData";
+import { Configuration } from "./pages/admin/Configuration/Configuration";
+import { getAdminStatus } from "./api/admin";
 import { FluentThemeBridge } from "./theme/FluentThemeBridge";
 import { ThemeProvider } from "./theme/themeContext";
 import "./theme/tokens.css";
@@ -67,6 +79,11 @@ export function App(): JSX.Element {
   // the App shell (avoids lifting ChatProvider up a layer, which would
   // be a structural change).
   const [newChatNonce, setNewChatNonce] = useState(0);
+  const [view, setView] = useState<AppView>("chat");
+  // `null` = probe in-flight; `true`/`false` = settled. Tri-state lets
+  // the header render its nav slot synchronously while keeping the
+  // Admin button hidden until the probe resolves.
+  const [adminAvailable, setAdminAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -79,6 +96,24 @@ export function App(): JSX.Element {
     });
     return () => {
       controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getAdminStatus()
+      .then(() => {
+        if (!cancelled) {
+          setAdminAvailable(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAdminAvailable(false);
+        }
+      });
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -110,6 +145,9 @@ export function App(): JSX.Element {
             onNewChat={() => {
               setNewChatNonce((n) => n + 1);
             }}
+            view={view}
+            onSelectView={setView}
+            adminAvailable={adminAvailable}
           />
           <section
             aria-label="backend health"
@@ -139,7 +177,12 @@ export function App(): JSX.Element {
             )}
           </section>
           <CoralShellRow>
-            <ChatPage key={newChatNonce} historyOpen={historyOpen} />
+            {view === "chat" && (
+              <ChatPage key={newChatNonce} historyOpen={historyOpen} />
+            )}
+            {view === "admin-ingest" && <IngestData />}
+            {view === "admin-delete" && <DeleteData />}
+            {view === "admin-config" && <Configuration />}
           </CoralShellRow>
         </CoralShellColumn>
       </FluentThemeBridge>

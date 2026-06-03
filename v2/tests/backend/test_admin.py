@@ -23,6 +23,7 @@ from fastapi import FastAPI
 from pydantic import ValidationError
 
 import backend.routers.admin as _admin_module
+from backend.core.providers.search.base import SourceListing
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
     REQUIRE_ADMIN_USER,
@@ -1391,6 +1392,93 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
         "orchestrator_name": "env",
         "log_level": "override",
     }
+
+
+# ---------------------------------------------------------------------------
+# GET /api/admin/documents -- list every distinct indexed source (#54)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_documents_returns_200_with_sources_on_success(
+    admin_app_factory,
+) -> None:
+    """Happy path: search backend returns 2 sources; route surfaces
+    them as a typed response with the correct total.
+    """
+    search = AsyncMock()
+    search.list_sources = AsyncMock(
+        return_value=[
+            SourceListing(
+                source="alpha.pdf", chunk_count=3, last_modified=None
+            ),
+            SourceListing(
+                source="beta.pdf", chunk_count=7, last_modified=None
+            ),
+        ]
+    )
+    app = admin_app_factory(_settings(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/documents")
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "documents": [
+            {"source": "alpha.pdf", "chunk_count": 3, "last_modified": None},
+            {"source": "beta.pdf", "chunk_count": 7, "last_modified": None},
+        ],
+        "total": 2,
+    }
+    search.list_sources.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_list_documents_returns_200_with_empty_list_when_no_sources(
+    admin_app_factory,
+) -> None:
+    """Empty index is a valid operating state -- 200 with documents=[]
+    and total=0, not 404. The admin grid can render the empty state
+    deterministically.
+    """
+    search = AsyncMock()
+    search.list_sources = AsyncMock(return_value=[])
+    app = admin_app_factory(_settings(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/documents")
+    assert resp.status_code == 200
+    assert resp.json() == {"documents": [], "total": 0}
+    search.list_sources.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+async def test_list_documents_returns_503_when_search_disabled(
+    admin_app_factory,
+) -> None:
+    """No search backend configured -> 503 with operator-actionable
+    detail. Matches the same gating pattern used by the DELETE route.
+    """
+    app = admin_app_factory(_settings())
+    app.dependency_overrides[get_search_provider] = lambda: None
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/documents")
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_list_documents_requires_easy_auth_in_production() -> None:
+    """End-to-end #39 RBAC check: an anonymous GET in production must
+    be rejected with 401 by the shared ``REQUIRE_ADMIN_USER`` gate.
+    Mirrors ``test_delete_document_requires_easy_auth_in_production``
+    so every admin route shares the same gating contract.
+    """
+    app = FastAPI()
+    app.include_router(admin_router)
+    app.dependency_overrides[get_app_settings] = lambda: _settings(
+        environment="production"
+    )
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/documents")
+    assert resp.status_code == 401
 
 
 # ---------------------------------------------------------------------------

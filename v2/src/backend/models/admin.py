@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core.providers.search.base import SourceListing
 from backend.core.types import RuntimeConfig
 
 
@@ -110,6 +111,28 @@ class DeleteDocumentResponse(BaseModel):
     deleted: int = Field(
         ...,
         description="Number of indexed chunks removed for the source.",
+        ge=0,
+    )
+
+
+class ListDocumentsResponse(BaseModel):
+    """Response shape for ``GET /api/admin/documents``.
+
+    ``documents`` is service-side sorted by source (alphabetical) so
+    the FE grid is deterministic without a client-side sort step.
+    ``total`` is the count of entries in ``documents`` -- always equal
+    to ``len(documents)`` for the current single-page response shape,
+    surfaced as its own field so a future paginated variant can extend
+    without breaking existing FE consumers.
+    """
+
+    documents: list[SourceListing] = Field(
+        default_factory=list[SourceListing],
+        description="One entry per distinct ingested source.",
+    )
+    total: int = Field(
+        ...,
+        description="Total number of distinct sources in this response.",
         ge=0,
     )
 
@@ -258,6 +281,7 @@ __all__ = [
     "EffectiveAdminConfig",
     "IngestUrlRequest",
     "IngestUrlResponse",
+    "ListDocumentsResponse",
     "ReprocessResponse",
     "UploadResponse",
     "WRITABLE_FIELDS",

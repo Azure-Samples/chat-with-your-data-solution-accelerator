@@ -31,9 +31,35 @@ from abc import ABC, abstractmethod
 from typing import Any, Sequence
 
 from azure.core.credentials_async import AsyncTokenCredential
+from pydantic import BaseModel, ConfigDict
 
 from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
+
+
+class SourceListing(BaseModel):
+    """One indexed source as listed by the admin documents API.
+
+    Returned by :meth:`BaseSearch.list_sources` and serialized as
+    part of the ``GET /api/admin/documents`` response. ``source``
+    matches the value used by :meth:`BaseSearch.delete_by_source` so
+    the admin UI can round-trip list -> select -> delete without
+    identifier translation.
+
+    - ``source``: filename or URL the chunks were ingested under.
+    - ``chunk_count``: number of indexed chunks for this source.
+    - ``last_modified``: ISO-8601 timestamp of the most recent
+      chunk, or ``None`` when the provider does not track per-chunk
+      timestamps (Azure Search facet aggregation has no timestamp
+      field, so the Azure-Search implementation always emits
+      ``None`` here).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    source: str
+    chunk_count: int
+    last_modified: str | None = None
 
 
 class BaseSearch(ABC):
@@ -79,6 +105,34 @@ class BaseSearch(ABC):
           matching documents existed; the admin route maps that to a
           404 response.
         """
+
+    async def list_sources(self) -> list[SourceListing]:
+        """List every indexed source the provider currently holds.
+
+        Read counterpart to :meth:`delete_by_source` -- the admin
+        documents API surfaces this for the Delete Data UI so the
+        operator can pick from existing sources rather than typing
+        identifiers blind. ``source`` values in the returned
+        listings round-trip back into :meth:`delete_by_source`
+        without translation.
+
+        Returns a ``list[SourceListing]`` ordered by ``source``
+        (provider-implemented stable ordering keeps the UI grid
+        deterministic). Empty list means the index is empty -- not
+        an error.
+
+        Default implementation raises ``NotImplementedError`` so a
+        provider class that forgets to override the method fails at
+        the admin route call site rather than silently returning an
+        empty list (which would mislead the UI into showing 'no
+        sources to delete' when the index actually contains data).
+        Matches the same fail-loud contract as
+        :meth:`merge_or_upload_documents`.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement list_sources; "
+            "override on the concrete provider class."
+        )
 
     async def merge_or_upload_documents(
         self,

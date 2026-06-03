@@ -56,7 +56,7 @@ def _iter_v2_python_files() -> list[Path]:
             continue
         for path in root_dir.rglob("*.py"):
             parts = set(path.parts)
-            if "__pycache__" in parts or ".venv" in parts or "build" in parts:
+            if "__pycache__" in parts or ".venv" in parts or "build" in parts or "node_modules" in parts:
                 continue
             files.append(path)
     return sorted(files)

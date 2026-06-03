@@ -74,6 +74,7 @@ from backend.models.admin import (
     EffectiveAdminConfig,
     IngestUrlRequest,
     IngestUrlResponse,
+    ListDocumentsResponse,
     ReprocessResponse,
     UploadResponse,
     WRITABLE_FIELDS,
@@ -320,6 +321,52 @@ async def patch_config_endpoint(
         )
 
     return merged
+
+
+# ---------------------------------------------------------------------------
+# GET /api/admin/documents -- list every distinct source currently indexed,
+# with the chunk count per source. Feeds the admin UI's Delete Data grid.
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/documents",
+    response_model=ListDocumentsResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def list_documents_endpoint(
+    search: SearchProviderDep,
+    _user: AdminUserIdDep,
+) -> ListDocumentsResponse:
+    """List every distinct source currently indexed.
+
+    Returns one :class:`SourceListing` per distinct source (filename or
+    URL set on the ``title`` field at ingestion), with the chunk count
+    per source. The list is service-side sorted by source name so the
+    FE grid is deterministic without a client-side sort.
+
+    Status surface:
+
+    * ``200`` + :class:`ListDocumentsResponse` -- always, even when no
+      sources are indexed (``documents=[]``, ``total=0``). An empty
+      index is a valid operating state, not an error.
+    * ``503`` when the deployment has no search backend configured
+      (the route stays mounted so operators discover the gap
+      explicitly instead of routing-404-ing it).
+    * Upstream ``AzureError`` / ``asyncpg.PostgresError`` propagate to
+      the app-level handlers in :mod:`backend.app`, which sanitise
+      both into 503 responses with no SDK detail leaked.
+    """
+    if search is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Search backend is not configured for this deployment.",
+        )
+    listings = await search.list_sources()
+    return ListDocumentsResponse(
+        documents=list(listings),
+        total=len(listings),
+    )
 
 
 # ---------------------------------------------------------------------------
