@@ -51,7 +51,7 @@ applyTo: "v2/src/frontend/**"
 ## Conventions
 
 - TypeScript strictness: `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`. The three flags are non-negotiable — `tsconfig.json` is the single source of truth. Rationale + ADR: [v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md](../../v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md).
-- ESLint runs `@typescript-eslint/strict-type-checked` + `@typescript-eslint/stylistic-type-checked` on `src/**` and `tests/**`. `npm run lint` is CI-gated; the FE lint step fails the build on any error.
+- ESLint runs `@typescript-eslint/strict-type-checked` + `@typescript-eslint/stylistic-type-checked` on `src/**` and `tests/**`. `npm run lint` is CI-gated by [`.github/workflows/v2-frontend-checks.yml`](../workflows/v2-frontend-checks.yml) (lint → typecheck → vitest, all hard-gated, path-scoped to `v2/src/frontend/**`); any error fails the PR build. Rationale + ADR: [v2/docs/adr/0014-frontend-ci-workflow.md](../../v2/docs/adr/0014-frontend-ci-workflow.md).
 - File extension: all first-party files under `src/` and `tests/` use `.tsx`, regardless of JSX content. Tooling configs (`vite.config.ts`, `tsconfig.json`) stay at their tool-pinned names. See [Hard Rule #11](../copilot-instructions.md) + ADR 0013 above.
 - No `any`. Use `unknown` + type narrowing.
 - Plain CSS Modules (`*.module.css`) for component styling — no global CSS leaks. If a UI library is later adopted, prefer its idiomatic styling primitive (e.g. Fluent UI `makeStyles`) over CSS Modules for new components in that library's scope.

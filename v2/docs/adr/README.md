@@ -26,3 +26,4 @@ Architectural decisions for CWYD v2. Each ADR captures a single decision, the co
 | [0011](0011-frontend-model-extraction.md) | Frontend wire shapes + domain state types extracted into `src/models/<domain>.tsx` | Accepted | 7 (close-out, FE conventions refactor) |
 | [0012](0012-frontend-test-folder-mirror.md) | Frontend tests live under `v2/src/frontend/tests/` mirroring the `src/` tree (no colocation) | Accepted | 7 (close-out, FE conventions refactor) |
 | [0013](0013-frontend-strict-ts-and-tsx-everywhere.md) | Frontend ships strict TypeScript end-to-end with `.tsx` everywhere | Accepted | 7 (close-out, FE conventions refactor) |
+| [0014](0014-frontend-ci-workflow.md) | Frontend CI workflow (lint + typecheck + vitest) hard-gates the strict TS posture | Accepted | 7 (close-out, FE conventions refactor follow-up) |
