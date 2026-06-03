@@ -79,7 +79,7 @@ export function MessageList() {
       <div className={styles.empty}>
         <Chat48Regular
           aria-hidden="true"
-          className={styles.emptyIcon}
+          className={styles.emptyIcon ?? ""}
         />
         <p data-testid="message-list-empty" className={styles.emptyText}>
           Start a conversation
@@ -146,7 +146,7 @@ export function MessageList() {
           {m.role === "assistant" && m.streaming !== true && (
             <FeedbackButtons
               messageId={m.id}
-              feedback={m.feedback}
+              feedback={m.feedback ?? null}
               onSubmit={(value) => handleFeedback(m, value)}
             />
           )}

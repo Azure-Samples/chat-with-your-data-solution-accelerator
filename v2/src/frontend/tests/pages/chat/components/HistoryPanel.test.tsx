@@ -1,7 +1,7 @@
 /**
  * Pillar: Scenario Pack / Phase: 4 (task #32) -- HistoryPanel tests.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fireEvent,
   render,
@@ -58,7 +58,7 @@ function installFetch(routes: RouteHandlers) {
       }
       const match = url.match(/\/api\/history\/conversations\/([^/]+)$/);
       if (match) {
-        const id = decodeURIComponent(match[1]);
+        const id = decodeURIComponent(match[1]!);
         if (method === "PATCH") {
           return (
             routes.rename?.(id, body) ?? json({ id, title: (body as { title: string }).title, updated_at: "t" })

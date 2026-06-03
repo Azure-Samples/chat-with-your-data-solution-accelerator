@@ -27,8 +27,8 @@ export function CoralShellRow({
 }: CoralShellRowProps): JSX.Element {
   const composed =
     className === undefined || className === ""
-      ? styles.row
-      : `${styles.row} ${className}`;
+      ? (styles.row ?? "")
+      : `${styles.row ?? ""} ${className}`;
   return (
     <div className={composed} data-coral-shell="row" {...rest}>
       {children}

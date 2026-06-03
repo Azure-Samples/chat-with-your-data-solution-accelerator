@@ -59,7 +59,7 @@ describe("chatReducer streaming actions", () => {
       chunk: "lo",
     });
     expect(b.messages).toHaveLength(1);
-    expect(b.messages[0].content).toBe("hello");
+    expect(b.messages[0]!.content).toBe("hello");
     // Other messages should be untouched.
   });
 
@@ -73,7 +73,7 @@ describe("chatReducer streaming actions", () => {
       id: "missing",
       chunk: "x",
     });
-    expect(next.messages[0].content).toBe("");
+    expect(next.messages[0]!.content).toBe("");
   });
 
   it("'append_reasoning' pushes onto the matching message's reasoning array", () => {
@@ -91,7 +91,7 @@ describe("chatReducer streaming actions", () => {
       id: "s1",
       chunk: "thinking step 2",
     });
-    expect(b.messages[0].reasoning).toEqual([
+    expect(b.messages[0]!.reasoning).toEqual([
       "thinking step 1",
       "thinking step 2",
     ]);
@@ -109,7 +109,7 @@ describe("chatReducer streaming actions", () => {
       id: "b1",
       chunk: "first",
     });
-    expect(next.messages[0].reasoning).toEqual(["first"]);
+    expect(next.messages[0]!.reasoning).toEqual(["first"]);
   });
 
   it("'finish_stream' clears the streaming flag on the matching message", () => {
@@ -118,7 +118,7 @@ describe("chatReducer streaming actions", () => {
       message: streamingBot,
     });
     const next = chatReducer(seeded, { type: "finish_stream", id: "s1" });
-    expect(next.messages[0].streaming).toBe(false);
+    expect(next.messages[0]!.streaming).toBe(false);
   });
 
   it("'set_error' attaches an error notice and clears streaming", () => {
@@ -131,8 +131,8 @@ describe("chatReducer streaming actions", () => {
       id: "s1",
       error: "boom",
     });
-    expect(next.messages[0].error).toBe("boom");
-    expect(next.messages[0].streaming).toBe(false);
+    expect(next.messages[0]!.error).toBe("boom");
+    expect(next.messages[0]!.streaming).toBe(false);
   });
 
   it("'set_feedback' stores the feedback string on the matching message", () => {
@@ -145,7 +145,7 @@ describe("chatReducer streaming actions", () => {
       id: "2",
       feedback: "positive",
     });
-    expect(next.messages[0].feedback).toBe("positive");
+    expect(next.messages[0]!.feedback).toBe("positive");
   });
 
   it("'set_feedback' overwrites an existing feedback value", () => {
@@ -158,7 +158,7 @@ describe("chatReducer streaming actions", () => {
       id: "2",
       feedback: "negative",
     });
-    expect(next.messages[0].feedback).toBe("negative");
+    expect(next.messages[0]!.feedback).toBe("negative");
   });
 
   it("'set_feedback' clears the feedback value when passed null", () => {
@@ -171,7 +171,7 @@ describe("chatReducer streaming actions", () => {
       id: "2",
       feedback: null,
     });
-    expect(next.messages[0].feedback).toBeNull();
+    expect(next.messages[0]!.feedback).toBeNull();
   });
 
   it("'set_feedback' is a no-op when the id is unknown", () => {
@@ -197,9 +197,9 @@ describe("chatReducer streaming actions", () => {
       id: "s1",
       feedback: "positive",
     });
-    expect(next.messages[0].streaming).toBe(true);
-    expect(next.messages[0].content).toBe("");
-    expect(next.messages[0].reasoning).toEqual([]);
+    expect(next.messages[0]!.streaming).toBe(true);
+    expect(next.messages[0]!.content).toBe("");
+    expect(next.messages[0]!.reasoning).toEqual([]);
   });
 
   it("does not mutate previous state on streaming actions", () => {
@@ -212,7 +212,7 @@ describe("chatReducer streaming actions", () => {
       id: "s1",
       chunk: "x",
     });
-    expect(seeded.messages[0].content).toBe("");
+    expect(seeded.messages[0]!.content).toBe("");
     expect(next.messages).not.toBe(seeded.messages);
     expect(next.messages[0]).not.toBe(seeded.messages[0]);
   });

@@ -34,7 +34,8 @@ type HealthState =
   | { status: "ok"; payload: unknown }
   | { status: "error"; message: string };
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
+const BACKEND_URL =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
 
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   const url = `${BACKEND_URL.replace(/\/$/, "")}/api/health`;
@@ -69,14 +70,16 @@ export function App(): JSX.Element {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchHealth(controller.signal).then((next) => {
+    void fetchHealth(controller.signal).then((next) => {
       // Suppress the placeholder loading state set by AbortError so
       // the user doesn't see an indefinite spinner after unmount.
       if (!controller.signal.aborted) {
         setHealth(next);
       }
     });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   return (
@@ -101,8 +104,12 @@ export function App(): JSX.Element {
           <Header
             title="Chat with your data"
             historyOpen={historyOpen}
-            onToggleHistory={() => setHistoryOpen((v) => !v)}
-            onNewChat={() => setNewChatNonce((n) => n + 1)}
+            onToggleHistory={() => {
+              setHistoryOpen((v) => !v);
+            }}
+            onNewChat={() => {
+              setNewChatNonce((n) => n + 1);
+            }}
           />
           <section
             aria-label="backend health"

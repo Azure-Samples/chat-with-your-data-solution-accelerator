@@ -41,13 +41,9 @@ function mapMessage(
   id: string,
   update: (m: ChatMessage) => ChatMessage,
 ): ChatState {
-  let touched = false;
-  const next = state.messages.map((m) => {
-    if (m.id !== id) return m;
-    touched = true;
-    return update(m);
-  });
-  if (!touched) return state;
+  const index = state.messages.findIndex((m) => m.id === id);
+  if (index === -1) return state;
+  const next = state.messages.map((m, i) => (i === index ? update(m) : m));
   return { ...state, messages: next };
 }
 

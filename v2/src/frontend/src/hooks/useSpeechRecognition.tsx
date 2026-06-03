@@ -73,8 +73,9 @@ function buildRecognizer(
       AutoDetectSourceLanguageConfig.fromLanguages(languages);
     return SpeechRecognizer.FromConfig(speechConfig, autoDetect, audioConfig);
   }
-  if (languages.length === 1) {
-    speechConfig.speechRecognitionLanguage = languages[0];
+  const [first] = languages;
+  if (first !== undefined) {
+    speechConfig.speechRecognitionLanguage = first;
   }
   return new SpeechRecognizer(speechConfig, audioConfig);
 }
@@ -97,8 +98,12 @@ export function useSpeechRecognition(): UseSpeechRecognition {
     try {
       await new Promise<void>((resolve) => {
         recognizer.stopContinuousRecognitionAsync(
-          () => resolve(),
-          () => resolve(),
+          () => {
+            resolve();
+          },
+          () => {
+            resolve();
+          },
         );
       });
     } finally {
@@ -132,7 +137,7 @@ export function useSpeechRecognition(): UseSpeechRecognition {
       _sender: unknown,
       args: SpeechRecognitionEventArgs,
     ) => {
-      const interim = args.result.text ?? "";
+      const interim = args.result.text;
       setTranscript(finalsRef.current + interim);
     };
     recognizer.recognized = (
@@ -140,7 +145,7 @@ export function useSpeechRecognition(): UseSpeechRecognition {
       args: SpeechRecognitionEventArgs,
     ) => {
       if (args.result.reason !== ResultReason.RecognizedSpeech) return;
-      const finalText = args.result.text ?? "";
+      const finalText = args.result.text;
       if (finalText === "") return;
       finalsRef.current =
         finalsRef.current.length > 0
@@ -157,7 +162,9 @@ export function useSpeechRecognition(): UseSpeechRecognition {
           ? args.errorDetails || "Speech recognition was canceled."
           : "Speech recognition was canceled.";
       setError(message);
-      void teardownRecognizer().then(() => setIsListening(false));
+      void teardownRecognizer().then(() => {
+        setIsListening(false);
+      });
     };
 
     recognizerRef.current = recognizer;

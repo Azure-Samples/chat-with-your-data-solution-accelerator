@@ -22,7 +22,7 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
       <FluentThemeBridge>
         <Header
           title={props?.title ?? "Chat with your data"}
-          subtitle={props?.subtitle}
+          {...(props?.subtitle !== undefined ? { subtitle: props.subtitle } : {})}
           historyOpen={props?.historyOpen ?? false}
           onToggleHistory={onToggleHistory}
           onNewChat={onNewChat}

@@ -53,15 +53,14 @@ export async function* streamChat(
       `streamChat: SSE request failed with status ${response.status}`,
     );
   }
-  if (response.body === null) {
-    return;
-  }
+
+  if (response.body === null) return;
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
 
-  while (true) {
+  for (;;) {
     const { done, value } = await reader.read();
     if (done) {
       // Flush any trailing bytes through the decoder so multibyte

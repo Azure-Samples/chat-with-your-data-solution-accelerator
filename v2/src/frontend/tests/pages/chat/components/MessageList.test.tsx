@@ -63,8 +63,8 @@ describe("MessageList", () => {
     const list = screen.getByTestId("message-list");
     const items = list.querySelectorAll("li");
     expect(items).toHaveLength(2);
-    expect(items[0].textContent).toContain("hello");
-    expect(items[1].textContent).toContain("hi back");
+    expect(items[0]!.textContent).toContain("hello");
+    expect(items[1]!.textContent).toContain("hi back");
   });
 
   it("tags each <li> with its role for styling hooks", () => {

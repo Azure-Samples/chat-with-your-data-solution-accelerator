@@ -189,7 +189,7 @@ describe("MessageInput SSE wiring", () => {
     await waitFor(() => {
       expect(streamChatMock).toHaveBeenCalledTimes(1);
     });
-    const call = streamChatMock.mock.calls[0][0];
+    const call = streamChatMock.mock.calls[0]![0];
     expect(call).toEqual([{ role: "user", content: "first question" }]);
   });
 
@@ -212,7 +212,7 @@ describe("MessageInput SSE wiring", () => {
     await waitFor(() => {
       expect(streamChatMock).toHaveBeenCalledTimes(2);
     });
-    const secondCall = streamChatMock.mock.calls[1][0];
+    const secondCall = streamChatMock.mock.calls[1]![0];
     expect(secondCall).toEqual([
       { role: "user", content: "first" },
       { role: "assistant", content: "ok" },

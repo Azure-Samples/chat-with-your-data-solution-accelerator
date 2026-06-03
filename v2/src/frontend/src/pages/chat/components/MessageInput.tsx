@@ -31,7 +31,7 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
+  type SyntheticEvent,
 } from "react";
 import { Button, ToggleButton } from "@fluentui/react-components";
 import {
@@ -84,7 +84,7 @@ export function MessageInput() {
     await speech.start();
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSend) return;
 
@@ -159,15 +159,13 @@ export function MessageInput() {
         ? "Stop dictation"
         : "Start dictation";
   const micTitle =
-    speech.error !== null
-      ? speech.error
-      : speech.isListening
-        ? "Stop dictation"
-        : "Start dictation";
+    speech.error ?? (speech.isListening ? "Stop dictation" : "Start dictation");
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={(e) => {
+        void handleSubmit(e);
+      }}
       data-testid="message-input"
       className={styles.form}
     >
@@ -178,7 +176,9 @@ export function MessageInput() {
         id="message-input-field"
         type="text"
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+        }}
         placeholder="Type a message…"
         autoComplete="off"
         disabled={isStreaming || speech.isListening}
@@ -188,7 +188,9 @@ export function MessageInput() {
         appearance="subtle"
         shape="circular"
         checked={speech.isListening}
-        onClick={toggleMic}
+        onClick={() => {
+          void toggleMic();
+        }}
         disabled={micDisabled}
         aria-label={micLabel}
         title={micTitle}

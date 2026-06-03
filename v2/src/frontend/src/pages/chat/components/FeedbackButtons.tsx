@@ -28,7 +28,7 @@
  * v2/src/backend/models/history.py); the hard limit is enforced by
  * the backend returning 422.
  */
-import { useState, type FormEvent, type JSX } from "react";
+import { useState, type SyntheticEvent, type JSX } from "react";
 import { Button, ToggleButton } from "@fluentui/react-components";
 import {
   ThumbDislike16Filled,
@@ -83,7 +83,7 @@ export function FeedbackButtons({
   }
 
   async function handleReasonSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event: SyntheticEvent<HTMLFormElement>,
   ): Promise<void> {
     event.preventDefault();
     const trimmed = reason.trim();
@@ -109,7 +109,9 @@ export function FeedbackButtons({
           shape="circular"
           size="small"
           checked={positive}
-          onClick={handlePositive}
+          onClick={() => {
+            void handlePositive();
+          }}
           disabled={disabled}
           aria-label="Good response"
           title="Good response"
@@ -134,7 +136,9 @@ export function FeedbackButtons({
       {showReason && (
         <form
           className={styles.reason}
-          onSubmit={handleReasonSubmit}
+          onSubmit={(e) => {
+            void handleReasonSubmit(e);
+          }}
           data-testid={`feedback-${messageId}-reason-form`}
         >
           <label
@@ -146,7 +150,9 @@ export function FeedbackButtons({
           <textarea
             id={`feedback-${messageId}-reason-input`}
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(e) => {
+              setReason(e.target.value);
+            }}
             maxLength={REASON_MAX}
             rows={2}
             className={styles.reasonInput}
