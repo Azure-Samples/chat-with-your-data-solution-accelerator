@@ -1,0 +1,74 @@
+/*
+ * Pillar: Stable Core
+ * Phase: 7 (Testing + Documentation)
+ *
+ * CitationPanel styling. Low-contrast container so the panel reads as
+ * secondary content under the answer body. All colors and spacing
+ * come from Fluent v9 design tokens served by `<FluentProvider>`.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  margin-top: var(--spacingVerticalS);
+  padding: var(--spacingVerticalS) var(--spacingHorizontalS);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground2);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.headerRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalS);
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--fontSizeBase300);
+  color: var(--colorNeutralForeground1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 32ch;
+}
+
+.score {
+  flex: 0 0 auto;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorBrandForeground1);
+  background: var(--colorBrandBackground2);
+  padding: 0 var(--spacingHorizontalXS);
+  border-radius: var(--borderRadiusSmall);
+}
+
+.snippet {
+  margin: 0 0 var(--spacingVerticalXS) 0;
+  font-size: var(--fontSizeBase200);
+  line-height: var(--lineHeightBase200);
+  color: var(--colorNeutralForeground2);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.link {
+  display: inline-block;
+  font-size: var(--fontSizeBase200);
+  color: var(--colorBrandForegroundLink);
+  text-decoration: underline;
+}
+
+.link:hover {
+  color: var(--colorBrandForegroundLinkHover);
+}

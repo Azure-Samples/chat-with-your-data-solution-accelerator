@@ -31,7 +31,7 @@ import {
   WeatherSunny20Regular,
 } from "@fluentui/react-icons";
 import { type JSX } from "react";
-import { useTheme } from "../../theme/themeContext";
+import { useTheme } from "@/theme/themeContext";
 import styles from "./Header.module.css";
 
 export interface HeaderToolsProps {

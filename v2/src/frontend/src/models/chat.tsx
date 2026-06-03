@@ -15,12 +15,14 @@
  *   `GET /api/history/conversations`.
  */
 
-export type StreamChannel =
-  | "reasoning"
-  | "tool"
-  | "answer"
-  | "citation"
-  | "error";
+export const StreamChannel = {
+  Reasoning: "reasoning",
+  Tool: "tool",
+  Answer: "answer",
+  Citation: "citation",
+  Error: "error",
+} as const;
+export type StreamChannel = (typeof StreamChannel)[keyof typeof StreamChannel];
 
 export interface StreamMessage {
   role: "user" | "assistant" | "system";
@@ -51,8 +53,11 @@ export interface Citation {
   metadata: Record<string, unknown>;
 }
 
-export type MessageRole = "user" | "assistant";
-
+export const MessageRole = {
+  User: "user",
+  Assistant: "assistant",
+} as const;
+export type MessageRole = (typeof MessageRole)[keyof typeof MessageRole];
 
 export interface ChatMessage {
   id: string;
@@ -73,10 +78,28 @@ export interface ChatMessage {
    * selected-state visualization.
    */
   feedback?: string | null;
+  /**
+   * Citations collected from `channel: "citation"` SSE frames during
+   * the answer stream. Each entry is the wire mirror of
+   * `backend.core.types.Citation`. The reducer dedupes by `id` so a
+   * single source surfaced across multiple chunks lands once.
+   * Rendered by `<CitationPanel>`; absent / empty arrays hide the
+   * panel entirely.
+   */
+  citations?: Citation[];
 }
 
 export interface ChatState {
   messages: ChatMessage[];
+  /**
+   * Id of the citation the user most recently focused via an inline
+   * `[docN]` answer-bubble token. `<CitationPanel>` reads this to
+   * auto-expand the matching accordion item. `null` means no inline
+   * focus is active — the panel renders with all items collapsed.
+   * Cleared by future history navigation, conversation reset, or
+   * an explicit user-driven panel close.
+   */
+  focusedCitationId: string | null;
 }
 
 export interface HistoryConversation {

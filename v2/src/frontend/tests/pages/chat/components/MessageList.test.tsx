@@ -498,3 +498,238 @@ describe("MessageList feedback wiring", () => {
     );
   });
 });
+
+describe("MessageList citation rendering", () => {
+  const cit1 = {
+    id: "doc-x",
+    title: "Doc X",
+    url: "https://example.com/x",
+    snippet: "Snippet body for doc x.",
+    score: 0.5,
+    metadata: {},
+  };
+  const cit2 = {
+    id: "doc-y",
+    title: "Doc Y",
+    url: "https://example.com/y",
+    snippet: "Snippet body for doc y.",
+    score: null,
+    metadata: {},
+  };
+
+  function getDispatch(): (action: {
+    type: "add";
+    message: ChatMessage;
+  }) => void {
+    return (
+      Seed as unknown as {
+        _dispatch: (a: { type: "add"; message: ChatMessage }) => void;
+      }
+    )._dispatch;
+  }
+
+  it("renders <CitationPanel> for a finished assistant message with citations", () => {
+    const mWithCitations: ChatMessage = {
+      id: "c-msg",
+      role: "assistant",
+      content: "answer",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mWithCitations });
+    });
+
+    expect(screen.getByTestId("citation-panel-c-msg")).toBeInTheDocument();
+    expect(screen.getByTestId("citation-c-msg-doc-x")).toBeInTheDocument();
+    expect(screen.getByTestId("citation-c-msg-doc-y")).toBeInTheDocument();
+  });
+
+  it("does NOT render <CitationPanel> while the assistant message is still streaming", () => {
+    const mStreamingWithCitations: ChatMessage = {
+      id: "c-stream",
+      role: "assistant",
+      content: "",
+      streaming: true,
+      citations: [cit1],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mStreamingWithCitations });
+    });
+
+    expect(screen.queryByTestId("citation-panel-c-stream")).toBeNull();
+  });
+
+  it("does NOT render <CitationPanel> when the citations array is empty", () => {
+    const mEmptyCitations: ChatMessage = {
+      id: "c-empty",
+      role: "assistant",
+      content: "answer",
+      citations: [],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mEmptyCitations });
+    });
+
+    expect(screen.queryByTestId("citation-panel-c-empty")).toBeNull();
+  });
+
+  it("does NOT render <CitationPanel> for user messages even when citations are populated", () => {
+    const mUserWithCitations: ChatMessage = {
+      id: "c-user",
+      role: "user",
+      content: "question",
+      citations: [cit1],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mUserWithCitations });
+    });
+
+    expect(screen.queryByTestId("citation-panel-c-user")).toBeNull();
+  });
+});
+
+describe("MessageList answer-token rendering", () => {
+  const cit1 = {
+    id: "doc-alpha",
+    title: "Alpha",
+    url: "https://example.com/alpha",
+    snippet: "alpha snippet",
+    score: 0.5,
+    metadata: {},
+  };
+  const cit2 = {
+    id: "doc-beta",
+    title: "Beta",
+    url: "https://example.com/beta",
+    snippet: "beta snippet",
+    score: null,
+    metadata: {},
+  };
+
+  function getDispatch(): (action: {
+    type: "add";
+    message: ChatMessage;
+  }) => void {
+    return (
+      Seed as unknown as {
+        _dispatch: (a: { type: "add"; message: ChatMessage }) => void;
+      }
+    )._dispatch;
+  }
+
+  it("renders inline [docN] tokens as clickable buttons in the assistant bubble", () => {
+    const mWithTokens: ChatMessage = {
+      id: "tok-1",
+      role: "assistant",
+      content: "see [doc1] and [doc2]",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mWithTokens });
+    });
+
+    expect(screen.getByTestId("answer-token-tok-1-1")).toBeInTheDocument();
+    expect(screen.getByTestId("answer-token-tok-1-2")).toBeInTheDocument();
+  });
+
+  it("does NOT tokenize user message content", () => {
+    const mUser: ChatMessage = {
+      id: "tok-user",
+      role: "user",
+      content: "hey, what about [doc1]?",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mUser });
+    });
+
+    expect(screen.queryByTestId("answer-token-tok-user-1")).toBeNull();
+    expect(screen.getByTestId("message-tok-user").textContent).toContain(
+      "[doc1]",
+    );
+  });
+
+  it("renders [docN] verbatim when the assistant message has no citations", () => {
+    const mBare: ChatMessage = {
+      id: "tok-bare",
+      role: "assistant",
+      content: "see [doc1] but no sources",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mBare });
+    });
+
+    expect(screen.queryByTestId("answer-token-tok-bare-1")).toBeNull();
+    expect(screen.getByTestId("message-tok-bare").textContent).toContain(
+      "[doc1]",
+    );
+  });
+
+  it("clicking a [docN] token auto-expands the matching CitationPanel item", () => {
+    const mLive: ChatMessage = {
+      id: "tok-live",
+      role: "assistant",
+      content: "see [doc2] for details",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mLive });
+    });
+
+    const headerB = screen
+      .getByTestId("citation-tok-live-doc-beta-header")
+      .querySelector("button")!;
+    expect(headerB.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(screen.getByTestId("answer-token-tok-live-2"));
+
+    expect(headerB.getAttribute("aria-expanded")).toBe("true");
+  });
+});

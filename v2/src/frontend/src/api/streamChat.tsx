@@ -14,15 +14,12 @@
  * collapsible reasoning panel, citations, error notice). This module
  * is a pure utility: no React imports, no DOM.
  */
-import type { StreamChannel, StreamEvent, StreamMessage } from "../models/chat";
+import { StreamChannel } from "@/models/chat";
+import type { StreamEvent, StreamMessage } from "@/models/chat";
 
-const KNOWN_CHANNELS: ReadonlySet<StreamChannel> = new Set<StreamChannel>([
-  "reasoning",
-  "tool",
-  "answer",
-  "citation",
-  "error",
-]);
+const KNOWN_CHANNELS: ReadonlySet<StreamChannel> = new Set(
+  Object.values(StreamChannel),
+);
 
 const CONVERSATION_URL = "/api/conversation";
 

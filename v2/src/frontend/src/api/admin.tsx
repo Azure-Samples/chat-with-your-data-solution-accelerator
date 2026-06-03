@@ -20,7 +20,7 @@ import type {
   ReprocessResponse,
   RuntimeConfig,
   UploadResponse,
-} from "../models/admin";
+} from "@/models/admin";
 
 const ADMIN_STATUS_URL = "/api/admin/status";
 const ADMIN_CONFIG_URL = "/api/admin/config";

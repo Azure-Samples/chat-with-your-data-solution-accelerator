@@ -46,7 +46,7 @@ import {
   type SpeechRecognitionCanceledEventArgs,
 } from "microsoft-cognitiveservices-speech-sdk";
 
-import { getSpeechConfig } from "../api/speech";
+import { getSpeechConfig } from "@/api/speech";
 
 export interface UseSpeechRecognition {
   /** True between `start()` resolving and `stop()` (or an error) firing. */

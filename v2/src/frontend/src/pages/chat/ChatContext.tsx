@@ -23,18 +23,37 @@ import {
   type Dispatch,
   type ReactNode,
 } from "react";
-import type { ChatMessage, ChatState } from "../../models/chat";
+import type { ChatMessage, ChatState, Citation } from "../../models/chat";
+
+export const ChatActionType = {
+  Add: "add",
+  AppendAnswer: "append_answer",
+  AppendReasoning: "append_reasoning",
+  AppendCitation: "append_citation",
+  FinishStream: "finish_stream",
+  SetError: "set_error",
+  SetFeedback: "set_feedback",
+  FocusCitation: "focus_citation",
+  Reset: "reset",
+} as const;
+export type ChatActionType =
+  (typeof ChatActionType)[keyof typeof ChatActionType];
 
 export type ChatAction =
-  | { type: "add"; message: ChatMessage }
-  | { type: "append_answer"; id: string; chunk: string }
-  | { type: "append_reasoning"; id: string; chunk: string }
-  | { type: "finish_stream"; id: string }
-  | { type: "set_error"; id: string; error: string }
-  | { type: "set_feedback"; id: string; feedback: string | null }
-  | { type: "reset" };
+  | { type: typeof ChatActionType.Add; message: ChatMessage }
+  | { type: typeof ChatActionType.AppendAnswer; id: string; chunk: string }
+  | { type: typeof ChatActionType.AppendReasoning; id: string; chunk: string }
+  | { type: typeof ChatActionType.AppendCitation; id: string; citation: Citation }
+  | { type: typeof ChatActionType.FinishStream; id: string }
+  | { type: typeof ChatActionType.SetError; id: string; error: string }
+  | { type: typeof ChatActionType.SetFeedback; id: string; feedback: string | null }
+  | { type: typeof ChatActionType.FocusCitation; citationId: string | null }
+  | { type: typeof ChatActionType.Reset };
 
-export const initialChatState: ChatState = { messages: [] };
+export const initialChatState: ChatState = {
+  messages: [],
+  focusedCitationId: null,
+};
 
 function mapMessage(
   state: ChatState,
@@ -49,32 +68,49 @@ function mapMessage(
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
-    case "add":
+    case ChatActionType.Add:
       return { ...state, messages: [...state.messages, action.message] };
-    case "append_answer":
+    case ChatActionType.AppendAnswer:
       return mapMessage(state, action.id, (m) => ({
         ...m,
         content: m.content + action.chunk,
       }));
-    case "append_reasoning":
+    case ChatActionType.AppendReasoning:
       return mapMessage(state, action.id, (m) => ({
         ...m,
         reasoning: [...(m.reasoning ?? []), action.chunk],
       }));
-    case "finish_stream":
+    case ChatActionType.AppendCitation:
+      return mapMessage(state, action.id, (m) => {
+        const existing = m.citations ?? [];
+        if (existing.some((c) => c.id === action.citation.id)) {
+          // Same source can be cited across multiple answer chunks;
+          // dedupe at the reducer so the panel renders one section
+          // per unique source even when the wire emits duplicates.
+          return m;
+        }
+        return { ...m, citations: [...existing, action.citation] };
+      });
+    case ChatActionType.FinishStream:
       return mapMessage(state, action.id, (m) => ({ ...m, streaming: false }));
-    case "set_error":
+    case ChatActionType.SetError:
       return mapMessage(state, action.id, (m) => ({
         ...m,
         streaming: false,
         error: action.error,
       }));
-    case "set_feedback":
+    case ChatActionType.SetFeedback:
       return mapMessage(state, action.id, (m) => ({
         ...m,
         feedback: action.feedback,
       }));
-    case "reset":
+    case ChatActionType.FocusCitation:
+      // No-op when the focus value is already the active one. Keeps
+      // reference equality stable for downstream useEffect deps so
+      // the same token-click does not re-fire the panel open effect.
+      if (state.focusedCitationId === action.citationId) return state;
+      return { ...state, focusedCitationId: action.citationId };
+    case ChatActionType.Reset:
       return initialChatState;
   }
 }

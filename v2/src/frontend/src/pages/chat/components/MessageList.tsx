@@ -27,6 +27,10 @@
  *     chunks (foundry_iq emits per-token deltas, so per-<li> would
  *     read as one-character mush — we concatenate at render time and
  *     keep the array shape on the wire).
+ *   - non-empty `citations?: Citation[]` (finished messages only) →
+ *     a `<CitationPanel>` accordion under the answer. Sibling of the
+ *     feedback row; hidden while the message is still streaming so
+ *     the panel doesn't churn as new sources arrive.
  *   - `error?: string`                   → inline `role="alert"` notice.
  * Both decorations are skipped when neither field applies.
  *
@@ -50,6 +54,8 @@ import {
 import { useChat } from "../ChatContext";
 import type { ChatMessage } from "../../../models/chat";
 import { setFeedback } from "../../../api/feedback";
+import { renderAnswerTokens } from "./answerTokens";
+import { CitationPanel } from "./CitationPanel/CitationPanel";
 import { FeedbackButtons } from "./FeedbackButtons";
 import styles from "./MessageList.module.css";
 
@@ -70,6 +76,17 @@ export function MessageList() {
         // and the rollback is the only visible-tier correction.
         dispatch({ type: "set_feedback", id: m.id, feedback: previous });
       }
+    },
+    [dispatch],
+  );
+
+  const handleCitationFocus = useCallback(
+    (citationId: string) => {
+      // Inline `[docN]` token click — ask <CitationPanel> to auto-
+      // expand the matching item. The reducer is a no-op when the
+      // focus value did not change, so a repeated click on the same
+      // token does not churn downstream useEffect deps.
+      dispatch({ type: "focus_citation", citationId });
     },
     [dispatch],
   );
@@ -106,7 +123,16 @@ export function MessageList() {
               {m.role === "user" ? <Person20Regular /> : <Bot20Regular />}
             </span>
             <span className={styles.srOnly}>{m.role}</span>
-            <div className={styles.bubble}>{m.content}</div>
+            <div className={styles.bubble}>
+              {m.role === "assistant"
+                ? renderAnswerTokens(
+                    m.content,
+                    m.id,
+                    m.citations,
+                    handleCitationFocus,
+                  )
+                : m.content}
+            </div>
           </div>
           {(m.streaming === true ||
             (m.reasoning && m.reasoning.length > 0)) && (
@@ -143,6 +169,16 @@ export function MessageList() {
               {m.error}
             </p>
           )}
+          {m.role === "assistant" &&
+            m.streaming !== true &&
+            m.citations &&
+            m.citations.length > 0 && (
+              <CitationPanel
+                messageId={m.id}
+                citations={m.citations}
+                focusedCitationId={state.focusedCitationId}
+              />
+            )}
           {m.role === "assistant" && m.streaming !== true && (
             <FeedbackButtons
               messageId={m.id}

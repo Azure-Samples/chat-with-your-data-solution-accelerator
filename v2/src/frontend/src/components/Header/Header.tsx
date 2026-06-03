@@ -17,15 +17,12 @@
  */
 import { Avatar, Button } from "@fluentui/react-components";
 import { type JSX } from "react";
+import type { Section } from "@/models/sections";
 import { HeaderTools } from "./HeaderTools";
 import { MsftColorLogo } from "./MsftColorLogo";
 import styles from "./Header.module.css";
 
-export type AppView =
-  | "chat"
-  | "admin-ingest"
-  | "admin-delete"
-  | "admin-config";
+export type AppView = Section;
 
 export interface HeaderProps {
   title: string;

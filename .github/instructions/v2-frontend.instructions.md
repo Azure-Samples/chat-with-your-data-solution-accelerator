@@ -1,5 +1,5 @@
 ---
-description: "CWYD v2 React/Vite frontend conventions. Use when: editing v2/src/frontend/**, adding a page, adding a component, wiring the API client, consuming the SSE reasoning stream, adding a Context/useReducer store, adding a plugin slot, branding the UI, or merging admin pages."
+description: "CWYD v2 React/Vite frontend conventions. Use when: editing v2/src/frontend/**, adding a page, adding a component, wiring the API client, calling a service, adding a Registry-backed factory, defining a closed-set enum, consuming the SSE reasoning stream, adding a Context/useReducer store, adding a plugin slot, branding the UI, or merging admin pages."
 applyTo: "v2/src/frontend/**"
 ---
 
@@ -8,26 +8,68 @@ applyTo: "v2/src/frontend/**"
 ## Stack
 
 - React 19, TypeScript 5.9+, Vite 7+.
-- **No UI component library is bundled by default.** Phase 1 ships a bare scaffold; the UI library decision is deferred to dev_plan task #24 (chat-page SSE wire-up) so the choice is made against real component requirements, not speculative ones.
-- **State management: React Context + `useReducer`.** Lightweight, zero new dep, idiomatic for the reasoning-channel fan-out. Revisit (e.g. Zustand, Redux Toolkit) only if cross-page state grows beyond what context comfortably handles — expected earliest in Phase 5 (admin merge).
-- **Routing: none in Phase 1.** Add a router (e.g. React Router 7) only when the first multi-page need lands — dev_plan task #36 (admin merged into the chat SPA).
-- Testing: Vitest + Testing Library + (optional) MSW for API mocking. Jest remains for files migrated from v1, but new tests use Vitest.
+- **Fluent UI v9** (`@fluentui/react-components` + `@fluentui/react-icons`) is the bundled component library. The MACAE re-skin (dev_plan task #34) committed the decision; new components consume Fluent primitives unless a CSS-Modules-only carve-out is explicitly justified.
+- **State management: React Context + `useReducer`.** Lightweight, zero new dep, idiomatic for the reasoning-channel fan-out. Reducers live next to their Context (chat) or page (admin) — do **not** extract reducers into `services/`. Revisit (e.g. Zustand, Redux Toolkit) only if cross-page state grows beyond what context comfortably handles.
+- **Routing: none.** Page selection is driven by the `Section` enum (`src/models/sections.tsx`) consumed by the page registry in `src/services/app/pageRegistry.tsx`. Add a router only when a deep-linking / browser-history need lands.
+- Testing: Vitest + Testing Library. Tests live under `v2/src/frontend/tests/` mirroring `src/`.
+
+## API layer (`src/api/`)
+
+- One typed fetch wrapper per endpoint, one file per backend domain (`api/admin.tsx`, `api/feedback.tsx`, `api/speech.tsx`, `api/streamChat.tsx`). Functions take typed args, return typed responses, throw on non-2xx. **No generated OpenAPI client** — wrappers are hand-rolled. If/when generation lands, the contract above changes via a separate ADR.
+- Every wrapper reads `import.meta.env.VITE_BACKEND_URL` at call time so docker-compose / standalone-frontend profiles both work.
+- API wrappers do **wire I/O only** — no validation, no optimistic-update orchestration, no dispatch. That belongs in `src/services/` (see below).
+- API wrappers are imported by `src/services/**` modules and by tests. **Components do not import from `src/api/` directly** — they call services, which call the API layer.
+
+## Services layer (`src/services/`)
+
+- Services own everything between the API wrapper and the component: orchestration (multi-step flows), validation, derived-state selectors, optimistic-update + rollback flows, SSE stream consumption, and registry wiring. Pages are render-only shells that read state from a Context / `useReducer` and dispatch actions — they never call `fetch`, never compose multi-step flows inline, never declare validation rules in JSX.
+- Folder layout: `src/services/<domain>/<service>.ts` (e.g. `services/chat/feedbackService.ts`, `services/admin/ingestService.ts`). Cross-domain primitives live under `src/services/core/` (e.g. the generic `Registry<T>`); app-shell concerns live under `src/services/app/` (e.g. `pageRegistry`, `healthService`).
+- Services are **pure TypeScript modules** — no React imports, no hooks. A service signature typically takes the data it needs plus the reducer's `dispatch` and returns `Promise<void>` or a typed result. This keeps services trivially testable and reusable across pages.
+- **Reducers stay co-located** with their Context (chat) or page (admin). Moving reducers into services inverts React's state-machine-next-to-its-consumer pattern.
+- Tests live under `v2/src/frontend/tests/services/**` mirroring the source tree.
+
+## Factory registries
+
+- The frontend mirrors the backend `Registry[T]` pattern (`backend/core/registry.py`). The generic `Registry<T>` lives at `src/services/core/registry.ts` and exposes `register(key, factory)`, `get(key)`, `has(key)`, and `keys()`. `register` throws on duplicate keys; `get` throws on unknown keys with a message listing every registered key.
+- Use a registry **only for genuinely pluggable concerns** — today that is: page rendering by `Section` (`services/app/pageRegistry.tsx`), SSE channel dispatch by `StreamChannel` (`services/chat/channelHandlerRegistry.ts`), and admin form field validation by spec key (`services/admin/validatorFactory.ts`). Do not invent a registry for a `switch` you'll write once and never extend.
+- Each registry exports a singleton instance plus its `register`-time side-effect imports (matches the backend `__init__.py` discipline by analogy — a registry module exposes the singleton and the eager registrations, never bare helpers).
+- Adding a new value to a registry-backed domain is a single-file change: extend the enum, add a registration call, add a test that the registry resolves the new key.
+
+## Enums (closed-set discriminators)
+
+- Every closed-set string literal in the frontend (nav sections, SSE channels, message roles, reducer action types, status states, theme names) is an `as const` map paired with a literal-union type — the TypeScript counterpart to Python `StrEnum` (Hard Rule #11). **Do not** use the TypeScript `enum` keyword (reverse-mapping pollution, numeric/string ambiguity, tree-shaking edge cases).
+- Canonical pattern:
+  ```ts
+  export const Section = {
+    Chat: "chat",
+    AdminIngest: "admin-ingest",
+    AdminDelete: "admin-delete",
+    AdminConfig: "admin-config",
+  } as const;
+  export type Section = (typeof Section)[keyof typeof Section];
+  ```
+  Consumers reference `Section.Chat` at call sites; the type narrows to the union `"chat" | "admin-ingest" | ...` so wire payloads, route IDs, and storage keys round-trip without `as` casts. `Object.values(Section)` gives the runtime set for `KNOWN_*` registries and validators.
+- Enum locations by scope:
+  - **Domain enums** (`StreamChannel`, `MessageRole`) stay in `src/models/<domain>.tsx` next to the wire shapes that consume them.
+  - **App-shell enums** (`Section`, `Theme`) live in their own model file (`src/models/sections.tsx`, `src/theme/themeContext.tsx`).
+  - **Shared status enums** (`LoadStatus`, `SaveStatus`, `SubmitStatus`, `ReprocessStatus`, `RowDeleteStatus`) live in `src/models/status.tsx` and are imported by every page that needs them — do not redeclare `"loading" | "loaded" | "failed"` locally.
+  - **Reducer action types** are an `as const` map next to the reducer (e.g. `ChatActionType` in `pages/chat/ChatContext.tsx`); the `ChatAction` discriminated union references `ChatActionType.Add` etc., never the bare string.
 
 ## Plug-and-play surface
 
-- All API calls go through `src/api/client.ts` which reads `import.meta.env.VITE_BACKEND_URL`. (`client.ts` lands in dev_plan task #15.)
-- The OpenAPI client is **generated** into `src/api/generated/`. Do not hand-edit. Regenerate via `make openapi` or the pre-commit hook. *(Generation pipeline lands alongside dev_plan task #24; until then `client.ts` may hand-author the small surface it needs.)*
-- Plugin slots: a `<PluginHost slot="chat-toolbar" />` component renders any registered plugin for that slot. Custom integrators add plugins via `registerPlugin({slot, component})`. Slots planned: `chat-toolbar`, `message-actions`, `admin-nav`, `reasoning-renderer`. *(`PluginHost` itself is a Phase 5 deliverable — dev_plan task #36.)*
+- Plugin slots are deferred. When they land, they will be a `Registry<ComponentType>` keyed by a `PluginSlot` enum, registered by integrators via `pluginRegistry.register(slot, component)`. Slot inventory will live in `src/services/app/pluginRegistry.ts` and be re-exported from a `<PluginHost slot={slot} />` component.
+- Until then, the page registry (`services/app/pageRegistry.tsx`) is the only registry external integrators may extend without a code change to the core shell.
 
 ## SSE consumption (reasoning channel)
 
-- `src/api/sse.ts` exposes `useEventStream(url, body)` that yields typed `OrchestratorEvent` objects.
-- The chat page renders:
-  - `answer` events → message body.
-  - `reasoning` events → collapsible "Show reasoning" panel (default collapsed).
-  - `tool` events → step indicators.
-  - `citation` events → footnote list.
-  - `error` events → error toast, close stream.
+- `src/api/streamChat.tsx` exposes `streamChat(messages)` as a typed `AsyncIterable<StreamEvent>` over POST `/api/conversation`. It validates each frame's `channel` against `Object.values(StreamChannel)` at the parse boundary so unknown channels never reach a handler.
+- Event fan-out is driven by `services/chat/channelHandlerRegistry.ts` (a `Registry<ChannelHandler>` keyed by the `StreamChannel` enum). Each handler receives `(event, dispatch, messageId)` and emits one or more `ChatAction` dispatches. Adding a new channel is: extend `StreamChannel` → register a handler → write a test — no `switch` to grow.
+- The chat page renders (driven by the handlers above):
+  - `answer` events → message body via `append_answer`.
+  - `reasoning` events → collapsible reasoning panel via `append_reasoning`.
+  - `tool` events → step indicators (TBD; currently logged).
+  - `citation` events → footnote list via `append_citation`.
+  - `error` events → inline `role="alert"` notice via `set_error`; the iterator emits `finish_stream` on completion.
 
 ## Stores (Context + useReducer)
 
@@ -45,9 +87,9 @@ applyTo: "v2/src/frontend/**"
 
 ## Routing
 
-- Phase 1 / Phase 2 stub: **no router**. A single `<App />` renders the (eventual) chat shell.
-- A router is introduced only when admin pages merge in (dev_plan task #36, Phase 5). Target shape at that point: `/` chat, `/history`, `/admin/*` admin (RBAC-gated by backend), `/health` debug.
-- Admin pages will live under `src/pages/admin/`. They are part of the same SPA — no separate Streamlit, ever.
+- No router. Page selection is the `Section` enum from `src/models/sections.tsx` consumed by `services/app/pageRegistry.tsx`. `App.tsx` reads the current section from local state and calls `pageRegistry.get(section)()` to render — there is no `view === "…" && <Page />` ternary chain. The header navigation calls `setSection(Section.AdminIngest)` etc. to switch pages.
+- Admin pages live under `src/pages/admin/` and register themselves with `pageRegistry`. They are part of the same SPA — no separate Streamlit, ever.
+- A real router (browser history, deep links) lands only when the first deep-linking requirement surfaces; until then the page-registry pattern is the contract.
 ## Conventions
 
 - TypeScript strictness: `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`. The three flags are non-negotiable — `tsconfig.json` is the single source of truth. Rationale + ADR: [v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md](../../v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md).

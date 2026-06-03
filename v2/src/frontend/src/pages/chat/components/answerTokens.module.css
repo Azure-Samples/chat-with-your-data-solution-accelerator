@@ -1,0 +1,23 @@
+.token {
+  display: inline;
+  padding: 0;
+  margin: 0 var(--spacingHorizontalXXS);
+  border: none;
+  background: transparent;
+  color: var(--colorBrandForegroundLink);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.token:hover {
+  color: var(--colorBrandForegroundLinkHover);
+  text-decoration-thickness: 2px;
+}
+
+.token:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 2px;
+  border-radius: var(--borderRadiusSmall);
+}

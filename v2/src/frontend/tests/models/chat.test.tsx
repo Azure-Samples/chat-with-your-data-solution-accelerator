@@ -8,8 +8,9 @@
  * stricter typed form so a `tsc` regression breaks the build and a
  * runtime `expect` confirms the field types reach the FE intact.
  */
-import { describe, expect, it } from "vitest";
-import type { Citation, StreamEvent } from "../../src/models/chat";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { MessageRole, StreamChannel } from "../../src/models/chat";
+import type { ChatMessage, Citation, StreamEvent } from "../../src/models/chat";
 
 describe("Citation model", () => {
   it("accepts the full canonical citation shape from the SSE feed", () => {
@@ -89,5 +90,82 @@ describe("Citation model", () => {
     expect(citation.metadata.is_redacted).toBe(true);
     expect(citation.metadata.chunk_ids).toEqual(["a", "b", "c"]);
     expect(citation.metadata.nested).toEqual({ foo: "bar" });
+  });
+});
+
+describe("StreamChannel enum", () => {
+  it("maps every member to its canonical wire string", () => {
+    expect(StreamChannel.Reasoning).toBe("reasoning");
+    expect(StreamChannel.Tool).toBe("tool");
+    expect(StreamChannel.Answer).toBe("answer");
+    expect(StreamChannel.Citation).toBe("citation");
+    expect(StreamChannel.Error).toBe("error");
+  });
+
+  it("exposes the full closed channel set via Object.values", () => {
+    expect([...Object.values(StreamChannel)].sort()).toEqual(
+      ["answer", "citation", "error", "reasoning", "tool"],
+    );
+  });
+
+  it("interoperates with raw wire strings as StreamEvent.channel", () => {
+    const event: StreamEvent = {
+      channel: StreamChannel.Answer,
+      content: "hello",
+      metadata: {},
+    };
+    expect(event.channel).toBe("answer");
+    expect(event.channel === StreamChannel.Answer).toBe(true);
+  });
+
+  it("is read-only at the type layer (`as const`)", () => {
+    // @ts-expect-error -- `as const` maps must be readonly at compile time.
+    StreamChannel.Answer = "mutated";
+  });
+
+  it("produces a literal-union type covering every wire string", () => {
+    expectTypeOf<StreamChannel>().toEqualTypeOf<
+      "reasoning" | "tool" | "answer" | "citation" | "error"
+    >();
+  });
+});
+
+describe("MessageRole enum", () => {
+  it("maps every member to its canonical wire string", () => {
+    expect(MessageRole.User).toBe("user");
+    expect(MessageRole.Assistant).toBe("assistant");
+  });
+
+  it("exposes the full closed role set via Object.values", () => {
+    expect([...Object.values(MessageRole)].sort()).toEqual([
+      "assistant",
+      "user",
+    ]);
+  });
+
+  it("interoperates with raw wire strings as ChatMessage.role", () => {
+    const userMsg: ChatMessage = {
+      id: "m1",
+      role: MessageRole.User,
+      content: "hello",
+    };
+    const botMsg: ChatMessage = {
+      id: "m2",
+      role: MessageRole.Assistant,
+      content: "hi",
+    };
+    expect(userMsg.role).toBe("user");
+    expect(botMsg.role).toBe("assistant");
+    expect(userMsg.role === MessageRole.User).toBe(true);
+    expect(botMsg.role === MessageRole.Assistant).toBe(true);
+  });
+
+  it("is read-only at the type layer (`as const`)", () => {
+    // @ts-expect-error -- `as const` maps must be readonly at compile time.
+    MessageRole.User = "mutated";
+  });
+
+  it("produces a literal-union type covering every chat-author role", () => {
+    expectTypeOf<MessageRole>().toEqualTypeOf<"user" | "assistant">();
   });
 });

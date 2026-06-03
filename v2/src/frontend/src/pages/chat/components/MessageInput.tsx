@@ -14,13 +14,14 @@
  *      (`streaming: true`, empty `content`, empty `reasoning`).
  *   3. Calls `streamChat(history)` and folds each event into the
  *      placeholder via `append_answer` / `append_reasoning` /
- *      `set_error` actions on `ChatContext`.
+ *      `append_citation` / `set_error` actions on `ChatContext`.
  *   4. Dispatches `finish_stream` once the iterator completes.
  *
- * Citation and tool channels are intentionally dropped here — the demo
- * scope (per session plan) is pure-LLM chat with no RAG. Phase 5
- * follow-ups (citation cards, tool-step visualization) live on the FE
- * team's #24 backlog.
+ * Citation frames are narrowed via the local `parseCitation` helper
+ * before dispatch so a malformed wire payload (missing `id`) is
+ * dropped at the boundary rather than corrupting reducer state. The
+ * tool channel is still dropped \u2014 tool-step visualization is a
+ * separate FE backlog item.
  *
  * Input + Send are disabled while a stream is in flight so the user
  * can't fire a second request mid-response. The mic toggle uses
@@ -41,13 +42,53 @@ import {
 } from "@fluentui/react-icons";
 import { useChat } from "../ChatContext";
 import { streamChat } from "../../../api/streamChat";
-import type { ChatMessage, StreamMessage } from "../../../models/chat";
+import type {
+  ChatMessage,
+  Citation,
+  StreamMessage,
+} from "../../../models/chat";
 import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
 import styles from "./MessageInput.module.css";
 
 function newId(): string {
   // crypto.randomUUID is available in modern browsers and jsdom 25+.
   return globalThis.crypto.randomUUID();
+}
+
+/**
+ * Narrow a `citation` SSE frame's `metadata` payload into the typed
+ * `Citation` shape. Returns `null` when the wire is missing the
+ * required `id` field — without an id the reducer can't dedupe, and
+ * a panel section with no source identifier has no anchor to link
+ * to, so dropping is safer than rendering a half-built section.
+ * Missing optional fields fall back to the same defaults Pydantic v2
+ * applies on the backend (`title=""`, `url=""`, `snippet=""`,
+ * `score=None`, `metadata={}`).
+ */
+function parseCitation(metadata: Record<string, unknown>): Citation | null {
+  const id = metadata.id;
+  if (typeof id !== "string" || id.length === 0) return null;
+  const rawScore = metadata.score;
+  const score =
+    typeof rawScore === "number" && Number.isFinite(rawScore)
+      ? rawScore
+      : null;
+  const rawMeta = metadata.metadata;
+  const inner =
+    rawMeta !== null &&
+    typeof rawMeta === "object" &&
+    !Array.isArray(rawMeta)
+      ? (rawMeta as Record<string, unknown>)
+      : {};
+  return {
+    id,
+    title: typeof metadata.title === "string" ? metadata.title : "",
+    url: typeof metadata.url === "string" ? metadata.url : "",
+    snippet:
+      typeof metadata.snippet === "string" ? metadata.snippet : "",
+    score,
+    metadata: inner,
+  };
 }
 
 export function MessageInput() {
@@ -140,7 +181,19 @@ export function MessageInput() {
               error: ev.content,
             });
             break;
-          // citation + tool intentionally dropped for the demo.
+          case "citation": {
+            const citation = parseCitation(ev.metadata);
+            if (citation !== null) {
+              dispatch({
+                type: "append_citation",
+                id: assistantId,
+                citation,
+              });
+            }
+            break;
+          }
+          // tool channel is intentionally dropped — tool-step
+          // visualization is a separate FE backlog item.
         }
       }
       dispatch({ type: "finish_stream", id: assistantId });
