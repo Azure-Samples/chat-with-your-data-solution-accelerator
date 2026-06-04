@@ -1,3 +1,15 @@
+> **Archived 2026-06-04.** This report describes the Phase 3.5-era QA posture (April 28–29 2026) and predates the closure of Phases 4, 5, 5.5, 6, and the Phase 7 backend tier. Its `Q1`–`Q8` blocker framing, separate-admin-app assumption, and workflow path observations have been superseded.
+>
+> **Current QA-readiness surface (read these instead):**
+>
+> - [project_status.md](project_status.md) — per-dimension QA readiness snapshot (Rules / Libraries / Modularity / Admin / Chat History / Phases).
+> - [qa_review_plan.md](qa_review_plan.md) — phased review checklist driving rules audit, library hygiene, modularity, admin save flow, chat history, per-phase closure, debt drain, and QA acceptance pack.
+> - [development_plan.md](development_plan.md) — canonical ledger (§0 status snapshot, §0.1 active debt queue, §0.2 frontend debt).
+>
+> This file is preserved for historical traceability only. Do not act on its findings or status flags.
+
+---
+
 # CWYD v2 QA Report
 
 Date: April 28, 2026
