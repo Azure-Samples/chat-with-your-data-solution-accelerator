@@ -6,7 +6,7 @@
  * `fetch` with a JSON body so the unit test runs offline.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getSpeechConfig } from "../../src/api/speech";
+import { getSpeechConfig } from "@/api/speech";
 
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {

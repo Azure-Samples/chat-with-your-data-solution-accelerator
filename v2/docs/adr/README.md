@@ -27,3 +27,6 @@ Architectural decisions for CWYD v2. Each ADR captures a single decision, the co
 | [0012](0012-frontend-test-folder-mirror.md) | Frontend tests live under `v2/src/frontend/tests/` mirroring the `src/` tree (no colocation) | Accepted | 7 (close-out, FE conventions refactor) |
 | [0013](0013-frontend-strict-ts-and-tsx-everywhere.md) | Frontend ships strict TypeScript end-to-end with `.tsx` everywhere | Accepted | 7 (close-out, FE conventions refactor) |
 | [0014](0014-frontend-ci-workflow.md) | Frontend CI workflow (lint + typecheck + vitest) hard-gates the strict TS posture | Accepted | 7 (close-out, FE conventions refactor follow-up) |
+| [0015](0015-frontend-path-alias-cross-folder-imports.md) | Frontend cross-folder imports go through the `@/*` path alias, enforced by ESLint `import/no-relative-parent-imports` | Accepted | 7 (close-out, FE conventions refactor follow-up) |
+| [0016](0016-agent-framework-foundry-iq-tas27-parity-review.md) | Agent Framework + Foundry IQ implementation review; TAS27 parity matrix and refactor path | Superseded by ADR-0017 | 8 prep (runtime parity audit) |
+| [0017](0017-agent-framework-foundry-pinned-dependency-policy.md) | Agent Framework + Foundry pinned dependency policy; supersedes ADR 0016 for runtime version governance | Accepted | 8 prep (runtime parity hardening) |

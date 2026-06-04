@@ -23,7 +23,7 @@ import {
   type Dispatch,
   type ReactNode,
 } from "react";
-import type { ChatMessage, ChatState, Citation } from "../../models/chat";
+import type { ChatMessage, ChatState, Citation } from "@/models/chat";
 
 export const ChatActionType = {
   Add: "add",

@@ -28,7 +28,7 @@ import {
   AccordionItem,
   AccordionPanel,
 } from "@fluentui/react-components";
-import type { Citation } from "../../../../models/chat";
+import type { Citation } from "@/models/chat";
 import styles from "./CitationPanel.module.css";
 
 export interface CitationPanelProps {

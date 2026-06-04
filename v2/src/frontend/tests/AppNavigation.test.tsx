@@ -9,7 +9,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { App } from "../src/App";
+import { App } from "@/App";
+import { Section } from "@/models/sections";
 
 interface FetchStubOptions {
   adminOk: boolean;
@@ -176,7 +177,9 @@ describe("App primary navigation", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByTestId("nav-chat")).not.toHaveAttribute("aria-current");
+    expect(screen.getByTestId(`nav-${Section.Chat}`)).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("switches back to the chat view when the Chat link is clicked", async () => {
@@ -190,7 +193,7 @@ describe("App primary navigation", () => {
 
     expect(screen.getByTestId("chat-page")).toBeInTheDocument();
     expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-    expect(screen.getByTestId("nav-chat")).toHaveAttribute(
+    expect(screen.getByTestId(`nav-${Section.Chat}`)).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -212,7 +215,9 @@ describe("App primary navigation", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByTestId("nav-chat")).not.toHaveAttribute("aria-current");
+    expect(screen.getByTestId(`nav-${Section.Chat}`)).not.toHaveAttribute(
+      "aria-current",
+    );
     expect(screen.getByTestId("nav-admin-ingest")).not.toHaveAttribute(
       "aria-current",
     );
@@ -288,6 +293,26 @@ describe("App primary navigation", () => {
     expect(screen.queryByTestId("nav-admin-config")).not.toBeInTheDocument();
   });
 
+  it("shows the Prompt editor link when /api/admin/status returns 200", async () => {
+    stubFetch({ adminOk: true });
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("nav-admin-prompt")).toBeInTheDocument();
+    });
+  });
+
+  it("hides the Prompt editor link when /api/admin/status returns 403", async () => {
+    stubFetch({ adminOk: false });
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("primary-nav")).toHaveAttribute(
+        "data-admin-status",
+        "forbidden",
+      );
+    });
+    expect(screen.queryByTestId("nav-admin-prompt")).not.toBeInTheDocument();
+  });
+
   it("switches to the Configuration view when the Configuration link is clicked", async () => {
     stubFetch({ adminOk: true });
     render(<App />);
@@ -305,7 +330,9 @@ describe("App primary navigation", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByTestId("nav-chat")).not.toHaveAttribute("aria-current");
+    expect(screen.getByTestId(`nav-${Section.Chat}`)).not.toHaveAttribute(
+      "aria-current",
+    );
     expect(screen.getByTestId("nav-admin-ingest")).not.toHaveAttribute(
       "aria-current",
     );
@@ -342,5 +369,23 @@ describe("App primary navigation", () => {
     fireEvent.click(ingestLink);
     expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
     expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
+  });
+
+  it("switches to the Prompt editor view when its nav link is clicked", async () => {
+    stubFetch({ adminOk: true });
+    render(<App />);
+    const promptLink = await screen.findByTestId("nav-admin-prompt");
+
+    fireEvent.click(promptLink);
+
+    expect(screen.getByTestId("prompt-editor-page")).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
+    expect(screen.getByTestId("nav-admin-prompt")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 });

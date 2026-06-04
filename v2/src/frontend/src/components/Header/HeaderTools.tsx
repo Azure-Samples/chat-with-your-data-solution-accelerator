@@ -31,7 +31,7 @@ import {
   WeatherSunny20Regular,
 } from "@fluentui/react-icons";
 import { type JSX } from "react";
-import { useTheme } from "@/theme/themeContext";
+import { Theme, useTheme } from "@/theme/themeContext";
 import styles from "./Header.module.css";
 
 export interface HeaderToolsProps {
@@ -46,9 +46,10 @@ export function HeaderTools({
   onNewChat,
 }: HeaderToolsProps): JSX.Element {
   const { theme, toggleTheme } = useTheme();
-  const nextTheme = theme === "light" ? "dark" : "light";
+  const nextTheme =
+    theme === Theme.Light ? Theme.Dark : Theme.Light;
   const themeIcon =
-    theme === "light" ? <WeatherMoon20Regular /> : <WeatherSunny20Regular />;
+    theme === Theme.Light ? <WeatherMoon20Regular /> : <WeatherSunny20Regular />;
 
   return (
     <Toolbar

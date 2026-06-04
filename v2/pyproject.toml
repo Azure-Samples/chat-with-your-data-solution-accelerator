@@ -6,7 +6,7 @@ readme = "../README.md"
 requires-python = ">=3.11"
 dependencies = [
     # Core web + Functions runtime
-    "fastapi>=0.115,<1.0",
+    "fastapi==0.133.0",
     "uvicorn[standard]>=0.34,<1.0",
     "azure-functions>=1.24,<2.0",
     "httpx>=0.28,<1.0",
@@ -19,12 +19,12 @@ dependencies = [
     "jsonschema>=4.25,<5.0",
 
     # Foundry IQ + Azure AI
-    "azure-ai-projects>=2.1.0,<3.0",
-    "azure-ai-agents>=1.2.0b3",
+    "azure-ai-projects==2.2.0",
+    "azure-ai-agents==1.2.0b6",
     "azure-ai-documentintelligence>=1.0,<2.0",
     "azure-ai-contentsafety>=1.0,<2.0",
     "azure-search-documents>=11.6.0b1",
-    "openai>=2.26,<3.0",
+    "openai==2.32.0",
     "tiktoken>=0.12,<1.0",
 
     # LangChain / LangGraph orchestrators
@@ -34,11 +34,11 @@ dependencies = [
 
     # OSS Microsoft Agent Framework (orchestrator backend behind the
     # `agent_framework` registry key; see development_plan.md §0.1
-    # `B1-MAF-MISLABEL`). `agent-framework-core` provides the runtime
-    # primitives; `agent-framework-foundry` adds the Foundry hosted-agent
-    # adapter that supersedes the current `azure.ai.agents` wrapping.
-    "agent-framework-core>=1.7,<2.0",
-    "agent-framework-foundry>=1.7,<2.0",
+    # `B1-MAF-MISLABEL`). Use the umbrella package for core runtime
+    # primitives and keep `agent-framework-foundry` for Foundry hosted-agent
+    # integration.
+    "agent-framework==1.7.0",
+    "agent-framework-foundry==1.7.0",
 
     # Azure data plane (passwordless via Managed Identity)
     "azure-identity>=1.25,<2.0",

@@ -8,17 +8,17 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { IngestData } from "../../../../src/pages/admin/IngestData/IngestData";
+import { IngestData } from "@/pages/admin/IngestData/IngestData";
 import {
   addDocumentUrl,
   reprocessAll,
   uploadDocument,
-} from "../../../../src/api/admin";
+} from "@/api/admin";
 import type {
   IngestUrlResponse,
   ReprocessResponse,
   UploadResponse,
-} from "../../../../src/models/admin";
+} from "@/models/admin";
 
 vi.mock("../../../../src/api/admin", () => ({
   uploadDocument: vi.fn(),

@@ -9,16 +9,16 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { DeleteData } from "../../../../src/pages/admin/DeleteData/DeleteData";
+import { DeleteData } from "@/pages/admin/DeleteData/DeleteData";
 import {
   deleteDocument,
   listDocuments,
-} from "../../../../src/api/admin";
+} from "@/api/admin";
 import type {
   DeleteDocumentResponse,
   ListDocumentsResponse,
   SourceListing,
-} from "../../../../src/models/admin";
+} from "@/models/admin";
 
 vi.mock("../../../../src/api/admin", () => ({
   listDocuments: vi.fn(),
@@ -140,6 +140,47 @@ describe("DeleteData -- initial list call", () => {
       expect(screen.getByTestId("empty-message")).toBeInTheDocument();
     });
     expect(screen.queryByTestId("source-table")).not.toBeInTheDocument();
+  });
+
+  it("keeps bulk delete disabled until at least one row is selected", async () => {
+    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+
+    const bulkDelete = screen.getByTestId("bulk-delete-button");
+    expect(bulkDelete).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("row-select-alpha.pdf"));
+    expect(bulkDelete).toBeEnabled();
+    expect(bulkDelete).toHaveTextContent("Delete selected (1)");
+    expect(screen.getByTestId("bulk-retry-failed-button")).toBeDisabled();
+  });
+
+  it("select-all toggles every row selection", async () => {
+    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+
+    const selectAll = screen.getByTestId("select-all") as HTMLInputElement;
+    expect(selectAll.checked).toBe(false);
+
+    fireEvent.click(selectAll);
+
+    expect((screen.getByTestId("row-select-alpha.pdf") as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect((screen.getByTestId("row-select-beta.pdf") as HTMLInputElement).checked).toBe(
+      true,
+    );
+    expect(screen.getByTestId("bulk-delete-button")).toHaveTextContent(
+      "Delete selected (2)",
+    );
   });
 
   it("surfaces an error message and a Retry button when the list call rejects", async () => {
@@ -281,6 +322,83 @@ describe("DeleteData -- per-row delete flow", () => {
       ).not.toBeInTheDocument();
     });
     expect(deleteMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("bulk confirm deletes every selected source", async () => {
+    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    deleteMock.mockResolvedValue(DELETE_FIXTURE);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("select-all"));
+    fireEvent.click(screen.getByTestId("bulk-delete-button"));
+
+    expect(screen.getByTestId("delete-confirm-dialog")).toHaveTextContent(
+      "2 selected sources",
+    );
+
+    fireEvent.click(screen.getByTestId("delete-confirm"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("source-row-alpha.pdf"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("source-row-beta.pdf"),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(deleteMock).toHaveBeenCalledTimes(2);
+    expect(deleteMock).toHaveBeenNthCalledWith(1, "alpha.pdf");
+    expect(deleteMock).toHaveBeenNthCalledWith(2, "beta.pdf");
+  });
+
+  it("bulk retry replays only the selected failed rows after a partial bulk failure", async () => {
+    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    deleteMock
+      .mockRejectedValueOnce(new Error("alpha failed"))
+      .mockResolvedValueOnce(DELETE_FIXTURE)
+      .mockResolvedValueOnce(DELETE_FIXTURE);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId("select-all"));
+    fireEvent.click(screen.getByTestId("bulk-delete-button"));
+    fireEvent.click(screen.getByTestId("delete-confirm"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("row-error-alpha.pdf")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("source-row-beta.pdf"),
+    ).not.toBeInTheDocument();
+
+    const bulkRetry = screen.getByTestId("bulk-retry-failed-button");
+    expect(bulkRetry).toBeEnabled();
+    expect(bulkRetry).toHaveTextContent("Retry selected failed (1)");
+
+    fireEvent.click(bulkRetry);
+    expect(screen.getByTestId("delete-confirm-dialog")).toHaveTextContent(
+      "alpha.pdf",
+    );
+    fireEvent.click(screen.getByTestId("delete-confirm"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("source-row-alpha.pdf"),
+      ).not.toBeInTheDocument();
+    });
+
+    expect(deleteMock).toHaveBeenCalledTimes(3);
+    expect(deleteMock).toHaveBeenNthCalledWith(1, "alpha.pdf");
+    expect(deleteMock).toHaveBeenNthCalledWith(2, "beta.pdf");
+    expect(deleteMock).toHaveBeenNthCalledWith(3, "alpha.pdf");
   });
 });
 

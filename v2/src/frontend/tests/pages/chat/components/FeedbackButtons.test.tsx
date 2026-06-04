@@ -9,7 +9,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { FeedbackButtons } from "../../../../src/pages/chat/components/FeedbackButtons";
+import { FeedbackButtons } from "@/pages/chat/components/FeedbackButtons";
 
 afterEach(() => {
   vi.restoreAllMocks();

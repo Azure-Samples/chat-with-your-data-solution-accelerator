@@ -36,26 +36,22 @@ import {
   addDocumentUrl,
   reprocessAll,
   uploadDocument,
-} from "../../../api/admin";
+} from "@/api/admin";
+import {
+  ReprocessStatus,
+  SubmitStatus,
+  UploadStatus,
+} from "@/models/status";
 import type {
   IngestUrlResponse,
   ReprocessResponse,
   UploadResponse,
-} from "../../../models/admin";
+} from "@/models/admin";
 import styles from "./IngestData.module.css";
 
 export const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
 export const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".txt"] as const;
 export const REPROCESS_CONFIRM_TOKEN = "REPROCESS";
-
-type UploadStatus = "pending" | "uploading" | "success" | "failed";
-type UrlStatus = "pending" | "submitting" | "success" | "failed";
-type ReprocessStatus =
-  | "idle"
-  | "confirming"
-  | "running"
-  | "success"
-  | "failed";
 
 interface UploadEntry {
   id: string;
@@ -68,7 +64,7 @@ interface UploadEntry {
 interface UrlEntry {
   id: string;
   url: string;
-  status: UrlStatus;
+  status: SubmitStatus;
   error?: string;
   response?: IngestUrlResponse;
 }
@@ -85,25 +81,43 @@ interface IngestDataState {
   reprocess: ReprocessState;
 }
 
+export const IngestActionType = {
+  UploadQueued: "upload_queued",
+  UploadStarted: "upload_started",
+  UploadSuccess: "upload_success",
+  UploadFailed: "upload_failed",
+  UrlAdded: "url_added",
+  UrlStarted: "url_started",
+  UrlSuccess: "url_success",
+  UrlFailed: "url_failed",
+  ReprocessOpen: "reprocess_open",
+  ReprocessClose: "reprocess_close",
+  ReprocessStarted: "reprocess_started",
+  ReprocessSuccess: "reprocess_success",
+  ReprocessFailed: "reprocess_failed",
+} as const;
+export type IngestActionType =
+  (typeof IngestActionType)[keyof typeof IngestActionType];
+
 type IngestDataAction =
-  | { type: "upload_queued"; entry: UploadEntry }
-  | { type: "upload_started"; id: string }
-  | { type: "upload_success"; id: string; response: UploadResponse }
-  | { type: "upload_failed"; id: string; error: string }
-  | { type: "url_added"; entry: UrlEntry }
-  | { type: "url_started"; id: string }
-  | { type: "url_success"; id: string; response: IngestUrlResponse }
-  | { type: "url_failed"; id: string; error: string }
-  | { type: "reprocess_open" }
-  | { type: "reprocess_close" }
-  | { type: "reprocess_started" }
-  | { type: "reprocess_success"; response: ReprocessResponse }
-  | { type: "reprocess_failed"; error: string };
+  | { type: typeof IngestActionType.UploadQueued; entry: UploadEntry }
+  | { type: typeof IngestActionType.UploadStarted; id: string }
+  | { type: typeof IngestActionType.UploadSuccess; id: string; response: UploadResponse }
+  | { type: typeof IngestActionType.UploadFailed; id: string; error: string }
+  | { type: typeof IngestActionType.UrlAdded; entry: UrlEntry }
+  | { type: typeof IngestActionType.UrlStarted; id: string }
+  | { type: typeof IngestActionType.UrlSuccess; id: string; response: IngestUrlResponse }
+  | { type: typeof IngestActionType.UrlFailed; id: string; error: string }
+  | { type: typeof IngestActionType.ReprocessOpen }
+  | { type: typeof IngestActionType.ReprocessClose }
+  | { type: typeof IngestActionType.ReprocessStarted }
+  | { type: typeof IngestActionType.ReprocessSuccess; response: ReprocessResponse }
+  | { type: typeof IngestActionType.ReprocessFailed; error: string };
 
 const initialState: IngestDataState = {
   uploads: [],
   urls: [],
-  reprocess: { status: "idle" },
+  reprocess: { status: ReprocessStatus.Idle },
 };
 
 function mapUpload(
@@ -133,64 +147,70 @@ export function ingestDataReducer(
   action: IngestDataAction,
 ): IngestDataState {
   switch (action.type) {
-    case "upload_queued":
+    case IngestActionType.UploadQueued:
       return { ...state, uploads: [...state.uploads, action.entry] };
-    case "upload_started":
+    case IngestActionType.UploadStarted:
       return mapUpload(state, action.id, (u) => ({
         id: u.id,
         file: u.file,
-        status: "uploading",
+        status: UploadStatus.Uploading,
       }));
-    case "upload_success":
+    case IngestActionType.UploadSuccess:
       return mapUpload(state, action.id, (u) => ({
         id: u.id,
         file: u.file,
-        status: "success",
+        status: UploadStatus.Success,
         response: action.response,
       }));
-    case "upload_failed":
+    case IngestActionType.UploadFailed:
       return mapUpload(state, action.id, (u) => ({
         id: u.id,
         file: u.file,
-        status: "failed",
+        status: UploadStatus.Failed,
         error: action.error,
       }));
-    case "url_added":
+    case IngestActionType.UrlAdded:
       return { ...state, urls: [...state.urls, action.entry] };
-    case "url_started":
+    case IngestActionType.UrlStarted:
       return mapUrl(state, action.id, (u) => ({
         id: u.id,
         url: u.url,
-        status: "submitting",
+        status: SubmitStatus.Submitting,
       }));
-    case "url_success":
+    case IngestActionType.UrlSuccess:
       return mapUrl(state, action.id, (u) => ({
         id: u.id,
         url: u.url,
-        status: "success",
+        status: SubmitStatus.Success,
         response: action.response,
       }));
-    case "url_failed":
+    case IngestActionType.UrlFailed:
       return mapUrl(state, action.id, (u) => ({
         ...u,
-        status: "failed",
+        status: SubmitStatus.Failed,
         error: action.error,
       }));
-    case "reprocess_open":
-      return { ...state, reprocess: { status: "confirming" } };
-    case "reprocess_close":
-      return { ...state, reprocess: { status: "idle" } };
-    case "reprocess_started":
-      return { ...state, reprocess: { status: "running" } };
-    case "reprocess_success":
+    case IngestActionType.ReprocessOpen:
+      return { ...state, reprocess: { status: ReprocessStatus.Confirming } };
+    case IngestActionType.ReprocessClose:
+      return { ...state, reprocess: { status: ReprocessStatus.Idle } };
+    case IngestActionType.ReprocessStarted:
+      return { ...state, reprocess: { status: ReprocessStatus.Running } };
+    case IngestActionType.ReprocessSuccess:
       return {
         ...state,
-        reprocess: { status: "success", response: action.response },
+        reprocess: {
+          status: ReprocessStatus.Success,
+          response: action.response,
+        },
       };
-    case "reprocess_failed":
+    case IngestActionType.ReprocessFailed:
       return {
         ...state,
-        reprocess: { status: "failed", error: action.error },
+        reprocess: {
+          status: ReprocessStatus.Failed,
+          error: action.error,
+        },
       };
   }
 }
@@ -253,12 +273,16 @@ export function IngestData(): JSX.Element {
 
   const runUpload = useCallback(
     async (id: string, file: File): Promise<void> => {
-      dispatch({ type: "upload_started", id });
+      dispatch({ type: IngestActionType.UploadStarted, id });
       try {
         const response = await uploadDocument(file);
-        dispatch({ type: "upload_success", id, response });
+        dispatch({ type: IngestActionType.UploadSuccess, id, response });
       } catch (err) {
-        dispatch({ type: "upload_failed", id, error: errorMessage(err) });
+        dispatch({
+          type: IngestActionType.UploadFailed,
+          id,
+          error: errorMessage(err),
+        });
       }
     },
     [],
@@ -272,19 +296,19 @@ export function IngestData(): JSX.Element {
         const validationError = validateFile(file);
         if (validationError !== null) {
           dispatch({
-            type: "upload_queued",
+            type: IngestActionType.UploadQueued,
             entry: {
               id,
               file,
-              status: "failed",
+              status: UploadStatus.Failed,
               error: validationError,
             },
           });
           continue;
         }
         dispatch({
-          type: "upload_queued",
-          entry: { id, file, status: "pending" },
+          type: IngestActionType.UploadQueued,
+          entry: { id, file, status: UploadStatus.Pending },
         });
         void runUpload(id, file);
       }
@@ -346,56 +370,68 @@ export function IngestData(): JSX.Element {
     const trimmed = urlDraft.trim();
     const id = newId();
     dispatch({
-      type: "url_added",
-      entry: { id, url: trimmed, status: "pending" },
+      type: IngestActionType.UrlAdded,
+      entry: { id, url: trimmed, status: SubmitStatus.Pending },
     });
     setUrlDraft("");
-    dispatch({ type: "url_started", id });
+    dispatch({ type: IngestActionType.UrlStarted, id });
     try {
       const response = await addDocumentUrl(trimmed);
-      dispatch({ type: "url_success", id, response });
+      dispatch({ type: IngestActionType.UrlSuccess, id, response });
     } catch (err) {
-      dispatch({ type: "url_failed", id, error: errorMessage(err) });
+      dispatch({
+        type: IngestActionType.UrlFailed,
+        id,
+        error: errorMessage(err),
+      });
     }
   }, [urlDraft]);
 
   const handleRetryUrl = useCallback(async (entry: UrlEntry): Promise<void> => {
-    dispatch({ type: "url_started", id: entry.id });
+    dispatch({ type: IngestActionType.UrlStarted, id: entry.id });
     try {
       const response = await addDocumentUrl(entry.url);
-      dispatch({ type: "url_success", id: entry.id, response });
+      dispatch({ type: IngestActionType.UrlSuccess, id: entry.id, response });
     } catch (err) {
-      dispatch({ type: "url_failed", id: entry.id, error: errorMessage(err) });
+      dispatch({
+        type: IngestActionType.UrlFailed,
+        id: entry.id,
+        error: errorMessage(err),
+      });
     }
   }, []);
 
   const handleReprocessOpen = useCallback(() => {
     setConfirmDraft("");
-    dispatch({ type: "reprocess_open" });
+    dispatch({ type: IngestActionType.ReprocessOpen });
   }, []);
 
   const handleReprocessCancel = useCallback(() => {
     setConfirmDraft("");
-    dispatch({ type: "reprocess_close" });
+    dispatch({ type: IngestActionType.ReprocessClose });
   }, []);
 
   const handleReprocessConfirm = useCallback(async (): Promise<void> => {
     if (confirmDraft !== REPROCESS_CONFIRM_TOKEN) {
       return;
     }
-    dispatch({ type: "reprocess_started" });
+    dispatch({ type: IngestActionType.ReprocessStarted });
     try {
       const response = await reprocessAll();
-      dispatch({ type: "reprocess_success", response });
+      dispatch({ type: IngestActionType.ReprocessSuccess, response });
     } catch (err) {
-      dispatch({ type: "reprocess_failed", error: errorMessage(err) });
+      dispatch({
+        type: IngestActionType.ReprocessFailed,
+        error: errorMessage(err),
+      });
     } finally {
       setConfirmDraft("");
     }
   }, [confirmDraft]);
 
   const confirmEnabled = confirmDraft === REPROCESS_CONFIRM_TOKEN;
-  const reprocessBusy = state.reprocess.status === "running";
+  const reprocessBusy =
+    state.reprocess.status === ReprocessStatus.Running;
 
   return (
     <section
@@ -472,7 +508,8 @@ export function IngestData(): JSX.Element {
                 >
                   {entry.status}
                 </span>
-                {entry.status === "failed" && entry.error !== undefined ? (
+                {entry.status === UploadStatus.Failed &&
+                entry.error !== undefined ? (
                   <span
                     className={styles.entryError}
                     data-testid={`upload-error-${entry.id}`}
@@ -480,7 +517,7 @@ export function IngestData(): JSX.Element {
                     {entry.error}
                   </span>
                 ) : null}
-                {entry.status === "failed" ? (
+                {entry.status === UploadStatus.Failed ? (
                   <Button
                     appearance="secondary"
                     size="small"
@@ -559,7 +596,7 @@ export function IngestData(): JSX.Element {
                 >
                   {entry.status}
                 </span>
-                {entry.status === "success" &&
+                {entry.status === SubmitStatus.Success &&
                 entry.response !== undefined ? (
                   <span
                     className={styles.entryMeta}
@@ -568,7 +605,8 @@ export function IngestData(): JSX.Element {
                     {`${entry.response.document_count.toString()} chunks`}
                   </span>
                 ) : null}
-                {entry.status === "failed" && entry.error !== undefined ? (
+                {entry.status === SubmitStatus.Failed &&
+                entry.error !== undefined ? (
                   <span
                     className={styles.entryError}
                     data-testid={`url-error-${entry.id}`}
@@ -576,7 +614,7 @@ export function IngestData(): JSX.Element {
                     {entry.error}
                   </span>
                 ) : null}
-                {entry.status === "failed" ? (
+                {entry.status === SubmitStatus.Failed ? (
                   <Button
                     appearance="secondary"
                     size="small"
@@ -612,7 +650,7 @@ export function IngestData(): JSX.Element {
         >
           Reprocess all
         </Button>
-        {state.reprocess.status === "success" &&
+        {state.reprocess.status === ReprocessStatus.Success &&
         state.reprocess.response !== undefined ? (
           <p
             className={styles.reprocessSuccess}
@@ -621,7 +659,7 @@ export function IngestData(): JSX.Element {
             {`Enqueued ${state.reprocess.response.enqueued_count.toString()} document(s) for reprocessing.`}
           </p>
         ) : null}
-        {state.reprocess.status === "failed" &&
+        {state.reprocess.status === ReprocessStatus.Failed &&
         state.reprocess.error !== undefined ? (
           <p
             className={styles.reprocessError}
@@ -632,8 +670,8 @@ export function IngestData(): JSX.Element {
         ) : null}
       </section>
 
-      {state.reprocess.status === "confirming" ||
-      state.reprocess.status === "running" ? (
+      {state.reprocess.status === ReprocessStatus.Confirming ||
+      state.reprocess.status === ReprocessStatus.Running ? (
         <div
           role="dialog"
           aria-modal="true"

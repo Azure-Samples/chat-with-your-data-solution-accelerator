@@ -10,20 +10,27 @@
  */
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import type { AppView } from "../../src/components/Header/Header";
-import { Section } from "../../src/models/sections";
+import type { AppView } from "@/components/Header/Header";
+import { Section } from "@/models/sections";
 
 describe("Section", () => {
-  it("exposes the 4 known members and maps each to its wire string", () => {
+  it("exposes the 5 known members and maps each to its wire string", () => {
     expect(Section.Chat).toBe("chat");
     expect(Section.AdminIngest).toBe("admin-ingest");
     expect(Section.AdminDelete).toBe("admin-delete");
     expect(Section.AdminConfig).toBe("admin-config");
+    expect(Section.AdminPrompt).toBe("admin-prompt");
   });
 
-  it("enumerates exactly the 4 known values via Object.values", () => {
+  it("enumerates exactly the 5 known values via Object.values", () => {
     expect(Object.values(Section).sort()).toEqual(
-      ["admin-config", "admin-delete", "admin-ingest", "chat"].sort(),
+      [
+        "admin-config",
+        "admin-delete",
+        "admin-ingest",
+        "admin-prompt",
+        "chat",
+      ].sort(),
     );
   });
 

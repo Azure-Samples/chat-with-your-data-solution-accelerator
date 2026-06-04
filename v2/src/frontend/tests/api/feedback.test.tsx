@@ -7,7 +7,7 @@
  * `tests/api/admin.test.ts` test shape.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setFeedback } from "../../src/api/feedback";
+import { setFeedback } from "@/api/feedback";
 
 function noContentResponse(): Response {
   return new Response(null, { status: 204 });

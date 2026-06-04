@@ -38,16 +38,17 @@ import {
 } from "react";
 import { Button, Input, Switch } from "@fluentui/react-components";
 import type { SwitchOnChangeData } from "@fluentui/react-components";
-import { getAdminConfig, patchAdminConfig } from "../../../api/admin";
+import { getAdminConfig, patchAdminConfig } from "@/api/admin";
 import type {
   AdminConfig,
   AdminConfigPatch,
   RuntimeConfig,
-} from "../../../models/admin";
+} from "@/models/admin";
+import {
+  LoadStatus,
+  SaveStatus,
+} from "@/models/status";
 import styles from "./Configuration.module.css";
-
-type LoadStatus = "loading" | "loaded" | "failed";
-type SaveStatus = "idle" | "saving" | "success" | "failed";
 
 /**
  * One row in the seven-field form. `key` is the wire-shape field
@@ -129,22 +130,43 @@ interface ConfigurationState {
   lastRuntime: RuntimeConfig | null;
 }
 
+export const ConfigActionType = {
+  LoadStarted: "load_started",
+  LoadSucceeded: "load_succeeded",
+  LoadFailed: "load_failed",
+  FieldChanged: "field_changed",
+  Discard: "discard",
+  SaveStarted: "save_started",
+  SaveSucceeded: "save_succeeded",
+  SaveFailed: "save_failed",
+} as const;
+export type ConfigActionType =
+  (typeof ConfigActionType)[keyof typeof ConfigActionType];
+
 type ConfigurationAction =
-  | { type: "load_started" }
-  | { type: "load_succeeded"; config: AdminConfig }
-  | { type: "load_failed"; error: string }
-  | { type: "field_changed"; key: keyof AdminConfig; value: FieldValue }
-  | { type: "discard" }
-  | { type: "save_started" }
-  | { type: "save_succeeded"; runtime: RuntimeConfig; refreshed: AdminConfig }
-  | { type: "save_failed"; error: string };
+  | { type: typeof ConfigActionType.LoadStarted }
+  | { type: typeof ConfigActionType.LoadSucceeded; config: AdminConfig }
+  | { type: typeof ConfigActionType.LoadFailed; error: string }
+  | {
+      type: typeof ConfigActionType.FieldChanged;
+      key: keyof AdminConfig;
+      value: FieldValue;
+    }
+  | { type: typeof ConfigActionType.Discard }
+  | { type: typeof ConfigActionType.SaveStarted }
+  | {
+      type: typeof ConfigActionType.SaveSucceeded;
+      runtime: RuntimeConfig;
+      refreshed: AdminConfig;
+    }
+  | { type: typeof ConfigActionType.SaveFailed; error: string };
 
 const initialState: ConfigurationState = {
-  loadStatus: "loading",
+  loadStatus: LoadStatus.Loading,
   loadError: null,
   serverConfig: null,
   formValues: null,
-  saveStatus: "idle",
+  saveStatus: SaveStatus.Idle,
   saveError: null,
   lastRuntime: null,
 };
@@ -166,65 +188,76 @@ export function configurationReducer(
   action: ConfigurationAction,
 ): ConfigurationState {
   switch (action.type) {
-    case "load_started":
+    case ConfigActionType.LoadStarted:
       return {
         ...state,
-        loadStatus: "loading",
+        loadStatus: LoadStatus.Loading,
         loadError: null,
-        saveStatus: "idle",
+        saveStatus: SaveStatus.Idle,
         saveError: null,
       };
-    case "load_succeeded":
+    case ConfigActionType.LoadSucceeded:
       return {
-        loadStatus: "loaded",
+        loadStatus: LoadStatus.Loaded,
         loadError: null,
         serverConfig: action.config,
         formValues: configToForm(action.config),
-        saveStatus: "idle",
+        saveStatus: SaveStatus.Idle,
         saveError: null,
         lastRuntime: state.lastRuntime,
       };
-    case "load_failed":
+    case ConfigActionType.LoadFailed:
       return {
         ...state,
-        loadStatus: "failed",
+        loadStatus: LoadStatus.Failed,
         loadError: action.error,
         serverConfig: null,
         formValues: null,
       };
-    case "field_changed":
+    case ConfigActionType.FieldChanged:
       if (state.formValues === null) {
         return state;
       }
       return {
         ...state,
         formValues: { ...state.formValues, [action.key]: action.value },
-        saveStatus: state.saveStatus === "success" ? "idle" : state.saveStatus,
+        saveStatus:
+          state.saveStatus === SaveStatus.Success
+            ? SaveStatus.Idle
+            : state.saveStatus,
       };
-    case "discard":
+    case ConfigActionType.Discard:
       if (state.serverConfig === null) {
         return state;
       }
       return {
         ...state,
         formValues: configToForm(state.serverConfig),
-        saveStatus: "idle",
+        saveStatus: SaveStatus.Idle,
         saveError: null,
       };
-    case "save_started":
-      return { ...state, saveStatus: "saving", saveError: null };
-    case "save_succeeded":
+    case ConfigActionType.SaveStarted:
       return {
-        loadStatus: "loaded",
+        ...state,
+        saveStatus: SaveStatus.Saving,
+        saveError: null,
+      };
+    case ConfigActionType.SaveSucceeded:
+      return {
+        loadStatus: LoadStatus.Loaded,
         loadError: null,
         serverConfig: action.refreshed,
         formValues: configToForm(action.refreshed),
-        saveStatus: "success",
+        saveStatus: SaveStatus.Success,
         saveError: null,
         lastRuntime: action.runtime,
       };
-    case "save_failed":
-      return { ...state, saveStatus: "failed", saveError: action.error };
+    case ConfigActionType.SaveFailed:
+      return {
+        ...state,
+        saveStatus: SaveStatus.Failed,
+        saveError: action.error,
+      };
   }
 }
 
@@ -340,12 +373,12 @@ export function Configuration(): JSX.Element {
   const [state, dispatch] = useReducer(configurationReducer, initialState);
 
   const load = useCallback(async (): Promise<void> => {
-    dispatch({ type: "load_started" });
+    dispatch({ type: ConfigActionType.LoadStarted });
     try {
       const config = await getAdminConfig();
-      dispatch({ type: "load_succeeded", config });
+      dispatch({ type: ConfigActionType.LoadSucceeded, config });
     } catch (err) {
-      dispatch({ type: "load_failed", error: errorMessage(err) });
+      dispatch({ type: ConfigActionType.LoadFailed, error: errorMessage(err) });
     }
   }, []);
 
@@ -373,7 +406,11 @@ export function Configuration(): JSX.Element {
   const handleTextChange = useCallback(
     (key: keyof AdminConfig) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
-        dispatch({ type: "field_changed", key, value: data.value });
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key,
+          value: data.value,
+        });
       },
     [],
   );
@@ -382,7 +419,11 @@ export function Configuration(): JSX.Element {
     (key: keyof AdminConfig) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
         const parsed = data.value === "" ? Number.NaN : Number(data.value);
-        dispatch({ type: "field_changed", key, value: parsed });
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key,
+          value: parsed,
+        });
       },
     [],
   );
@@ -390,13 +431,17 @@ export function Configuration(): JSX.Element {
   const handleSwitchChange = useCallback(
     (key: keyof AdminConfig) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: SwitchOnChangeData): void => {
-        dispatch({ type: "field_changed", key, value: data.checked });
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key,
+          value: data.checked,
+        });
       },
     [],
   );
 
   const handleDiscard = useCallback((): void => {
-    dispatch({ type: "discard" });
+    dispatch({ type: ConfigActionType.Discard });
   }, []);
 
   const handleSave = useCallback(async (): Promise<void> => {
@@ -407,13 +452,17 @@ export function Configuration(): JSX.Element {
       return;
     }
     const patch = computePatch(state.serverConfig, state.formValues);
-    dispatch({ type: "save_started" });
+    dispatch({ type: ConfigActionType.SaveStarted });
     try {
       const runtime = await patchAdminConfig(patch);
       const refreshed = await getAdminConfig();
-      dispatch({ type: "save_succeeded", runtime, refreshed });
+      dispatch({
+        type: ConfigActionType.SaveSucceeded,
+        runtime,
+        refreshed,
+      });
     } catch (err) {
-      dispatch({ type: "save_failed", error: errorMessage(err) });
+      dispatch({ type: ConfigActionType.SaveFailed, error: errorMessage(err) });
     }
   }, [anyFieldInvalid, state.formValues, state.serverConfig]);
 
@@ -439,13 +488,13 @@ export function Configuration(): JSX.Element {
       >
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>Runtime settings</h3>
-          {state.loadStatus === "loaded" ? (
+          {state.loadStatus === LoadStatus.Loaded ? (
             <Button
               appearance="secondary"
               onClick={() => {
                 void load();
               }}
-              disabled={state.saveStatus === "saving"}
+              disabled={state.saveStatus === SaveStatus.Saving}
               data-testid="config-reload-button"
             >
               Reload
@@ -453,13 +502,13 @@ export function Configuration(): JSX.Element {
           ) : null}
         </div>
 
-        {state.loadStatus === "loading" ? (
+        {state.loadStatus === LoadStatus.Loading ? (
           <p className={styles.statusMessage} data-testid="config-loading">
             Loading configuration…
           </p>
         ) : null}
 
-        {state.loadStatus === "failed" ? (
+        {state.loadStatus === LoadStatus.Failed ? (
           <>
             <p className={styles.errorMessage} data-testid="config-load-error">
               {state.loadError ?? "Failed to load configuration."}
@@ -478,7 +527,7 @@ export function Configuration(): JSX.Element {
           </>
         ) : null}
 
-        {state.loadStatus === "loaded" && state.formValues !== null
+        {state.loadStatus === LoadStatus.Loaded && state.formValues !== null
           ? (() => {
               const formValues = state.formValues;
               return (
@@ -515,7 +564,7 @@ export function Configuration(): JSX.Element {
                               id={inputId}
                               value={value as string}
                               onChange={handleTextChange(spec.key)}
-                              disabled={state.saveStatus === "saving"}
+                              disabled={state.saveStatus === SaveStatus.Saving}
                               data-testid={inputId}
                             />
                           ) : null}
@@ -533,7 +582,7 @@ export function Configuration(): JSX.Element {
                               min={spec.numberMin}
                               max={spec.numberMax}
                               onChange={handleNumberChange(spec.key)}
-                              disabled={state.saveStatus === "saving"}
+                              disabled={state.saveStatus === SaveStatus.Saving}
                               data-testid={inputId}
                             />
                           ) : null}
@@ -543,7 +592,7 @@ export function Configuration(): JSX.Element {
                                 id={inputId}
                                 checked={value as boolean}
                                 onChange={handleSwitchChange(spec.key)}
-                                disabled={state.saveStatus === "saving"}
+                                disabled={state.saveStatus === SaveStatus.Saving}
                                 data-testid={inputId}
                               />
                               <span>
@@ -565,7 +614,7 @@ export function Configuration(): JSX.Element {
                     })}
                   </div>
 
-                  {state.saveStatus === "success" ? (
+                  {state.saveStatus === SaveStatus.Success ? (
                     <p
                       className={styles.successMessage}
                       data-testid="config-save-status"
@@ -573,7 +622,7 @@ export function Configuration(): JSX.Element {
                       Configuration saved.
                     </p>
                   ) : null}
-                  {state.saveStatus === "failed" ? (
+                  {state.saveStatus === SaveStatus.Failed ? (
                     <p
                       className={styles.errorMessage}
                       data-testid="config-save-error"
@@ -607,7 +656,7 @@ export function Configuration(): JSX.Element {
                       type="button"
                       appearance="secondary"
                       onClick={handleDiscard}
-                      disabled={!dirty || state.saveStatus === "saving"}
+                      disabled={!dirty || state.saveStatus === SaveStatus.Saving}
                       data-testid="config-discard-button"
                     >
                       Discard
@@ -618,11 +667,13 @@ export function Configuration(): JSX.Element {
                       disabled={
                         !dirty ||
                         anyFieldInvalid ||
-                        state.saveStatus === "saving"
+                        state.saveStatus === SaveStatus.Saving
                       }
                       data-testid="config-save-button"
                     >
-                      {state.saveStatus === "saving" ? "Saving…" : "Save"}
+                      {state.saveStatus === SaveStatus.Saving
+                        ? "Saving…"
+                        : "Save"}
                     </Button>
                   </div>
                 </form>

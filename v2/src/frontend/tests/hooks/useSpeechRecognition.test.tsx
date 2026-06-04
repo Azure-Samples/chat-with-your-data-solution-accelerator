@@ -116,8 +116,8 @@ vi.mock("../../src/api/speech", () => ({
 
 // Imports MUST come AFTER the vi.mock calls so vitest replaces the
 // modules before the hook resolves them.
-import { getSpeechConfig } from "../../src/api/speech";
-import { useSpeechRecognition } from "../../src/hooks/useSpeechRecognition";
+import { getSpeechConfig } from "@/api/speech";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 const getSpeechConfigMock = vi.mocked(getSpeechConfig);
 

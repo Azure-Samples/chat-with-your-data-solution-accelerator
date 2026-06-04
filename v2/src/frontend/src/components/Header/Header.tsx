@@ -18,6 +18,7 @@
 import { Avatar, Button } from "@fluentui/react-components";
 import { type JSX } from "react";
 import type { Section } from "@/models/sections";
+import { Section as SectionValue } from "@/models/sections";
 import { HeaderTools } from "./HeaderTools";
 import { MsftColorLogo } from "./MsftColorLogo";
 import styles from "./Header.module.css";
@@ -84,11 +85,11 @@ export function Header({
           data-admin-status={adminStatusAttr(adminAvailable)}
         >
           <Button
-            appearance={view === "chat" ? "primary" : "subtle"}
-            aria-current={view === "chat" ? "page" : undefined}
+            appearance={view === SectionValue.Chat ? "primary" : "subtle"}
+            aria-current={view === SectionValue.Chat ? "page" : undefined}
             data-testid="nav-chat"
             onClick={() => {
-              onSelectView("chat");
+              onSelectView(SectionValue.Chat);
             }}
           >
             Chat
@@ -96,34 +97,44 @@ export function Header({
           {adminAvailable === true && (
             <>
               <Button
-                appearance={view === "admin-ingest" ? "primary" : "subtle"}
-                aria-current={view === "admin-ingest" ? "page" : undefined}
+                appearance={view === SectionValue.AdminIngest ? "primary" : "subtle"}
+                aria-current={view === SectionValue.AdminIngest ? "page" : undefined}
                 data-testid="nav-admin-ingest"
                 onClick={() => {
-                  onSelectView("admin-ingest");
+                  onSelectView(SectionValue.AdminIngest);
                 }}
               >
                 Ingest data
               </Button>
               <Button
-                appearance={view === "admin-delete" ? "primary" : "subtle"}
-                aria-current={view === "admin-delete" ? "page" : undefined}
+                appearance={view === SectionValue.AdminDelete ? "primary" : "subtle"}
+                aria-current={view === SectionValue.AdminDelete ? "page" : undefined}
                 data-testid="nav-admin-delete"
                 onClick={() => {
-                  onSelectView("admin-delete");
+                  onSelectView(SectionValue.AdminDelete);
                 }}
               >
                 Delete data
               </Button>
               <Button
-                appearance={view === "admin-config" ? "primary" : "subtle"}
-                aria-current={view === "admin-config" ? "page" : undefined}
+                appearance={view === SectionValue.AdminConfig ? "primary" : "subtle"}
+                aria-current={view === SectionValue.AdminConfig ? "page" : undefined}
                 data-testid="nav-admin-config"
                 onClick={() => {
-                  onSelectView("admin-config");
+                  onSelectView(SectionValue.AdminConfig);
                 }}
               >
                 Configuration
+              </Button>
+              <Button
+                appearance={view === SectionValue.AdminPrompt ? "primary" : "subtle"}
+                aria-current={view === SectionValue.AdminPrompt ? "page" : undefined}
+                data-testid="nav-admin-prompt"
+                onClick={() => {
+                  onSelectView(SectionValue.AdminPrompt);
+                }}
+              >
+                Prompt editor
               </Button>
             </>
           )}

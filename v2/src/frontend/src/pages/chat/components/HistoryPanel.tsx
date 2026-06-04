@@ -36,7 +36,7 @@ import {
   Delete16Regular,
   Edit16Regular,
 } from "@fluentui/react-icons";
-import type { HistoryConversation } from "../../../models/chat";
+import type { HistoryConversation } from "@/models/chat";
 import styles from "./HistoryPanel.module.css";
 
 const BACKEND_URL =

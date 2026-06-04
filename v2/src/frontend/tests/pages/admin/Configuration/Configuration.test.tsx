@@ -11,15 +11,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   Configuration,
-} from "../../../../src/pages/admin/Configuration/Configuration";
+} from "@/pages/admin/Configuration/Configuration";
 import {
   getAdminConfig,
   patchAdminConfig,
-} from "../../../../src/api/admin";
+} from "@/api/admin";
 import type {
   AdminConfig,
   RuntimeConfig,
-} from "../../../../src/models/admin";
+} from "@/models/admin";
 
 vi.mock("../../../../src/api/admin", () => ({
   getAdminConfig: vi.fn(),

@@ -17,7 +17,7 @@
  * `[doc0]` is therefore always out of bounds and renders literally.
  */
 import type { ReactNode } from "react";
-import type { Citation } from "../../../models/chat";
+import type { Citation } from "@/models/chat";
 import styles from "./answerTokens.module.css";
 
 const TOKEN_PATTERN = /\[doc(\d+)\]/g;

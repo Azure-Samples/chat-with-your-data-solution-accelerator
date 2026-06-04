@@ -15,7 +15,7 @@ import {
   patchAdminConfig,
   reprocessAll,
   uploadDocument,
-} from "../../src/api/admin";
+} from "@/api/admin";
 import type {
   AdminConfig,
   AdminStatus,
@@ -25,7 +25,7 @@ import type {
   ReprocessResponse,
   RuntimeConfig,
   UploadResponse,
-} from "../../src/models/admin";
+} from "@/models/admin";
 
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {

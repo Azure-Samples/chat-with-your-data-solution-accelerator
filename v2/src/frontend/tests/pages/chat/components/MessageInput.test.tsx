@@ -3,11 +3,11 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
   ChatProvider,
   useChat,
-} from "../../../../src/pages/chat/ChatContext";
-import { MessageInput } from "../../../../src/pages/chat/components/MessageInput";
-import { streamChat } from "../../../../src/api/streamChat";
-import type { StreamEvent } from "../../../../src/models/chat";
-import { useSpeechRecognition } from "../../../../src/hooks/useSpeechRecognition";
+} from "@/pages/chat/ChatContext";
+import { MessageInput } from "@/pages/chat/components/MessageInput";
+import { streamChat } from "@/api/streamChat";
+import type { StreamEvent } from "@/models/chat";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 vi.mock("../../../../src/api/streamChat", () => ({
   streamChat: vi.fn(),

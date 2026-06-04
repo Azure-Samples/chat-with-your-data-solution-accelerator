@@ -17,8 +17,8 @@
  */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CoralShellColumn } from "../../src/components/CoralShell/CoralShellColumn";
-import { CoralShellRow } from "../../src/components/CoralShell/CoralShellRow";
+import { CoralShellColumn } from "@/components/CoralShell/CoralShellColumn";
+import { CoralShellRow } from "@/components/CoralShell/CoralShellRow";
 
 describe("CoralShellColumn", () => {
   it("renders children inside a column wrapper marked data-coral-shell='column'", () => {

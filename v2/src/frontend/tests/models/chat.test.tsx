@@ -9,8 +9,8 @@
  * runtime `expect` confirms the field types reach the FE intact.
  */
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { MessageRole, StreamChannel } from "../../src/models/chat";
-import type { ChatMessage, Citation, StreamEvent } from "../../src/models/chat";
+import { MessageRole, StreamChannel } from "@/models/chat";
+import type { ChatMessage, Citation, StreamEvent } from "@/models/chat";
 
 describe("Citation model", () => {
   it("accepts the full canonical citation shape from the SSE feed", () => {

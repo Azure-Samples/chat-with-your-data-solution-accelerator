@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { HistoryPanel } from "../../../../src/pages/chat/components/HistoryPanel";
+import { HistoryPanel } from "@/pages/chat/components/HistoryPanel";
 
 interface FakeConv {
   id: string;

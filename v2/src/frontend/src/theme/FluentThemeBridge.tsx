@@ -21,7 +21,7 @@ import {
   teamsLightTheme,
 } from "@fluentui/react-components";
 import { type JSX, type ReactNode } from "react";
-import { useTheme } from "./themeContext";
+import { Theme, useTheme } from "./themeContext";
 
 export function FluentThemeBridge({
   children,
@@ -31,7 +31,7 @@ export function FluentThemeBridge({
   const { theme } = useTheme();
   return (
     <FluentProvider
-      theme={theme === "dark" ? teamsDarkTheme : teamsLightTheme}
+      theme={theme === Theme.Dark ? teamsDarkTheme : teamsLightTheme}
     >
       {children}
     </FluentProvider>

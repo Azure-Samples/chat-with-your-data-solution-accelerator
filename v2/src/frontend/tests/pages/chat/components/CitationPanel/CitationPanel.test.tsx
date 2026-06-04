@@ -7,8 +7,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
-import { CitationPanel } from "../../../../../src/pages/chat/components/CitationPanel/CitationPanel";
-import type { Citation } from "../../../../../src/models/chat";
+import { CitationPanel } from "@/pages/chat/components/CitationPanel/CitationPanel";
+import type { Citation } from "@/models/chat";
 
 const docA: Citation = {
   id: "doc-a",

@@ -1,0 +1,64 @@
+/*
+ * Pillar: Stable Core
+ * Phase: 5 (Admin + Frontend Merge)
+ *
+ * Prompt editor route-shell layout, aligned with the admin pages.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXL);
+  padding: var(--spacingVerticalL) var(--spacingHorizontalXL);
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--colorNeutralForeground1);
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  padding-bottom: var(--spacingVerticalM);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--fontSizeHero700);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.pageHint {
+  margin: 0;
+  color: var(--colorNeutralForeground3);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalM);
+  padding: var(--spacingVerticalL);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusLarge);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.status {
+  margin: 0;
+  font-size: var(--fontSizeBase300);
+  color: var(--colorNeutralForeground3);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacingHorizontalS);
+}

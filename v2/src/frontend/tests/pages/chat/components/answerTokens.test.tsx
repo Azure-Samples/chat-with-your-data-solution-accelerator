@@ -6,8 +6,8 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { renderAnswerTokens } from "../../../../src/pages/chat/components/answerTokens";
-import type { Citation } from "../../../../src/models/chat";
+import { renderAnswerTokens } from "@/pages/chat/components/answerTokens";
+import type { Citation } from "@/models/chat";
 
 const cit1: Citation = {
   id: "doc-alpha",

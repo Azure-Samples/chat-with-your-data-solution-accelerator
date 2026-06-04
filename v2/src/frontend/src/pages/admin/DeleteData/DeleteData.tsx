@@ -31,12 +31,13 @@ import {
   type JSX,
 } from "react";
 import { Button } from "@fluentui/react-components";
-import { deleteDocument, listDocuments } from "../../../api/admin";
-import type { SourceListing } from "../../../models/admin";
+import { deleteDocument, listDocuments } from "@/api/admin";
+import type { SourceListing } from "@/models/admin";
+import {
+  LoadStatus,
+  RowDeleteStatus,
+} from "@/models/status";
 import styles from "./DeleteData.module.css";
-
-type ListStatus = "loading" | "loaded" | "failed";
-type RowDeleteStatus = "idle" | "deleting" | "failed";
 
 interface RowState {
   listing: SourceListing;
@@ -45,27 +46,46 @@ interface RowState {
 }
 
 interface DeleteDataState {
-  listStatus: ListStatus;
+  listStatus: LoadStatus;
   listError: string | null;
   rows: RowState[];
-  pendingDeleteSource: string | null;
+  selectedSources: string[];
+  pendingDeleteSources: string[] | null;
 }
 
+export const DeleteActionType = {
+  ListStarted: "list_started",
+  ListSucceeded: "list_succeeded",
+  ListFailed: "list_failed",
+  ToggleSelected: "toggle_selected",
+  SelectAll: "select_all",
+  ConfirmOpen: "confirm_open",
+  ConfirmClose: "confirm_close",
+  DeleteStarted: "delete_started",
+  DeleteSucceeded: "delete_succeeded",
+  DeleteFailed: "delete_failed",
+} as const;
+export type DeleteActionType =
+  (typeof DeleteActionType)[keyof typeof DeleteActionType];
+
 type DeleteDataAction =
-  | { type: "list_started" }
-  | { type: "list_succeeded"; listings: SourceListing[] }
-  | { type: "list_failed"; error: string }
-  | { type: "confirm_open"; source: string }
-  | { type: "confirm_close" }
-  | { type: "delete_started"; source: string }
-  | { type: "delete_succeeded"; source: string }
-  | { type: "delete_failed"; source: string; error: string };
+  | { type: typeof DeleteActionType.ListStarted }
+  | { type: typeof DeleteActionType.ListSucceeded; listings: SourceListing[] }
+  | { type: typeof DeleteActionType.ListFailed; error: string }
+  | { type: typeof DeleteActionType.ToggleSelected; source: string }
+  | { type: typeof DeleteActionType.SelectAll; selected: boolean }
+  | { type: typeof DeleteActionType.ConfirmOpen; sources: string[] }
+  | { type: typeof DeleteActionType.ConfirmClose }
+  | { type: typeof DeleteActionType.DeleteStarted; source: string }
+  | { type: typeof DeleteActionType.DeleteSucceeded; source: string }
+  | { type: typeof DeleteActionType.DeleteFailed; source: string; error: string };
 
 const initialState: DeleteDataState = {
-  listStatus: "loading",
+  listStatus: LoadStatus.Loading,
   listError: null,
   rows: [],
-  pendingDeleteSource: null,
+  selectedSources: [],
+  pendingDeleteSources: null,
 };
 
 function mapRow(
@@ -86,54 +106,81 @@ export function deleteDataReducer(
   action: DeleteDataAction,
 ): DeleteDataState {
   switch (action.type) {
-    case "list_started":
+    case DeleteActionType.ListStarted:
       return {
-        listStatus: "loading",
+        listStatus: LoadStatus.Loading,
         listError: null,
         rows: [],
-        pendingDeleteSource: null,
+        selectedSources: [],
+        pendingDeleteSources: null,
       };
-    case "list_succeeded":
+    case DeleteActionType.ListSucceeded:
       return {
-        listStatus: "loaded",
+        listStatus: LoadStatus.Loaded,
         listError: null,
         rows: action.listings.map((listing) => ({
           listing,
-          deleteStatus: "idle",
+          deleteStatus: RowDeleteStatus.Idle,
         })),
-        pendingDeleteSource: null,
+        selectedSources: [],
+        pendingDeleteSources: null,
       };
-    case "list_failed":
+    case DeleteActionType.ListFailed:
       return {
-        listStatus: "failed",
+        listStatus: LoadStatus.Failed,
         listError: action.error,
         rows: [],
-        pendingDeleteSource: null,
+        selectedSources: [],
+        pendingDeleteSources: null,
       };
-    case "confirm_open":
-      return { ...state, pendingDeleteSource: action.source };
-    case "confirm_close":
-      return { ...state, pendingDeleteSource: null };
-    case "delete_started":
+    case DeleteActionType.ToggleSelected:
+      if (!state.rows.some((row) => row.listing.source === action.source)) {
+        return state;
+      }
+      return {
+        ...state,
+        selectedSources: state.selectedSources.includes(action.source)
+          ? state.selectedSources.filter((source) => source !== action.source)
+          : [...state.selectedSources, action.source],
+      };
+    case DeleteActionType.SelectAll:
+      return {
+        ...state,
+        selectedSources: action.selected
+          ? state.rows.map((row) => row.listing.source)
+          : [],
+      };
+    case DeleteActionType.ConfirmOpen:
+      return {
+        ...state,
+        pendingDeleteSources:
+          action.sources.length > 0 ? action.sources : null,
+      };
+    case DeleteActionType.ConfirmClose:
+      return { ...state, pendingDeleteSources: null };
+    case DeleteActionType.DeleteStarted:
       return mapRow(
-        { ...state, pendingDeleteSource: null },
+        { ...state, pendingDeleteSources: null },
         action.source,
         (row) => ({
           listing: row.listing,
-          deleteStatus: "deleting",
+          deleteStatus: RowDeleteStatus.Deleting,
         }),
       );
-    case "delete_succeeded":
+    case DeleteActionType.DeleteSucceeded:
       return {
         ...state,
+        selectedSources: state.selectedSources.filter(
+          (source) => source !== action.source,
+        ),
         rows: state.rows.filter(
           (row) => row.listing.source !== action.source,
         ),
       };
-    case "delete_failed":
+    case DeleteActionType.DeleteFailed:
       return mapRow(state, action.source, (row) => ({
         listing: row.listing,
-        deleteStatus: "failed",
+        deleteStatus: RowDeleteStatus.Failed,
         deleteError: action.error,
       }));
   }
@@ -149,14 +196,28 @@ function formatLastModified(value: string | null): string {
 
 export function DeleteData(): JSX.Element {
   const [state, dispatch] = useReducer(deleteDataReducer, initialState);
+  const selectedSet = new Set(state.selectedSources);
+  const selectedFailedSources = state.rows
+    .filter(
+      (row) =>
+        selectedSet.has(row.listing.source) &&
+        row.deleteStatus === RowDeleteStatus.Failed,
+    )
+    .map((row) => row.listing.source);
+  const isAllSelected =
+    state.rows.length > 0 &&
+    state.rows.every((row) => selectedSet.has(row.listing.source));
 
   const refresh = useCallback(async (): Promise<void> => {
-    dispatch({ type: "list_started" });
+    dispatch({ type: DeleteActionType.ListStarted });
     try {
       const response = await listDocuments();
-      dispatch({ type: "list_succeeded", listings: response.documents });
+      dispatch({
+        type: DeleteActionType.ListSucceeded,
+        listings: response.documents,
+      });
     } catch (err) {
-      dispatch({ type: "list_failed", error: errorMessage(err) });
+      dispatch({ type: DeleteActionType.ListFailed, error: errorMessage(err) });
     }
   }, []);
 
@@ -164,30 +225,44 @@ export function DeleteData(): JSX.Element {
     void refresh();
   }, [refresh]);
 
-  const handleConfirmOpen = useCallback((source: string) => {
-    dispatch({ type: "confirm_open", source });
+  const handleConfirmOpen = useCallback((sources: string[]) => {
+    dispatch({ type: DeleteActionType.ConfirmOpen, sources });
   }, []);
 
   const handleConfirmCancel = useCallback(() => {
-    dispatch({ type: "confirm_close" });
+    dispatch({ type: DeleteActionType.ConfirmClose });
   }, []);
 
   const handleConfirmDelete = useCallback(async (): Promise<void> => {
-    const source = state.pendingDeleteSource;
-    if (source === null) {
+    const sources = state.pendingDeleteSources;
+    if (sources === null || sources.length === 0) {
       return;
     }
-    dispatch({ type: "delete_started", source });
-    try {
-      await deleteDocument(source);
-      dispatch({ type: "delete_succeeded", source });
-    } catch (err) {
-      dispatch({ type: "delete_failed", source, error: errorMessage(err) });
+    for (const source of sources) {
+      dispatch({ type: DeleteActionType.DeleteStarted, source });
+      try {
+        await deleteDocument(source);
+        dispatch({ type: DeleteActionType.DeleteSucceeded, source });
+      } catch (err) {
+        dispatch({
+          type: DeleteActionType.DeleteFailed,
+          source,
+          error: errorMessage(err),
+        });
+      }
     }
-  }, [state.pendingDeleteSource]);
+  }, [state.pendingDeleteSources]);
 
   const handleRetryDelete = useCallback((source: string) => {
-    dispatch({ type: "confirm_open", source });
+    dispatch({ type: DeleteActionType.ConfirmOpen, sources: [source] });
+  }, []);
+
+  const handleToggleSelected = useCallback((source: string) => {
+    dispatch({ type: DeleteActionType.ToggleSelected, source });
+  }, []);
+
+  const handleSelectAll = useCallback((selected: boolean) => {
+    dispatch({ type: DeleteActionType.SelectAll, selected });
   }, []);
 
   return (
@@ -211,25 +286,47 @@ export function DeleteData(): JSX.Element {
       >
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>Indexed sources</h3>
-          <Button
-            appearance="secondary"
-            onClick={() => {
-              void refresh();
-            }}
-            disabled={state.listStatus === "loading"}
-            data-testid="refresh-button"
-          >
-            Refresh
-          </Button>
+          <div className={styles.sectionActions}>
+            <Button
+              appearance="secondary"
+              onClick={() => {
+                handleConfirmOpen(selectedFailedSources);
+              }}
+              disabled={selectedFailedSources.length === 0}
+              data-testid="bulk-retry-failed-button"
+            >
+              Retry selected failed ({selectedFailedSources.length.toString()})
+            </Button>
+            <Button
+              appearance="secondary"
+              onClick={() => {
+                handleConfirmOpen(state.selectedSources);
+              }}
+              disabled={state.selectedSources.length === 0}
+              data-testid="bulk-delete-button"
+            >
+              Delete selected ({state.selectedSources.length.toString()})
+            </Button>
+            <Button
+              appearance="secondary"
+              onClick={() => {
+                void refresh();
+              }}
+              disabled={state.listStatus === LoadStatus.Loading}
+              data-testid="refresh-button"
+            >
+              Refresh
+            </Button>
+          </div>
         </div>
 
-        {state.listStatus === "loading" ? (
+        {state.listStatus === LoadStatus.Loading ? (
           <p className={styles.statusMessage} data-testid="loading-message">
             Loading sources…
           </p>
         ) : null}
 
-        {state.listStatus === "failed" ? (
+        {state.listStatus === LoadStatus.Failed ? (
           <>
             <p className={styles.errorMessage} data-testid="list-error">
               {state.listError ?? "Failed to load sources."}
@@ -248,13 +345,13 @@ export function DeleteData(): JSX.Element {
           </>
         ) : null}
 
-        {state.listStatus === "loaded" && state.rows.length === 0 ? (
+        {state.listStatus === LoadStatus.Loaded && state.rows.length === 0 ? (
           <p className={styles.statusMessage} data-testid="empty-message">
             No sources are currently indexed.
           </p>
         ) : null}
 
-        {state.listStatus === "loaded" && state.rows.length > 0 ? (
+        {state.listStatus === LoadStatus.Loaded && state.rows.length > 0 ? (
           <table
             className={styles.table}
             data-testid="source-table"
@@ -262,6 +359,19 @@ export function DeleteData(): JSX.Element {
           >
             <thead>
               <tr>
+                <th scope="col" className={styles.selectColumn}>
+                  <label className={styles.selectAllControl}>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={(event) => {
+                        handleSelectAll(event.currentTarget.checked);
+                      }}
+                      data-testid="select-all"
+                    />
+                    <span>Select</span>
+                  </label>
+                </th>
                 <th scope="col">Source</th>
                 <th scope="col">Chunks</th>
                 <th scope="col">Last modified</th>
@@ -277,9 +387,23 @@ export function DeleteData(): JSX.Element {
                   data-testid={`source-row-${row.listing.source}`}
                   data-status={row.deleteStatus}
                 >
+                  <td className={styles.selectColumn}>
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(row.listing.source)}
+                      onChange={() => {
+                        handleToggleSelected(row.listing.source);
+                      }}
+                      disabled={
+                        row.deleteStatus === RowDeleteStatus.Deleting
+                      }
+                      data-testid={`row-select-${row.listing.source}`}
+                      aria-label={`Select ${row.listing.source}`}
+                    />
+                  </td>
                   <td className={styles.rowSource}>
                     {row.listing.source}
-                    {row.deleteStatus === "failed" &&
+                    {row.deleteStatus === RowDeleteStatus.Failed &&
                     row.deleteError !== undefined ? (
                       <div
                         className={styles.rowError}
@@ -296,7 +420,7 @@ export function DeleteData(): JSX.Element {
                     {formatLastModified(row.listing.last_modified)}
                   </td>
                   <td className={styles.rowActions}>
-                    {row.deleteStatus === "failed" ? (
+                    {row.deleteStatus === RowDeleteStatus.Failed ? (
                       <Button
                         appearance="secondary"
                         size="small"
@@ -311,13 +435,15 @@ export function DeleteData(): JSX.Element {
                       <Button
                         appearance="secondary"
                         size="small"
-                        disabled={row.deleteStatus === "deleting"}
+                        disabled={
+                          row.deleteStatus === RowDeleteStatus.Deleting
+                        }
                         onClick={() => {
-                          handleConfirmOpen(row.listing.source);
+                          handleConfirmOpen([row.listing.source]);
                         }}
                         data-testid={`row-delete-${row.listing.source}`}
                       >
-                        {row.deleteStatus === "deleting"
+                        {row.deleteStatus === RowDeleteStatus.Deleting
                           ? "Deleting…"
                           : "Delete"}
                       </Button>
@@ -330,7 +456,7 @@ export function DeleteData(): JSX.Element {
         ) : null}
       </section>
 
-      {state.pendingDeleteSource !== null ? (
+      {state.pendingDeleteSources !== null ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -341,11 +467,24 @@ export function DeleteData(): JSX.Element {
           <div className={styles.dialog}>
             <h3 className={styles.dialogTitle}>Confirm delete</h3>
             <p className={styles.dialogBody}>
-              This permanently removes every indexed chunk attached to{" "}
-              <span className={styles.dialogTarget}>
-                {state.pendingDeleteSource}
-              </span>
-              . The action cannot be undone.
+              {state.pendingDeleteSources.length === 1 ? (
+                <>
+                  This permanently removes every indexed chunk attached to{" "}
+                  <span className={styles.dialogTarget}>
+                    {state.pendingDeleteSources[0]}
+                  </span>
+                  . The action cannot be undone.
+                </>
+              ) : (
+                <>
+                  This permanently removes every indexed chunk attached to{" "}
+                  <span className={styles.dialogTarget}>
+                    {state.pendingDeleteSources.length.toString()} selected
+                    sources
+                  </span>
+                  . The action cannot be undone.
+                </>
+              )}
             </p>
             <div className={styles.dialogActions}>
               <Button

@@ -36,7 +36,9 @@ import { ChatPage } from "./pages/chat/ChatPage";
 import { IngestData } from "./pages/admin/IngestData/IngestData";
 import { DeleteData } from "./pages/admin/DeleteData/DeleteData";
 import { Configuration } from "./pages/admin/Configuration/Configuration";
+import { PromptEditor } from "./pages/admin/PromptEditor/PromptEditor";
 import { getAdminStatus } from "./api/admin";
+import { Section } from "./models/sections";
 import { FluentThemeBridge } from "./theme/FluentThemeBridge";
 import { ThemeProvider } from "./theme/themeContext";
 import "./theme/tokens.css";
@@ -79,7 +81,7 @@ export function App(): JSX.Element {
   // the App shell (avoids lifting ChatProvider up a layer, which would
   // be a structural change).
   const [newChatNonce, setNewChatNonce] = useState(0);
-  const [view, setView] = useState<AppView>("chat");
+  const [view, setView] = useState<AppView>(Section.Chat);
   // `null` = probe in-flight; `true`/`false` = settled. Tri-state lets
   // the header render its nav slot synchronously while keeping the
   // Admin button hidden until the probe resolves.
@@ -177,12 +179,13 @@ export function App(): JSX.Element {
             )}
           </section>
           <CoralShellRow>
-            {view === "chat" && (
+            {view === Section.Chat && (
               <ChatPage key={newChatNonce} historyOpen={historyOpen} />
             )}
-            {view === "admin-ingest" && <IngestData />}
-            {view === "admin-delete" && <DeleteData />}
-            {view === "admin-config" && <Configuration />}
+            {view === Section.AdminIngest && <IngestData />}
+            {view === Section.AdminDelete && <DeleteData />}
+            {view === Section.AdminConfig && <Configuration />}
+            {view === Section.AdminPrompt && <PromptEditor />}
           </CoralShellRow>
         </CoralShellColumn>
       </FluentThemeBridge>

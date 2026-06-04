@@ -51,9 +51,9 @@ import {
   Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
-import { useChat } from "../ChatContext";
-import type { ChatMessage } from "../../../models/chat";
-import { setFeedback } from "../../../api/feedback";
+import { useChat } from "@/pages/chat/ChatContext";
+import type { ChatMessage } from "@/models/chat";
+import { setFeedback } from "@/api/feedback";
 import { renderAnswerTokens } from "./answerTokens";
 import { CitationPanel } from "./CitationPanel/CitationPanel";
 import { FeedbackButtons } from "./FeedbackButtons";

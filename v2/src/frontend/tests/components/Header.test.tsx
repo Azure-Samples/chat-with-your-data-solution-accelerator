@@ -10,9 +10,9 @@
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { Header } from "../../src/components/Header/Header";
-import { FluentThemeBridge } from "../../src/theme/FluentThemeBridge";
-import { ThemeProvider } from "../../src/theme/themeContext";
+import { Header } from "@/components/Header/Header";
+import { FluentThemeBridge } from "@/theme/FluentThemeBridge";
+import { ThemeProvider } from "@/theme/themeContext";
 
 function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
   const onToggleHistory = props?.onToggleHistory ?? vi.fn();

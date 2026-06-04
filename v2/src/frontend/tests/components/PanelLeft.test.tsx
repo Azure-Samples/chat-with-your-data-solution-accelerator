@@ -6,7 +6,7 @@
  */
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { PanelLeft } from "../../src/components/CoralShell/PanelLeft";
+import { PanelLeft } from "@/components/CoralShell/PanelLeft";
 
 describe("PanelLeft", () => {
   it("renders an aside landmark with data-coral-panel=\"left\" wrapping its children", () => {

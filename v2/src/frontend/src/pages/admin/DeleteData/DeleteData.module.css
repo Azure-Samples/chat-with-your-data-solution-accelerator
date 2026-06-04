@@ -55,6 +55,12 @@
   gap: var(--spacingHorizontalM);
 }
 
+.sectionActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalS);
+}
+
 .sectionTitle {
   margin: 0;
   font-size: var(--fontSizeBase500);
@@ -93,6 +99,20 @@
   text-align: left;
   padding: var(--spacingVerticalS) var(--spacingHorizontalM);
   border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.selectColumn {
+  width: 84px;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.selectAllControl {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  color: var(--colorNeutralForeground2);
+  font-weight: var(--fontWeightRegular);
 }
 
 .table th {

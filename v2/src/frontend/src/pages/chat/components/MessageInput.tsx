@@ -40,14 +40,14 @@ import {
   MicOff24Regular,
   Send24Regular,
 } from "@fluentui/react-icons";
-import { useChat } from "../ChatContext";
-import { streamChat } from "../../../api/streamChat";
+import { useChat } from "@/pages/chat/ChatContext";
+import { streamChat } from "@/api/streamChat";
 import type {
   ChatMessage,
   Citation,
   StreamMessage,
-} from "../../../models/chat";
-import { useSpeechRecognition } from "../../../hooks/useSpeechRecognition";
+} from "@/models/chat";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import styles from "./MessageInput.module.css";
 
 function newId(): string {

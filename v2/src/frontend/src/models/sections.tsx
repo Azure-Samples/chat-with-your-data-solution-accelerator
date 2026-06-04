@@ -17,5 +17,6 @@ export const Section = {
   AdminIngest: "admin-ingest",
   AdminDelete: "admin-delete",
   AdminConfig: "admin-config",
+  AdminPrompt: "admin-prompt",
 } as const;
 export type Section = (typeof Section)[keyof typeof Section];

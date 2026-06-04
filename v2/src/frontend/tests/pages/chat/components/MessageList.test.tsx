@@ -3,9 +3,9 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
   ChatProvider,
   useChat,
-} from "../../../../src/pages/chat/ChatContext";
-import { MessageList } from "../../../../src/pages/chat/components/MessageList";
-import type { ChatMessage } from "../../../../src/models/chat";
+} from "@/pages/chat/ChatContext";
+import { MessageList } from "@/pages/chat/components/MessageList";
+import type { ChatMessage } from "@/models/chat";
 
 const m1: ChatMessage = { id: "1", role: "user", content: "hello" };
 const m2: ChatMessage = { id: "2", role: "assistant", content: "hi back" };

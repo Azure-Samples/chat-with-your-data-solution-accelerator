@@ -18,7 +18,7 @@ import {
   SaveStatus,
   SubmitStatus,
   UploadStatus,
-} from "../../src/models/status";
+} from "@/models/status";
 
 describe("LoadStatus", () => {
   it("exposes the 3 known members and maps each to its string value", () => {
