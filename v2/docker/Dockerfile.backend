@@ -16,15 +16,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy only manifests first for cache efficiency.
-COPY v2/pyproject.toml v2/uv.lock ./
+COPY pyproject.toml uv.lock ./
 
 RUN uv sync --frozen --no-install-project || uv sync --no-install-project
 
-COPY v2/src /app/v2/src
+COPY src /app/src
 
 ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONPATH="/app/v2/src"
+    PYTHONPATH="/app/src"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--app-dir", "/app/v2/src"]
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--app-dir", "/app/src"]

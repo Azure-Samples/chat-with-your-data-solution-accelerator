@@ -86,6 +86,31 @@ param azureAiServiceLocation string
 param databaseType string = 'cosmosdb'
 
 // ===================== //
+// v1 resource reuse     //
+// ===================== //
+// When set, the corresponding AVM module is SKIPPED and a raw `existing`
+// reference + minimal child resources + UAMI role assignments are
+// created instead. Same RG only. Lets v2 coexist with a v1 deployment
+// in the same resource group without provisioning duplicate accounts.
+
+@description('Optional. Existing Azure AI Search service name to reuse. Same RG. When set, the new aiSearch module is skipped and only RBAC role assignments are added.')
+param existingSearchName string = ''
+
+@description('Optional. Existing Cosmos DB account name to reuse. Same RG. When set, the new cosmosDb module is skipped and only the new SQL database "cwyd" + container "conversations" + UAMI SQL role are added.')
+param existingCosmosName string = ''
+
+@description('Optional. Existing Storage Account name to reuse. Same RG. When set, the new storageAccount module is skipped and only missing containers/queues + UAMI role assignments are added.')
+param existingStorageName string = ''
+
+@description('Optional. When reusing v1 storage that already has an Event Grid system topic (Azure permits only one topic per source), set this to that topic name. The Bicep then adds a new event subscription to the existing topic instead of creating a new topic.')
+param existingEventGridTopicName string = ''
+
+var useExistingSearch = !empty(existingSearchName)
+var useExistingCosmos = !empty(existingCosmosName)
+var useExistingStorage = !empty(existingStorageName)
+var useExistingEventGridTopic = !empty(existingEventGridTopicName)
+
+// ===================== //
 // AI model parameters   //
 // ===================== //
 
@@ -742,7 +767,7 @@ module cogContentSafety 'br/public:avm/res/cognitive-services/account:0.13.0' = 
 // (modules/ai-project-search-connection.bicep) so Foundry IQ knowledge
 // bases can resolve this Search service by friendly name.
 // ----------------------------------------------------------------------
-module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseType == 'cosmosdb') {
+module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseType == 'cosmosdb' && !useExistingSearch) {
   name: take('avm.res.search.search-service.${solutionSuffix}', 64)
   params: {
     name: 'srch-${solutionSuffix}'
@@ -808,6 +833,49 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
   }
 }
 
+// ----------------------------------------------------------------------
+// EXISTING Azure AI Search service reuse (when existingSearchName is
+// set). Adds the same RBAC role grants the new aiSearch module would,
+// but on the v1 service instead. v2 creates its own index name (e.g.
+// `cwyd-index`) inside the shared service alongside v1's index.
+// ----------------------------------------------------------------------
+resource existingSearch 'Microsoft.Search/searchServices@2024-06-01-preview' existing = if (databaseType == 'cosmosdb' && useExistingSearch) {
+  name: existingSearchName
+}
+
+resource existingSearchUamiIndexContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && useExistingSearch) {
+  name: guid(existingSearch!.id, userAssignedIdentity.name, '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+  scope: existingSearch
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource existingSearchUamiServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && useExistingSearch) {
+  name: guid(existingSearch!.id, userAssignedIdentity.name, '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+  scope: existingSearch
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource existingSearchProjectIndexReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && useExistingSearch) {
+  name: guid(existingSearch!.id, aiProject.name, '1407120a-92aa-4202-b7e9-c0e197c71c8f')
+  scope: existingSearch
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')
+    principalId: aiProject.outputs.projectPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+var effectiveSearchName = useExistingSearch ? existingSearchName : (databaseType == 'cosmosdb' ? aiSearch!.outputs.name : '')
+var effectiveSearchEndpoint = useExistingSearch ? 'https://${existingSearchName}.search.windows.net' : (databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '')
+
 // Foundry Project ↔ Search connection (cosmosdb mode only). Lets Foundry
 // IQ knowledge bases resolve this Search service by friendly name and
 // authenticate via the Project's system-assigned identity (no API keys).
@@ -816,7 +884,7 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
   params: {
     aiServicesAccountName: aiServicesName
     projectName: aiProject.outputs.name
-    searchServiceName: aiSearch!.outputs.name
+    searchServiceName: effectiveSearchName
   }
 }
 
@@ -833,7 +901,7 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
 var storageAccountName = take(replace('st${solutionSuffix}', '-', ''), 24)
 var deploymentContainerName = 'deployment-package'
 
-module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
+module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!useExistingStorage) {
   name: take('avm.res.storage.storage-account.${solutionSuffix}', 64)
   params: {
     name: storageAccountName
@@ -958,6 +1026,104 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
 }
 
 // ----------------------------------------------------------------------
+// EXISTING Storage account reuse (when existingStorageName is set).
+// Creates missing blob containers + queues + UAMI role assignments on
+// v1's storage. PUT-on-PUT is idempotent for child resources, so this
+// safely co-exists with v1's own containers/queues. The parent symbol
+// `storageAccountExisting` is declared once later in this file (just
+// before flexDeploymentRole) and resolves to either the new or the v1
+// storage account based on useExistingStorage.
+// ----------------------------------------------------------------------
+resource existingStorageBlobServices 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' existing = if (useExistingStorage) {
+  parent: storageAccountExisting
+  name: 'default'
+}
+
+resource existingStorageDocumentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageBlobServices
+  name: 'documents'
+  properties: { publicAccess: 'None' }
+}
+
+resource existingStorageConfigContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageBlobServices
+  name: 'config'
+  properties: { publicAccess: 'None' }
+}
+
+resource existingStorageDeploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageBlobServices
+  name: deploymentContainerName
+  properties: { publicAccess: 'None' }
+}
+
+resource existingStorageQueueServices 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' existing = if (useExistingStorage) {
+  parent: storageAccountExisting
+  name: 'default'
+}
+
+resource existingStorageQueueDocProcessing 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'doc-processing'
+  properties: {}
+}
+
+resource existingStorageQueueDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'doc-processing-poison'
+  properties: {}
+}
+
+resource existingStorageQueueAddUrl 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'add-url'
+  properties: {}
+}
+
+resource existingStorageQueueAddUrlPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'add-url-poison'
+  properties: {}
+}
+
+// Storage Blob Data Contributor — read/write uploaded documents
+resource existingStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingStorage) {
+  name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Queue Data Contributor — enqueue + consume indexing messages
+resource existingStorageQueueContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingStorage) {
+  name: guid(storageAccountExisting.id, userAssignedIdentity.name, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Storage Account Contributor — Function App host storage management
+resource existingStorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingStorage) {
+  name: guid(storageAccountExisting.id, userAssignedIdentity.name, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+var effectiveStorageName = useExistingStorage ? existingStorageName : storageAccount!.outputs.name
+var effectiveStorageResourceId = useExistingStorage ? storageAccountExisting.id : storageAccount!.outputs.resourceId
+var effectiveStorageBlobEndpoint = useExistingStorage ? storageAccountExisting.properties.primaryEndpoints.blob : storageAccount!.outputs.primaryBlobEndpoint
+
+// ----------------------------------------------------------------------
 // Cosmos DB (CONDITIONAL — cosmosdb mode only).
 // Stores chat history, one item per message. Partitioned on `userId`
 // for high-cardinality even distribution; query patterns are
@@ -970,7 +1136,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = {
 // turn on automatic failover + zone redundancy, which serverless
 // rejects.
 // ----------------------------------------------------------------------
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (databaseType == 'cosmosdb') {
+module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (databaseType == 'cosmosdb' && !useExistingCosmos) {
   name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
   params: {
     name: 'cosno-${solutionSuffix}'
@@ -1035,6 +1201,53 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
       : []
   }
 }
+
+// ----------------------------------------------------------------------
+// EXISTING Cosmos DB account reuse (when existingCosmosName is set).
+// Adds a new SQL database `cwyd` + container `conversations` on the v1
+// account, plus a UAMI SQL role assignment. v1's existing databases are
+// untouched.
+// ----------------------------------------------------------------------
+resource existingCosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = if (databaseType == 'cosmosdb' && useExistingCosmos) {
+  name: existingCosmosName
+}
+
+resource existingCosmosCwydDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = if (databaseType == 'cosmosdb' && useExistingCosmos) {
+  parent: existingCosmos
+  name: 'cwyd'
+  properties: {
+    resource: {
+      id: 'cwyd'
+    }
+  }
+}
+
+resource existingCosmosConversations 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = if (databaseType == 'cosmosdb' && useExistingCosmos) {
+  parent: existingCosmosCwydDb
+  name: 'conversations'
+  properties: {
+    resource: {
+      id: 'conversations'
+      partitionKey: {
+        paths: [ '/userId' ]
+        kind: 'Hash'
+      }
+    }
+  }
+}
+
+resource existingCosmosUamiRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = if (databaseType == 'cosmosdb' && useExistingCosmos) {
+  parent: existingCosmos
+  name: guid(existingCosmos!.id, userAssignedIdentity.name, '00000000-0000-0000-0000-000000000002')
+  properties: {
+    roleDefinitionId: '${existingCosmos!.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    principalId: userAssignedIdentity.outputs.principalId
+    scope: existingCosmos!.id
+  }
+}
+
+var effectiveCosmosName = useExistingCosmos ? existingCosmosName : (databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : '')
+var effectiveCosmosEndpoint = useExistingCosmos ? existingCosmos!.properties.documentEndpoint : (databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '')
 
 // ----------------------------------------------------------------------
 // PostgreSQL Flexible Server + pgvector (CONDITIONAL — postgresql mode).
@@ -1353,8 +1566,8 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // without rebuild. Pinned by Phase 4 hardening #32d.
             { name: 'AZURE_DB_TYPE', value: databaseType }
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
-            { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
-            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+            { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
+            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
@@ -1593,7 +1806,7 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
       deployment: {
         storage: {
           type: 'blobContainer'
-          value: '${storageAccount.outputs.primaryBlobEndpoint}${deploymentContainerName}'
+          value: '${effectiveStorageBlobEndpoint}${deploymentContainerName}'
           authentication: {
             type: 'UserAssignedIdentity'
             userAssignedIdentityResourceId: userAssignedIdentity.outputs.resourceId
@@ -1616,7 +1829,7 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
       appSettings: union(
         [
           // AAD-only AzureWebJobsStorage — no connection string, UAMI auth.
-          { name: 'AzureWebJobsStorage__accountName', value: storageAccount.outputs.name }
+          { name: 'AzureWebJobsStorage__accountName', value: effectiveStorageName }
           { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
           { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentity.outputs.clientId }
           // Functions runtime knobs.
@@ -1639,11 +1852,11 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           // function host). Pinned by Phase 4 hardening #32d.
           { name: 'AZURE_DB_TYPE', value: databaseType }
           { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
-          { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+          { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
           { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
           { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
           // Storage wiring used by batch_start / batch_push / add_url.
-          { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount.outputs.name }
+          { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
           { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
           { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
         ],
@@ -1674,7 +1887,7 @@ resource storageAccountExisting 'Microsoft.Storage/storageAccounts@2024-01-01' e
   // chars in main.bicep, so the actual value is always 10..24. Suppress
   // the static-analysis warning rather than add a runtime guard.
   #disable-next-line BCP334
-  name: storageAccountName
+  name: useExistingStorage ? existingStorageName : storageAccountName
   dependsOn: [ storageAccount ]
 }
 
@@ -1691,15 +1904,18 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
 // Event Grid system topic on the Storage Account. Single subscription
 // for now: BlobCreated under /documents/ → doc-processing queue. The
 // add_url path is HTTP-triggered, not blob-triggered, so it does not
-// need an Event Grid subscription.
-module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = {
+// need an Event Grid subscription. When reusing v1's storage that
+// already has a system topic, the AVM module is skipped and a sibling
+// `existingEventGridSubscription` resource adds our subscription to the
+// v1 topic (Azure permits only one system topic per source).
+module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
   name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
   params: {
     name: eventGridSystemTopicName
     location: location
     tags: allTags
     enableTelemetry: false
-    source: storageAccount.outputs.resourceId
+    source: effectiveStorageResourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
     managedIdentities: {
       systemAssigned: true
@@ -1717,7 +1933,7 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
           destination: {
             endpointType: 'StorageQueue'
             properties: {
-              resourceId: storageAccount.outputs.resourceId
+              resourceId: effectiveStorageResourceId
               queueName: docProcessingQueueName
             }
           }
@@ -1738,8 +1954,11 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
 }
 
 // Grant the Event Grid system topic's system-assigned MI permission to
-// enqueue messages on the storage account's queues.
-resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// enqueue messages on the storage account's queues. Skipped when
+// reusing v1's topic (the existingEventGridSubscription below uses our
+// UAMI, which already gets Queue Data Contributor via
+// existingStorageQueueContributor above).
+resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingEventGridTopic) {
   name: guid(storageAccountExisting.id, eventGridSystemTopicName, storageQueueDataMessageSenderRoleId)
   scope: storageAccountExisting
   properties: {
@@ -1748,9 +1967,51 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
     // the topic above, so this output is always populated. The non-null
     // assertion satisfies Bicep's nullable-output type without the
     // empty-string fallback (which would fail the GUID min-length check).
-    principalId: eventGridSystemTopic.outputs.systemAssignedMIPrincipalId!
+    principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
+}
+
+// EXISTING Event Grid system topic reuse. Adds a new subscription on
+// v1's topic that routes BlobCreated events from the documents/ prefix
+// to our doc-processing queue. Delivery uses v2's UAMI (already granted
+// Queue Data Contributor on v1 storage by existingStorageQueueContributor).
+resource existingEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-preview' existing = if (useExistingEventGridTopic) {
+  name: existingEventGridTopicName
+}
+
+resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
+  parent: existingEventGridTopic
+  name: 'cwyd2-blob-created-doc-processing'
+  properties: {
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'UserAssigned'
+        userAssignedIdentity: userAssignedIdentity.outputs.resourceId
+      }
+      destination: {
+        endpointType: 'StorageQueue'
+        properties: {
+          resourceId: effectiveStorageResourceId
+          queueName: docProcessingQueueName
+        }
+      }
+    }
+    filter: {
+      includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+      subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
+      enableAdvancedFilteringOnArrays: true
+    }
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
+  dependsOn: [
+    existingStorageQueueDocProcessing
+    existingStorageQueueContributor
+  ]
 }
 
 // ===================== //
@@ -1843,18 +2104,18 @@ output AZURE_CONTENT_SAFETY_NAME string = cogContentSafety.outputs.name
 // --- Conditional: Azure AI Search (cosmosdb mode only) ---
 
 @description('AI Search service endpoint. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : ''
+output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveSearchEndpoint : ''
 
 @description('AI Search service name. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? aiSearch!.outputs.name : ''
+output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? effectiveSearchName : ''
 
 // --- Conditional: Cosmos DB (cosmosdb mode only) ---
 
 @description('Cosmos DB account endpoint (DocumentEndpoint). Empty in postgresql mode.')
-output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : ''
+output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveCosmosEndpoint : ''
 
 @description('Cosmos DB account name. Empty in postgresql mode.')
-output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : ''
+output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? effectiveCosmosName : ''
 
 // --- Conditional: PostgreSQL Flexible Server (postgresql mode only) ---
 
@@ -1873,10 +2134,10 @@ output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql'
 // --- Storage (blobs + queues + Function deployment package) ---
 
 @description('Storage account name (shared by RAG document store, indexing queues, and the Function App deployment package).')
-output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
+output AZURE_STORAGE_ACCOUNT_NAME string = effectiveStorageName
 
 @description('Primary blob endpoint of the shared storage account (https URL ending in /). Hostname follows the storage cloud-specific suffix.')
-output AZURE_STORAGE_BLOB_ENDPOINT string = storageAccount.outputs.primaryBlobEndpoint
+output AZURE_STORAGE_BLOB_ENDPOINT string = effectiveStorageBlobEndpoint
 
 @description('Container holding documents to be indexed (Event Grid filter + batch_start source).')
 output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName

@@ -17,18 +17,18 @@
 # ---- dev stage ----
 FROM node:20-alpine AS dev
 WORKDIR /app
-COPY v2/src/frontend/package*.json ./
+COPY src/frontend/package*.json ./
 RUN npm ci || npm install
-COPY v2/src/frontend ./
+COPY src/frontend ./
 EXPOSE 5173
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 
 # ---- build stage ----
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY v2/src/frontend/package*.json ./
+COPY src/frontend/package*.json ./
 RUN npm ci
-COPY v2/src/frontend ./
+COPY src/frontend ./
 ARG VITE_BACKEND_URL=""
 ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
 RUN npm run build
@@ -41,6 +41,6 @@ WORKDIR /usr/src/app
 RUN pip install --no-cache-dir uvicorn fastapi
 # Static assets from the build stage; small ASGI app serves them.
 COPY --from=build /app/dist /usr/src/app/dist
-COPY v2/src/frontend/frontend_app.py /usr/src/app/frontend_app.py
+COPY src/frontend/frontend_app.py /usr/src/app/frontend_app.py
 EXPOSE 80
 CMD ["uvicorn", "frontend_app:app", "--host", "0.0.0.0", "--port", "80"]
