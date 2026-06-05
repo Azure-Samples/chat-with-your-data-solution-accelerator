@@ -2298,7 +2298,7 @@ output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHos
 @description('Function App resource name (used by azd to deploy the function package).')
 output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
 
-@description('Container Registry login server (e.g. crcwyd2bh3kb.azurecr.io). `azd deploy` reads this to discover the push target for backend + function images.')
+@description('Container Registry login server (e.g. cr<SUFFIX>.azurecr.io). `azd deploy` reads this to discover the push target for backend + function images.')
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 
 @description('Container Registry resource name. Diagnostic surface only — azd uses the login server above.')

@@ -8,7 +8,7 @@
 
 ## Context
 
-The initial `cwyd-cdb-v2` deployment landed without Application Insights or Log Analytics. The Bicep already wires `APPLICATIONINSIGHTS_CONNECTION_STRING` into both the backend Container App env block and the Function App env block — sourced from `applicationInsights!.outputs.connectionString` — but the entire monitoring branch in [`v2/infra/main.bicep`](../../infra/main.bicep) is gated on `param enableMonitoring bool = false` (line 195). The default was `false`, so `appi-cwyd2bh3kb` + `log-cwyd2bh3kb` were never created.
+The initial `<AZD_ENV_NAME>` deployment landed without Application Insights or Log Analytics. The Bicep already wires `APPLICATIONINSIGHTS_CONNECTION_STRING` into both the backend Container App env block and the Function App env block — sourced from `applicationInsights!.outputs.connectionString` — but the entire monitoring branch in [`v2/infra/main.bicep`](../../infra/main.bicep) is gated on `param enableMonitoring bool = false` (line 195). The default was `false`, so `appi-<SUFFIX>` + `log-<SUFFIX>` were never created.
 
 The cost surfaced when `POST /api/batch_start` started returning **500 with empty body** for valid input. The handler is wrapped in `@map_function_exceptions("batch_start")` ([`v2/src/functions/core/exception_mapping.py`](../../src/functions/core/exception_mapping.py)) which always returns a JSON ladder (422 / 502 / 500). An empty-body 500 means the crash is **below the decorator** — most likely a Python worker failure (lazy `ImportError`, Pydantic `ValidationError`, credential-chain crash, or SDK `HttpResponseError`). On Azure Functions **Flex Consumption** the diagnostic options are sharply constrained:
 
@@ -65,7 +65,7 @@ Both gaps point at the same root cause: **monitoring was treated as an optional 
 
 ## Alternatives considered
 
-1. **Wire AppI as a cross-RG runtime patch only** (e.g., point `func-cwyd2bh3kb` at `appinsights-ihzuxo24up7ky` in `rg-cwyd-dev-ctn` via `az functionapp config appsettings set`). Rejected: violates "one RG, one workload", invisible to IaC drift checks, vanishes on the next `azd provision`, and creates a telemetry sink shared with unrelated workloads.
+1. **Wire AppI as a cross-RG runtime patch only** (e.g., point `func-<SUFFIX>` at `<APPI_NAME>` in `<APPI_RESOURCE_GROUP>` via `az functionapp config appsettings set`). Rejected: violates "one RG, one workload", invisible to IaC drift checks, vanishes on the next `azd provision`, and creates a telemetry sink shared with unrelated workloads.
 2. **Leave `enableMonitoring=false` and rely on Flex Consumption stdout scraping.** Rejected: Flex Consumption disables `func log tail` and Kudu publishing creds; stdout scraping requires a workaround chain (custom Storage queue sink, Event Hub fan-out) that is more work than the AppI default-on it replaces.
 3. **Default-on monitoring but skip the `Monitoring Metrics Publisher` role assignment.** Rejected: the silent-401 ingestion drop is the exact failure mode this ADR exists to close. Without the role, AppI looks wired and produces zero data; that is strictly worse than no AppI at all because it gives a false sense of observability.
 4. **Move to system-assigned managed identity per compute resource for AppI ingestion.** Rejected for the same reason ADR 0002 rejected SAMI: it makes pre-provisioning RBAC awkward and breaks the single-identity audit story.
