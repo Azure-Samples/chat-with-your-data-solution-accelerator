@@ -24,7 +24,7 @@ The `<AZD_ENV_NAME>` azd environment in [v2/.azure/<AZD_ENV_NAME>/.env](../.azur
 
 | Service | Resource type | Resource name | Endpoint |
 |---|---|---|---|
-| `backend` | Container App | `ca-backend-<SUFFIX>` | `https://ca-backend-<SUFFIX>.yellowrock-7315fe2a.eastus2.azurecontainerapps.io` |
+| `backend` | Container App | `ca-backend-<SUFFIX>` | `https://ca-backend-<SUFFIX>.<ACA_ENV_DOMAIN>.<REGION>.azurecontainerapps.io` |
 | `frontend` | App Service | `app-frontend-<SUFFIX>` | `https://app-frontend-<SUFFIX>.azurewebsites.net` |
 | `function` | Function App | `func-<SUFFIX>` | `https://func-<SUFFIX>.azurewebsites.net` |
 
@@ -155,7 +155,7 @@ Per [agents.md](agents.md), Foundry agent identity is a **runtime concern**. Two
 
 ```powershell
 $body = '{"messages":[{"role":"user","content":"hello"}],"conversation_id":"smoke-bootstrap-001"}'
-Invoke-RestMethod -Uri "https://ca-backend-<SUFFIX>.yellowrock-7315fe2a.eastus2.azurecontainerapps.io/api/conversation" `
+Invoke-RestMethod -Uri "https://ca-backend-<SUFFIX>.<ACA_ENV_DOMAIN>.<REGION>.azurecontainerapps.io/api/conversation" `
   -Method POST -ContentType "application/json" -Body $body
 ```
 
@@ -191,7 +191,7 @@ See [agents.md](agents.md) §4.1 for the full procedure.
 
 | # | Surface | Command | Expected |
 |---|---|---|---|
-| 1 | Backend liveness | `Invoke-RestMethod https://ca-backend-<SUFFIX>.yellowrock-7315fe2a.eastus2.azurecontainerapps.io/api/health` | `200`, body status `pass` |
+| 1 | Backend liveness | `Invoke-RestMethod https://ca-backend-<SUFFIX>.<ACA_ENV_DOMAIN>.<REGION>.azurecontainerapps.io/api/health` | `200`, body status `pass` |
 | 2 | Backend readiness | `Invoke-RestMethod .../api/health/ready` | `200`, body status ∈ {`pass`, `degraded`} |
 | 3 | OpenAPI surface | `Invoke-RestMethod .../openapi.json` | `paths` includes `/api/conversation`, `/api/admin/config`, `/api/admin/documents`, `/api/history/conversations` |
 | 4 | Frontend shell | Browser → `https://app-frontend-<SUFFIX>.azurewebsites.net` | React shell loads, no console errors |

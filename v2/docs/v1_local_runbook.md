@@ -11,14 +11,13 @@ infrastructure** in `<RESOURCE_GROUP>` (subscription
 
 ## 0. Prerequisites (one-time, already done on this machine)
 
-- Python **3.11.9** at
-  `C:\Users\friesco\AppData\Local\Python\pythoncore-3.11-64\python.exe`
+- Python **3.11.9** on `PATH` (`python --version` → `Python 3.11.9`)
 - Node 20+, Docker Desktop, Azure Functions Core Tools v4
 - `.venv\` at the repo root, populated with v1 deps
   (`code/backend/requirements.txt`)
 - `code/dist/static/` (built React bundle)
 - `scripts/load_v1_env.ps1` (gitignored, sources `.azure/<AZD_ENV_NAME>/.env`)
-- `az login` as `friesco@MngEnvMCAP993385.onmicrosoft.com`
+- `az login` as `<AZURE_PRINCIPAL_UPN>`
 - RBAC roles on `<RESOURCE_GROUP>` (already granted):
   - **Storage** `st<DATA_SUFFIX>`: Blob Data Owner, Blob Data Contributor,
     Blob Delegator, Queue Data Contributor, Table Data Contributor
@@ -48,7 +47,7 @@ and run one block per terminal **in order**. Each block first ensures
 
 ```powershell
 az account show --query "{user:user.name, sub:id}" -o table
-# expect: friesco@... / ff9b5430-...
+# expect: <AZURE_PRINCIPAL_UPN> / <AZURE_SUBSCRIPTION_ID>
 # if not: az login
 ```
 
