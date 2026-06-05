@@ -7,6 +7,15 @@
 code/dist/
 code/frontend/coverage
 
+# Scratch / audit files written by tooling at repo root. Never commit these.
+# See v2/docs/adr/0019-no-env-specific-content-in-tracked-files.md.
+audit-results.txt
+*-audit*.txt
+audit-*.txt
+*.scratch.txt
+*.scratch.md
+/scratch/
+
 # User-specific files
 *.rsuser
 *.suo
