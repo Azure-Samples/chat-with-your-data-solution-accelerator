@@ -103,6 +103,7 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | `POST /api/admin/documents/url` (URL ingest) | ✅ shipped (`U-P7-53-BE` BE-1) |
 | `POST /api/admin/documents` (multipart upload, 50 MiB cap) | ✅ shipped (`U-P7-53-BE` BE-2) |
 | `POST /api/admin/documents/reprocess` (reprocess all in container) | ✅ shipped (`U-P7-53-BE` BE-3) |
+| `GET /api/admin/documents` (list indexed sources with chunk counts) | ✅ shipped (`U-P7-54-BE`) |
 | `DELETE /api/admin/documents/{source}` (delete by source) | ✅ shipped (`U-P7-54-BE`) |
 | Per-tenant config overrides | ☐ blocked on `#39` tenant claim propagation (`#35g`) |
 | FE admin route merge | ⏳ in progress (`#35d`) |
@@ -116,6 +117,8 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | `POST /api/history/conversations` | ✅ shipped |
 | `GET /api/history/conversations/{id}` | ✅ shipped |
 | `PATCH /api/history/conversations/{id}` (rename) | ✅ shipped |
+| `DELETE /api/history/conversations/{id}` (idempotent, 204) | ✅ shipped |
+| `POST /api/history/conversations/{id}/messages` (append) | ✅ shipped |
 | `POST /api/history/messages/{message_id}/feedback` | ✅ shipped (#32b) |
 | Cosmos + Postgres provider impls | ✅ both registered under `databases` registry |
 | Fail-closed `get_user_id` (401 in prod, `local-dev` only when `Environment.LOCAL`) | ✅ shipped + `requires_role` parity |
@@ -129,7 +132,7 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | 3 — Conversation + RAG (Core Chat) | ✅ done | LangGraph + Agent Framework orchestrators, AzureSearch + pgvector handlers |
 | 3.5 — QA Remediation | ✅ done | Q1–Q14 + Q10 structural realignment |
 | 4 — Chat History + Both Databases | ✅ done | Cosmos + Postgres clients + pgvector injected pool |
-| 5 — Admin + Frontend Merge | ✅ done (backend); ⏳ in progress (FE `#35d`) | All 7 admin routes + RBAC shipped |
+| 5 — Admin + Frontend Merge | ✅ done (backend); ⏳ in progress (FE `#35d`) | All 9 admin routes + RBAC + audit log shipped |
 | 5.5 — Stable Core Refactor | ✅ done | `shared/` → `backend/core/` + `functions/core/` + `try/except` policy + 29 SDK boundary wraps |
 | 6 — RAG Indexing Pipeline (Split Functions) | ✅ done | 4 blueprints (`batch_start`, `batch_push`, `add_url`, `search_skill`) + standalone-backend smoke CI |
 | 7 — Testing + Documentation | ⏳ in progress | Backend tier drained 2026-06-02; FE tier in progress |
