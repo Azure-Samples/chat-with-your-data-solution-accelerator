@@ -105,10 +105,14 @@ param existingStorageName string = ''
 @description('Optional. When reusing v1 storage that already has an Event Grid system topic (Azure permits only one topic per source), set this to that topic name. The Bicep then adds a new event subscription to the existing topic instead of creating a new topic.')
 param existingEventGridTopicName string = ''
 
+@description('Optional. Existing Azure OpenAI (or AI Services) account name to reuse for chat + reasoning + embedding deployments. Same RG. When set, the chat/reasoning model deployments are placed on this account instead of the v2 Foundry account, and the v2 UAMI is granted Cognitive Services OpenAI User on it. Embedding is assumed to already exist on the reused account.')
+param existingOpenAiName string = ''
+
 var useExistingSearch = !empty(existingSearchName)
 var useExistingCosmos = !empty(existingCosmosName)
 var useExistingStorage = !empty(existingStorageName)
 var useExistingEventGridTopic = !empty(existingEventGridTopicName)
+var useExistingOpenAi = !empty(existingOpenAiName)
 
 // ===================== //
 // AI model parameters   //
@@ -499,7 +503,13 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
           }
         ]
       : []
-    deployments: [
+    // When `useExistingOpenAi` is true, all chat/reasoning/embedding
+    // deployments live on the reused v1 OpenAI account (see
+    // `existingOpenAi` block below) and the Foundry account itself runs
+    // with an empty deployments set; agents reach the model via the v1
+    // OAI endpoint exported as AZURE_OPENAI_ENDPOINT. Otherwise Foundry
+    // hosts the three deployments directly.
+    deployments: useExistingOpenAi ? [] : [
       {
         name: gptModelName
         model: {
@@ -584,6 +594,77 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
       : []
   }
 }
+
+// ----------------------------------------------------------------------
+// EXISTING Azure OpenAI account reuse (when `existingOpenAiName` is
+// set). Single-tenant deployments place v2 alongside v1 in the same
+// resource group and reuse v1's OpenAI account rather than provisioning
+// a second one. The chat + reasoning deployments are added as child
+// resources of the reused account; the embedding deployment is assumed
+// to already exist on v1 (text-embedding-3-small). The v2 UAMI is
+// granted Cognitive Services OpenAI User at the account scope so the
+// backend + indexing pipeline can call inference.
+// ----------------------------------------------------------------------
+resource existingOpenAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (useExistingOpenAi) {
+  name: existingOpenAiName
+}
+
+resource existingOpenAiGptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (useExistingOpenAi) {
+  parent: existingOpenAi
+  name: gptModelName
+  sku: {
+    name: gptModelDeploymentType
+    capacity: gptModelCapacity
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: gptModelName
+      version: gptModelVersion
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+}
+
+resource existingOpenAiReasoningDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (useExistingOpenAi) {
+  parent: existingOpenAi
+  name: reasoningModelName
+  sku: {
+    name: reasoningModelDeploymentType
+    capacity: reasoningModelCapacity
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: reasoningModelName
+      version: reasoningModelVersion
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  // Serialize deployment creation so the account's PATCH lock from the
+  // GPT deployment is released before the reasoning deployment starts.
+  dependsOn: [
+    existingOpenAiGptDeployment
+  ]
+}
+
+resource existingOpenAiUamiRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingOpenAi) {
+  name: guid(existingOpenAi!.id, userAssignedIdentity.name, '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: existingOpenAi
+  properties: {
+    // Cognitive Services OpenAI User — grants inference on every
+    // deployment on the account (chat, reasoning, embedding).
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Effective OpenAI endpoint consumed by the backend and indexing
+// pipeline. When reusing v1 OAI, this points at the v1 account
+// (`https://<name>.openai.azure.com/`); otherwise it falls back to the
+// v2 Foundry account endpoint where the deployments live.
+var effectiveOpenAiEndpoint = useExistingOpenAi ? 'https://${existingOpenAiName}.openai.azure.com/' : aiServices.outputs.endpoint
 
 // Foundry Project — child of the AI Services account. Hosts agents
 // (Agent Framework orchestrator) and knowledge bases (Foundry IQ).
@@ -1389,6 +1470,8 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
 var containerAppsEnvName = 'cae-${solutionSuffix}'
 var backendAppName = 'ca-backend-${solutionSuffix}'
 var acaWorkloadProfileName = 'Consumption'
+// ACR name must be globally unique, 5-50 alphanumeric (no dashes).
+var containerRegistryName = take('cr${replace(solutionSuffix, '-', '')}', 50)
 
 // Single source of truth for the Postgres libpq URI so the output, the
 // backend ACA env, and the Function App appSettings can't drift.
@@ -1494,6 +1577,31 @@ module caeDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.1' = if (enabl
   }
 }
 
+// Container Registry — azd pushes backend + function images here.
+// AcrPull is granted to the v2 UAMI so the Container App pulls without
+// admin credentials. Output `AZURE_CONTAINER_REGISTRY_ENDPOINT` is read
+// by `azd deploy` to discover the push target.
+module containerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' = {
+  name: take('avm.res.container-registry.registry.${solutionSuffix}', 64)
+  params: {
+    name: containerRegistryName
+    location: location
+    tags: allTags
+    enableTelemetry: false
+    acrSku: 'Basic'
+    acrAdminUserEnabled: false
+    publicNetworkAccess: 'Enabled'
+    networkRuleSetDefaultAction: 'Allow'
+    roleAssignments: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        roleDefinitionIdOrName: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+        principalType: 'ServicePrincipal'
+      }
+    ]
+  }
+}
+
 module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
   name: take('avm.res.app.container-app.backend.${solutionSuffix}', 64)
   params: {
@@ -1542,10 +1650,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
           [
             // Identity + region
             { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+            { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
             // Foundry endpoints (consumed by both orchestrators)
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-            { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+            { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
             // Foundry agent id is intentionally NOT bound here.
@@ -1833,25 +1942,35 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
           { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentity.outputs.clientId }
           // Functions runtime knobs.
+          // Flex Consumption rejects FUNCTIONS_WORKER_RUNTIME (and
+          // FUNCTIONS_EXTENSION_VERSION) as app settings; the runtime is
+          // declared in functionAppConfig.runtime instead. Keeping the
+          // version pin via FUNCTIONS_EXTENSION_VERSION is still accepted
+          // because the validator treats it as an override knob.
           { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
-          { name: 'FUNCTIONS_WORKER_RUNTIME', value: functionsRuntimeName }
           // Identity + Foundry endpoints (mirrors backend env so the
           // indexing pipeline can call the embedding model + write to
           // the configured vector index).
           { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+          { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
           { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-          { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+          { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
           { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
           { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
           // Database routing -- same flags the backend reads. The
           // indexing pipeline writes vectors into AzureSearch (cosmosdb
           // mode) or pgvector (postgresql mode), so it needs the
-          // active-mode endpoint(s). It does NOT need
-          // AZURE_COSMOS_ENDPOINT (no chat-history writes from the
-          // function host). Pinned by Phase 4 hardening #32d.
+          // active-mode endpoint(s). AZURE_COSMOS_ENDPOINT is also
+          // bound because DatabaseSettings cross-validates
+          // AZURE_DB_TYPE=cosmosdb against a non-empty endpoint at
+          // AppSettings() construction time; the function worker
+          // fails to start (Pydantic ValidationError during settings
+          // load) otherwise, even though the function host performs
+          // no chat-history writes.
           { name: 'AZURE_DB_TYPE', value: databaseType }
           { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
+          { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
           { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
           { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
           { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
@@ -1974,10 +2093,26 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
 // v1's topic that routes BlobCreated events from the documents/ prefix
-// to our doc-processing queue. Delivery uses v2's UAMI (already granted
-// Queue Data Contributor on v1 storage by existingStorageQueueContributor).
+// to our doc-processing queue. Delivery uses v2's UAMI (granted both
+// Queue Data Contributor on the storage account AND Queue Data Message
+// Sender on the specific queue \u2014 EG preflight validates the latter at
+// queue scope specifically).
 resource existingEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-preview' existing = if (useExistingEventGridTopic) {
   name: existingEventGridTopicName
+}
+
+// Message Sender grant scoped to the storage account. EG's MI preflight
+// validator walks the storage account hierarchy when checking delivery
+// authorization for StorageQueue destinations; queue-scope alone is not
+// recognized by the synchronous validator. Account-scope is required.
+resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingEventGridTopic) {
+  name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
 }
 
 resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
@@ -2011,6 +2146,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
   dependsOn: [
     existingStorageQueueDocProcessing
     existingStorageQueueContributor
+    existingQueueMessageSenderRole
   ]
 }
 
@@ -2063,6 +2199,9 @@ output AZURE_INDEX_STORE string = indexStoreValue
 
 @description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
 output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
+
+@description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
+output AZURE_OPENAI_ENDPOINT string = effectiveOpenAiEndpoint
 
 @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
 output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
@@ -2158,6 +2297,12 @@ output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHos
 
 @description('Function App resource name (used by azd to deploy the function package).')
 output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
+
+@description('Container Registry login server (e.g. crcwyd2bh3kb.azurecr.io). `azd deploy` reads this to discover the push target for backend + function images.')
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+
+@description('Container Registry resource name. Diagnostic surface only — azd uses the login server above.')
+output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // --- Conditional: monitoring ---
 

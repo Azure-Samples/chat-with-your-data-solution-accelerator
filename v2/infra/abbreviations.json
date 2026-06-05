@@ -6,7 +6,6 @@
       "machineLearningWorkspace": "mlw-",
       "openAIService": "oai-",
       "botService": "bot-",
-      "computerVision": "cv-",
       "contentModerator": "cm-",
       "contentSafety": "cs-",
       "customVisionPrediction": "cstv-",

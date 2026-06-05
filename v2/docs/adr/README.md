@@ -30,3 +30,4 @@ Architectural decisions for CWYD v2. Each ADR captures a single decision, the co
 | [0015](0015-frontend-path-alias-cross-folder-imports.md) | Frontend cross-folder imports go through the `@/*` path alias, enforced by ESLint `import/no-relative-parent-imports` | Accepted | 7 (close-out, FE conventions refactor follow-up) |
 | [0016](0016-agent-framework-foundry-iq-tas27-parity-review.md) | Agent Framework + Foundry IQ implementation review; TAS27 parity matrix and refactor path | Superseded by ADR-0017 | 8 prep (runtime parity audit) |
 | [0017](0017-agent-framework-foundry-pinned-dependency-policy.md) | Agent Framework + Foundry pinned dependency policy; supersedes ADR 0016 for runtime version governance | Accepted | 8 prep (runtime parity hardening) |
+| [0018](0018-monitoring-default-on-and-appi-rbac.md) | Monitoring default-on for deployed envs + `Monitoring Metrics Publisher` RBAC for UAMI on AppI | Accepted | 7 (close-out, observability gap) |

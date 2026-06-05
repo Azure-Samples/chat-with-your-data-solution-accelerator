@@ -157,17 +157,14 @@ class _ProjectClientView(Protocol):
     """Narrow view of `AIProjectClient` covering only what we call.
 
     The SDK's own type for `get_openai_client()` is
-    ``(*, api_version=..., connection_name=..., **kwargs: Unknown) ->
-    Awaitable[AsyncOpenAI]`` -- the trailing `**kwargs: Unknown`
-    leaks `reportUnknownMemberType` through `--strict`. Casting the
-    project client to this protocol at the boundary tells pyright
-    "yes, we know it returns an awaitable client; we don't care about
-    the kwargs surface."
+    ``(*, agent_name=..., **kwargs: Any) -> AsyncOpenAI`` -- the
+    trailing `**kwargs: Any` leaks `reportUnknownMemberType` through
+    `--strict`. Casting the project client to this protocol at the
+    boundary tells pyright "yes, we know it returns an AsyncOpenAI;
+    we don't care about the kwargs surface."
     """
 
-    async def get_openai_client(
-        self, *, api_version: str | None = None
-    ) -> _OpenAIClient: ...
+    def get_openai_client(self) -> _OpenAIClient: ...
 
 
 @registry.register("foundry_iq")
@@ -184,9 +181,8 @@ class FoundryIQ(BaseLLMProvider):
         # constructs lazily so we don't open an HTTP session at import.
         self._project_client_override = project_client
         self._project_client: AIProjectClient | None = project_client
-        # Q14a: cache the awaited AsyncOpenAI handle so we don't re-await
-        # `get_openai_client()` on every call. The SDK returns a fresh
-        # `Awaitable[AsyncOpenAI]` per call but the underlying client is
+        # Cache the resolved AsyncOpenAI handle so we don't re-run the
+        # factory on every chat / embed call. The underlying client is
         # designed to be reused.
         self._openai_client: _OpenAIClient | None = None
 
@@ -209,35 +205,19 @@ class FoundryIQ(BaseLLMProvider):
         return self._project_client
 
     async def _get_openai_client(self) -> _OpenAIClient:
-        """Return the cached `AsyncOpenAI`-compatible client, awaiting on first use.
+        """Return the cached `AsyncOpenAI`-compatible client.
 
-        `AIProjectClient.get_openai_client()` is async (returns
-        `Awaitable[AsyncOpenAI]`); calling it without `await` returned
-        a coroutine that pyright `--strict` flagged as a
-        `reportAttributeAccessIssue` and that would crash production at
-        the first attribute access (the test mocks were sync, hiding
-        the bug). Caching the resolved client also avoids re-awaiting
-        on every chat / embed call.
+        `AIProjectClient.get_openai_client()` is synchronous in
+        azure-ai-projects >=2.2.0 -- it returns an `AsyncOpenAI`
+        directly (the *client* is async, the factory call is not).
+        Caching the resolved client avoids re-running the factory on
+        every chat / embed call. The method stays `async` to preserve
+        a uniform await-this-once contract for callers.
         """
         if self._openai_client is None:
             project = cast(_ProjectClientView, self._get_project_client())
             try:
-                # Pass `api_version` from settings so the cached AsyncOpenAI
-                # client targets a Responses-API-capable surface (>=
-                # 2025-04-01-preview is required for `oai.responses.create`
-                # and for gpt-5 reasoning *summary* stream deltas
-                # consumed by `reason()`). Foundry SDK's
-                # `get_openai_client()` ignores OPENAI_API_VERSION env, so
-                # we have to pipe it through explicitly. Fallback to the
-                # SDK default when the env var is unset (covers tests
-                # that don't load `.env`).
-                api_version = self._settings.openai.api_version or None
-                if api_version:
-                    self._openai_client = await project.get_openai_client(
-                        api_version=api_version,
-                    )
-                else:
-                    self._openai_client = await project.get_openai_client()
+                self._openai_client = project.get_openai_client()
             except AzureError:
                 # Init-style failure -- AIProjectClient lives in azure-core,
                 # so AAD / DNS / TLS surface as AzureError subclasses

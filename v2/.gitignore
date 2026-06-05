@@ -5,6 +5,9 @@
 .env
 .env.local
 
+# Local-only scratch / throw-away diagnostics (env dumps, repro scripts)
+.scratch/
+
 # Local-only docker compose overrides (e.g. host ~/.azure mount for AzureCliCredential)
 docker/docker-compose.override.yml
 

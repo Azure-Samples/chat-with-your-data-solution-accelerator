@@ -97,6 +97,9 @@
     },
     "existingEventGridTopicName": {
       "value": "${AZURE_ENV_EXISTING_EVENT_GRID_TOPIC_NAME=}"
+    },
+    "existingOpenAiName": {
+      "value": "${AZURE_ENV_EXISTING_OPENAI_NAME=}"
     }
   }
 }

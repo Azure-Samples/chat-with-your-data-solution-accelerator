@@ -90,12 +90,11 @@ def _build_openai_embedding_response(vectors: list[list[float]]) -> Any:
 
 def _build_fake_project_client(openai_client: Any) -> MagicMock:
     project = MagicMock(name="AIProjectClient")
-    # `AIProjectClient.get_openai_client()` is async (returns
-    # `Awaitable[AsyncOpenAI]`); fix landed in Q14a (2026-05-05) when
-    # pyright --strict surfaced the missing `await` at every call site.
-    # Mirror the SDK shape with `AsyncMock` so the production `await`
-    # resolves to `openai_client` instead of an unawaited coroutine.
-    project.get_openai_client = AsyncMock(return_value=openai_client)
+    # `AIProjectClient.get_openai_client()` is synchronous in
+    # azure-ai-projects >=2.2.0 -- it returns an `AsyncOpenAI`
+    # directly. Use plain `MagicMock(return_value=...)` so production
+    # gets the client instead of an unawaited coroutine.
+    project.get_openai_client = MagicMock(return_value=openai_client)
     return project
 
 
@@ -684,7 +683,7 @@ async def test_get_openai_client_logs_and_reraises_on_azure_error(
     catch the umbrella + re-raise.
     """
     project = MagicMock(name="AIProjectClient")
-    project.get_openai_client = AsyncMock(
+    project.get_openai_client = MagicMock(
         side_effect=ServiceRequestError(message="DNS lookup failed")
     )
     provider = FoundryIQ(settings, fake_credential, project_client=project)
