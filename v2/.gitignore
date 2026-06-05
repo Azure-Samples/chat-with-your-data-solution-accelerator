@@ -8,6 +8,13 @@
 # Local-only scratch / throw-away diagnostics (env dumps, repro scripts)
 .scratch/
 
+# Local-only Bicep compile/lint output captured for triage (regenerated on demand via `az bicep build`).
+bicep-errors.txt
+
+# Local-only orphan staging dir from deprecated `func azure functionapp publish` workflow.
+# Canonical Function deploy path is `azd deploy function` against `src/functions/` + `docker/Dockerfile.functions`.
+build-functions/
+
 # Local-only docker compose overrides (e.g. host ~/.azure mount for AzureCliCredential)
 docker/docker-compose.override.yml
 
