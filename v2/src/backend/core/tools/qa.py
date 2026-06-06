@@ -13,13 +13,12 @@ v2 differences vs v1 `QuestionAnswerTool`:
 - Async-only.
 - Returns a typed `QAResult` -- the answer string plus the
   `SearchResult`s used as context. Citation rendering is the caller's
-  job (task #23).
+  job.
 - No image / vision branch and no few-shot example block. Those were
   v1 admin-config features; if Phase 5 brings them back they slot in
   as a subclass override of `_compose_messages()`.
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.qa import QuestionAnsweringHelper
 """
@@ -30,7 +29,7 @@ from pydantic import BaseModel, Field
 
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
-from backend.core.types import ChatMessage, SearchResult
+from backend.core.types import ChatMessage, ChatRole, SearchResult
 
 
 # Default Azure-OpenAI-On-Your-Data-style prompts. The system message
@@ -94,10 +93,10 @@ class QuestionAnsweringHelper:
         # user message. Subclasses can override for vision / few-shot
         # variants without touching `answer()`.
         return [
-            ChatMessage(role="system", content=self._system_prompt),
+            ChatMessage(role=ChatRole.SYSTEM, content=self._system_prompt),
             *chat_history,
             ChatMessage(
-                role="user",
+                role=ChatRole.USER,
                 content=self._user_prompt.format(
                     question=question,
                     sources=self._format_sources(sources),

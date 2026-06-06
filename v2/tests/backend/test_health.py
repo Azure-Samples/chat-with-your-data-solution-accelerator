@@ -4,20 +4,159 @@ Pillar: Stable Core
 Phase: 2
 """
 
+from enum import StrEnum
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
+from pydantic import ValidationError
 
-from backend.app import create_app
+import backend.models.health as health_models
+from backend.app import _lifespan, create_app
 from backend.dependencies import (
+    get_app_settings,
     get_credential_provider,
     get_llm_provider,
 )
 from backend.core.providers.credentials.base import BaseCredentialProvider
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.settings import AppSettings, get_settings
+from backend.models.health import (
+    CheckStatus,
+    DependencyCheck,
+    HealthResponse,
+    OverallStatus,
+)
+from backend.services.health import _aggregate
+
+
+# ---------------------------------------------------------------------------
+# CheckStatus / OverallStatus -- StrEnum structural tests (Hard Rule #11)
+# ---------------------------------------------------------------------------
+
+
+def test_check_status_is_strenum_subclassing_str() -> None:
+    assert issubclass(CheckStatus, StrEnum)
+    assert issubclass(CheckStatus, str)
+
+
+def test_overall_status_is_strenum_subclassing_str() -> None:
+    assert issubclass(OverallStatus, StrEnum)
+    assert issubclass(OverallStatus, str)
+
+
+@pytest.mark.parametrize(
+    ("member", "value"),
+    [
+        (CheckStatus.PASS, "pass"),
+        (CheckStatus.FAIL, "fail"),
+        (CheckStatus.SKIP, "skip"),
+    ],
+)
+def test_check_status_members_have_expected_values(member: CheckStatus, value: str) -> None:
+    assert member.value == value
+    assert str(member) == value
+
+
+def test_check_status_has_exactly_three_members() -> None:
+    assert {m.value for m in CheckStatus} == {"pass", "fail", "skip"}
+
+
+@pytest.mark.parametrize(
+    ("member", "value"),
+    [
+        (OverallStatus.PASS, "pass"),
+        (OverallStatus.DEGRADED, "degraded"),
+        (OverallStatus.FAIL, "fail"),
+    ],
+)
+def test_overall_status_members_have_expected_values(
+    member: OverallStatus, value: str
+) -> None:
+    assert member.value == value
+    assert str(member) == value
+
+
+def test_overall_status_has_exactly_three_members() -> None:
+    assert {m.value for m in OverallStatus} == {"pass", "degraded", "fail"}
+
+
+def test_sibling_strenums_are_distinct_types_even_for_shared_values() -> None:
+    """`pass` and `fail` exist in both enums; members must not be aliased."""
+    assert CheckStatus.PASS is not OverallStatus.PASS
+    assert CheckStatus.FAIL is not OverallStatus.FAIL
+    assert type(CheckStatus.PASS) is not type(OverallStatus.PASS)
+
+
+@pytest.mark.parametrize("raw", ["pass", "fail", "skip"])
+def test_dependency_check_coerces_string_status_to_check_status(raw: str) -> None:
+    dc = DependencyCheck(name="probe", status=raw)  # type: ignore[arg-type]
+    assert isinstance(dc.status, CheckStatus)
+    assert dc.status == raw
+
+
+def test_dependency_check_rejects_unknown_status() -> None:
+    with pytest.raises(ValidationError):
+        DependencyCheck(name="probe", status="unknown")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("raw", ["pass", "degraded", "fail"])
+def test_health_response_coerces_string_status_to_overall_status(raw: str) -> None:
+    hr = HealthResponse(status=raw)  # type: ignore[arg-type]
+    assert isinstance(hr.status, OverallStatus)
+    assert hr.status == raw
+
+
+def test_health_response_json_round_trip_emits_string_values() -> None:
+    hr = HealthResponse(
+        status=OverallStatus.FAIL,
+        checks=[DependencyCheck(name="probe", status=CheckStatus.FAIL, detail="x")],
+    )
+    dumped = hr.model_dump()
+    assert dumped["status"] == "fail"
+    assert dumped["checks"][0]["status"] == "fail"
+
+
+def test_module_all_includes_both_strenums() -> None:
+    assert "CheckStatus" in health_models.__all__
+    assert "OverallStatus" in health_models.__all__
+
+
+# ---------------------------------------------------------------------------
+# _aggregate -- dispatch logic, must use `is` against StrEnum members
+# ---------------------------------------------------------------------------
+
+
+def test_aggregate_empty_returns_pass() -> None:
+    result = _aggregate([])
+    assert result is OverallStatus.PASS
+
+
+def test_aggregate_all_pass_returns_pass() -> None:
+    checks = [
+        DependencyCheck(name="a", status=CheckStatus.PASS),
+        DependencyCheck(name="b", status=CheckStatus.PASS),
+    ]
+    assert _aggregate(checks) is OverallStatus.PASS
+
+
+def test_aggregate_pass_and_skip_returns_pass() -> None:
+    """`skip` is neutral -- must not drag overall down."""
+    checks = [
+        DependencyCheck(name="a", status=CheckStatus.PASS),
+        DependencyCheck(name="b", status=CheckStatus.SKIP),
+    ]
+    assert _aggregate(checks) is OverallStatus.PASS
+
+
+def test_aggregate_any_fail_returns_fail() -> None:
+    checks = [
+        DependencyCheck(name="a", status=CheckStatus.PASS),
+        DependencyCheck(name="b", status=CheckStatus.FAIL),
+        DependencyCheck(name="c", status=CheckStatus.SKIP),
+    ]
+    assert _aggregate(checks) is OverallStatus.FAIL
 
 
 COSMOS_ENV: dict[str, str] = {
@@ -204,8 +343,6 @@ async def test_ready_returns_503_when_dependency_fails(
 def test_get_app_settings_returns_settings(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from backend.dependencies import get_app_settings
-
     _set_env(monkeypatch, COSMOS_ENV)
     s = get_app_settings()
     assert isinstance(s, AppSettings)
@@ -216,8 +353,6 @@ def test_get_credential_provider_raises_when_lifespan_did_not_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """DI now reads from app.state -- absence is a hard error."""
-    from fastapi import Request
-
     _set_env(monkeypatch, COSMOS_ENV)
     app = create_app()
     fake_request = MagicMock(spec=Request)
@@ -230,8 +365,6 @@ def test_get_credential_provider_raises_when_lifespan_did_not_run(
 def test_get_llm_provider_raises_when_lifespan_did_not_run(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from fastapi import Request
-
     _set_env(monkeypatch, COSMOS_ENV)
     app = create_app()
     fake_request = MagicMock(spec=Request)
@@ -260,8 +393,6 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     we drive the lifespan context manager directly. This is also a
     truer unit test of `_lifespan` itself.
     """
-    from backend.app import _lifespan
-
     _set_env(monkeypatch, COSMOS_ENV)
 
     fake_credential = MagicMock()
@@ -273,7 +404,7 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     fake_llm_provider.aclose = AsyncMock()
 
     # #35e(a): lifespan now calls `database_client.get_runtime_config()`
-    # to load persisted RuntimeConfig overrides. Stub `databases.create`
+    # to load persisted RuntimeConfig overrides. Stub the databases registry
     # so the call returns a no-op mock instead of attempting a real
     # Cosmos round-trip.
     fake_db = MagicMock(name="database_client")
@@ -283,19 +414,28 @@ async def test_lifespan_populates_app_state_and_closes_on_shutdown(
     fake_agents = MagicMock(name="agents_provider")
     fake_agents.aclose = AsyncMock()
 
+    fake_cred_registry = MagicMock(name="credentials_registry")
+    fake_cred_registry.get.return_value = lambda **_kw: fake_cred_provider
+
     monkeypatch.setattr(
-        "backend.app.credentials.create",
-        lambda key, *, settings: fake_cred_provider,
+        "backend.app.credentials_registry.registry",
+        fake_cred_registry,
     )
+    fake_llm_registry = MagicMock(name="llm_registry")
+    fake_llm_registry.get.return_value = lambda **_kw: fake_llm_provider
     monkeypatch.setattr(
-        "backend.app.llm.create",
-        lambda key, *, settings, credential: fake_llm_provider,
+        "backend.app.llm_registry.registry",
+        fake_llm_registry,
     )
+    fake_databases_registry = MagicMock(name="databases_registry")
+    fake_databases_registry.get.return_value = lambda **_kw: fake_db
     monkeypatch.setattr(
-        "backend.app.databases.create", lambda *_a, **_kw: fake_db
+        "backend.app.databases_registry.registry", fake_databases_registry
     )
+    fake_agents_registry = MagicMock(name="agents_registry")
+    fake_agents_registry.get.return_value = lambda **_kw: fake_agents
     monkeypatch.setattr(
-        "backend.app.agents.create", lambda *_a, **_kw: fake_agents
+        "backend.app.agents_registry.registry", fake_agents_registry
     )
 
     app = create_app()

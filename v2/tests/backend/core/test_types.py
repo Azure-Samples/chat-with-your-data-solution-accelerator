@@ -27,7 +27,18 @@ from enum import StrEnum
 import pytest
 from pydantic import ValidationError
 
-from backend.core.types import OrchestratorChannel, OrchestratorEvent, RuntimeConfig
+import backend.core.types as st
+import backend.core.types as types_module
+from backend.core.types import (
+    AadScope,
+    ChatMessage,
+    ChatRole,
+    MessageRecord,
+    OrchestratorChannel,
+    OrchestratorEvent,
+    RuntimeConfig,
+    SearchDocument,
+)
 
 
 def test_orchestrator_channel_is_a_strenum() -> None:
@@ -92,6 +103,145 @@ def test_orchestrator_channel_equality_is_member_distinct() -> None:
     assert OrchestratorChannel.ANSWER == "answer"
     assert OrchestratorChannel.ANSWER != "error"
     assert OrchestratorChannel.ANSWER != OrchestratorChannel.ERROR
+
+
+# ---------------------------------------------------------------------------
+# ChatRole (Hard Rule #11 closed-set discriminator)
+# ---------------------------------------------------------------------------
+# Same three properties OrchestratorChannel locks: StrEnum subclassing,
+# frozen membership, bidirectional str <-> enum coercion + equality.
+# Required by Hard Rule #11 because `message.role` is dispatched on at
+# runtime in `pipelines/chat.py::_latest_user_text` and
+# `orchestrators/langgraph.py::_latest_user_text`.
+
+
+def test_chat_role_is_a_strenum() -> None:
+    assert issubclass(ChatRole, StrEnum)
+    assert issubclass(ChatRole, str)
+
+
+def test_chat_role_membership_is_frozen() -> None:
+    """The four roles mirror the OpenAI / AzureOpenAI chat message
+    contract; a new role needs an explicit change here AND wherever
+    `ChatMessage` is constructed from external payloads."""
+    assert {member.value for member in ChatRole} == {
+        "system",
+        "user",
+        "assistant",
+        "tool",
+    }
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("system", ChatRole.SYSTEM),
+        ("user", ChatRole.USER),
+        ("assistant", ChatRole.ASSISTANT),
+        ("tool", ChatRole.TOOL),
+    ],
+)
+def test_chat_message_coerces_string_role_to_enum_member(
+    raw: str, expected: ChatRole
+) -> None:
+    """Wire payloads pass `role="user"` as a plain string; Pydantic
+    must coerce to the matching enum member so dispatch sites can use
+    `is ChatRole.USER` (identity, not equality)."""
+    message = ChatMessage(role=raw, content="hi")  # type: ignore[arg-type]
+    assert message.role is expected
+    # Wire shape unchanged: StrEnum members ARE strings.
+    assert message.role == raw
+
+
+def test_chat_message_round_trips_via_model_dump_json() -> None:
+    """JSON round-trip (the request/response shape) preserves role
+    value AND survives Pydantic re-validation back into the enum."""
+    original = ChatMessage(role="assistant", content="hello")  # type: ignore[arg-type]
+    payload = original.model_dump_json()
+    assert '"role":"assistant"' in payload  # wire shape
+    rehydrated = ChatMessage.model_validate_json(payload)
+    assert rehydrated == original
+    assert rehydrated.role is ChatRole.ASSISTANT
+
+
+def test_message_record_coerces_string_role_to_enum_member() -> None:
+    """Persistence read-path: `cosmosdb._read_item` constructs
+    `MessageRecord(role=item.get("role", "user"))` from a plain dict;
+    the coercion must apply equally."""
+    record = MessageRecord(
+        id="m1",
+        conversation_id="c1",
+        role="user",  # type: ignore[arg-type]
+        content="hi",
+    )
+    assert record.role is ChatRole.USER
+    assert record.role == "user"  # str equality preserved for sentinel checks
+
+
+def test_chat_role_dispatch_via_is_operator_matches_after_coercion() -> None:
+    """Mirrors the production dispatch sites in `pipelines/chat.py` and
+    `orchestrators/langgraph.py`: `if msg.role is ChatRole.USER`.
+    StrEnum members are singletons so `is` is the canonical check."""
+    message = ChatMessage(role="user", content="q")  # type: ignore[arg-type]
+    assert message.role is ChatRole.USER
+    assert message.role is not ChatRole.ASSISTANT
+
+
+def test_chat_role_equality_is_member_distinct() -> None:
+    assert ChatRole.USER == "user"
+    assert ChatRole.USER != "assistant"
+    assert ChatRole.USER != ChatRole.ASSISTANT
+
+
+def test_chat_role_is_in_module_exports() -> None:
+    assert "ChatRole" in types_module.__all__
+
+
+# ---------------------------------------------------------------------------
+# AadScope
+# ---------------------------------------------------------------------------
+#
+# Closed-set discriminator for the single `*scopes: str` argument to
+# `AsyncTokenCredential.get_token(...)`. Wire shape MUST match the
+# exact literal Azure's AAD endpoint expects -- a typo silently breaks
+# token acquisition only at first request, not at import.
+
+
+def test_aad_scope_is_a_strenum() -> None:
+    """`StrEnum` subclassing is required by Hard Rule #11; assert it
+    so a future refactor can't silently regress to a bare class."""
+    assert issubclass(AadScope, StrEnum)
+    assert issubclass(AadScope, str)
+
+
+def test_aad_scope_membership_is_frozen() -> None:
+    """Each member's value is the exact scope literal that Azure's AAD
+    endpoint expects; a typo here would silently break token
+    acquisition. The wire shape is part of the SDK contract."""
+    assert {member.value for member in AadScope} == {
+        "https://cognitiveservices.azure.com/.default",
+        "https://ossrdbms-aad.database.windows.net/.default",
+    }
+
+
+def test_aad_scope_equality_is_member_distinct() -> None:
+    """Each member equals its own raw scope value but not a sibling's
+    -- so call sites that compare against a literal stay unambiguous."""
+    assert AadScope.COGNITIVE_SERVICES == "https://cognitiveservices.azure.com/.default"
+    assert AadScope.POSTGRES_FLEX == "https://ossrdbms-aad.database.windows.net/.default"
+    assert AadScope.COGNITIVE_SERVICES != AadScope.POSTGRES_FLEX
+
+
+def test_aad_scope_member_is_usable_as_str() -> None:
+    """`AsyncTokenCredential.get_token(*scopes: str)` accepts the enum
+    members transparently because each member IS a `str`."""
+    assert isinstance(AadScope.COGNITIVE_SERVICES, str)
+    assert isinstance(AadScope.POSTGRES_FLEX, str)
+
+
+def test_aad_scope_is_in_module_exports() -> None:
+    assert "AadScope" in types_module.__all__
+    assert types_module.AadScope is AadScope
 
 
 # ---------------------------------------------------------------------------
@@ -186,10 +336,128 @@ def test_runtime_config_partial_override_leaves_other_fields_none() -> None:
     assert rc.log_level is None
 
 
+def test_runtime_config_content_safety_enabled_defaults_to_none() -> None:
+    """`content_safety_enabled` joins the existing mutable fields with
+    the same `T | None = None` shape — None means 'no admin override,
+    fall through to `AppSettings.content_safety.enabled` at request
+    time via `get_content_safety_guard`'."""
+    rc = RuntimeConfig()
+    assert rc.content_safety_enabled is None
+
+
+def test_runtime_config_content_safety_enabled_round_trips_true_and_false() -> None:
+    """Both explicit boolean values must round-trip losslessly through
+    `model_dump()` → `model_validate()` because the persisted shape
+    (Cosmos JSON / Postgres JSONB) is the only way the override
+    survives a process restart. Asserts on the field value (not just
+    instance equality) because without `extra="forbid"`, equality
+    alone would be a false positive when the field is absent."""
+    rc_true = RuntimeConfig(content_safety_enabled=True)
+    assert rc_true.content_safety_enabled is True
+    rebuilt_true = RuntimeConfig.model_validate(rc_true.model_dump())
+    assert rebuilt_true.content_safety_enabled is True
+    assert rebuilt_true == rc_true
+
+    rc_false = RuntimeConfig(content_safety_enabled=False)
+    assert rc_false.content_safety_enabled is False
+    rebuilt_false = RuntimeConfig.model_validate(rc_false.model_dump())
+    assert rebuilt_false.content_safety_enabled is False
+    assert rebuilt_false == rc_false
+
+
+def test_runtime_config_content_safety_enabled_distinguishes_false_from_none() -> None:
+    """Same load-bearing semantic as `search_use_semantic_search`: a
+    PATCH that *disables* content safety must persist as `False` (a
+    real override), distinct from an unset field that means 'fall
+    through to env default'. If this collapses, the U-CS-7 override
+    cascade in `get_content_safety_guard` can never honor an explicit
+    admin disable."""
+    explicit_false = RuntimeConfig(content_safety_enabled=False)
+    unset = RuntimeConfig()
+    assert explicit_false.content_safety_enabled is False
+    assert unset.content_safety_enabled is None
+    assert explicit_false != unset
+
+
+def test_runtime_config_partial_override_preserves_content_safety_unset() -> None:
+    """A partial override carrying only `content_safety_enabled` must
+    leave every other mutable field at None — mirrors the existing
+    `test_runtime_config_partial_override_leaves_other_fields_none`
+    pattern from the other direction."""
+    rc = RuntimeConfig(content_safety_enabled=True)
+    assert rc.content_safety_enabled is True
+    assert rc.orchestrator_name is None
+    assert rc.openai_temperature is None
+    assert rc.openai_max_tokens is None
+    assert rc.search_use_semantic_search is None
+    assert rc.search_top_k is None
+    assert rc.log_level is None
+
+
 def test_runtime_config_is_in_module_exports() -> None:
     """Ensures `from backend.core.types import RuntimeConfig` works for
     every downstream consumer (DB clients in #35c-4/5/6, admin
     router in #35c-7) without a leading-underscore re-export."""
-    import backend.core.types as st  # noqa: PLC0415  -- intentional in-test import
-
     assert "RuntimeConfig" in st.__all__
+
+
+def test_search_document_is_frozen_and_forbids_extras() -> None:
+    """Locks Hard Rule #15 invariants for the ingestion wire shape.
+
+    Frozen + ``extra="forbid"`` so:
+
+    * No ingestion blueprint can silently smuggle a provider-specific
+      field through the Azure Search payload.
+    * A typo at the construction site (``cotent_vector`` for
+      ``content_vector``) fails immediately instead of dropping
+      vectors at write time.
+    """
+    doc = SearchDocument(id="a", content="hello")
+    with pytest.raises(ValidationError):
+        doc.content = "mutated"  # type: ignore[misc]  -- frozen model rejects mutation
+    with pytest.raises(ValidationError):
+        SearchDocument(id="a", content="hello", evil="nope")  # type: ignore[call-arg]
+
+
+def test_search_document_round_trips_via_model_dump() -> None:
+    """Locks the SDK-boundary contract: ``model_dump()`` returns the
+    dict shape ``push_documents`` forwards to the Azure SDK
+    (``merge_or_upload_documents(documents=[...])``).
+
+    The field names exactly mirror the read-side mapping in
+    :class:`backend.core.providers.search.azure_search.AzureSearch`
+    (``id``, ``content``, ``title``, ``content_vector``) so an
+    in-place schema upgrade does not require a reindex.
+    """
+    doc = SearchDocument(
+        id="doc.txt__0",
+        content="hello",
+        title="doc.txt",
+        content_vector=[0.1, 0.2, 0.3],
+    )
+    dumped = doc.model_dump()
+    assert dumped == {
+        "id": "doc.txt__0",
+        "content": "hello",
+        "title": "doc.txt",
+        "content_vector": [0.1, 0.2, 0.3],
+    }
+    assert SearchDocument(**dumped) == doc
+
+
+def test_search_document_defaults_match_read_side_optional_fields() -> None:
+    """Both ``title`` and ``content_vector`` are optional today --
+    ``title`` defaults to ``""`` for sources without a real title
+    (raw HTML, ad-hoc URLs); ``content_vector`` defaults to ``[]``
+    so an ingestion path that hasn't run the embedder yet still
+    type-checks against the model."""
+    doc = SearchDocument(id="a", content="hello")
+    assert doc.title == ""
+    assert doc.content_vector == []
+
+
+def test_search_document_is_in_module_exports() -> None:
+    """Ensures `from backend.core.types import SearchDocument` works
+    for downstream ingestion handlers + the writer helper without a
+    leading-underscore re-export."""
+    assert "SearchDocument" in st.__all__

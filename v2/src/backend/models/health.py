@@ -4,12 +4,21 @@ Pillar: Stable Core
 Phase: 2
 """
 
-from typing import Literal
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-CheckStatus = Literal["pass", "fail", "skip"]
-OverallStatus = Literal["pass", "degraded", "fail"]
+
+class CheckStatus(StrEnum):
+    PASS = "pass"
+    FAIL = "fail"
+    SKIP = "skip"
+
+
+class OverallStatus(StrEnum):
+    PASS = "pass"
+    DEGRADED = "degraded"
+    FAIL = "fail"
 
 
 class DependencyCheck(BaseModel):

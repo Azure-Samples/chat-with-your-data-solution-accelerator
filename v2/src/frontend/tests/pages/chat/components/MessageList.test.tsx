@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
   ChatProvider,
   useChat,
-  type ChatMessage,
-} from "../../../../src/pages/chat/ChatContext";
-import { MessageList } from "../../../../src/pages/chat/components/MessageList";
+} from "@/pages/chat/ChatContext";
+import { MessageList } from "@/pages/chat/components/MessageList";
+import type { ChatMessage } from "@/models/chat";
 
 const m1: ChatMessage = { id: "1", role: "user", content: "hello" };
 const m2: ChatMessage = { id: "2", role: "assistant", content: "hi back" };
@@ -63,8 +63,8 @@ describe("MessageList", () => {
     const list = screen.getByTestId("message-list");
     const items = list.querySelectorAll("li");
     expect(items).toHaveLength(2);
-    expect(items[0].textContent).toContain("hello");
-    expect(items[1].textContent).toContain("hi back");
+    expect(items[0]!.textContent).toContain("hello");
+    expect(items[1]!.textContent).toContain("hi back");
   });
 
   it("tags each <li> with its role for styling hooks", () => {
@@ -244,5 +244,492 @@ describe("MessageList", () => {
     });
 
     expect(screen.queryByTestId("message-2-error")).toBeNull();
+  });
+});
+
+describe("MessageList feedback wiring", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  function noContent(): Response {
+    return new Response(null, { status: 204 });
+  }
+
+  function errorResponse(status: number): Response {
+    return new Response(JSON.stringify({ detail: "nope" }), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  function getDispatch(): (action: {
+    type: "add";
+    message: ChatMessage;
+  }) => void {
+    return (
+      Seed as unknown as {
+        _dispatch: (a: { type: "add"; message: ChatMessage }) => void;
+      }
+    )._dispatch;
+  }
+
+  it("renders FeedbackButtons under finished assistant messages", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+
+    act(() => {
+      dispatch({ type: "add", message: m2 });
+    });
+
+    expect(screen.getByTestId("feedback-2")).toBeInTheDocument();
+    expect(screen.getByTestId("feedback-2-positive")).toBeInTheDocument();
+    expect(screen.getByTestId("feedback-2-negative")).toBeInTheDocument();
+  });
+
+  it("does NOT render FeedbackButtons for user messages", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+
+    act(() => {
+      dispatch({ type: "add", message: m1 });
+    });
+
+    expect(screen.queryByTestId("feedback-1")).toBeNull();
+  });
+
+  it("does NOT render FeedbackButtons while an assistant message is still streaming", () => {
+    const mStreaming: ChatMessage = {
+      id: "s1",
+      role: "assistant",
+      content: "",
+      streaming: true,
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+
+    act(() => {
+      dispatch({ type: "add", message: mStreaming });
+    });
+
+    expect(screen.queryByTestId("feedback-s1")).toBeNull();
+  });
+
+  it("reflects an already-set feedback value as the pressed thumb", () => {
+    const mWithPositive: ChatMessage = {
+      id: "fp",
+      role: "assistant",
+      content: "answer",
+      feedback: "positive",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+
+    act(() => {
+      dispatch({ type: "add", message: mWithPositive });
+    });
+
+    expect(screen.getByTestId("feedback-fp-positive")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("feedback-fp-negative")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("POSTs feedback and optimistically locks the thumb on 👍 click", async () => {
+    fetchMock.mockResolvedValueOnce(noContent());
+
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    act(() => {
+      dispatch({ type: "add", message: m2 });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("feedback-2-positive"));
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/history/messages/2/feedback");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe(JSON.stringify({ feedback: "positive" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feedback-2-positive")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+  });
+
+  it("rolls back the optimistic dispatch when the POST fails", async () => {
+    fetchMock.mockResolvedValueOnce(errorResponse(500));
+
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    act(() => {
+      dispatch({ type: "add", message: m2 });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("feedback-2-positive"));
+    });
+
+    // After rollback the thumb is unpressed again (initial state was undefined).
+    await waitFor(() => {
+      expect(screen.getByTestId("feedback-2-positive")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rolls back to the previous feedback value (not null) when overwriting fails", async () => {
+    const mAlreadyPositive: ChatMessage = {
+      id: "fp",
+      role: "assistant",
+      content: "answer",
+      feedback: "positive",
+    };
+    fetchMock.mockResolvedValueOnce(errorResponse(422));
+
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    act(() => {
+      dispatch({ type: "add", message: mAlreadyPositive });
+    });
+
+    // 👎 is currently unpressed; clicking it opens the reason form,
+    // then submitting sends "negative".
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("feedback-fp-negative"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("feedback-fp-reason-submit"));
+    });
+
+    // After the 422 rollback the original positive feedback is restored.
+    await waitFor(() => {
+      expect(screen.getByTestId("feedback-fp-positive")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+    });
+    expect(screen.getByTestId("feedback-fp-negative")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("URL-encodes the message id when POSTing feedback", async () => {
+    fetchMock.mockResolvedValueOnce(noContent());
+
+    const mFunky: ChatMessage = {
+      id: "msg/with space",
+      role: "assistant",
+      content: "answer",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    act(() => {
+      dispatch({ type: "add", message: mFunky });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("feedback-msg/with space-positive"));
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe(
+      "/api/history/messages/msg%2Fwith%20space/feedback",
+    );
+  });
+});
+
+describe("MessageList citation rendering", () => {
+  const cit1 = {
+    id: "doc-x",
+    title: "Doc X",
+    url: "https://example.com/x",
+    snippet: "Snippet body for doc x.",
+    score: 0.5,
+    metadata: {},
+  };
+  const cit2 = {
+    id: "doc-y",
+    title: "Doc Y",
+    url: "https://example.com/y",
+    snippet: "Snippet body for doc y.",
+    score: null,
+    metadata: {},
+  };
+
+  function getDispatch(): (action: {
+    type: "add";
+    message: ChatMessage;
+  }) => void {
+    return (
+      Seed as unknown as {
+        _dispatch: (a: { type: "add"; message: ChatMessage }) => void;
+      }
+    )._dispatch;
+  }
+
+  it("renders <CitationPanel> for a finished assistant message with citations", () => {
+    const mWithCitations: ChatMessage = {
+      id: "c-msg",
+      role: "assistant",
+      content: "answer",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mWithCitations });
+    });
+
+    expect(screen.getByTestId("citation-panel-c-msg")).toBeInTheDocument();
+    expect(screen.getByTestId("citation-c-msg-doc-x")).toBeInTheDocument();
+    expect(screen.getByTestId("citation-c-msg-doc-y")).toBeInTheDocument();
+  });
+
+  it("does NOT render <CitationPanel> while the assistant message is still streaming", () => {
+    const mStreamingWithCitations: ChatMessage = {
+      id: "c-stream",
+      role: "assistant",
+      content: "",
+      streaming: true,
+      citations: [cit1],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mStreamingWithCitations });
+    });
+
+    expect(screen.queryByTestId("citation-panel-c-stream")).toBeNull();
+  });
+
+  it("does NOT render <CitationPanel> when the citations array is empty", () => {
+    const mEmptyCitations: ChatMessage = {
+      id: "c-empty",
+      role: "assistant",
+      content: "answer",
+      citations: [],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mEmptyCitations });
+    });
+
+    expect(screen.queryByTestId("citation-panel-c-empty")).toBeNull();
+  });
+
+  it("does NOT render <CitationPanel> for user messages even when citations are populated", () => {
+    const mUserWithCitations: ChatMessage = {
+      id: "c-user",
+      role: "user",
+      content: "question",
+      citations: [cit1],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mUserWithCitations });
+    });
+
+    expect(screen.queryByTestId("citation-panel-c-user")).toBeNull();
+  });
+});
+
+describe("MessageList answer-token rendering", () => {
+  const cit1 = {
+    id: "doc-alpha",
+    title: "Alpha",
+    url: "https://example.com/alpha",
+    snippet: "alpha snippet",
+    score: 0.5,
+    metadata: {},
+  };
+  const cit2 = {
+    id: "doc-beta",
+    title: "Beta",
+    url: "https://example.com/beta",
+    snippet: "beta snippet",
+    score: null,
+    metadata: {},
+  };
+
+  function getDispatch(): (action: {
+    type: "add";
+    message: ChatMessage;
+  }) => void {
+    return (
+      Seed as unknown as {
+        _dispatch: (a: { type: "add"; message: ChatMessage }) => void;
+      }
+    )._dispatch;
+  }
+
+  it("renders inline [docN] tokens as clickable buttons in the assistant bubble", () => {
+    const mWithTokens: ChatMessage = {
+      id: "tok-1",
+      role: "assistant",
+      content: "see [doc1] and [doc2]",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mWithTokens });
+    });
+
+    expect(screen.getByTestId("answer-token-tok-1-1")).toBeInTheDocument();
+    expect(screen.getByTestId("answer-token-tok-1-2")).toBeInTheDocument();
+  });
+
+  it("does NOT tokenize user message content", () => {
+    const mUser: ChatMessage = {
+      id: "tok-user",
+      role: "user",
+      content: "hey, what about [doc1]?",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mUser });
+    });
+
+    expect(screen.queryByTestId("answer-token-tok-user-1")).toBeNull();
+    expect(screen.getByTestId("message-tok-user").textContent).toContain(
+      "[doc1]",
+    );
+  });
+
+  it("renders [docN] verbatim when the assistant message has no citations", () => {
+    const mBare: ChatMessage = {
+      id: "tok-bare",
+      role: "assistant",
+      content: "see [doc1] but no sources",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mBare });
+    });
+
+    expect(screen.queryByTestId("answer-token-tok-bare-1")).toBeNull();
+    expect(screen.getByTestId("message-tok-bare").textContent).toContain(
+      "[doc1]",
+    );
+  });
+
+  it("clicking a [docN] token auto-expands the matching CitationPanel item", () => {
+    const mLive: ChatMessage = {
+      id: "tok-live",
+      role: "assistant",
+      content: "see [doc2] for details",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mLive });
+    });
+
+    const headerB = screen
+      .getByTestId("citation-tok-live-doc-beta-header")
+      .querySelector("button")!;
+    expect(headerB.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(screen.getByTestId("answer-token-tok-live-2"));
+
+    expect(headerB.getAttribute("aria-expanded")).toBe("true");
   });
 });

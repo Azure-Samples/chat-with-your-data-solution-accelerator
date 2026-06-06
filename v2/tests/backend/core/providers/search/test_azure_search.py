@@ -15,11 +15,11 @@ from azure.core.exceptions import (
     ServiceRequestError,
 )
 
-from backend.core.providers import search
+from backend.core.providers.search import registry as search_registry
 from backend.core.providers.search.azure_search import AzureSearch
-from backend.core.providers.search.base import BaseSearch
+from backend.core.providers.search.base import BaseSearch, SourceListing
 from backend.core.settings import AppSettings, get_settings
-from backend.core.types import SearchResult
+from backend.core.types import SearchDocument, SearchResult
 
 
 # ---------------------------------------------------------------------------
@@ -73,16 +73,15 @@ def test_azure_search_is_registered() -> None:
     # Registry is case-insensitive; the registration key is the
     # `settings.database.index_store` Literal value "AzureSearch"
     # (Hard Rule #4 -- registry key matches settings Literal).
-    assert "azuresearch" in search.registry.keys()
-    assert search.registry.get("AzureSearch") is AzureSearch
+    assert "azuresearch" in search_registry.registry.keys()
+    assert search_registry.registry.get("AzureSearch") is AzureSearch
 
 
 def test_search_create_returns_azure_search_instance(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = _settings_for_search(monkeypatch)
-    handler = search.create(
-        "AzureSearch",
+    handler = search_registry.registry.get("AzureSearch")(
         settings=settings,
         credential=MagicMock(),
         client=_make_client(),
@@ -356,3 +355,295 @@ async def test_aclose_swallows_and_warns_on_close_failure(
     client.close.assert_awaited_once()
     # Cached client handle cleared even though close() failed.
     assert handler._client is None  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# delete_by_source
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_collects_ids_then_deletes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        return_value=_FakeAsyncIter(
+            [{"id": "chunk-1"}, {"id": "chunk-2"}, {"id": "chunk-3"}]
+        )
+    )
+    client.delete_documents = AsyncMock(return_value=[])
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    deleted = await handler.delete_by_source("sample.pdf")
+
+    assert deleted == 3
+    search_kwargs = client.search.await_args.kwargs
+    assert search_kwargs["filter"] == "title eq 'sample.pdf'"
+    assert search_kwargs["select"] == ["id"]
+    assert search_kwargs["search_text"] == "*"
+    delete_kwargs = client.delete_documents.await_args.kwargs
+    assert delete_kwargs["documents"] == [
+        {"id": "chunk-1"},
+        {"id": "chunk-2"},
+        {"id": "chunk-3"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_returns_zero_when_no_matches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
+    client.delete_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    deleted = await handler.delete_by_source("nope.pdf")
+
+    assert deleted == 0
+    client.delete_documents.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_escapes_single_quotes_in_odata_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # OData literals escape single quotes by doubling them; failing to
+    # do so opens an OData injection seam on a route that accepts
+    # user-supplied filenames.
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
+    client.delete_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    await handler.delete_by_source("o'reilly.pdf")
+
+    assert (
+        client.search.await_args.kwargs["filter"]
+        == "title eq 'o''reilly.pdf'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_delete_by_source_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        side_effect=HttpResponseError(message="500 server error")
+    )
+    client.delete_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.delete_by_source("sample.pdf")
+
+    record = _find_record(caplog, "delete_by_source")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+    assert record.source == "sample.pdf"
+    assert record.deleted_count == 0
+    client.delete_documents.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# merge_or_upload_documents
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_calls_sdk_with_keyword_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.merge_or_upload_documents = AsyncMock(
+        return_value=[{"key": "a", "succeeded": True}]
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    docs = [
+        SearchDocument(id="a", content="hello", content_vector=[0.1, 0.2]),
+        SearchDocument(id="b", content="world", content_vector=[0.3, 0.4]),
+    ]
+
+    result = await handler.merge_or_upload_documents(documents=docs)
+
+    client.merge_or_upload_documents.assert_awaited_once_with(
+        documents=[d.model_dump() for d in docs]
+    )
+    assert result == [{"key": "a", "succeeded": True}]
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_returns_empty_without_sdk_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.merge_or_upload_documents = AsyncMock()
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    result = await handler.merge_or_upload_documents(documents=[])
+
+    assert result == []
+    client.merge_or_upload_documents.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_merge_or_upload_documents_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.merge_or_upload_documents = AsyncMock(
+        side_effect=ServiceRequestError(message="search unavailable")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    docs = [SearchDocument(id="a", content="hello")]
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.merge_or_upload_documents(documents=docs)
+
+    record = _find_record(caplog, "merge_or_upload_documents")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+    assert record.document_count == 1
+    client.merge_or_upload_documents.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# list_sources
+# ---------------------------------------------------------------------------
+
+
+def _make_facet_client(
+    facets: dict[str, list[dict[str, Any]]] | None,
+) -> MagicMock:
+    """Build a fake SearchClient whose `search()` returns a paged
+    object exposing `get_facets()` -- the only paged-iterator method
+    `list_sources` uses.
+    """
+    paged = MagicMock()
+    paged.get_facets = AsyncMock(return_value=facets)
+    client = MagicMock()
+    client.search = AsyncMock(return_value=paged)
+    client.close = AsyncMock()
+    return client
+
+
+@pytest.mark.asyncio
+async def test_list_sources_returns_listings_from_title_facets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = _make_facet_client(
+        {
+            "title": [
+                {"value": "alpha.pdf", "count": 3},
+                {"value": "beta.pdf", "count": 7},
+            ]
+        }
+    )
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    listings = await handler.list_sources()
+
+    assert listings == [
+        SourceListing(source="alpha.pdf", chunk_count=3, last_modified=None),
+        SourceListing(source="beta.pdf", chunk_count=7, last_modified=None),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_sources_passes_facet_expression_and_top_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = _make_facet_client({"title": []})
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    await handler.list_sources()
+
+    search_kwargs = client.search.await_args.kwargs
+    assert search_kwargs["search_text"] == "*"
+    assert search_kwargs["facets"] == ["title,count:10000,sort:value"]
+    assert search_kwargs["top"] == 0
+
+
+@pytest.mark.asyncio
+async def test_list_sources_returns_empty_when_no_facets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # `get_facets()` can legitimately return None on an empty index or
+    # when the facet field has no values. Treat both as empty list.
+    settings = _settings_for_search(monkeypatch)
+    client = _make_facet_client(None)
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    assert await handler.list_sources() == []
+
+    client = _make_facet_client({})
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    assert await handler.list_sources() == []
+
+
+@pytest.mark.asyncio
+async def test_list_sources_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.search = AsyncMock(
+        side_effect=HttpResponseError(message="500 server error")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.list_sources()
+
+    record = _find_record(caplog, "list_sources")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"

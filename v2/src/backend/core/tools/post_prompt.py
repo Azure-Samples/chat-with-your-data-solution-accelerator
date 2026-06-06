@@ -17,8 +17,7 @@ v2 differences vs v1:
 - Operates on typed inputs (`SearchResult`) and returns a typed
   result -- no `Answer` god-object.
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.post_prompt import PostPromptValidator
 """
@@ -28,7 +27,7 @@ from typing import Sequence
 from pydantic import BaseModel
 
 from backend.core.providers.llm.base import BaseLLMProvider
-from backend.core.types import ChatMessage, SearchResult
+from backend.core.types import ChatMessage, ChatRole, SearchResult
 
 
 # Default validation prompt -- asks the model for a single yes/no token
@@ -107,7 +106,7 @@ class PostPromptValidator:
             sources=self._format_sources(sources),
         )
         reply = await self._llm.chat(
-            [ChatMessage(role="user", content=prompt)],
+            [ChatMessage(role=ChatRole.USER, content=prompt)],
             deployment=deployment,
         )
         verdict = reply.content.strip().strip(".").lower()

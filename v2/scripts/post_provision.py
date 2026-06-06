@@ -37,6 +37,24 @@ import os
 import sys
 from typing import Sequence
 
+import psycopg2  # type: ignore[import-not-found]
+from azure.identity import DefaultAzureCredential
+from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents.indexes.models import (
+    HnswAlgorithmConfiguration,
+    SearchableField,
+    SearchField,
+    SearchFieldDataType,
+    SearchIndex,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
+    SimpleField,
+    VectorSearch,
+    VectorSearchProfile,
+)
+
 REQUIRED_ENV = ("AZURE_DB_TYPE",)
 # Mirrors the @allowed() list on `databaseType` in v2/infra/main.bicep.
 # Kept in sync by hand: a typo here or there silently breaks deploys.
@@ -115,18 +133,6 @@ def _enable_pgvector() -> None:
         )
         sys.exit(7)
 
-    # Imports are deferred so the script's summary block still runs in
-    # cosmosdb mode without these packages installed.
-    try:
-        import psycopg2  # type: ignore[import-not-found]
-        from azure.identity import DefaultAzureCredential
-    except ImportError as exc:  # pragma: no cover - environment guard
-        sys.stderr.write(
-            "post-provision: missing dependency for postgres setup "
-            f"({exc.name}). Run `uv sync` from the repo root first.\n"
-        )
-        sys.exit(3)
-
     print(f"post-provision: acquiring Entra token for {host}")
     try:
         token = DefaultAzureCredential().get_token(POSTGRES_AAD_SCOPE).token
@@ -180,26 +186,7 @@ def _print_summary() -> None:
 
 
 def _build_chat_index(name: str, dimensions: int):
-    """Build the SearchIndex object the chat path retrieves against.
-
-    Imported lazily so that `--dry-run` and postgresql-mode invocations
-    don't import the Search SDK.
-    """
-    from azure.search.documents.indexes.models import (
-        HnswAlgorithmConfiguration,
-        SearchableField,
-        SearchField,
-        SearchFieldDataType,
-        SearchIndex,
-        SemanticConfiguration,
-        SemanticField,
-        SemanticPrioritizedFields,
-        SemanticSearch,
-        SimpleField,
-        VectorSearch,
-        VectorSearchProfile,
-    )
-
+    """Build the SearchIndex object the chat path retrieves against."""
     fields = [
         SimpleField(name="id", type=SearchFieldDataType.String, key=True),
         SearchableField(name="content", type=SearchFieldDataType.String),
@@ -275,16 +262,6 @@ def _ensure_search_index(*, dry_run: bool, client_factory=None) -> str:
         return "dry-run"
 
     if client_factory is None:
-        try:
-            from azure.identity import DefaultAzureCredential
-            from azure.search.documents.indexes import SearchIndexClient
-        except ImportError as exc:  # pragma: no cover - environment guard
-            sys.stderr.write(
-                "post-provision: missing dependency for search index setup "
-                f"({exc.name}). Run `uv sync` first.\n"
-            )
-            sys.exit(3)
-
         def client_factory():  # type: ignore[no-redef]
             return SearchIndexClient(
                 endpoint=endpoint, credential=DefaultAzureCredential()

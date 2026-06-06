@@ -35,157 +35,66 @@ the ``"admin"`` role claim. The factory:
   in ``settings.environment == "local"`` so the admin panel is
   exercisable end-to-end during development without forging claims.
 
-The dependency callable is cached at module import (``_REQUIRE_ADMIN_USER``)
-so ``app.dependency_overrides`` keying stays deterministic across
+The dependency callable is cached at module import in
+``backend.dependencies`` (``REQUIRE_ADMIN_USER``) so
+``app.dependency_overrides`` keying stays deterministic across
 test fixtures.
 """
 
 import logging
-from datetime import UTC, datetime
-from typing import Annotated, Any, Literal
-from urllib.parse import urlparse
+from pathlib import PurePosixPath
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import (
+    APIRouter,
+    Body,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
+from pydantic import ValidationError
 
 from backend.dependencies import (
+    AdminUserIdDep,
+    CredentialDep,
     DatabaseClientDep,
     RuntimeOverridesDep,
+    SearchProviderDep,
     SettingsDep,
-    requires_role,
 )
 from backend.core.types import AdminAuditEntry, RuntimeConfig
+from backend.models.admin import (
+    APP_VERSION,
+    AdminConfig,
+    AdminStatus,
+    ConfigSource,
+    DeleteDocumentResponse,
+    EffectiveAdminConfig,
+    IngestUrlRequest,
+    IngestUrlResponse,
+    ListDocumentsResponse,
+    ReprocessResponse,
+    UploadResponse,
+    WRITABLE_FIELDS,
+)
+from backend.services.admin import host_only, utcnow_iso
+from backend.services.ingestion import (
+    MAX_UPLOAD_SIZE_BYTES,
+    ingest_url,
+    reprocess_all,
+    upload_document,
+)
+from functions.core.parsers import registry as ingestion_parsers_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-_APP_VERSION = "2.0.0"
-
-
-# ---------------------------------------------------------------------------
-# Auth gate (#39 -- RBAC narrowed to the "admin" Easy Auth role claim)
-#
-# Cached at import time so `app.dependency_overrides[_REQUIRE_ADMIN_USER]`
-# keying stays deterministic. Each `requires_role("admin")` invocation
-# returns a fresh callable, so reaching for the factory at every test
-# fixture would defeat dependency_overrides.
-# ---------------------------------------------------------------------------
-
-
-_REQUIRE_ADMIN_USER = requires_role("admin")
-
-
-AdminUserIdDep = Annotated[str, Depends(_REQUIRE_ADMIN_USER)]
-
-
-# ---------------------------------------------------------------------------
-# Response models
-# ---------------------------------------------------------------------------
-
-
-class AdminStatus(BaseModel):
-    """Sanitized snapshot of the running configuration.
-
-    Field allow-list is intentional: any new ``AppSettings`` field that
-    surfaces here MUST be added explicitly. Sensitive settings
-    (UAMI ids, tenant id, full Cosmos / Postgres connection strings,
-    OpenAI API version) are deliberately omitted -- locked in by
-    ``test_status_does_not_leak_sensitive_settings``.
-    """
-
-    orchestrator_name: str
-    db_type: str
-    index_store: str
-    environment: str
-    foundry_project_endpoint_host: str
-    gpt_deployment: str
-    embedding_deployment: str
-    reasoning_deployment: str
-    search_enabled: bool
-    app_insights_enabled: bool
-    cors_origins: list[str] = Field(default_factory=list[str])
-    version: str
-
-
-class AdminConfig(BaseModel):
-    """Runtime-toggle subset of ``AppSettings`` (read-only view, #35b).
-
-    The fields exposed here are exactly the settings that #35c will let
-    admins mutate at runtime. Selection criteria:
-
-    * **Not infra-pinned.** ``orchestrator.name`` lives under the
-      ``CWYD_`` namespace precisely so the admin UI can flip it without
-      a Bicep redeploy (see ``OrchestratorSettings`` docstring in
-      ``backend/core/settings.py``); the OpenAI / Search / Observability
-      tunables likewise have safe runtime defaults.
-    * **No new settings.** Adding e.g. content-safety / RAI / post-prompt
-      toggles that v1 had but v2 does not yet model would trigger
-      Hard Rule #10 (new settings field) and Hard Rule #12 (out of
-      this task's numeric scope) -- those land as their own §0.1 row.
-
-    Sensitive fields (UAMI ids, tenant id, connection strings, API
-    version) are **never** included; locked in by
-    ``test_config_does_not_leak_sensitive_settings``.
-    """
-
-    orchestrator_name: str
-    openai_temperature: float
-    openai_max_tokens: int
-    search_use_semantic_search: bool
-    search_top_k: int
-    log_level: str
-
-
-class EffectiveAdminConfig(BaseModel):
-    """Merged effective view of `AdminConfig` (#35e(b)).
-
-    Combines the env-default snapshot returned by
-    ``GET /api/admin/config`` with the persisted `RuntimeConfig`
-    overrides loaded into ``app.state.runtime_overrides`` by the
-    lifespan + PATCH writeback channel from #35e(a). Each field on
-    `values` is resolved by the rule:
-
-    * Override field is `None` (the cold default and the post-clear
-      state once an admin has PATCHed `null`) -> source is `"env"`,
-      value comes from `AppSettings`.
-    * Override field carries a non-None value -> source is
-      `"override"`, value comes from `app.state.runtime_overrides`.
-
-    The frontend renders `sources` as per-field provenance hints
-    ("this is from env" / "operator overrode this on YYYY-MM-DD")
-    so admins can tell at a glance which knobs are actively being
-    held by an override vs. tracking the deployed env baseline.
-
-    `updated_at` / `updated_by` surface the audit fields from the
-    override row when one exists (even when every field is `None` --
-    the row is the receipt that the operator interacted with the
-    config); both are `None` on cold start when no override row
-    has been persisted yet.
-    """
-
-    values: AdminConfig
-    sources: dict[str, Literal["env", "override"]]
-    updated_at: str | None = None
-    updated_by: str | None = None
-
-
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-
-
-def _host_only(url: str) -> str:
-    """Return the host portion of ``url`` or empty string when unset.
-
-    Keeps the project endpoint discoverable for operators (which
-    Foundry account am I pointed at?) without leaking the full URL
-    path / query, which can carry tenant or project identifiers in
-    some Foundry deployment shapes.
-    """
-    if not url:
-        return ""
-    return urlparse(url).netloc
 
 
 @router.get("/status", response_model=AdminStatus)
@@ -200,7 +109,7 @@ async def status_endpoint(
         db_type=settings.database.db_type,
         index_store=settings.database.index_store,
         environment=settings.environment,
-        foundry_project_endpoint_host=_host_only(
+        foundry_project_endpoint_host=host_only(
             settings.foundry.project_endpoint
         ),
         gpt_deployment=settings.openai.gpt_deployment,
@@ -209,7 +118,7 @@ async def status_endpoint(
         search_enabled=bool(settings.search.endpoint),
         app_insights_enabled=bool(obs_conn),
         cors_origins=list(settings.network.cors_origins),
-        version=_APP_VERSION,
+        version=APP_VERSION,
     )
 
 
@@ -231,6 +140,7 @@ async def config_endpoint(
         search_use_semantic_search=settings.search.use_semantic_search,
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
+        content_safety_enabled=settings.content_safety.enabled,
     )
 
 
@@ -249,7 +159,7 @@ async def config_effective_endpoint(
     PATCH (#35e(a)), so this endpoint reflects PATCHes immediately
     without a database round-trip.
     """
-    # Env defaults -- same 6-field surface as `GET /api/admin/config`.
+    # Env defaults -- same surface as `GET /api/admin/config`.
     env_values: dict[str, Any] = {
         "orchestrator_name": settings.orchestrator.name,
         "openai_temperature": settings.openai.temperature,
@@ -257,10 +167,11 @@ async def config_effective_endpoint(
         "search_use_semantic_search": settings.search.use_semantic_search,
         "search_top_k": settings.search.top_k,
         "log_level": settings.observability.log_level,
+        "content_safety_enabled": settings.content_safety.enabled,
     }
     merged: dict[str, Any] = dict(env_values)
-    sources: dict[str, Literal["env", "override"]] = {
-        name: "env" for name in env_values
+    sources: dict[str, ConfigSource] = {
+        name: ConfigSource.ENV for name in env_values
     }
     if overrides is not None:
         for name in env_values:
@@ -270,7 +181,7 @@ async def config_effective_endpoint(
             # docstring); only non-None values count as overrides.
             if override_value is not None:
                 merged[name] = override_value
-                sources[name] = "override"
+                sources[name] = ConfigSource.OVERRIDE
 
     # Surface audit fields whenever an override row exists, even if
     # every field has been cleared back to env -- the row itself is
@@ -305,24 +216,6 @@ async def config_effective_endpoint(
 # ---------------------------------------------------------------------------
 
 
-# Allow-list of writable RuntimeConfig fields (the 6 mutable ones --
-# `updated_at` / `updated_by` are server-set and rejected on input).
-# Computed once at module import so request validation is O(1).
-_WRITABLE_FIELDS: frozenset[str] = frozenset(
-    name
-    for name in RuntimeConfig.model_fields
-    if name not in {"updated_at", "updated_by"}
-)
-
-
-def _utcnow_iso() -> str:
-    """ISO-8601 UTC timestamp with timezone suffix. Matches the
-    `_utcnow_iso` shape in `backend/core/providers/databases/cosmosdb.py`
-    so persisted RuntimeConfig rows are comparable across providers.
-    """
-    return datetime.now(UTC).isoformat()
-
-
 @router.patch("/config", response_model=RuntimeConfig)
 async def patch_config_endpoint(
     request: Request,
@@ -350,14 +243,14 @@ async def patch_config_endpoint(
     breaking the 'undo my override' UX.
     """
     # --- Allow-list lock-in (rejects unknown fields with 422) -------------
-    unknown = set(payload) - _WRITABLE_FIELDS
+    unknown = set(payload) - WRITABLE_FIELDS
     if unknown:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "msg": "Unknown field(s) in PATCH body",
                 "unknown_fields": sorted(unknown),
-                "allowed_fields": sorted(_WRITABLE_FIELDS),
+                "allowed_fields": sorted(WRITABLE_FIELDS),
             },
         )
 
@@ -378,7 +271,7 @@ async def patch_config_endpoint(
     # --- Server-set audit fields -- always overwritten on every PATCH so
     # an operator probing 'what's the latest override state?' can sort
     # by `updated_at` deterministically.
-    merged_data["updated_at"] = _utcnow_iso()
+    merged_data["updated_at"] = utcnow_iso()
     merged_data["updated_by"] = user_id
 
     # --- Type validation on the merged shape (turns wrong-type values
@@ -430,4 +323,284 @@ async def patch_config_endpoint(
     return merged
 
 
-__all__ = ["AdminConfig", "AdminStatus", "EffectiveAdminConfig", "router"]
+# ---------------------------------------------------------------------------
+# GET /api/admin/documents -- list every distinct source currently indexed,
+# with the chunk count per source. Feeds the admin UI's Delete Data grid.
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/documents",
+    response_model=ListDocumentsResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def list_documents_endpoint(
+    search: SearchProviderDep,
+    _user: AdminUserIdDep,
+) -> ListDocumentsResponse:
+    """List every distinct source currently indexed.
+
+    Returns one :class:`SourceListing` per distinct source (filename or
+    URL set on the ``title`` field at ingestion), with the chunk count
+    per source. The list is service-side sorted by source name so the
+    FE grid is deterministic without a client-side sort.
+
+    Status surface:
+
+    * ``200`` + :class:`ListDocumentsResponse` -- always, even when no
+      sources are indexed (``documents=[]``, ``total=0``). An empty
+      index is a valid operating state, not an error.
+    * ``503`` when the deployment has no search backend configured
+      (the route stays mounted so operators discover the gap
+      explicitly instead of routing-404-ing it).
+    * Upstream ``AzureError`` / ``asyncpg.PostgresError`` propagate to
+      the app-level handlers in :mod:`backend.app`, which sanitise
+      both into 503 responses with no SDK detail leaked.
+    """
+    if search is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Search backend is not configured for this deployment.",
+        )
+    listings = await search.list_sources()
+    return ListDocumentsResponse(
+        documents=list(listings),
+        total=len(listings),
+    )
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/admin/documents/{source} -- remove every indexed chunk attached
+# to the given source (filename or URL set at ingestion time).
+# ---------------------------------------------------------------------------
+
+
+@router.delete(
+    "/documents/{source:path}",
+    response_model=DeleteDocumentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def delete_document_endpoint(
+    source: str,
+    search: SearchProviderDep,
+    _user: AdminUserIdDep,
+) -> DeleteDocumentResponse:
+    """Delete every indexed chunk whose source matches ``source``.
+
+    ``source`` is the per-chunk filename or URL set at ingestion (the
+    ``title`` field on every search backend). The ``{source:path}``
+    converter captures URL-typed sources that contain slashes;
+    FastAPI percent-decodes the path segment before the handler runs.
+
+    Status surface:
+
+    * ``200`` + ``{"deleted": N}`` when ``N > 0`` chunks were removed.
+    * ``404`` when no chunks matched.
+    * ``503`` when the deployment has no search backend configured
+      (the route stays mounted so operators discover the gap
+      explicitly instead of routing-404-ing it).
+    * Upstream ``AzureError`` / ``asyncpg.PostgresError`` propagate to
+      the app-level handlers in :mod:`backend.app`, which sanitise
+      both into 503 responses with no SDK detail leaked.
+    """
+    if search is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Search backend is not configured for this deployment.",
+        )
+    deleted = await search.delete_by_source(source)
+    if deleted == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No indexed chunks found for source {source!r}.",
+        )
+    logger.info(
+        "Admin deleted indexed chunks for source.",
+        extra={
+            "operation": "delete_document",
+            "source": source,
+            "deleted_count": deleted,
+        },
+    )
+    return DeleteDocumentResponse(deleted=deleted)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents/url -- fetch one URL, parse + embed + index its
+# chunks. FE-facing entry point so the admin UI can drive URL ingest
+# through FastAPI instead of reaching into the Functions HTTP trigger.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents/url",
+    response_model=IngestUrlResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def ingest_url_endpoint(
+    body: IngestUrlRequest,
+    settings: SettingsDep,
+    credential: CredentialDep,
+    search: SearchProviderDep,
+    _user: AdminUserIdDep,
+) -> IngestUrlResponse:
+    """Fetch ``body.url`` and write its embedded chunks to the search index.
+
+    Delegates the fetch / parse / embed / push pipeline to
+    :func:`backend.services.ingestion.ingest_url` -- same orchestration
+    the Functions HTTP trigger uses, so an URL ingested via this route
+    lands in the same shape as one ingested via the queue path.
+
+    Status surface:
+
+    * ``200`` + :class:`IngestUrlResponse` on success.
+    * ``422`` when the body fails Pydantic validation (URL empty or
+      too long).
+    * ``503`` when the deployment has no search backend configured
+      (the route stays mounted so operators discover the gap
+      explicitly instead of routing-404-ing it).
+    * Upstream ``httpx.HTTPError`` (bad URL, dead host) /
+      ``AzureError`` (embedder / search) propagate to the app-level
+      handlers in :mod:`backend.app`.
+    """
+    if search is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Search backend is not configured for this deployment.",
+        )
+    return await ingest_url(
+        body,
+        settings=settings,
+        credential=credential,
+        search_provider=search,
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents -- multipart file upload. Writes to the source
+# blob container and enqueues a push message so the existing ``batch_push``
+# queue consumer runs the same parse + embed + push pipeline used by
+# ``batch_start``.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents",
+    response_model=UploadResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_document_endpoint(
+    settings: SettingsDep,
+    credential: CredentialDep,
+    _user: AdminUserIdDep,
+    file: Annotated[UploadFile, File(...)],
+) -> UploadResponse:
+    """Upload a single document and enqueue it for indexing.
+
+    Status surface:
+
+    * ``200`` + :class:`UploadResponse` on success.
+    * ``413`` when the uploaded file exceeds
+      :data:`backend.services.ingestion.MAX_UPLOAD_SIZE_BYTES`.
+    * ``415`` when the filename has no extension or an extension
+      that is not registered in the parser registry -- the parser
+      registry is the authoritative source of "supported file
+      types" for the whole pipeline (Hard Rule #4).
+    * ``422`` when the multipart body is missing the ``file`` part
+      or the filename is empty (FastAPI / Pydantic native).
+    * ``503`` when the deployment has no documents container or
+      doc-processing queue configured -- the route stays mounted so
+      operators discover the gap explicitly instead of
+      routing-404-ing it.
+    * Upstream ``AzureError`` (blob upload, queue send) propagates
+      to the app-level handlers in :mod:`backend.app`, which
+      sanitise it into a 503 response with no SDK detail leaked.
+    """
+    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Document storage is not configured for this deployment."
+            ),
+        )
+    filename = (file.filename or "").strip()
+    if not filename:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Uploaded file must carry a non-empty filename.",
+        )
+    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
+    if extension not in ingestion_parsers_registry.registry:
+        supported = sorted(ingestion_parsers_registry.registry.keys())
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail={
+                "msg": "Unsupported file extension.",
+                "extension": extension,
+                "supported": supported,
+            },
+        )
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail={
+                "msg": "Uploaded file exceeds the maximum allowed size.",
+                "byte_count": len(content),
+                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
+            },
+        )
+    return await upload_document(
+        filename=filename,
+        content=content,
+        settings=settings,
+        credential=credential,
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/admin/documents/reprocess -- re-fan every blob in the documents
+# container onto the push queue so every existing document is re-parsed,
+# re-embedded, and re-pushed through the same pipeline a freshly-uploaded
+# file traverses. Single ``batch_start_handler`` invocation under the hood.
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/documents/reprocess",
+    response_model=ReprocessResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def reprocess_all_endpoint(
+    settings: SettingsDep,
+    credential: CredentialDep,
+    _user: AdminUserIdDep,
+) -> ReprocessResponse:
+    """Fan every blob in the documents container out to the push queue.
+
+    Status surface:
+
+    * ``200`` + :class:`ReprocessResponse` on success.
+      ``ingestion_job_id`` is ``None`` when the container is empty so
+      the FE can distinguish "nothing to do" from "queued N items".
+    * ``503`` when the deployment has no documents container or
+      doc-processing queue configured -- the route stays mounted so
+      operators discover the gap explicitly instead of
+      routing-404-ing it.
+    * Upstream ``AzureError`` (blob listing, queue send) propagates
+      to the app-level handlers in :mod:`backend.app`.
+    """
+    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Document storage is not configured for this deployment."
+            ),
+        )
+    return await reprocess_all(settings=settings, credential=credential)
+
+
+__all__ = [
+    "ConfigSource",
+    "router",
+]

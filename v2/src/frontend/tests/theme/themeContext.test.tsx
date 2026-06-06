@@ -9,7 +9,7 @@
  */
 import { act, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ThemeProvider, useTheme } from "../../src/theme/themeContext";
+import { ThemeProvider, useTheme } from "@/theme/themeContext";
 
 const STORAGE_KEY = "cwyd.theme";
 

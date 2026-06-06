@@ -1,7 +1,7 @@
 """Chat-history router.
 
 Pillar: Stable Core
-Phase: 4 (task #31; hardened in #32b)
+Phase: 4
 
 Thin REST surface over the registered ``BaseDatabaseClient``
 (``cosmosdb`` or ``postgresql`` -- selected at startup, see
@@ -32,79 +32,16 @@ asyncpg) directly, keeping the surface registry-only (Hard Rule #4).
 """
 
 import logging
-from typing import Annotated, cast
+from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, status
 
-from backend.dependencies import DatabaseClientDep, SettingsDep
-from backend.core.types import ChatMessage, Conversation, MessageRecord, Role
+from backend.core.types import ChatMessage, ChatRole, Conversation, MessageRecord
+from backend.dependencies import DatabaseClientDep, SettingsDep, UserIdDep
+from backend.models.history import AddMessageRequest, ConversationDetail, CreateConversationRequest, HistoryStatus, RenameConversationRequest, SetFeedbackRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/history", tags=["history"])
-
-
-_LOCAL_DEV_USER = "local-dev"
-_PRINCIPAL_ID_HEADER = "x-ms-client-principal-id"
-
-
-def get_user_id(request: Request, settings: SettingsDep) -> str:
-    """Return the caller's user id.
-
-    Reads the Azure App Service Easy Auth header
-    ``x-ms-client-principal-id`` (the user's Entra object id). When
-    the header is absent we fall back to a single ``"local-dev"``
-    partition **only** when ``settings.environment == "local"`` so
-    the chat-history panel is exercisable end-to-end during
-    development. In ``production`` a missing header raises
-    ``401 Unauthorized`` -- a misconfigured Easy Auth must fail
-    closed, never silently fold every anonymous caller into the
-    ``local-dev`` partition.
-    """
-    value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
-    if value:
-        return value
-    if settings.environment == "local":
-        return _LOCAL_DEV_USER
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Missing client principal; Easy Auth header required.",
-    )
-
-
-UserIdDep = Annotated[str, Depends(get_user_id)]
-
-
-# ---------------------------------------------------------------------------
-# Request models
-# ---------------------------------------------------------------------------
-
-
-class CreateConversationRequest(BaseModel):
-    title: str = Field(default="", max_length=512)
-
-
-class RenameConversationRequest(BaseModel):
-    title: str = Field(min_length=1, max_length=512)
-
-
-class AddMessageRequest(BaseModel):
-    role: str = Field(min_length=1, max_length=32)
-    content: str = Field(min_length=1)
-
-
-class SetFeedbackRequest(BaseModel):
-    feedback: str = Field(min_length=1, max_length=64)
-
-
-class HistoryStatus(BaseModel):
-    enabled: bool
-    db_type: str
-
-
-class ConversationDetail(BaseModel):
-    conversation: Conversation
-    messages: list[MessageRecord]
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +141,7 @@ async def add_message(
         return await db.add_message(
             conversation_id=conversation_id,
             user_id=user_id,
-            message=ChatMessage(role=cast(Role, body.role), content=body.content),
+            message=ChatMessage(role=cast(ChatRole, body.role), content=body.content),
         )
     except KeyError as exc:
         raise HTTPException(
@@ -232,4 +169,4 @@ async def set_feedback(
         ) from exc
 
 
-__all__ = ["get_user_id", "router"]
+__all__ = ["router"]

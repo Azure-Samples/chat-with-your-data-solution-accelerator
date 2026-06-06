@@ -36,9 +36,9 @@ describe("FluentThemeBridge — DOM mounting", () => {
   });
 
   it("wraps children in a Fluent v9 FluentProvider DOM node", async () => {
-    const { ThemeProvider } = await import("../../src/theme/themeContext");
+    const { ThemeProvider } = await import("@/theme/themeContext");
     const { FluentThemeBridge } = await import(
-      "../../src/theme/FluentThemeBridge"
+      "@/theme/FluentThemeBridge"
     );
 
     render(
@@ -102,11 +102,11 @@ describe("FluentThemeBridge — theme flip", () => {
       };
     });
 
-    const { ThemeProvider, useTheme } = await import(
-      "../../src/theme/themeContext"
+    const { Theme, ThemeProvider, useTheme } = await import(
+      "@/theme/themeContext"
     );
     const { FluentThemeBridge } = await import(
-      "../../src/theme/FluentThemeBridge"
+      "@/theme/FluentThemeBridge"
     );
 
     function FlipProbe(): React.JSX.Element {
@@ -115,7 +115,7 @@ describe("FluentThemeBridge — theme flip", () => {
         <button
           type="button"
           data-testid="flip-to-dark"
-          onClick={() => setTheme("dark")}
+          onClick={() => setTheme(Theme.Dark)}
         >
           flip
         </button>

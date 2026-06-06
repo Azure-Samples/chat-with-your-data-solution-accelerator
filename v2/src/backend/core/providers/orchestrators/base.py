@@ -3,8 +3,8 @@
 Pillar: Stable Core
 Phase: 3
 
-Every concrete orchestrator (`langgraph` task #18, `agent_framework`
-task #19, future swap-ins) inherits from `OrchestratorBase` and
+Every concrete orchestrator (`langgraph`, `agent_framework`,
+future swap-ins) inherits from `OrchestratorBase` and
 self-registers via `@registry.register("<key>")`. Constructors take
 `AppSettings` + an `BaseLLMProvider` (so the orchestrator can call into
 Foundry IQ without re-resolving credentials -- see ADR 0005).
@@ -37,6 +37,20 @@ class OrchestratorBase(ABC):
     ) -> None:
         self._settings = settings
         self._llm = llm
+
+    @property
+    def llm(self) -> BaseLLMProvider:
+        """Public accessor for the bound LLM provider.
+
+        Subclasses (e.g. `LangGraphOrchestrator`) call into the LLM
+        provider directly. The underlying storage (`self._llm`) stays
+        single-underscore to signal "set once at construction, don't
+        reassign", but reads go through this property so pyright's
+        `reportPrivateUsage` rule (which treats single-underscore as
+        class-private, not module-private) doesn't flag every
+        legitimate subclass access.
+        """
+        return self._llm
 
     @abstractmethod
     def run(

@@ -27,7 +27,7 @@ Item shapes::
 
 Lifecycle: the underlying `CosmosClient` owns an HTTP session.
 `aclose()` releases it. The FastAPI lifespan in `backend/app.py`
-(task #29) caches one client per process and closes it on shutdown
+caches one client per process and closes it on shutdown
 (`sdk-singleton-client`).
 """
 
@@ -53,7 +53,7 @@ from backend.core.types import (
     RuntimeConfig,
 )
 
-from . import registry
+from .registry import registry
 from .base import BaseDatabaseClient
 
 logger = logging.getLogger(__name__)

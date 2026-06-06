@@ -1,39 +1,16 @@
-"""LLM provider domain (registry-keyed).
+"""LLM provider domain (package marker only).
 
 Pillar: Stable Core
 Phase: 2
 
-Foundry IQ is the production default. Additional providers (e.g.
-on-prem vLLM, Ollama for dev) plug in by registering against the same
-ABC -- callers always go through `llm.create(...)`, never new a
-provider class directly.
+Per Hard Rule #13 / development_plan §2.4: this `__init__.py` is a
+package marker only. The `Registry[type[BaseLLMProvider]]` instance
++ eager side-effect imports of concrete providers live in
+`registry.py`. Callers:
 
-Recipe (per ยง3.5 of v2/docs/development_plan.md):
+    from backend.core.providers.llm import registry as llm_registry
 
-    llm_provider = llm.create("foundry_iq", settings=settings, credential=cred)
-    reply = await llm_provider.chat(messages, deployment="gpt-4o")
+    llm_provider = llm_registry.registry.get("foundry_iq")(
+        settings=settings, credential=credential
+    )
 """
-
-# pyright: reportUnusedImport=false
-# `from . import foundry_iq` below is an intentional side-effect
-# import that triggers `@registry.register("foundry_iq")`; pyright
-# cannot see the side-effect and would flag it as unused (Hard Rule #4).
-
-from typing import Any
-
-from backend.core.registry import Registry
-
-from .base import BaseLLMProvider
-
-registry: Registry[type[BaseLLMProvider]] = Registry("llm")
-
-# Side-effect import: triggers @registry.register("foundry_iq").
-from . import foundry_iq  # noqa: E402, F401
-
-
-def create(key: str, **kwargs: Any) -> BaseLLMProvider:
-    """Instantiate the LLM provider registered under `key`."""
-    return registry.get(key)(**kwargs)
-
-
-__all__ = ["BaseLLMProvider", "create", "registry"]

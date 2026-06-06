@@ -22,17 +22,48 @@ from typing import Any, AsyncGenerator
 
 import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import openai
+from azure.ai.contentsafety.aio import ContentSafetyClient
+from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 from azure.cosmos.exceptions import CosmosHttpResponseError
+from azure.monitor.opentelemetry import configure_azure_monitor  # pyright: ignore[reportUnknownVariableType]
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.routers import conversation, health, history, speech
-from backend.core.providers import agents, credentials, databases, llm, search
-from backend.core.settings import NetworkSettings, get_settings
+from backend.routers import admin, conversation, health, history, speech
+from backend.core.providers.agents import registry as agents_registry
+from backend.core.providers.credentials import registry as credentials_registry
+from backend.core.providers.databases import registry as databases_registry
+from backend.core.providers.llm import registry as llm_registry
+from backend.core.providers.search import registry as search_registry
+from backend.core.settings import AppSettings, IndexStore, NetworkSettings, get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _init_content_safety_client(
+    settings: AppSettings,
+    credential: AsyncTokenCredential,
+) -> ContentSafetyClient | None:
+    """Build the singleton ContentSafetyClient when configured, else None.
+
+    Returns None when either `content_safety.enabled` is False OR
+    `content_safety.endpoint` is empty -- the configuration gate is
+    permissive (either alone is treated as 'off'), so a half-set
+    operator config fails open (chat runs unguarded) rather than
+    crashing boot. Consumers MUST treat None as 'screening disabled'
+    and pass user input through.
+
+    No HTTP performed at construction time -- the first network call
+    happens inside `ContentSafetyGuard.screen()` at request time.
+    """
+    if not (settings.content_safety.enabled and settings.content_safety.endpoint):
+        return None
+    return ContentSafetyClient(
+        endpoint=settings.content_safety.endpoint,
+        credential=credential,
+    )
 
 
 @asynccontextmanager
@@ -41,12 +72,6 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     conn_str = settings.observability.app_insights_connection_string.strip()
     if conn_str:
-        # Local import: keeps the backend-only profile importable even
-        # if the OTel extras are not yet wheel-resolved in dev.
-        from azure.monitor.opentelemetry import (
-            configure_azure_monitor,  # pyright: ignore[reportUnknownVariableType]
-        )
-
         configure_azure_monitor(connection_string=conn_str)
         logger.info("Application Insights telemetry configured.")
     else:
@@ -54,11 +79,11 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             "AZURE_APP_INSIGHTS_CONNECTION_STRING not set; telemetry disabled."
         )
 
-    cred_key = credentials.select_default(settings.identity.uami_client_id)
-    cred_provider = credentials.create(cred_key, settings=settings)
+    cred_key = credentials_registry.select_default(settings.identity.uami_client_id)
+    cred_provider = credentials_registry.registry.get(cred_key)(settings=settings)
     credential = await cred_provider.get_credential()
-    llm_provider = llm.create(
-        "foundry_iq", settings=settings, credential=credential
+    llm_provider = llm_registry.registry.get("foundry_iq")(
+        settings=settings, credential=credential
     )
 
     # Agents provider: backs the `agent_framework` orchestrator. Always
@@ -66,8 +91,8 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # the first `get_client()` call), so the `langgraph` orchestrator
     # incurs zero overhead. Registry-only dispatch (Hard Rule #4); the
     # only key today is `"foundry"`.
-    agents_provider = agents.create(
-        "foundry", settings=settings, credential=credential
+    agents_provider = agents_registry.registry.get("foundry")(
+        settings=settings, credential=credential
     )
 
     app.state.credential_provider = cred_provider
@@ -84,8 +109,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # key matches the `Literal` value of `settings.database.db_type`
     # (`cosmosdb` / `postgresql`) so dispatch is registry-only
     # (Hard Rule #4).
-    database_client = databases.create(
-        settings.database.db_type,
+    database_client = databases_registry.registry.get(settings.database.db_type)(
         settings=settings,
         credential=credential,
     )
@@ -117,11 +141,11 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     #     is None -- see `providers/orchestrators/langgraph.py`).
     #   - `pgvector` needs the postgres pool injected. The pool lives
     #     on the database client and must be a single per-process
-    #     instance (see Phase 4 task #30); only the lifespan can
+    #     instance (`pgvector` reuses the postgres pool); only the lifespan can
     #     supply it.
     search_key = settings.database.index_store
     search_provider = None
-    needs_endpoint = search_key == "AzureSearch"
+    needs_endpoint = search_key == IndexStore.AZURE_SEARCH
     if needs_endpoint and not settings.search.endpoint:
         logger.info(
             "Search disabled (key=%s, no endpoint configured); "
@@ -133,7 +157,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             "settings": settings,
             "credential": credential,
         }
-        if search_key == "pgvector":
+        if search_key == IndexStore.PGVECTOR:
             # pgvector requires the postgres pool. `ensure_pool()` lives
             # only on the postgres client; if the pgvector path is
             # selected but the database client isn't postgres, the
@@ -145,17 +169,41 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             search_kwargs["pool"] = (
                 await database_client.ensure_pool()  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
             )
-        search_provider = search.create(search_key, **search_kwargs)
+        search_provider = search_registry.registry.get(search_key)(**search_kwargs)
+        # ensure_schema is a no-op on AzureSearch (index owned by
+        # Bicep) and runs the pgvector DDL once-per-process under an
+        # asyncio.Lock + readiness flag. Unconditional call keeps the
+        # wiring provider-agnostic; raising here aborts lifespan startup
+        # before `yield` (the app refuses to boot on a broken schema),
+        # consistent with how earlier setup failures already behave.
+        await search_provider.ensure_schema()
         logger.info("Search provider ready (%s).", search_key)
     app.state.search_provider = search_provider
+
+    content_safety_client = _init_content_safety_client(settings, credential)
+    app.state.content_safety_client = content_safety_client
+    if content_safety_client is None:
+        logger.info(
+            "Content Safety disabled (enabled=%s, endpoint_set=%s).",
+            settings.content_safety.enabled,
+            bool(settings.content_safety.endpoint),
+        )
+    else:
+        logger.info("Content Safety client ready.")
 
     try:
         yield
     finally:
-        # Close in reverse order of construction. Search first because
-        # pgvector borrows the postgres pool owned by the database
-        # client -- closing the database client first would leave
-        # search with a dead pool to call `aclose()` on.
+        # Close in reverse order of construction. Content Safety first
+        # (most recently built, no other resource depends on it), then
+        # search (pgvector borrows the postgres pool owned by the
+        # database client -- closing the database client first would
+        # leave search with a dead pool to call `aclose()` on).
+        if content_safety_client is not None:
+            try:
+                await content_safety_client.close()
+            except Exception:  # noqa: BLE001 -- shutdown is best-effort
+                logger.exception("Error closing Content Safety client.")
         if search_provider is not None:
             try:
                 await search_provider.aclose()
@@ -358,6 +406,7 @@ def create_app() -> FastAPI:
     app.include_router(conversation.router)
     app.include_router(history.router)
     app.include_router(speech.router)
+    app.include_router(admin.router)
     _install_exception_handlers(app)
     return app
 

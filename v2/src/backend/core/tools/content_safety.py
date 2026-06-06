@@ -1,7 +1,7 @@
 """Content safety guardrail.
 
 Pillar: Stable Core
-Phase: 3 (`ContentSafetyGuard`) + Cleanup audit batch 2 / CU-011a (`rai_check`)
+Phase: 3
 
 Two parallel safety seams live in this module, by design:
 
@@ -23,8 +23,7 @@ Two parallel safety seams live in this module, by design:
    `AZURE_OPENAI_RAI_DEPLOYMENT_NAME` into the
    `AgentDefinition.deployment_attr` indirection).
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.content_safety import ContentSafetyGuard, rai_check
 """
@@ -34,7 +33,7 @@ from azure.ai.contentsafety.aio import ContentSafetyClient
 from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
 from pydantic import BaseModel, Field
 
-from backend.core.agents import RAI_AGENT
+from backend.core.agents.definitions import RAI_AGENT
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 

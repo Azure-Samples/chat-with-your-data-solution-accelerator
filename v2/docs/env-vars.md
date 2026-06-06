@@ -64,7 +64,7 @@ The `db_type` switch determines which side of the table is required.
 | Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
 |---|---|---|---|---|---|---|
 | `AZURE_DB_TYPE` | `cosmosdb` \| `postgresql` | required | `database.db_type` | `AZURE_DB_TYPE` | `cosmosdb` | Registry key for `databases.create(...)`. |
-| `AZURE_INDEX_STORE` | `AzureSearch` \| `pgvector` | required | `database.index_store` | `AZURE_INDEX_STORE` | `AzureSearch` | Registry key for `search.create(...)`. Validator enforces `AzureSearch` ↔ `cosmosdb` and `pgvector` ↔ `postgresql`. |
+| `AZURE_INDEX_STORE` | `AzureSearch` \| `pgvector` | required | `database.index_store` | `AZURE_INDEX_STORE` | `AzureSearch` | Registry key for `search.create(...)`. Validator enforces `AzureSearch` ↔ `cosmosdb` and `pgvector` ↔ `postgresql`. **Known limitation (`B2-INGEST-PGVECTOR`, dev_plan §0.1):** the Functions ingest blueprints `batch_push` and `add_url` currently hard-code an Azure-Search `SearchClient` and do **not** dispatch through the search registry — so setting `AZURE_INDEX_STORE=pgvector` makes the chat-side search work but leaves the Functions ingest path broken. Cosmos+AzureSearch is the only fully-wired combination for ingestion today. |
 | `AZURE_COSMOS_ENDPOINT` | str | required (cosmosdb) | `database.cosmos_endpoint` | `AZURE_COSMOS_ENDPOINT` | `""` | Required when `db_type=cosmosdb`. |
 | `AZURE_COSMOS_ACCOUNT_NAME` | str | optional | `database.cosmos_account_name` | `AZURE_COSMOS_ACCOUNT_NAME` | `""` | |
 | `AZURE_COSMOS_DATABASE_NAME` | str | optional | `database.cosmos_database_name` | — | `cwyd` | Operator override; not a Bicep output (constant). |
@@ -93,7 +93,7 @@ Cosmosdb-mode only; ignored in pgvector-mode (where the search provider lives in
 | `AZURE_STORAGE_ACCOUNT_NAME` | str | required (RAG) | `storage.storage_account_name` | `AZURE_STORAGE_ACCOUNT_NAME` | `""` | |
 | `AZURE_STORAGE_BLOB_ENDPOINT` | str | required (RAG) | `storage.storage_blob_endpoint` | `AZURE_STORAGE_BLOB_ENDPOINT` | `""` | Primary blob URL. |
 | `AZURE_DOCUMENTS_CONTAINER` | str | required (RAG) | `storage.documents_container` | `AZURE_DOCUMENTS_CONTAINER` | `""` | Source container for ingestion. |
-| `AZURE_DOC_PROCESSING_QUEUE` | str | required (RAG) | `storage.doc_processing_queue` | `AZURE_DOC_PROCESSING_QUEUE` | `""` | Storage queue consumed by `batch_push`. |
+| `AZURE_DOC_PROCESSING_QUEUE` | str | required (RAG) | `storage.doc_processing_queue` | `AZURE_DOC_PROCESSING_QUEUE` | `""` | Storage queue consumed by `batch_push`. See `AZURE_INDEX_STORE` note — `batch_push` writes through a hard-coded Azure-Search `SearchClient` regardless of `index_store` (`B2-INGEST-PGVECTOR`). |
 
 ### Observability (`ObservabilitySettings`, env_prefix `AZURE_`)
 
@@ -121,7 +121,7 @@ Distinct namespace because the orchestrator is **runtime-tunable**, not infra-pi
 
 | Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
 |---|---|---|---|---|---|---|
-| `CWYD_ORCHESTRATOR_NAME` | `langgraph` \| `agent_framework` | optional | `orchestrator.name` | — | `langgraph` | Registry key passed to `orchestrators.create(...)`. |
+| `CWYD_ORCHESTRATOR_NAME` | `langgraph` \| `agent_framework` | optional | `orchestrator.name` | — | `langgraph` | Registry key passed to `orchestrators.create(...)`. **Naming caveat (`B1-MAF-MISLABEL`, dev_plan §0.1):** the value `agent_framework` is the *registry key*, not the OSS `agent-framework` PyPI package. The orchestrator behind that key today wraps the `azure.ai.agents` SDK (Foundry hosted-agents). The swap to the real OSS `agent_framework` / `agent-framework-foundry` packages is Phase B-IMPL work and will preserve the key. |
 
 ### Speech (`SpeechSettings`, env_prefix `AZURE_SPEECH_`)
 
@@ -133,6 +133,16 @@ Wires `GET /api/speech` (`v2/src/backend/routers/speech.py`) which mints a 10-mi
 | `AZURE_SPEECH_SERVICE_REGION` | str | required for `/api/speech` | `speech.service_region` | `AZURE_SPEECH_SERVICE_REGION` | `""` | Empty → router returns **503 Speech service not configured**. |
 | `AZURE_SPEECH_ACCOUNT_RESOURCE_ID` | str | required | `speech.account_resource_id` | `AZURE_SPEECH_ACCOUNT_RESOURCE_ID` | `""` | Sent as `x-ms-cognitiveservices-resource-id` header on the AAD-bearer STS issueToken POST. |
 | `AZURE_SPEECH_RECOGNIZER_LANGUAGES` | CSV str | optional | `speech.recognizer_languages` | — | `"en-US,fr-FR,de-DE,it-IT"` | Comma-split client-side; passed to `AutoDetectSourceLanguageConfig.fromLanguages(...)`. |
+
+### Content Safety (`ContentSafetySettings`, env_prefix `AZURE_CONTENT_SAFETY_`)
+
+Wires the prompt-shielding guard injected into `run_chat(...)` via `Depends(get_content_safety_guard)`. The guard calls `AnalyzeText` on a standalone Cognitive Services account of kind `ContentSafety` (deployed by the inline `cogContentSafety` module in `v2/infra/main.bicep`). Hard Rule #2 — UAMI must hold **Cognitive Services User** (`a97b65f3-24c7-4388-baec-2e87135dc908`) on the `cs-*` account; no subscription keys. The Bicep deploys the account unconditionally and pins `AZURE_CONTENT_SAFETY_ENABLED='true'` on the backend container app at infra level; operators flip the guard OFF per-request via the admin runtime override `PATCH /api/admin/config {"content_safety_enabled": false}` (`RuntimeConfig.content_safety_enabled` `False` short-circuits to `None` even when the lifespan client is present — operator-off wins over env baseline).
+
+| Env var | Type | Req | AppSettings field | Bicep output | Default | Notes |
+|---|---|---|---|---|---|---|
+| `AZURE_CONTENT_SAFETY_ENDPOINT` | str | required for guard | `content_safety.endpoint` | `AZURE_CONTENT_SAFETY_ENDPOINT` | `""` | Regional Cognitive Services endpoint (e.g. `https://cs-cwyd001.cognitiveservices.azure.com/`). Empty → lifespan leaves `app.state.content_safety_client = None`; pipeline runs unguarded. |
+| `AZURE_CONTENT_SAFETY_ENABLED` | bool | required for guard | `content_safety.enabled` | (`'true'` literal on backend container-app `env`) | `False` | Operator opt-in. Both `enabled=true` AND a non-empty endpoint are required at lifespan to build the client; either alone is treated as "off" (no exception raised). |
+| `AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD` | int 0-7 | optional | `content_safety.severity_threshold` | — | `4` | Inclusive lower bound at which verdicts trip. Azure reports 0/2/4/6; default `4` matches v1 `enable_content_safety: true` behavior. Validation ceiling `7` lets operators set the guard effectively-off without rejection at settings load. |
 
 ### Root (`AppSettings`, env_prefix `AZURE_`)
 
@@ -178,7 +188,6 @@ Wires `GET /api/speech` (`v2/src/backend/routers/speech.py`) which mints a 10-mi
 | `APP_ENV` | Replaced by `AZURE_ENVIRONMENT` (`local` \| `production`). | Phase 2 |
 | `BACKEND_URL` (read by v1 frontend) | Replaced by `VITE_BACKEND_URL` (build-time) + `AZURE_BACKEND_URL` (runtime). | Phase 1 |
 | `AZURE_SUBSCRIPTION_ID` | Not consumed by v2 runtime (azd reads it from the CLI context). | Phase 1 |
-| `AZURE_CONTENT_SAFETY_ENDPOINT` | Existing `ContentSafetyGuard` REST seam is preserved but its endpoint will be re-introduced as a typed setting only when CU-013 (v1 content-safety audit follow-up) lands. Currently not surfaced in `.env.sample`. | Pending CU-013 |
 
 ---
 

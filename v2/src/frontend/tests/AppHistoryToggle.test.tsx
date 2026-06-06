@@ -8,7 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { App } from "../src/App";
+import { App } from "@/App";
 
 beforeEach(() => {
   // Stub the entire fetch surface (health + history endpoints) so the

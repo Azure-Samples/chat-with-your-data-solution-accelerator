@@ -1,4 +1,4 @@
-"""Tests for the Agent Framework orchestrator (Phase 3 task #19).
+"""Tests for the Agent Framework orchestrator.
 
 Pillar: Stable Core
 Phase: 3
@@ -9,11 +9,12 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from azure.core.exceptions import HttpResponseError
 
-from backend.core.providers import orchestrators
+from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, FoundrySettings
 from backend.core.types import ChatMessage
 
 
@@ -22,12 +23,34 @@ from backend.core.types import ChatMessage
 # ---------------------------------------------------------------------------
 
 
-def _text_block(value: str) -> SimpleNamespace:
-    return SimpleNamespace(text=SimpleNamespace(value=value))
+def _settings(endpoint: str = "https://example.services.ai.azure.com/api/projects/p1") -> AppSettings:
+    settings = MagicMock(spec=AppSettings)
+    settings.foundry = MagicMock(spec=FoundrySettings)
+    settings.foundry.project_endpoint = endpoint
+    return settings
 
 
-def _thread_msg(role: str, text: str) -> SimpleNamespace:
-    return SimpleNamespace(role=role, content=[_text_block(text)])
+def _text_block(text: str) -> SimpleNamespace:
+    return SimpleNamespace(type="text", text=text)
+
+
+def _reasoning_block(text: str) -> SimpleNamespace:
+    return SimpleNamespace(type="text_reasoning", text=text)
+
+
+def _function_call_block(
+    *, call_id: str, name: str, arguments: Any
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        type="function_call",
+        call_id=call_id,
+        name=name,
+        arguments=arguments,
+    )
+
+
+def _update(*contents: Any) -> SimpleNamespace:
+    return SimpleNamespace(contents=list(contents))
 
 
 class _FakeAsyncIter:
@@ -43,77 +66,141 @@ class _FakeAsyncIter:
         return self._items.pop(0)
 
 
-def _make_agents_client(
+class _FakeFoundryAgent:
+    """Captures construction kwargs + run inputs, returns canned updates."""
+
+    def __init__(
+        self,
+        *,
+        project_endpoint: str,
+        agent_name: str,
+        credential: Any,
+        updates: list[Any] | None = None,
+        run_error: Exception | None = None,
+        ctor_error: Exception | None = None,
+    ) -> None:
+        if ctor_error is not None:
+            raise ctor_error
+        self.project_endpoint = project_endpoint
+        self.agent_name = agent_name
+        self.credential = credential
+        self._updates = updates or []
+        self._run_error = run_error
+        self.run_calls: list[Any] = []
+        self.close = AsyncMock(return_value=None)
+
+    def run(self, messages: Any, *, stream: bool = False) -> Any:
+        self.run_calls.append({"messages": messages, "stream": stream})
+        if self._run_error is not None:
+            raise self._run_error
+        return _FakeAsyncIter(self._updates)
+
+
+def _make_factory(
     *,
-    list_messages: list[Any] | None = None,
-    run_status: str = "completed",
-    run_last_error: str = "",
-    run_id: str = "run-1",
-    run_steps: list[Any] | None = None,
-) -> MagicMock:
-    client = MagicMock()
-    thread = SimpleNamespace(id="thread-1")
-    client.threads.create = AsyncMock(return_value=thread)
-    client.messages.create = AsyncMock(return_value=None)
-    client.runs.create_and_process = AsyncMock(
-        return_value=SimpleNamespace(
-            id=run_id, status=run_status, last_error=run_last_error
+    updates: list[Any] | None = None,
+    run_error: Exception | None = None,
+    ctor_error: Exception | None = None,
+) -> tuple[Any, list[_FakeFoundryAgent]]:
+    """Return (factory, created_agents_list) so tests can assert on the
+    factory call args + on the constructed agent's recorded calls."""
+    created: list[_FakeFoundryAgent] = []
+
+    def factory(
+        *, project_endpoint: str, agent_name: str, credential: Any
+    ) -> _FakeFoundryAgent:
+        agent = _FakeFoundryAgent(
+            project_endpoint=project_endpoint,
+            agent_name=agent_name,
+            credential=credential,
+            updates=updates,
+            run_error=run_error,
+            ctor_error=ctor_error,
         )
-    )
-    client.messages.list = MagicMock(
-        return_value=_FakeAsyncIter(list_messages or [])
-    )
-    # CU-004c: every successful run walks `run_steps.list(...)` to
-    # surface tool / reasoning visibility. Default to an empty iterator
-    # so existing tests (written before CU-004c) stay green.
-    client.run_steps.list = MagicMock(
-        return_value=_FakeAsyncIter(run_steps or [])
-    )
-    return client
+        created.append(agent)
+        return agent
+
+    return factory, created
 
 
 def _make_orchestrator(
-    *, agents_client: Any = None, agent_id: str = "asst_xyz"
+    *,
+    agent_name: str = "cwyd",
+    settings: AppSettings | None = None,
+    credential: Any = None,
+    factory: Any = None,
 ) -> AgentFrameworkOrchestrator:
     return AgentFrameworkOrchestrator(
-        settings=MagicMock(spec=AppSettings),
+        settings=settings if settings is not None else _settings(),
         llm=MagicMock(spec=BaseLLMProvider),
-        agents_client=agents_client or _make_agents_client(),
-        agent_id=agent_id,
+        agent_name=agent_name,
+        credential=credential if credential is not None else MagicMock(),
+        agent_factory=factory,
     )
 
 
 # ---------------------------------------------------------------------------
-# Registration
+# Registration + constructor
 # ---------------------------------------------------------------------------
 
 
 def test_agent_framework_is_registered() -> None:
-    assert "agent_framework" in orchestrators.registry.keys()
+    assert "agent_framework" in orchestrators_registry.registry.keys()
     assert (
-        orchestrators.registry.get("agent_framework") is AgentFrameworkOrchestrator
+        orchestrators_registry.registry.get("agent_framework")
+        is AgentFrameworkOrchestrator
     )
 
 
 def test_create_returns_agent_framework_instance() -> None:
-    orch = orchestrators.create(
-        "agent_framework",
-        settings=MagicMock(spec=AppSettings),
+    factory, _ = _make_factory()
+    orch = orchestrators_registry.registry.get("agent_framework")(
+        settings=_settings(),
         llm=MagicMock(spec=BaseLLMProvider),
-        agents_client=_make_agents_client(),
-        agent_id="asst_xyz",
+        agent_name="cwyd",
+        credential=MagicMock(),
+        agent_factory=factory,
     )
     assert isinstance(orch, AgentFrameworkOrchestrator)
 
 
-def test_constructor_rejects_empty_agent_id() -> None:
-    with pytest.raises(ValueError, match="agent_id"):
+def test_constructor_rejects_empty_agent_name() -> None:
+    factory, _ = _make_factory()
+    with pytest.raises(ValueError, match="agent_name"):
         AgentFrameworkOrchestrator(
-            settings=MagicMock(spec=AppSettings),
+            settings=_settings(),
             llm=MagicMock(spec=BaseLLMProvider),
-            agents_client=_make_agents_client(),
-            agent_id="",
+            agent_name="",
+            credential=MagicMock(),
+            agent_factory=factory,
         )
+
+
+def test_constructor_rejects_empty_project_endpoint() -> None:
+    factory, _ = _make_factory()
+    with pytest.raises(ValueError, match="project_endpoint"):
+        AgentFrameworkOrchestrator(
+            settings=_settings(endpoint=""),
+            llm=MagicMock(spec=BaseLLMProvider),
+            agent_name="cwyd",
+            credential=MagicMock(),
+            agent_factory=factory,
+        )
+
+
+def test_constructor_swallows_uniform_extras() -> None:
+    """Router forwards `search=` (langgraph-only) to every orchestrator;
+    `**_extras` must absorb it without raising."""
+    factory, _ = _make_factory()
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings(),
+        llm=MagicMock(spec=BaseLLMProvider),
+        agent_name="cwyd",
+        credential=MagicMock(),
+        agent_factory=factory,
+        search=MagicMock(),  # uniform kwarg from router
+    )
+    assert isinstance(orch, AgentFrameworkOrchestrator)
 
 
 # ---------------------------------------------------------------------------
@@ -122,280 +209,223 @@ def test_constructor_rejects_empty_agent_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_creates_thread_posts_messages_and_processes_run() -> None:
-    client = _make_agents_client(
-        list_messages=[
-            _thread_msg("user", "ping"),
-            _thread_msg("assistant", "pong"),
-        ]
+async def test_run_constructs_agent_with_endpoint_credential_and_name() -> None:
+    cred = MagicMock()
+    factory, created = _make_factory(
+        updates=[_update(_text_block("hello"))]
     )
-    orch = _make_orchestrator(agents_client=client)
-    events = [
-        e
-        async for e in orch.run([ChatMessage(role="user", content="ping")])
+    orch = _make_orchestrator(
+        settings=_settings(endpoint="https://ep/api/projects/x"),
+        credential=cred,
+        factory=factory,
+        agent_name="cwyd",
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
-    client.threads.create.assert_awaited_once()
-    client.messages.create.assert_awaited_once()
-    create_kwargs = client.messages.create.await_args.kwargs
-    assert create_kwargs["thread_id"] == "thread-1"
-    assert create_kwargs["content"] == "ping"
-    client.runs.create_and_process.assert_awaited_once_with(
-        thread_id="thread-1", agent_id="asst_xyz"
-    )
-    # Defensive: messages.list must be scoped to this run's id.
-    list_kwargs = client.messages.list.call_args.kwargs
-    assert list_kwargs["thread_id"] == "thread-1"
-    assert list_kwargs["run_id"] == "run-1"
-    assert len(events) == 1
-    assert events[0].channel == "answer"
-    assert events[0].content == "pong"
+
+    assert len(created) == 1
+    agent = created[0]
+    assert agent.project_endpoint == "https://ep/api/projects/x"
+    assert agent.agent_name == "cwyd"
+    assert agent.credential is cred
 
 
 @pytest.mark.asyncio
-async def test_run_skips_system_and_tool_messages() -> None:
-    """`system` belongs in agent instructions; `tool` lands in task #20."""
-    client = _make_agents_client(
-        list_messages=[_thread_msg("assistant", "ok")]
-    )
-    orch = _make_orchestrator(agents_client=client)
+async def test_run_skips_system_and_tool_messages_when_forwarding_to_agent() -> None:
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(factory=factory)
+
     _ = [
-        e
-        async for e in orch.run(
+        ev
+        async for ev in orch.run(
             [
                 ChatMessage(role="system", content="you are helpful"),
                 ChatMessage(role="user", content="hi"),
-                ChatMessage(role="tool", content="{\"result\": 42}"),
+                ChatMessage(role="tool", content='{"result": 42}'),
+                ChatMessage(role="assistant", content="prior reply"),
             ]
         )
     ]
-    # Only the user message should have been posted to the thread.
-    assert client.messages.create.await_count == 1
-    posted = client.messages.create.await_args.kwargs
-    assert posted["content"] == "hi"
+
+    assert len(created) == 1
+    forwarded = created[0].run_calls[0]["messages"]
+    # Only user + assistant survive; system + tool are dropped.
+    roles = [m.role for m in forwarded]
+    assert roles == ["user", "assistant"]
 
 
 @pytest.mark.asyncio
-async def test_run_yields_one_answer_event_per_assistant_message() -> None:
-    client = _make_agents_client(
-        list_messages=[
-            _thread_msg("user", "ping"),
-            _thread_msg("assistant", "first"),
-            _thread_msg("assistant", "second"),
+async def test_run_buffers_text_chunks_into_single_answer_event() -> None:
+    factory, _ = _make_factory(
+        updates=[
+            _update(_text_block("Hello, ")),
+            _update(_text_block("world!")),
         ]
     )
-    orch = _make_orchestrator(agents_client=client)
+    orch = _make_orchestrator(factory=factory)
+
     events = [
-        e
-        async for e in orch.run([ChatMessage(role="user", content="ping")])
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
-    assert [e.content for e in events] == ["first", "second"]
-    assert all(e.channel == "answer" for e in events)
+
+    answer_events = [e for e in events if e.channel == "answer"]
+    assert len(answer_events) == 1
+    assert answer_events[0].content == "Hello, world!"
 
 
 @pytest.mark.asyncio
-async def test_run_emits_error_event_when_run_status_failed() -> None:
-    client = _make_agents_client(
-        run_status="failed", run_last_error="quota exceeded"
+async def test_run_emits_reasoning_events_for_text_reasoning_blocks() -> None:
+    factory, _ = _make_factory(
+        updates=[
+            _update(_reasoning_block("looking up docs")),
+            _update(_text_block("Final answer.")),
+        ]
     )
-    orch = _make_orchestrator(agents_client=client)
+    orch = _make_orchestrator(factory=factory)
+
     events = [
-        e
-        async for e in orch.run([ChatMessage(role="user", content="ping")])
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
+
+    pairs = [(e.channel, e.content) for e in events]
+    assert pairs == [
+        ("reasoning", "looking up docs"),
+        ("answer", "Final answer."),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_emits_tool_events_for_function_call_blocks() -> None:
+    factory, _ = _make_factory(
+        updates=[
+            _update(
+                _function_call_block(
+                    call_id="call_1",
+                    name="search_documents",
+                    arguments={"q": "foundry"},
+                ),
+            ),
+            _update(_text_block("done")),
+        ]
+    )
+    orch = _make_orchestrator(factory=factory)
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    pairs = [(e.channel, e.content) for e in events]
+    assert pairs == [
+        ("tool", "search_documents"),
+        ("answer", "done"),
+    ]
+    tool_event = events[0]
+    assert tool_event.metadata == {
+        "id": "call_1",
+        "type": "function",
+        "arguments": '{"q": "foundry"}',
+    }
+
+
+@pytest.mark.asyncio
+async def test_run_serializes_string_arguments_as_is() -> None:
+    factory, _ = _make_factory(
+        updates=[
+            _update(
+                _function_call_block(
+                    call_id="call_2",
+                    name="fetch_url",
+                    arguments='{"url":"https://x"}',
+                ),
+            ),
+            _update(_text_block("done")),
+        ]
+    )
+    orch = _make_orchestrator(factory=factory)
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert events[0].metadata["arguments"] == '{"url":"https://x"}'
+
+
+@pytest.mark.asyncio
+async def test_run_emits_error_event_when_stream_raises_azure_error() -> None:
+    factory, _ = _make_factory(
+        run_error=HttpResponseError("quota exceeded"),
+    )
+    orch = _make_orchestrator(factory=factory)
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
     assert len(events) == 1
     assert events[0].channel == "error"
     assert "quota exceeded" in events[0].content
 
 
 @pytest.mark.asyncio
-async def test_run_emits_error_event_when_no_assistant_message_returned() -> None:
-    client = _make_agents_client(
-        list_messages=[_thread_msg("user", "ping")]
-    )
-    orch = _make_orchestrator(agents_client=client)
+async def test_run_emits_error_event_when_no_content_returned() -> None:
+    factory, _ = _make_factory(updates=[])  # empty stream
+    orch = _make_orchestrator(factory=factory)
+
     events = [
-        e
-        async for e in orch.run([ChatMessage(role="user", content="ping")])
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
+
     assert len(events) == 1
     assert events[0].channel == "error"
     assert "no assistant reply" in events[0].content.lower()
 
 
 @pytest.mark.asyncio
-async def test_aclose_does_not_close_injected_client() -> None:
-    client = _make_agents_client()
-    client.close = AsyncMock()
-    orch = _make_orchestrator(agents_client=client)
+async def test_run_closes_foundry_agent_in_finally() -> None:
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(factory=factory)
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert len(created) == 1
+    created[0].close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_closes_foundry_agent_even_when_stream_raises() -> None:
+    factory, created = _make_factory(
+        run_error=HttpResponseError("boom"),
+    )
+    orch = _make_orchestrator(factory=factory)
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert len(created) == 1
+    created[0].close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_propagates_construction_failure_via_logger() -> None:
+    factory, _ = _make_factory(
+        ctor_error=HttpResponseError("invalid endpoint"),
+    )
+    orch = _make_orchestrator(factory=factory)
+
+    with pytest.raises(HttpResponseError):
+        _ = [
+            ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+        ]
+
+
+@pytest.mark.asyncio
+async def test_aclose_is_a_noop() -> None:
+    factory, _ = _make_factory()
+    orch = _make_orchestrator(factory=factory)
+    # Must not raise -- credential lifecycle is owned by the wiring layer.
     await orch.aclose()
-    client.close.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# CU-004c: run_steps -> reasoning + tool events
-# ---------------------------------------------------------------------------
-
-
-def _function_tool_call(
-    *, call_id: str, name: str, arguments: str
-) -> SimpleNamespace:
-    """Build a `RunStepFunctionToolCall`-shaped SimpleNamespace."""
-    return SimpleNamespace(
-        id=call_id,
-        type="function",
-        function=SimpleNamespace(name=name, arguments=arguments),
-    )
-
-
-def _tool_calls_step(*, calls: list[Any]) -> SimpleNamespace:
-    return SimpleNamespace(
-        step_details=SimpleNamespace(type="tool_calls", tool_calls=calls)
-    )
-
-
-def _message_creation_step(*, message_id: str) -> SimpleNamespace:
-    return SimpleNamespace(
-        step_details=SimpleNamespace(
-            type="message_creation",
-            message_creation=SimpleNamespace(message_id=message_id),
-        )
-    )
-
-
-def _reasoning_step(text: str) -> SimpleNamespace:
-    return SimpleNamespace(
-        step_details=SimpleNamespace(
-            type="message_creation", reasoning_content=text
-        )
-    )
-
-
-@pytest.mark.asyncio
-async def test_run_emits_tool_events_for_tool_calls_steps() -> None:
-    """Each tool call in a `tool_calls` step yields one `tool` event."""
-    client = _make_agents_client(
-        list_messages=[_thread_msg("assistant", "done")],
-        run_steps=[
-            _tool_calls_step(
-                calls=[
-                    _function_tool_call(
-                        call_id="call_1",
-                        name="search_documents",
-                        arguments='{"q":"foundry"}',
-                    ),
-                    _function_tool_call(
-                        call_id="call_2",
-                        name="fetch_url",
-                        arguments='{"url":"https://x"}',
-                    ),
-                ]
-            ),
-        ],
-    )
-    orch = _make_orchestrator(agents_client=client)
-
-    events = [
-        e async for e in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    channels = [(e.channel, e.content) for e in events]
-    assert channels == [
-        ("tool", "function"),
-        ("tool", "function"),
-        ("answer", "done"),
-    ]
-    # Metadata carries id + arguments for the FE to render.
-    assert events[0].metadata == {
-        "id": "call_1",
-        "type": "function",
-        "arguments": '{"q":"foundry"}',
-    }
-    assert events[1].metadata["id"] == "call_2"
-    # The run_steps walk was scoped to the current run id.
-    list_kwargs = client.run_steps.list.call_args.kwargs
-    assert list_kwargs["thread_id"] == "thread-1"
-    assert list_kwargs["run_id"] == "run-1"
-
-
-@pytest.mark.asyncio
-async def test_run_skips_message_creation_steps() -> None:
-    """`message_creation` steps must NOT yield events -- the assistant
-    message is surfaced as an `answer` by the subsequent messages.list
-    walk; emitting a duplicate would double-bill the FE."""
-    client = _make_agents_client(
-        list_messages=[_thread_msg("assistant", "the answer")],
-        run_steps=[_message_creation_step(message_id="msg-1")],
-    )
-    orch = _make_orchestrator(agents_client=client)
-
-    events = [
-        e async for e in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert [(e.channel, e.content) for e in events] == [("answer", "the answer")]
-
-
-@pytest.mark.asyncio
-async def test_run_emits_reasoning_events_before_answer() -> None:
-    """Reasoning content on a step is emitted on the `reasoning`
-    channel BEFORE the trailing answer events (FE ordering)."""
-    client = _make_agents_client(
-        list_messages=[_thread_msg("assistant", "Final answer.")],
-        run_steps=[_reasoning_step("step 1: looked up docs")],
-    )
-    orch = _make_orchestrator(agents_client=client)
-
-    events = [
-        e async for e in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert [(e.channel, e.content) for e in events] == [
-        ("reasoning", "step 1: looked up docs"),
-        ("answer", "Final answer."),
-    ]
-
-
-@pytest.mark.asyncio
-async def test_run_handles_sdk_without_run_steps_attribute() -> None:
-    """Older SDK versions may not expose `agents.run_steps`; we must
-    silently skip the step walk and still produce the answer event."""
-    client = _make_agents_client(
-        list_messages=[_thread_msg("assistant", "ok")]
-    )
-    # Strip the surface entirely (older SDK).
-    del client.run_steps
-    orch = _make_orchestrator(agents_client=client)
-
-    events = [
-        e async for e in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert [(e.channel, e.content) for e in events] == [("answer", "ok")]
-
-
-@pytest.mark.asyncio
-async def test_run_steps_walk_skipped_when_run_failed() -> None:
-    """A failed run short-circuits before reaching the run_steps walk
-    (no point surfacing partial reasoning when the user already saw an
-    error event)."""
-    client = _make_agents_client(
-        run_status="failed",
-        run_last_error="quota exceeded",
-        run_steps=[
-            _tool_calls_step(
-                calls=[
-                    _function_tool_call(
-                        call_id="call_x", name="any", arguments="{}"
-                    )
-                ]
-            )
-        ],
-    )
-    orch = _make_orchestrator(agents_client=client)
-
-    events = [
-        e async for e in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert [e.channel for e in events] == ["error"]
-    client.run_steps.list.assert_not_called()

@@ -10,19 +10,18 @@ without the v1 baggage:
 
 - LLM is dependency-injected (any `BaseLLMProvider`); no SDK or
   helper singletons.
-- Async-only -- the chat pipeline (task #22) and orchestrators
+- Async-only -- the chat pipeline and orchestrators
   consume it from an async context.
 - Returns plain text -- citation/wrapping is the caller's job
-  (task #23 owns `Citation` extraction).
+  (the `Citation` extractor owns that).
 
-NOT a registry domain (per development_plan.md task #20). Tools are
-imported directly:
+NOT a registry domain. Tools are imported directly:
 
     from backend.core.tools.text_processing import TextProcessingHelper
 """
 
 from backend.core.providers.llm.base import BaseLLMProvider
-from backend.core.types import ChatMessage
+from backend.core.types import ChatMessage, ChatRole
 
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -67,8 +66,8 @@ class TextProcessingHelper:
 
         user_content = f"{operation.strip()} the following TEXT:\n\n{text}"
         messages = [
-            ChatMessage(role="system", content=self._system_prompt),
-            ChatMessage(role="user", content=user_content),
+            ChatMessage(role=ChatRole.SYSTEM, content=self._system_prompt),
+            ChatMessage(role=ChatRole.USER, content=user_content),
         ]
         reply = await self._llm.chat(messages, deployment=deployment)
         return reply.content

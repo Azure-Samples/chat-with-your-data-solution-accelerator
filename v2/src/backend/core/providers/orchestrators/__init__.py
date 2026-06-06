@@ -1,51 +1,19 @@
-"""Orchestrator domain (registry-keyed).
+"""Orchestrator provider domain (package marker only).
 
 Pillar: Stable Core
 Phase: 3
 
-Concrete orchestrators (`langgraph` task #18, `agent_framework` task
-#19) plug in by self-registering against `OrchestratorBase`. Callers
-always go through `orchestrators.create(...)`, never new an
-orchestrator class directly (ADR 0001 + Hard Rule #4).
+Hard Rule #13: this file is a package marker only. The registry instance,
+the eager side-effect imports of concretes (``agent_framework``,
+``langgraph``), and any genuine domain helpers live in the sibling
+``registry`` module. Callers import the submodule explicitly::
 
-Recipe (per development_plan.md ยง3.5):
+    from backend.core.providers.orchestrators import registry as orchestrators_registry
 
-    orchestrator = orchestrators.create(
-        settings.orchestrator.kind,
-        settings=settings,
-        llm=llm,
-    )
-    async for event in orchestrator.run(messages):
-        ...
+    orchestrator = orchestrators_registry.registry.get(
+        settings.orchestrator.name
+    )(settings=settings, llm=llm, ...)
 
-Until task #18 lands the registry is intentionally empty -- the eager
-import section below is reserved for the future
-`from . import langgraph, agent_framework` lines. Until then,
-`orchestrators.create("anything")` raises a clear KeyError naming the
-empty registry.
+There is no ``create()`` helper -- ``Registry.get(key)(**kwargs)`` does
+the same work in one expression (see development_plan.md §2.4).
 """
-
-# pyright: reportUnusedImport=false
-# `from . import <module>` lines below are intentional side-effect
-# imports that trigger `@registry.register(...)`; pyright cannot see
-# the side-effect and would flag them as unused (Hard Rule #4).
-
-from typing import Any
-
-from backend.core.registry import Registry
-
-from .base import OrchestratorBase
-
-registry: Registry[type[OrchestratorBase]] = Registry("orchestrators")
-
-# Side-effect imports (eager, one line per concrete provider).
-from . import agent_framework  # noqa: E402, F401
-from . import langgraph  # noqa: E402, F401
-
-
-def create(key: str, **kwargs: Any) -> OrchestratorBase:
-    """Instantiate the orchestrator registered under `key`."""
-    return registry.get(key)(**kwargs)
-
-
-__all__ = ["OrchestratorBase", "create", "registry"]

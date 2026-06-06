@@ -13,7 +13,7 @@ Design rules (binding):
 
 * No Key Vault. No secrets in fields. Every credential is acquired at
   runtime via Managed Identity through the `providers/credentials/`
-  registry domain (Phase 2 task #11).
+  registry domain.
 * Conditional Bicep outputs (cosmos / postgres / search / monitoring /
   vnet) default to empty strings here, mirroring the Bicep convention
   that "off" emits `''`. A `model_validator` on `DatabaseSettings`
@@ -23,11 +23,68 @@ Design rules (binding):
   between env-var permutations and FastAPI can `Depends(get_settings)`.
 """
 
+from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Any, Literal, cast
 
+import json
+
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+# ---------------------------------------------------------------------------
+# Cross-cutting enums
+# ---------------------------------------------------------------------------
+
+
+class Environment(StrEnum):
+    """Runtime mode discriminator for `AppSettings.environment`.
+
+    Members:
+        LOCAL: developer machine; Easy Auth header-absent fallback to
+            ``local-dev`` user id is permitted (admin + history routes).
+        PRODUCTION: cloud deployment; Easy Auth headers are required
+            and missing-header cases must fail closed with 401.
+    """
+
+    LOCAL = "local"
+    PRODUCTION = "production"
+
+
+class DbType(StrEnum):
+    """Registry key for the chat-history database backend.
+
+    Values are the registry keys passed to
+    `databases_registry.registry.get(...)`. `StrEnum` subclasses `str`
+    so dict lookups and JSON serialization round-trip unchanged; the
+    enum exists to satisfy Hard Rule #11 at the comparison sites.
+
+    Members:
+        COSMOSDB: Azure Cosmos DB for NoSQL.
+        POSTGRESQL: Azure Database for PostgreSQL Flexible Server.
+    """
+
+    COSMOSDB = "cosmosdb"
+    POSTGRESQL = "postgresql"
+
+
+class IndexStore(StrEnum):
+    """Registry key for the vector index store.
+
+    Values are the registry keys passed to
+    `search_registry.registry.get(...)`. `StrEnum` subclasses `str`
+    so dict lookups and JSON serialization round-trip unchanged; the
+    enum exists to satisfy Hard Rule #11 at the comparison sites.
+
+    Members:
+        AZURE_SEARCH: Azure AI Search (index provisioned by Bicep).
+        PGVECTOR: `pgvector` extension on the postgres backend
+            (`documents` table provisioned by `PgVector.ensure_schema`).
+    """
+
+    AZURE_SEARCH = "AzureSearch"
+    PGVECTOR = "pgvector"
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +131,7 @@ class OpenAISettings(BaseSettings):
     gpt_deployment: str = ""
     reasoning_deployment: str = ""
     embedding_deployment: str = ""
+    embedding_dimensions: int = 1536
     temperature: float = 0.0
     max_tokens: int = 1000
 
@@ -94,8 +152,8 @@ class DatabaseSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="AZURE_", extra="ignore")
 
-    db_type: Literal["cosmosdb", "postgresql"] = "cosmosdb"
-    index_store: Literal["AzureSearch", "pgvector"] = "AzureSearch"
+    db_type: DbType | str = DbType.COSMOSDB
+    index_store: IndexStore | str = IndexStore.AZURE_SEARCH
 
     # cosmosdb mode (empty in postgresql mode)
     cosmos_endpoint: str = ""
@@ -115,24 +173,30 @@ class DatabaseSettings(BaseSettings):
         # class instantiation, no behavior branch); registry callers always
         # go through `databases.create(db_type, ...)` / `search.create(
         # index_store, ...)` per Hard Rule #4.
-        if self.db_type == "cosmosdb":  # noqa: registry-dispatch -- config validator
+        if self.db_type == DbType.COSMOSDB:
             if not self.cosmos_endpoint:
                 raise ValueError(
                     "AZURE_DB_TYPE=cosmosdb requires AZURE_COSMOS_ENDPOINT to be set."
                 )
-            if self.index_store != "AzureSearch":
+            if self.index_store != IndexStore.AZURE_SEARCH:
                 raise ValueError(
                     "AZURE_DB_TYPE=cosmosdb requires AZURE_INDEX_STORE=AzureSearch."
                 )
-        else:  # postgresql
+        elif self.db_type == DbType.POSTGRESQL:
             if not self.postgres_endpoint:
                 raise ValueError(
                     "AZURE_DB_TYPE=postgresql requires AZURE_POSTGRES_ENDPOINT to be set."
                 )
-            if self.index_store != "pgvector":
+            if self.index_store != IndexStore.PGVECTOR:
                 raise ValueError(
                     "AZURE_DB_TYPE=postgresql requires AZURE_INDEX_STORE=pgvector."
                 )
+        # Third-party `db_type` (str arm of `DbType | str` /
+        # `IndexStore | str` per Hard Rule #11 registry-driven carve-out).
+        # First-party env-var coupling does not apply: the plugin owns its
+        # own env-var validation at provider construction; the
+        # `databases_registry.registry.get(...)` / `search_registry.registry
+        # .get(...)` boundary is the dispatch-time guard.
         return self
 
 
@@ -211,8 +275,6 @@ class NetworkSettings(BaseSettings):
             # Tolerate JSON-list shape so docker-compose can pass either
             # form without surprising the operator.
             if stripped.startswith("[") and stripped.endswith("]"):
-                import json
-
                 try:
                     parsed = json.loads(stripped)
                 except json.JSONDecodeError:
@@ -240,7 +302,7 @@ class OrchestratorSettings(BaseSettings):
     infra-pinned value -- the admin UI and tests need to flip it
     without redeploying Bicep.
 
-    CU-009b (2026-05-05) removed the previous `agent_id` field +
+    CU-009b removed the previous `agent_id` field +
     cross-field validator (originally added in CU-001a). Per ADR 0008
     (lazy-foundry-agent-bootstrap), the Foundry agent identity is no
     longer settings-driven -- the `agent_framework` orchestrator must
@@ -254,7 +316,54 @@ class OrchestratorSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="CWYD_ORCHESTRATOR_", extra="ignore")
 
-    name: Literal["langgraph", "agent_framework"] = "langgraph"
+    # `Literal[...] | str` widening per Hard Rule #11 registry-driven
+    # carve-out: the first-party closed set stays `"langgraph" |
+    # "agent_framework"`, but the `str` arm admits any third-party
+    # orchestrator key registered against `cwyd.providers.orchestrators`
+    # via `backend.core.discovery.load_entry_points`. Validation moves
+    # to the registry boundary (`orchestrators_registry.registry.get(...)`).
+    name: Literal["langgraph", "agent_framework"] | str = "langgraph"
+
+
+class ContentSafetySettings(BaseSettings):
+    """Azure AI Content Safety guardrail.
+
+    Reads: AZURE_CONTENT_SAFETY_ENDPOINT, AZURE_CONTENT_SAFETY_ENABLED,
+    AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD.
+
+    `endpoint` is the regional Cognitive Services endpoint of the
+    Content Safety account (e.g.
+    ``https://cs-cwyd001.cognitiveservices.azure.com/``). When empty
+    the lifespan wiring leaves ``app.state.content_safety_client`` as
+    ``None`` and `get_content_safety_guard` returns ``None`` so the
+    chat pipeline runs unguarded -- matching the v1
+    ``enable_content_safety: false`` default.
+
+    `enabled` is the operator opt-in. Both `enabled=True` AND a
+    non-empty `endpoint` are required to build the client at lifespan
+    start; either alone is a misconfiguration that the wiring layer
+    treats as "off" (no guard injected, no exception raised).
+
+    `severity_threshold` is the inclusive lower bound at which Content
+    Safety verdicts trip. Azure reports severity 0/2/4/6 (0 = safe,
+    2 = low, 4 = medium, 6 = high); the default 4 matches the v1
+    `enable_content_safety: true` behavior. The validation ceiling of
+    7 leaves room for an operator to set the guard effectively-off
+    (severity > 6 is unreachable) without rejecting the value at
+    settings load time.
+
+    No subscription-key field: the lifespan wiring acquires a token
+    via the `credentials` provider (UAMI -> AAD bearer), per Hard
+    Rule #4 (no Key Vault, no stored secrets).
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="AZURE_CONTENT_SAFETY_", extra="ignore"
+    )
+
+    endpoint: str = ""
+    enabled: bool = False
+    severity_threshold: int = Field(default=4, ge=0, le=7)
 
 
 class SpeechSettings(BaseSettings):
@@ -289,6 +398,41 @@ class SpeechSettings(BaseSettings):
     recognizer_languages: str = "en-US,fr-FR,de-DE,it-IT"
 
 
+class DocumentIntelligenceSettings(BaseSettings):
+    """Azure Document Intelligence (layout/OCR) for ingestion parsers.
+
+    Reads: `AZURE_DOCUMENT_INTELLIGENCE_API_VERSION`,
+    `AZURE_DOCUMENT_INTELLIGENCE_MODEL_ID`.
+
+    The endpoint is intentionally NOT a field on this submodel. Per
+    `v2/infra/main.bicep` the unified AI Services account (`kind=
+    AIServices`, `allowProjectManagement=true`) exposes Document
+    Intelligence at `{foundry.services_endpoint}documentintelligence/`
+    alongside agents, chat, and speech on the same SKU. Parsers derive
+    the endpoint from `FoundrySettings.services_endpoint` at
+    construction time, so a single operator env var
+    (`AZURE_AI_SERVICES_ENDPOINT`) drives every Foundry data plane.
+
+    Auth: UAMI bearer for
+    `https://cognitiveservices.azure.com/.default` (Hard Rule #2 -- no
+    keys, no Key Vault). RBAC: `Cognitive Services User` role on the
+    unified AI Services account, granted to the UAMI in
+    `v2/infra/main.bicep`.
+
+    `api_version` and `model_id` are operator-pinnable because GA cuts
+    of `azure-ai-documentintelligence` occasionally change default
+    behavior; the binding must be auditable from env vars alone, not
+    buried in the SDK's package default.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="AZURE_DOCUMENT_INTELLIGENCE_", extra="ignore"
+    )
+
+    api_version: str = "2024-11-30"
+    model_id: str = "prebuilt-layout"
+
+
 # ---------------------------------------------------------------------------
 # Root settings
 # ---------------------------------------------------------------------------
@@ -317,7 +461,7 @@ class AppSettings(BaseSettings):
     # Stable Core code that branches on environment must use this
     # field -- never sniff `os.getenv` ad-hoc -- so the value is
     # type-checked at boot and centrally testable.
-    environment: Literal["local", "production"] = "local"
+    environment: Environment = Environment.LOCAL
 
     identity: IdentitySettings = Field(default_factory=IdentitySettings)
     foundry: FoundrySettings = Field(default_factory=FoundrySettings)
@@ -329,6 +473,12 @@ class AppSettings(BaseSettings):
     network: NetworkSettings = Field(default_factory=NetworkSettings)
     orchestrator: OrchestratorSettings = Field(default_factory=OrchestratorSettings)
     speech: SpeechSettings = Field(default_factory=SpeechSettings)
+    content_safety: ContentSafetySettings = Field(
+        default_factory=ContentSafetySettings
+    )
+    document_intelligence: DocumentIntelligenceSettings = Field(
+        default_factory=DocumentIntelligenceSettings
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -348,9 +498,14 @@ def get_settings() -> AppSettings:
 
 __all__ = [
     "AppSettings",
+    "ContentSafetySettings",
     "DatabaseSettings",
+    "DbType",
+    "DocumentIntelligenceSettings",
+    "Environment",
     "FoundrySettings",
     "IdentitySettings",
+    "IndexStore",
     "NetworkSettings",
     "ObservabilitySettings",
     "OpenAISettings",

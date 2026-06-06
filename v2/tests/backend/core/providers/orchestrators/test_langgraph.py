@@ -9,11 +9,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend.core.providers import orchestrators
+from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.langgraph import LangGraphOrchestrator
 from backend.core.settings import AppSettings
-from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent
+from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent, SearchResult
 
 
 # ---------------------------------------------------------------------------
@@ -106,13 +106,13 @@ def _make_orchestrator(llm: BaseLLMProvider | None = None) -> LangGraphOrchestra
 
 
 def test_langgraph_is_registered() -> None:
-    assert "langgraph" in orchestrators.registry.keys()
-    assert orchestrators.registry.get("langgraph") is LangGraphOrchestrator
+    assert "langgraph" in orchestrators_registry.registry.keys()
+    assert orchestrators_registry.registry.get("langgraph") is LangGraphOrchestrator
 
 
 def test_create_returns_langgraph_orchestrator_instance() -> None:
     settings = MagicMock(spec=AppSettings)
-    orch = orchestrators.create("langgraph", settings=settings, llm=_FakeLLM())
+    orch = orchestrators_registry.registry.get("langgraph")(settings=settings, llm=_FakeLLM())
     assert isinstance(orch, LangGraphOrchestrator)
 
 
@@ -181,8 +181,6 @@ class _FakeSearch:
     """Minimal `BaseSearch` stub returning canned hits."""
 
     def __init__(self, hits):
-        from backend.core.types import SearchResult
-
         self.hits = [SearchResult(**h) if isinstance(h, dict) else h for h in hits]
         self.calls: list[str] = []
 

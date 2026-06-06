@@ -41,10 +41,10 @@ from azure.search.documents.models import (
 )
 
 from backend.core.settings import AppSettings
-from backend.core.types import SearchResult
+from backend.core.types import SearchDocument, SearchResult
 
-from . import registry
-from .base import BaseSearch
+from .registry import registry
+from .base import BaseSearch, SourceListing
 
 
 logger = logging.getLogger(__name__)
@@ -193,6 +193,120 @@ class AzureSearch(BaseSearch):
             )
             raise
         return results
+
+    async def delete_by_source(self, source: str) -> int:
+        # OData string literals escape single quotes by doubling them.
+        escaped_source = source.replace("'", "''")
+        filter_expr = f"title eq '{escaped_source}'"
+        client = self._get_client()
+        ids: list[str] = []
+        deleted_count = 0
+        try:
+            paged = cast(
+                AsyncIterable[dict[str, Any]],
+                await client.search(  # pyright: ignore[reportUnknownMemberType]
+                    search_text="*",
+                    filter=filter_expr,
+                    select=["id"],
+                    top=1000,
+                ),
+            )
+            async for doc in paged:
+                doc_id = doc.get("id")
+                if doc_id is not None:
+                    ids.append(str(doc_id))
+            # SDK's delete_documents caps at 1000 docs/batch; chunk to
+            # stay under that even when a single source owns more chunks.
+            batch_size = 1000
+            for batch_start in range(0, len(ids), batch_size):
+                batch = ids[batch_start : batch_start + batch_size]
+                await client.delete_documents(  # pyright: ignore[reportUnknownMemberType]
+                    documents=[{"id": doc_id} for doc_id in batch]
+                )
+                deleted_count += len(batch)
+        except AzureError:
+            logger.exception(
+                "azure_search delete_by_source failed",
+                extra={
+                    "operation": "delete_by_source",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                    "source": source,
+                    "deleted_count": deleted_count,
+                },
+            )
+            raise
+        return deleted_count
+
+    async def list_sources(self) -> list[SourceListing]:
+        # `facets=["title,count:10000,sort:value"]` asks the service to
+        # bucket all chunks by their `title` field (the source filename
+        # / URL), cap at 10_000 distinct values, and return them sorted
+        # alphabetically -- saves a Python-side sort and keeps the
+        # admin UI ordering deterministic. `top=0` skips the document
+        # body of the response; we only consume the facet aggregate.
+        client = self._get_client()
+        try:
+            paged = await client.search(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+                search_text="*",
+                facets=["title,count:10000,sort:value"],
+                top=0,
+            )
+            facets = cast(
+                dict[str, list[dict[str, Any]]] | None,
+                await paged.get_facets(),  # pyright: ignore[reportUnknownMemberType]
+            )
+        except AzureError:
+            logger.exception(
+                "azure_search list_sources failed",
+                extra={
+                    "operation": "list_sources",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                },
+            )
+            raise
+        title_facets = (facets or {}).get("title", [])
+        return [
+            SourceListing(
+                source=str(entry.get("value", "")),
+                chunk_count=int(entry.get("count", 0) or 0),
+                last_modified=None,
+            )
+            for entry in title_facets
+            if entry.get("value")
+        ]
+
+    async def merge_or_upload_documents(
+        self,
+        *,
+        documents: Sequence[SearchDocument],
+    ) -> list[Any]:
+        if not documents:
+            return []
+        # Hard Rule #15: SearchDocument is the source of truth; the
+        # `dict[str, Any]` payload below is the SDK boundary shape that
+        # `SearchClient.merge_or_upload_documents` accepts.
+        payload: list[dict[str, Any]] = [doc.model_dump() for doc in documents]
+        client = self._get_client()
+        try:
+            return cast(
+                list[Any],
+                await client.merge_or_upload_documents(  # pyright: ignore[reportUnknownMemberType]
+                    documents=payload
+                ),
+            )
+        except AzureError:
+            logger.exception(
+                "azure_search merge_or_upload_documents failed",
+                extra={
+                    "operation": "merge_or_upload_documents",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                    "document_count": len(payload),
+                },
+            )
+            raise
 
     async def aclose(self) -> None:
         # Only close the client when we constructed it ourselves.

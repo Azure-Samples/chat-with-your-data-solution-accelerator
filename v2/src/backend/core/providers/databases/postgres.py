@@ -17,9 +17,8 @@ connection, so token expiry is handled transparently across the
 pool's lifetime.
 
 The internal `_pool` is exposed via the `pool` property so the
-`pgvector` search provider (task #30) can DI-inject it -- one pool
-per process, no parallel connection management (per development plan
-\u00a74 task #30).
+`pgvector` search provider can DI-inject it -- one pool per process,
+no parallel connection management.
 """
 
 import asyncio
@@ -33,6 +32,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
 from backend.core.types import (
+    AadScope,
     AdminAuditEntry,
     ChatMessage,
     Conversation,
@@ -40,7 +40,7 @@ from backend.core.types import (
     RuntimeConfig,
 )
 
-from . import registry
+from .registry import registry
 from .base import BaseDatabaseClient
 
 
@@ -71,8 +71,6 @@ logger = logging.getLogger(__name__)
 #   PostgresError).
 # ---------------------------------------------------------------------------
 
-
-_POSTGRES_AAD_SCOPE = "https://ossrdbms-aad.database.windows.net/.default"
 
 _SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS conversations (
@@ -236,7 +234,7 @@ class PostgresClient(BaseDatabaseClient):
         pool: "asyncpg.Pool | None" = None,
     ) -> None:
         super().__init__(settings, credential)
-        # Allow tests + the pgvector search provider (task #30) to inject
+        # Allow tests + the pgvector search provider to inject
         # an existing pool. Production path constructs lazily so no
         # connection opens at import.
         self._pool: "asyncpg.Pool | None" = pool
@@ -266,9 +264,9 @@ class PostgresClient(BaseDatabaseClient):
         """Bootstrap the pool + schema and return it.
 
         Public counterpart of the lazy `_ensure_pool()` used internally
-        by every CRUD method. The pgvector search provider (task #30)
+        by every CRUD method. The pgvector search provider
         calls this from `lifespan` so it can DI-inject a single pool
-        per process (per development plan \u00a74 task #30).
+        per process.
         """
         await self._ensure_pool()
         # Cast the protocol back to the public asyncpg.Pool surface for
@@ -279,7 +277,7 @@ class PostgresClient(BaseDatabaseClient):
         """asyncpg-compatible async callable that returns a fresh AAD
         token. asyncpg invokes this on each new connection, so token
         expiry is handled transparently across the pool's lifetime."""
-        token = await self._credential.get_token(_POSTGRES_AAD_SCOPE)
+        token = await self._credential.get_token(AadScope.POSTGRES_FLEX)
         return token.token
 
     async def _ensure_pool(self) -> _Pool:

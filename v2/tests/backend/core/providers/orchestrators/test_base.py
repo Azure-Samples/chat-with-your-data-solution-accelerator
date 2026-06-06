@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend.core.providers import orchestrators
+from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.base import OrchestratorBase
 from backend.core.settings import AppSettings
@@ -39,13 +39,13 @@ class _StubOrchestrator(OrchestratorBase):
 
 def test_registry_domain_and_known_providers() -> None:
     """`langgraph` registered in task #18; `agent_framework` lands in task #19."""
-    assert orchestrators.registry.domain == "orchestrators"
-    assert "langgraph" in orchestrators.registry.keys()
+    assert orchestrators_registry.registry.domain == "orchestrators"
+    assert "langgraph" in orchestrators_registry.registry.keys()
 
 
 def test_create_raises_keyerror_for_unknown_provider() -> None:
     with pytest.raises(KeyError) as excinfo:
-        orchestrators.create("does_not_exist")
+        orchestrators_registry.registry.get("does_not_exist")
     msg = str(excinfo.value)
     assert "orchestrators" in msg
     assert "does_not_exist" in msg

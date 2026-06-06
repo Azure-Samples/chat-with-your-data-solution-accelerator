@@ -1,7 +1,7 @@
 """Citation marker helper.
 
 Pillar: Stable Core
-Phase: 3 (task #23)
+Phase: 3
 
 Turns a list of :class:`SearchResult` hits into:
 
@@ -12,8 +12,8 @@ Turns a list of :class:`SearchResult` hits into:
   (ADR 0007).
 
 Lives under ``shared/tools/`` because it is a cross-cutting helper
-imported directly by orchestrators / pipelines (per
-[development_plan.md] §4 task #20: tools are NOT a registry domain).
+imported directly by orchestrators / pipelines (tools are NOT a
+registry domain).
 
 Caller pattern (Phase 3 wiring)::
 

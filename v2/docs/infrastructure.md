@@ -46,6 +46,12 @@ This document explains **what the v2 Bicep deploys**, **how the pieces fit toget
 | `cosmosdb` | Cosmos DB account (`document-db/database-account:0.19.0`) + AI Search service (`search/search-service:0.12.0`) + Foundry Project↔Search connection. |
 | `postgresql` | PostgreSQL Flexible Server (`db-for-postgre-sql/flexible-server:0.15.3`) with `azure.extensions=VECTOR` allow-list. |
 
+### 2.2.1 Database mode is a one-shot, provisioning-time choice
+
+`databaseType` is read once by `azd provision` and pinned into the resource group's resource set. There is no in-place switch — flipping the value after the first deploy provisions the second mode's resources alongside the first (Cosmos + Search left orphaned, or a fresh Postgres next to existing Cosmos) and the backend keeps talking to whichever mode it was last configured for. Treat the choice as permanent for the life of the environment; create a new `azd env` to evaluate the other mode.
+
+Both modes share the same backend code path. Chat reads dispatch through `search_registry.registry.get(settings.database.index_store)(...)`; chat history dispatches through `chat_history.registry.get(settings.chat_history.backend)(...)`. The `index_store` and `backend` settings are deployment-time env vars derived from `databaseType` by [`post_provision.py`](../scripts/post_provision.py). No `if/elif` over `databaseType` exists in backend code (Hard Rule #4).
+
 ### 2.3 Monitoring-conditional (`enableMonitoring=true`)
 
 | Resource | AVM module |

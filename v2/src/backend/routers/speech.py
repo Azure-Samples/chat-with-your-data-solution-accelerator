@@ -1,7 +1,7 @@
 """Speech-to-text router (mints AAD-bearer Speech tokens for the browser).
 
 Pillar: Stable Core
-Phase: 4 (S1 / SPEECH-MVP -- pulled forward from Phase 5 task #38)
+Phase: 4 (S1 / SPEECH-MVP)
 
 Single endpoint: ``GET /api/speech`` returns
 ``{token, region, languages}`` for the
@@ -20,30 +20,13 @@ import logging
 import httpx
 from azure.core.exceptions import AzureError
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
 
 from backend.core.speech import mint_speech_token
 from backend.dependencies import CredentialProviderDep, SettingsDep
+from backend.models.speech import SpeechConfig
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/speech", tags=["speech"])
-
-
-class SpeechConfig(BaseModel):
-    """Browser-consumable Speech-SDK bootstrap payload."""
-
-    token: str = Field(description="10-minute Azure Speech authorization token.")
-    region: str = Field(description="Azure region of the Speech account.")
-    languages: list[str] = Field(
-        description=(
-            "BCP-47 language tags the recognizer should auto-detect. "
-            "Defaults to v1's `en-US,fr-FR,de-DE,it-IT`."
-        )
-    )
-
-
-def _split_languages(raw: str) -> list[str]:
-    return [lang.strip() for lang in raw.split(",") if lang.strip()]
 
 
 @router.get("", response_model=SpeechConfig)
@@ -90,8 +73,8 @@ async def get_speech_config(
     return SpeechConfig(
         token=token,
         region=settings.speech.service_region,
-        languages=_split_languages(settings.speech.recognizer_languages),
+        languages=[lang.strip() for lang in settings.speech.recognizer_languages.split(",") if lang.strip()],
     )
 
 
-__all__ = ["router", "SpeechConfig"]
+__all__ = ["router"]

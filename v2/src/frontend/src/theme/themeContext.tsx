@@ -22,7 +22,11 @@ import {
   type ReactNode,
 } from "react";
 
-export type Theme = "light" | "dark";
+export const Theme = {
+  Light: "light",
+  Dark: "dark",
+} as const;
+export type Theme = (typeof Theme)[keyof typeof Theme];
 
 export interface ThemeContextValue {
   theme: Theme;
@@ -31,7 +35,7 @@ export interface ThemeContextValue {
 }
 
 const STORAGE_KEY = "cwyd.theme";
-const DEFAULT_THEME: Theme = "light";
+const DEFAULT_THEME: Theme = Theme.Light;
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -40,7 +44,7 @@ function readInitialTheme(): Theme {
     return DEFAULT_THEME;
   }
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
+  if (stored === Theme.Light || stored === Theme.Dark) {
     return stored;
   }
   return DEFAULT_THEME;
@@ -67,7 +71,9 @@ export function ThemeProvider({
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === "light" ? "dark" : "light"));
+    setThemeState((prev) =>
+      prev === Theme.Light ? Theme.Dark : Theme.Light,
+    );
   }, []);
 
   const value = useMemo<ThemeContextValue>(

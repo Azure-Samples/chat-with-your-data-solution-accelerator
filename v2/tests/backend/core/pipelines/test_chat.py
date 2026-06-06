@@ -7,6 +7,7 @@ from typing import Any, AsyncIterator, Sequence
 
 import pytest
 
+from backend.core.pipelines import chat as chat_module
 from backend.core.pipelines.chat import RaiScreener, run_chat
 from backend.core.providers.orchestrators.base import OrchestratorBase
 from backend.core.tools.content_safety import ContentSafetyVerdict
@@ -451,7 +452,5 @@ def test_rai_screener_type_alias_is_exported() -> None:
     as the type of the partial it builds). Catches accidental removal
     from `__all__`.
     """
-    from backend.core.pipelines import chat as chat_module
-
     assert "RaiScreener" in chat_module.__all__
     assert RaiScreener is chat_module.RaiScreener

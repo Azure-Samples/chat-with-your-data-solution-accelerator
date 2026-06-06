@@ -1,8 +1,8 @@
 # v1 Local Runbook
 
 How to start, stop, and restart the v1 stack locally against the **shared cloud
-infrastructure** in `rg-cwyd-cdb-v2` (subscription
-`ff9b5430-90ea-44c0-8a00-e488c1bf56f4`).
+infrastructure** in `<RESOURCE_GROUP>` (subscription
+`<AZURE_SUBSCRIPTION_ID>`).
 
 > v1 lives in `code/`. v2 lives in `v2/`. Never share venvs, ports, or env
 > files between the two.
@@ -11,24 +11,23 @@ infrastructure** in `rg-cwyd-cdb-v2` (subscription
 
 ## 0. Prerequisites (one-time, already done on this machine)
 
-- Python **3.11.9** at
-  `C:\Users\friesco\AppData\Local\Python\pythoncore-3.11-64\python.exe`
+- Python **3.11.9** on `PATH` (`python --version` → `Python 3.11.9`)
 - Node 20+, Docker Desktop, Azure Functions Core Tools v4
 - `.venv\` at the repo root, populated with v1 deps
   (`code/backend/requirements.txt`)
 - `code/dist/static/` (built React bundle)
-- `scripts/load_v1_env.ps1` (gitignored, sources `.azure/cwyd-cdb-v2/.env`)
-- `az login` as `friesco@MngEnvMCAP993385.onmicrosoft.com`
-- RBAC roles on `rg-cwyd-cdb-v2` (already granted):
-  - **Storage** `stcwydcdbv23ane6`: Blob Data Owner, Blob Data Contributor,
+- `scripts/load_v1_env.ps1` (gitignored, sources `.azure/<AZD_ENV_NAME>/.env`)
+- `az login` as `<AZURE_PRINCIPAL_UPN>`
+- RBAC roles on `<RESOURCE_GROUP>` (already granted):
+  - **Storage** `st<DATA_SUFFIX>`: Blob Data Owner, Blob Data Contributor,
     Blob Delegator, Queue Data Contributor, Table Data Contributor
-  - **OpenAI** `oai-cwydcdbv23ane6`: Cognitive Services OpenAI User
-  - **Doc Intel** `di-cwydcdbv23ane6`: Cognitive Services User
-  - **CogSvc** `cs-cwydcdbv23ane6`: Cognitive Services User
-  - **Search** `srch-cwydcdbv23ane6`: Search Index Data Contributor + Search
+  - **OpenAI** `oai-<DATA_SUFFIX>`: Cognitive Services OpenAI User
+  - **Doc Intel** `di-<DATA_SUFFIX>`: Cognitive Services User
+  - **CogSvc** `cs-<DATA_SUFFIX>`: Cognitive Services User
+  - **Search** `srch-<DATA_SUFFIX>`: Search Index Data Contributor + Search
     Service Contributor
-  - **Cosmos** `cosmos-cwydcdbv23ane6`: Cosmos DB Built-in Data Contributor
-  - **Key Vault** `kv-cwydcdbv23ane6`: Key Vault Secrets User
+  - **Cosmos** `cosmos-<DATA_SUFFIX>`: Cosmos DB Built-in Data Contributor
+  - **Key Vault** `kv-<DATA_SUFFIX>`: Key Vault Secrets User
 - Public network access **enabled** on Storage + Cosmos (required because the
   laptop is not in the VNet).
 
@@ -40,7 +39,7 @@ Open **four PowerShell terminals at the repo root**
 (`C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator`)
 and run one block per terminal **in order**. Each block first ensures
 `az login` is fresh, then activates the v1 venv, then loads env vars from
-`.azure/cwyd-cdb-v2/.env`.
+`.azure/<AZD_ENV_NAME>/.env`.
 
 > All four terminals must keep running. Don't close them.
 
@@ -48,7 +47,7 @@ and run one block per terminal **in order**. Each block first ensures
 
 ```powershell
 az account show --query "{user:user.name, sub:id}" -o table
-# expect: friesco@... / ff9b5430-...
+# expect: <AZURE_PRINCIPAL_UPN> / <AZURE_SUBSCRIPTION_ID>
 # if not: az login
 ```
 
@@ -121,7 +120,7 @@ Wait for: `Local URL: http://localhost:8501`.
    - `Executing 'Functions.batch_push_results' (Reason='New queue message ...)`
    - `prebuilt-layout:analyze ... 202`
    - `text-embedding-3-small ... 200 OK` (multiple)
-   - `srch-cwydcdbv23ane6.search.windows.net ... /docs/search.index ... 200`
+   - `srch-<DATA_SUFFIX>.search.windows.net ... /docs/search.index ... 200`
 3. Open chat at <http://127.0.0.1:5173> and ask a question about the doc.
 4. Expect the answer with citations in the side panel.
 
@@ -172,16 +171,16 @@ Restore the cloud network posture and remove dev-only RBAC:
 
 ```powershell
 $me = "7e10c8ea-b586-435b-84ff-e87ed0e4afb7"
-$st = "/subscriptions/ff9b5430-90ea-44c0-8a00-e488c1bf56f4/resourceGroups/rg-cwyd-cdb-v2/providers/Microsoft.Storage/storageAccounts/stcwydcdbv23ane6"
-$di = "/subscriptions/ff9b5430-90ea-44c0-8a00-e488c1bf56f4/resourceGroups/rg-cwyd-cdb-v2/providers/Microsoft.CognitiveServices/accounts/di-cwydcdbv23ane6"
+$st = "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.Storage/storageAccounts/st<DATA_SUFFIX>"
+$di = "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.CognitiveServices/accounts/di-<DATA_SUFFIX>"
 
 az role assignment delete --assignee $me --role "Storage Blob Data Owner"        --scope $st
 az role assignment delete --assignee $me --role "Storage Table Data Contributor" --scope $st
 az role assignment delete --assignee $me --role "Storage Blob Delegator"          --scope $st
 az role assignment delete --assignee $me --role "Cognitive Services User"         --scope $di
 
-az storage account update --name stcwydcdbv23ane6 --resource-group rg-cwyd-cdb-v2 --public-network-access Disabled
-az cosmosdb update         --name cosmos-cwydcdbv23ane6 --resource-group rg-cwyd-cdb-v2 --public-network-access Disabled
+az storage account update --name st<DATA_SUFFIX> --resource-group <RESOURCE_GROUP> --public-network-access Disabled
+az cosmosdb update         --name cosmos-<DATA_SUFFIX> --resource-group <RESOURCE_GROUP> --public-network-access Disabled
 ```
 
 Leave the Storage Blob Data Contributor / Queue Data Contributor / Search /
@@ -195,7 +194,7 @@ deployed v1 app + by future v2 work.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `FileNotFoundError: pages/common.css` in Streamlit | Launched Streamlit from `code/` instead of `code/backend/` | Restart Terminal 4 with `cd code\backend` |
-| Functions host hangs at boot, blob 403 | Missing **Storage Blob Data Owner** on `stcwydcdbv23ane6` | See section 0 RBAC list |
+| Functions host hangs at boot, blob 403 | Missing **Storage Blob Data Owner** on `st<DATA_SUFFIX>` | See section 0 RBAC list |
 | Chat returns 500 with `get_user_delegation_key` failure | Missing **Storage Blob Delegator** | See section 0 RBAC list |
 | Cosmos calls return 403 / "Forbidden by firewall" | Public network access **Disabled** | `az cosmosdb update --public-network-access Enabled` |
 | Storage calls return 403 with same wording | Public network access **Disabled** | `az storage account update --public-network-access Enabled --default-action Allow` |
@@ -209,7 +208,7 @@ deployed v1 app + by future v2 work.
 
 | File | Purpose |
 |---|---|
-| `scripts/load_v1_env.ps1` | Sources `.azure/cwyd-cdb-v2/.env`, sets `BACKEND_URL=http://localhost:7071`, `FUNCTION_KEY`, `USE_KEY_VAULT=false`, `AZURE_AUTH_TYPE=rbac` |
-| `code/backend/batch/local.settings.json` | Functions host config — uses `AzureWebJobsStorage__accountName=stcwydcdbv23ane6` (RBAC, no key) |
-| `.azure/cwyd-cdb-v2/.env` | All 84 env vars produced by `azd env get-values` |
+| `scripts/load_v1_env.ps1` | Sources `.azure/<AZD_ENV_NAME>/.env`, sets `BACKEND_URL=http://localhost:7071`, `FUNCTION_KEY`, `USE_KEY_VAULT=false`, `AZURE_AUTH_TYPE=rbac` |
+| `code/backend/batch/local.settings.json` | Functions host config — uses `AzureWebJobsStorage__accountName=st<DATA_SUFFIX>` (RBAC, no key) |
+| `.azure/<AZD_ENV_NAME>/.env` | All 84 env vars produced by `azd env get-values` |
 | `code/dist/static/` | Built React bundle Flask serves at `/` |

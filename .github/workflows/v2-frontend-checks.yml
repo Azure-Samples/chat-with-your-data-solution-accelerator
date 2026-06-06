@@ -1,0 +1,59 @@
+name: v2 frontend checks (lint + typecheck + vitest)
+
+# ADR 0014 (2026-06-02): hard CI gate for the v2 frontend.
+#
+# Three sequential checks against the v2 React 19 + TS 5.9 + Vite 7
+# package at `v2/src/frontend`:
+#   1. `npm run lint`  -- ESLint flat config, strict-type-checked.
+#   2. `npx tsc -p .`  -- tsc strict mode + noUncheckedIndexedAccess
+#                          + exactOptionalPropertyTypes (noEmit:true
+#                          in tsconfig.json so this is type-check only).
+#   3. `npm test`      -- vitest run (147 tests across 18 suites at
+#                          time of wiring).
+#
+# Mirrors `v2-typecheck.yml` (backend pyright) and `v2-backend-only-smoke.yml`
+# (backend smoke). Path-scoped so unrelated edits do not pay CI cost.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "v2/src/frontend/**"
+      - ".github/workflows/v2-frontend-checks.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "v2/src/frontend/**"
+      - ".github/workflows/v2-frontend-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  frontend-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2/src/frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "v2/src/frontend/package-lock.json"
+
+      - name: Install dependencies (npm ci, frozen lockfile)
+        run: npm ci
+
+      - name: Lint (ESLint strict-type-checked, hard gate)
+        run: npm run lint
+
+      - name: Typecheck (tsc strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes)
+        run: npx tsc -p .
+
+      - name: Vitest (npm test)
+        run: npm test

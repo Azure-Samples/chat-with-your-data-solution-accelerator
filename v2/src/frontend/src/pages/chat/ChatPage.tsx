@@ -16,7 +16,7 @@
  */
 import { useState } from "react";
 import { ChatProvider } from "./ChatContext";
-import { PanelLeft } from "../../components/CoralShell/PanelLeft";
+import { PanelLeft } from "@/components/CoralShell/PanelLeft";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { MessageList } from "./components/MessageList";
 import { MessageInput } from "./components/MessageInput";

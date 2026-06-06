@@ -3,10 +3,11 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
   ChatProvider,
   useChat,
-} from "../../../../src/pages/chat/ChatContext";
-import { MessageInput } from "../../../../src/pages/chat/components/MessageInput";
-import { streamChat, type StreamEvent } from "../../../../src/api/streamChat";
-import { useSpeechRecognition } from "../../../../src/hooks/useSpeechRecognition";
+} from "@/pages/chat/ChatContext";
+import { MessageInput } from "@/pages/chat/components/MessageInput";
+import { streamChat } from "@/api/streamChat";
+import type { StreamEvent } from "@/models/chat";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 vi.mock("../../../../src/api/streamChat", () => ({
   streamChat: vi.fn(),
@@ -188,7 +189,7 @@ describe("MessageInput SSE wiring", () => {
     await waitFor(() => {
       expect(streamChatMock).toHaveBeenCalledTimes(1);
     });
-    const call = streamChatMock.mock.calls[0][0];
+    const call = streamChatMock.mock.calls[0]![0];
     expect(call).toEqual([{ role: "user", content: "first question" }]);
   });
 
@@ -211,7 +212,7 @@ describe("MessageInput SSE wiring", () => {
     await waitFor(() => {
       expect(streamChatMock).toHaveBeenCalledTimes(2);
     });
-    const secondCall = streamChatMock.mock.calls[1][0];
+    const secondCall = streamChatMock.mock.calls[1]![0];
     expect(secondCall).toEqual([
       { role: "user", content: "first" },
       { role: "assistant", content: "ok" },
@@ -279,10 +280,9 @@ describe("MessageInput SSE wiring", () => {
     act(() => def.end());
   });
 
-  it("ignores citation and tool frames (out of scope for the demo)", async () => {
+  it("ignores tool frames (out of scope for the demo)", async () => {
     streamChatMock.mockReturnValue(
       iterableOf([
-        { channel: "citation", content: "", metadata: { id: "c1" } },
         { channel: "tool", content: "ran", metadata: {} },
         { channel: "answer", content: "done", metadata: {} },
       ]),
@@ -295,6 +295,82 @@ describe("MessageInput SSE wiring", () => {
       expect(m.streaming).toBe(false);
       expect(m.content).toBe("done");
       expect(m.reasoning).toEqual([]);
+    });
+  });
+
+  it("dispatches citation frames into the assistant message", async () => {
+    streamChatMock.mockReturnValue(
+      iterableOf([
+        {
+          channel: "citation",
+          content: "",
+          metadata: {
+            id: "doc-a",
+            title: "Doc A",
+            url: "https://example.com/a",
+            snippet: "snippet a",
+            score: 0.42,
+            metadata: { source: "blob" },
+          },
+        },
+        {
+          channel: "citation",
+          content: "",
+          metadata: {
+            id: "doc-b",
+            title: "Doc B",
+            url: "https://example.com/b",
+            snippet: "snippet b",
+          },
+        },
+        { channel: "answer", content: "done", metadata: {} },
+      ]),
+    );
+    renderInput();
+    await submit("hi");
+
+    await waitFor(() => {
+      const m = probeMessages()[1];
+      expect(m.streaming).toBe(false);
+      expect(m.citations).toHaveLength(2);
+      expect(m.citations[0]).toEqual({
+        id: "doc-a",
+        title: "Doc A",
+        url: "https://example.com/a",
+        snippet: "snippet a",
+        score: 0.42,
+        metadata: { source: "blob" },
+      });
+      expect(m.citations[1]).toEqual({
+        id: "doc-b",
+        title: "Doc B",
+        url: "https://example.com/b",
+        snippet: "snippet b",
+        score: null,
+        metadata: {},
+      });
+    });
+  });
+
+  it("drops citation frames that arrive without an id", async () => {
+    streamChatMock.mockReturnValue(
+      iterableOf([
+        {
+          channel: "citation",
+          content: "",
+          metadata: { title: "Untyped doc", url: "https://example.com/x" },
+        },
+        { channel: "answer", content: "done", metadata: {} },
+      ]),
+    );
+    renderInput();
+    await submit("hi");
+
+    await waitFor(() => {
+      const m = probeMessages()[1];
+      expect(m.streaming).toBe(false);
+      // The malformed frame was dropped, so no citations array landed.
+      expect(m.citations ?? []).toEqual([]);
     });
   });
 

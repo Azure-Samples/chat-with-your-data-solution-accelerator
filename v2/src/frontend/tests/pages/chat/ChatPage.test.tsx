@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { ChatPage } from "../../../src/pages/chat/ChatPage";
-import { streamChat, type StreamEvent } from "../../../src/api/streamChat";
+import { ChatPage } from "@/pages/chat/ChatPage";
+import { streamChat } from "@/api/streamChat";
+import type { StreamEvent } from "@/models/chat";
 
 // `MessageInput` calls `streamChat` on submit (dev_plan #24, C2b).
 // Stub the module so the integration assertions stay focused on the

@@ -28,8 +28,8 @@ export function PanelLeft({
 }: PanelLeftProps): JSX.Element {
   const composed =
     className === undefined || className === ""
-      ? styles.panelLeft
-      : `${styles.panelLeft} ${className}`;
+      ? (styles.panelLeft ?? "")
+      : `${styles.panelLeft ?? ""} ${className}`;
   return (
     <aside className={composed} data-coral-panel="left" {...rest}>
       {children}

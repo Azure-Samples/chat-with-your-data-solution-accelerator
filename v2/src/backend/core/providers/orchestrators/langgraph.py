@@ -5,22 +5,22 @@ Phase: 3
 
 Builds a `StateGraph` with a single LLM node, compiled once per
 orchestrator instance and re-used across requests (no mutable
-per-request state held on `self`). The graph is held for tool-node
-wiring (task #20: ``ToolNode`` + ``add_conditional_edges``) and is
-**deliberately bypassed** for the LLM call as of CU-004b
-(2026-05-05): live token + reasoning streaming is incompatible with
+per-request state held on `self`). The graph is held for future
+tool-node wiring (``ToolNode`` + ``add_conditional_edges``) and is
+**deliberately bypassed** for the LLM call as of CU-004b: live token
++ reasoning streaming is incompatible with
 ``StateGraph.ainvoke``'s buffer-then-return contract, and the unified
 LLM-layer factory ``BaseLLMProvider.complete()`` (CU-004a) already
 auto-routes between ``chat()`` and ``reason()`` so the orchestrator
 never has to branch on model class.
 
-``run()`` calls ``self._llm.complete(...)`` directly, propagates
+``run()`` calls ``self.llm.complete(...)`` directly, propagates
 ``reasoning`` / ``error`` events to the SSE channel as they arrive,
 accumulates ``answer`` chunks into a single buffered event (ADR 0007
 single-answer contract preserved), then emits ``citation`` events for
 the markers actually referenced in the answer.
 
-Citation wiring (task #23, audit step 6d): when an optional
+Citation wiring: when an optional
 ``BaseSearch`` provider is supplied at construction time, ``run()``
 retrieves grounding documents for the latest user message, injects
 them as a numbered ``[doc1] / [doc2] / ...`` system message via
@@ -49,9 +49,9 @@ from backend.core.tools.citations import (
     filter_to_referenced,
     format_sources_block,
 )
-from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
+from backend.core.types import ChatMessage, ChatRole, OrchestratorChannel, OrchestratorEvent
 
-from . import registry
+from .registry import registry
 from .base import OrchestratorBase
 
 
@@ -59,8 +59,8 @@ class _GraphState(TypedDict):
     """Shape of the value flowing through the LangGraph state machine.
 
     `messages` carries an append-only conversation log. The
-    `operator.add` reducer makes multi-node writes (e.g., `llm` and the
-    future `tools` node added in task #20) merge instead of overwrite.
+    `operator.add` reducer makes multi-node writes (e.g., `llm` and a
+    future `tools` node) merge instead of overwrite.
     Without this reducer, the second writer would silently clobber the
     first -- a class of bug LangGraph specifically protects against
     when you declare a channel reducer.
@@ -102,7 +102,7 @@ class LangGraphOrchestrator(OrchestratorBase):
         return graph.compile()
 
     async def _llm_node(self, state: _GraphState) -> _GraphState:
-        reply = await self._llm.chat(state["messages"])
+        reply = await self.llm.chat(state["messages"])
         # Return only the delta -- the `operator.add` reducer on
         # `messages` appends it to the existing log.
         return {"messages": [reply]}
@@ -114,7 +114,7 @@ class LangGraphOrchestrator(OrchestratorBase):
     @staticmethod
     def _latest_user_text(messages: Sequence[ChatMessage]) -> str:
         for msg in reversed(messages):
-            if msg.role == "user":
+            if msg.role is ChatRole.USER:
                 return msg.content
         return ""
 
@@ -138,7 +138,7 @@ class LangGraphOrchestrator(OrchestratorBase):
                     citations = build_citations(sources)
                     block = format_sources_block(sources)
                     graph_messages = [
-                        ChatMessage(role="system", content=f"Sources:\n{block}"),
+                        ChatMessage(role=ChatRole.SYSTEM, content=f"Sources:\n{block}"),
                         *messages,
                     ]
 
@@ -147,10 +147,10 @@ class LangGraphOrchestrator(OrchestratorBase):
         # based on the configured deployment, so o-series `reasoning`
         # tokens flow live to the SSE channel without per-orchestrator
         # branching. The compiled graph is bypassed for the LLM call --
-        # task #20 (tool-node wiring) reintroduces it for tool routing.
+        # future tool-node wiring reintroduces it for tool routing.
         answer_parts: list[str] = []
         saw_error = False
-        async for event in self._llm.complete(graph_messages):
+        async for event in self.llm.complete(graph_messages):
             if event.channel == OrchestratorChannel.ANSWER:
                 answer_parts.append(event.content)
             elif event.channel == OrchestratorChannel.ERROR:

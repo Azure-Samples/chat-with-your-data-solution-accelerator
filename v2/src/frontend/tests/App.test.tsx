@@ -4,7 +4,7 @@
  */
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { App } from "../src/App";
+import { App } from "@/App";
 
 describe("App", () => {
   const originalFetch = globalThis.fetch;

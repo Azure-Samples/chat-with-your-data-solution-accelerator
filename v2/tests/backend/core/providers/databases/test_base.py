@@ -9,7 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend.core.providers import databases
+from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
 from backend.core.types import (
@@ -98,14 +98,14 @@ class _StubDatabaseClient(BaseDatabaseClient):
 
 
 def test_registry_domain_and_initially_empty() -> None:
-    assert databases.registry.domain == "databases"
+    assert databases_registry.registry.domain == "databases"
     # `cosmosdb` self-registers in task #27; `postgres` lands in task #28.
-    assert "cosmosdb" in databases.registry.keys()
+    assert "cosmosdb" in databases_registry.registry.keys()
 
 
 def test_create_raises_keyerror_for_unknown_client() -> None:
     with pytest.raises(KeyError) as excinfo:
-        databases.create("does_not_exist")
+        databases_registry.registry.get("does_not_exist")
     msg = str(excinfo.value)
     assert "does_not_exist" in msg
     assert "databases" in msg
@@ -524,8 +524,6 @@ def test_subclass_missing_write_admin_audit_remains_abstract() -> None:
     route in #35f-3 could silently drop the audit row, defeating
     the "who flipped temperature to 0.7?" forensic question that
     motivated the audit log."""
-    from backend.core.types import AdminAuditEntry  # noqa: F401 -- contract probe
-
     class _MissingWriteAdminAudit(BaseDatabaseClient):
         async def list_conversations(self, user_id: str) -> Sequence[Conversation]:
             return []
@@ -600,8 +598,6 @@ async def test_stub_write_admin_audit_returns_none_and_does_not_raise() -> None:
     router fires-and-forgets the audit row; the storage layer
     assigns id + created_at on persist (mirrors `add_message`).
     """
-    from backend.core.types import AdminAuditEntry
-
     client = _StubDatabaseClient(
         settings=MagicMock(spec=AppSettings),
         credential=MagicMock(),

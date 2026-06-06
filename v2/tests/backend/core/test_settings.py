@@ -4,10 +4,24 @@ Pillar: Stable Core
 Phase: 2
 """
 
+from enum import StrEnum
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
-from backend.core.settings import AppSettings, get_settings
+import backend.core.settings as _settings_module
+from backend.core import settings as settings_mod
+from backend.core.settings import (
+    AppSettings,
+    ContentSafetySettings,
+    DbType,
+    DocumentIntelligenceSettings,
+    IndexStore,
+    OrchestratorSettings,
+    SpeechSettings,
+    get_settings,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +131,84 @@ def test_loads_from_env_postgresql_mode(monkeypatch: pytest.MonkeyPatch) -> None
 # ---------------------------------------------------------------------------
 
 
-def test_db_type_validation_rejects_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_db_type_validation_rejects_first_party_postgresql_without_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Selecting the first-party `postgresql` key without the matching env
+    coupling still fails at Pydantic load. Confirms Unit 3 carve-out did
+    not silently weaken first-party validation.
+    """
     _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.setenv("AZURE_DB_TYPE", "mongodb")
+    monkeypatch.setenv("AZURE_DB_TYPE", "postgresql")
+    monkeypatch.setenv("AZURE_INDEX_STORE", "pgvector")
+    with pytest.raises(ValidationError):
+        AppSettings()
+
+
+@pytest.mark.parametrize(
+    "third_party_key",
+    ["mongodb", "dynamodb", "Cassandra-Custom"],
+)
+def test_db_type_accepts_third_party_registry_key(
+    monkeypatch: pytest.MonkeyPatch,
+    third_party_key: str,
+) -> None:
+    """Hard Rule #11 registry-driven carve-out: `DatabaseSettings.db_type`
+    is typed `DbType | str` so a third-party-registered key flows through
+    Pydantic validation unmodified. Dispatch-time validation moves to the
+    registry boundary (`databases_registry.registry.get(...)`); first-party
+    cosmos/postgres env-var coupling does not apply.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_DB_TYPE", third_party_key)
+    settings = AppSettings()
+    assert settings.database.db_type == third_party_key
+    # Pydantic took the `str` arm of the union, not a coerced `DbType` member.
+    assert not isinstance(settings.database.db_type, DbType)
+    # The first-party mode-consistency check did not fire: cosmos_endpoint
+    # is still populated from COSMOS_ENV but no AzureSearch coupling was
+    # enforced because the key is third-party.
+    assert settings.database.cosmos_endpoint.startswith("https://cosmos-")
+
+
+@pytest.mark.parametrize(
+    ("db_key", "index_key"),
+    [
+        ("mongodb", "mongodb_search"),
+        ("dynamodb", "opensearch"),
+        ("Cassandra-Custom", "Cassandra-Vector"),
+    ],
+)
+def test_index_store_accepts_third_party_registry_key(
+    monkeypatch: pytest.MonkeyPatch,
+    db_key: str,
+    index_key: str,
+) -> None:
+    """Hard Rule #11 registry-driven carve-out: `DatabaseSettings.index_store`
+    is typed `IndexStore | str`. A third-party `index_store` paired with a
+    third-party `db_type` flows through Pydantic unmodified; the validator's
+    fall-through skips first-party env-var coupling. Dispatch-time validation
+    moves to the `search_registry.registry.get(...)` boundary.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_DB_TYPE", db_key)
+    monkeypatch.setenv("AZURE_INDEX_STORE", index_key)
+    settings = AppSettings()
+    assert settings.database.index_store == index_key
+    # Pydantic took the `str` arm of the union, not a coerced `IndexStore` member.
+    assert not isinstance(settings.database.index_store, IndexStore)
+
+
+def test_index_store_validation_rejects_third_party_with_first_party_cosmos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A third-party `index_store` paired with first-party `db_type=cosmosdb`
+    is rejected: the first-party branch still enforces
+    `index_store == AzureSearch`. Third-party index stores only make sense
+    when paired with a third-party `db_type` that skips the coupling check.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_INDEX_STORE", "mongodb_search")
     with pytest.raises(ValidationError):
         AppSettings()
 
@@ -130,11 +219,26 @@ def test_orchestrator_default_is_langgraph(monkeypatch: pytest.MonkeyPatch) -> N
     assert settings.orchestrator.name == "langgraph"
 
 
-def test_orchestrator_validation_rejects_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(
+    "third_party_key",
+    ["crewai", "semantic-kernel-custom", "my_orchestrator"],
+)
+def test_orchestrator_accepts_third_party_registry_key(
+    monkeypatch: pytest.MonkeyPatch,
+    third_party_key: str,
+) -> None:
+    """Hard Rule #11 registry-driven carve-out: `OrchestratorSettings.name`
+    is typed `Literal["langgraph", "agent_framework"] | str` so a
+    third-party-registered orchestrator key flows through Pydantic
+    unmodified. Settings-time rejection of unknown keys is gone; dispatch-
+    time validation moves to the registry boundary
+    (`orchestrators_registry.registry.get(name)` raises `KeyError`
+    listing every registered key).
+    """
     _set(monkeypatch, COSMOS_ENV)
-    monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", "crewai")
-    with pytest.raises(ValidationError):
-        AppSettings()
+    monkeypatch.setenv("CWYD_ORCHESTRATOR_NAME", third_party_key)
+    settings = AppSettings()
+    assert settings.orchestrator.name == third_party_key
 
 
 def test_orchestrator_can_be_set_to_agent_framework(
@@ -168,8 +272,6 @@ def test_orchestrator_settings_no_agent_id_field() -> None:
     opened to remove. Pin specific Foundry agents through the
     registry-backed `agents` provider (CU-010a), not via settings.
     """
-    from backend.core.settings import OrchestratorSettings
-
     assert "agent_id" not in OrchestratorSettings.model_fields, (
         "OrchestratorSettings.agent_id must remain absent (CU-009b reversal "
         "of CU-001a). Foundry agent identity is now DB-backed via the agents "
@@ -277,6 +379,31 @@ def test_observability_optional(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 # ---------------------------------------------------------------------------
+# OpenAISettings
+# ---------------------------------------------------------------------------
+
+
+def test_openai_embedding_dimensions_defaults_to_1536(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.delenv("AZURE_OPENAI_EMBEDDING_DIMENSIONS", raising=False)
+    settings = AppSettings()
+    # 1536 matches text-embedding-ada-002 / text-embedding-3-small and
+    # the pgvector(N) literal hard-coded in the schema docstring.
+    assert settings.openai.embedding_dimensions == 1536
+
+
+def test_openai_embedding_dimensions_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_OPENAI_EMBEDDING_DIMENSIONS", "3072")
+    settings = AppSettings()
+    assert settings.openai.embedding_dimensions == 3072
+
+
+# ---------------------------------------------------------------------------
 # SpeechSettings (S1 / SPEECH-MVP)
 # ---------------------------------------------------------------------------
 
@@ -323,8 +450,6 @@ def test_speech_settings_no_subscription_key_field() -> None:
     a stored subscription key. Guard against accidental re-introduction
     of the v1 `AZURE_SPEECH_KEY` pattern.
     """
-    from backend.core.settings import SpeechSettings
-
     forbidden = ("key", "secret", "password")
     for field_name in SpeechSettings.model_fields:
         lowered = field_name.lower()
@@ -334,6 +459,177 @@ def test_speech_settings_no_subscription_key_field() -> None:
                 f"(matched '{token}'); Speech tokens must be minted via "
                 "AAD bearer through the credentials provider."
             )
+
+
+# ---------------------------------------------------------------------------
+# ContentSafetySettings
+# ---------------------------------------------------------------------------
+
+
+class _ContentSafetyEnvVar(StrEnum):
+    """Sibling env-var names for `ContentSafetySettings` (Hard Rule #11).
+
+    StrEnum -- members compare equal to their string values, so they
+    drop straight into `monkeypatch.setenv` / `delenv` without `.value`.
+    """
+
+    ENDPOINT = "AZURE_CONTENT_SAFETY_ENDPOINT"
+    ENABLED = "AZURE_CONTENT_SAFETY_ENABLED"
+    SEVERITY_THRESHOLD = "AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD"
+
+
+def test_content_safety_settings_defaults_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    for key in _ContentSafetyEnvVar:
+        monkeypatch.delenv(key, raising=False)
+    settings = AppSettings()
+    assert settings.content_safety.endpoint == ""
+    assert settings.content_safety.enabled is False
+    # Azure Content Safety severity is 0/2/4/6; default trips on
+    # `medium` (4) -- matches `ContentSafetyGuard.DEFAULT_SEVERITY_THRESHOLD`.
+    assert settings.content_safety.severity_threshold == 4
+
+
+def test_content_safety_settings_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(
+        _ContentSafetyEnvVar.ENDPOINT,
+        "https://cs-cwyd001.cognitiveservices.azure.com/",
+    )
+    monkeypatch.setenv(_ContentSafetyEnvVar.ENABLED, "true")
+    monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, "6")
+    settings = AppSettings()
+    assert settings.content_safety.endpoint.endswith(
+        ".cognitiveservices.azure.com/"
+    )
+    assert settings.content_safety.enabled is True
+    assert settings.content_safety.severity_threshold == 6
+
+
+@pytest.mark.parametrize("threshold", [0, 2, 4, 6, 7])
+def test_content_safety_settings_accepts_in_range_threshold(
+    monkeypatch: pytest.MonkeyPatch, threshold: int
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, str(threshold))
+    settings = AppSettings()
+    assert settings.content_safety.severity_threshold == threshold
+
+
+@pytest.mark.parametrize("threshold", [-1, 8, 999])
+def test_content_safety_settings_rejects_out_of_range_threshold(
+    monkeypatch: pytest.MonkeyPatch, threshold: int
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, str(threshold))
+    with pytest.raises(ValidationError):
+        AppSettings()
+
+
+def test_content_safety_settings_no_subscription_key_field() -> None:
+    """Hard Rule #7 (no Key Vault for app secrets) + Hard Rule #4 (UAMI
+    via credentials provider). Content Safety credentials come from
+    AAD/UAMI bearer, never a stored subscription key.
+    """
+    forbidden = ("key", "secret", "password")
+    for field_name in ContentSafetySettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"ContentSafetySettings.{field_name} looks secret-bearing "
+                f"(matched '{token}'); Content Safety credentials must be "
+                "minted via AAD bearer through the credentials provider."
+            )
+
+
+def test_content_safety_settings_in_app_settings_exports() -> None:
+    """`ContentSafetySettings` must be re-exported alongside the other
+    per-subsystem settings models so dependent modules can type-import it
+    directly from `backend.core.settings`.
+    """
+    assert "ContentSafetySettings" in settings_mod.__all__
+    assert settings_mod.ContentSafetySettings is not None
+
+
+# ---------------------------------------------------------------------------
+# DocumentIntelligenceSettings
+# ---------------------------------------------------------------------------
+
+
+class _DocIntelEnvVar(StrEnum):
+    """Sibling env-var names for `DocumentIntelligenceSettings` (Hard Rule #11)."""
+
+    API_VERSION = "AZURE_DOCUMENT_INTELLIGENCE_API_VERSION"
+    MODEL_ID = "AZURE_DOCUMENT_INTELLIGENCE_MODEL_ID"
+
+
+def test_document_intelligence_settings_defaults_when_unset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    for key in _DocIntelEnvVar:
+        monkeypatch.delenv(key, raising=False)
+    settings = AppSettings()
+    assert settings.document_intelligence.api_version == "2024-11-30"
+    assert settings.document_intelligence.model_id == "prebuilt-layout"
+
+
+def test_document_intelligence_settings_reads_env_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv(_DocIntelEnvVar.API_VERSION, "2024-07-31-preview")
+    monkeypatch.setenv(_DocIntelEnvVar.MODEL_ID, "prebuilt-read")
+    settings = AppSettings()
+    assert settings.document_intelligence.api_version == "2024-07-31-preview"
+    assert settings.document_intelligence.model_id == "prebuilt-read"
+
+
+def test_document_intelligence_settings_no_endpoint_field() -> None:
+    """Endpoint is intentionally derived from `FoundrySettings.services_endpoint`
+    (unified AI Services account per `v2/infra/main.bicep`) rather than a
+    standalone env var. Guard against accidental re-introduction of an
+    `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` field.
+    """
+    forbidden = ("endpoint", "url", "host")
+    for field_name in DocumentIntelligenceSettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"DocumentIntelligenceSettings.{field_name} looks like a "
+                f"standalone endpoint field; endpoint MUST derive from "
+                f"FoundrySettings.services_endpoint per the unified AI "
+                f"Services account in v2/infra/main.bicep."
+            )
+
+
+def test_document_intelligence_settings_no_subscription_key_field() -> None:
+    """Hard Rule #2 (UAMI via credentials provider) + Hard Rule #7 (no Key
+    Vault for app secrets). Document Intelligence credentials must come
+    from AAD/UAMI bearer, never a stored subscription key.
+    """
+    forbidden = ("key", "secret", "password")
+    for field_name in DocumentIntelligenceSettings.model_fields:
+        lowered = field_name.lower()
+        for token in forbidden:
+            assert token not in lowered, (
+                f"DocumentIntelligenceSettings.{field_name} looks "
+                f"secret-bearing (matched '{token}'); DI tokens must be "
+                f"acquired via AAD bearer through the credentials provider."
+            )
+
+
+def test_document_intelligence_settings_in_app_settings_exports() -> None:
+    """`DocumentIntelligenceSettings` must be re-exported alongside the
+    other per-subsystem settings models so dependent modules can
+    type-import it directly from `backend.core.settings`.
+    """
+    assert "DocumentIntelligenceSettings" in settings_mod.__all__
+    assert settings_mod.DocumentIntelligenceSettings is not None
 
 
 # ---------------------------------------------------------------------------
@@ -454,8 +750,6 @@ def test_env_sample_keys_round_trip_through_appsettings() -> None:
     in REFACTOR-B (Phase 5.5, 2026-05-06); parents index bumped 2 -> 3 to
     keep resolving v2/.env.sample.
     """
-    from pathlib import Path
-
     example = (
         Path(__file__).resolve().parents[3]
         / ".env.sample"
@@ -489,3 +783,99 @@ def test_env_sample_keys_round_trip_through_appsettings() -> None:
         "or document the exemption in _ENV_EXAMPLE_EXEMPTIONS with a "
         "reason."
     )
+
+
+# ---------------------------------------------------------------------------
+# Environment StrEnum (Hard Rule #11 -- closed-set runtime-dispatch discriminator)
+# ---------------------------------------------------------------------------
+#
+# `AppSettings.environment` is a closed two-value set ("local" / "production")
+# that drives runtime branches in `backend.dependencies` (Easy Auth bypass)
+# and `backend.routers.history` (user-id fallback). Per Hard Rule #11 the
+# field type MUST be a `StrEnum` subclass so dispatch sites compare against
+# enum members via `is`-identity rather than free-form string literals.
+
+
+def test_environment_enum_is_strenum_subclass() -> None:
+    """`Environment` is a StrEnum subclass so wire JSON shape is unchanged."""
+    assert issubclass(_settings_module.Environment, StrEnum)
+    assert issubclass(_settings_module.Environment, str)
+
+
+@pytest.mark.parametrize(
+    "member_name, expected_value",
+    [
+        ("LOCAL", "local"),
+        ("PRODUCTION", "production"),
+    ],
+)
+def test_environment_enum_member_values(
+    member_name: str, expected_value: str
+) -> None:
+    """Each member carries the lowercase string value used on the wire."""
+    member = getattr(_settings_module.Environment, member_name)
+    assert member.value == expected_value
+    assert str(member) == expected_value
+
+
+def test_environment_enum_has_exactly_two_members() -> None:
+    """Frozen 2-member set -- adding a third value is a Hard Rule #11 change."""
+    members = {m.name for m in _settings_module.Environment}
+    assert members == {"LOCAL", "PRODUCTION"}
+
+
+def test_environment_field_default_is_local_enum_member(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Default flips from the Literal string `"local"` to `Environment.LOCAL`."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.delenv("AZURE_ENVIRONMENT", raising=False)
+    settings = AppSettings()
+    assert settings.environment is _settings_module.Environment.LOCAL
+
+
+@pytest.mark.parametrize(
+    "raw_value, expected_member",
+    [
+        ("local", "LOCAL"),
+        ("production", "PRODUCTION"),
+    ],
+)
+def test_environment_field_coerces_string_to_enum(
+    monkeypatch: pytest.MonkeyPatch,
+    raw_value: str,
+    expected_member: str,
+) -> None:
+    """Pydantic coerces wire string values into the StrEnum member."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_ENVIRONMENT", raw_value)
+
+    settings = AppSettings()
+
+    expected = getattr(_settings_module.Environment, expected_member)
+    assert settings.environment is expected
+
+
+def test_environment_field_rejects_unknown_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown environment string raises ValidationError (closed-set guard)."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_ENVIRONMENT", "staging")
+
+    with pytest.raises(ValidationError):
+        AppSettings()
+
+
+def test_environment_enum_is_exported_in_all() -> None:
+    """`Environment` is part of the public surface of `backend.core.settings`."""
+    assert "Environment" in _settings_module.__all__
+
+
+def test_environment_members_distinct_by_identity() -> None:
+    """LOCAL and PRODUCTION are distinct members -- `is`-dispatch is safe."""
+    env = _settings_module.Environment
+    assert env.LOCAL is not env.PRODUCTION
+    # And both compare equal to their string value (StrEnum invariant)
+    assert env.LOCAL == "local"
+    assert env.PRODUCTION == "production"

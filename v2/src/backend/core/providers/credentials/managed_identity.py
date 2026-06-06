@@ -13,8 +13,8 @@ do not silently fall back to a system-assigned identity.
 
 from azure.identity.aio import DefaultAzureCredential
 
-from . import registry
 from .base import BaseCredentialProvider
+from .registry import registry
 
 
 @registry.register("managed_identity")

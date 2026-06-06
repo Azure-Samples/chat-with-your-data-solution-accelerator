@@ -28,8 +28,8 @@ export function CoralShellColumn({
 }: CoralShellColumnProps): JSX.Element {
   const composed =
     className === undefined || className === ""
-      ? styles.column
-      : `${styles.column} ${className}`;
+      ? (styles.column ?? "")
+      : `${styles.column ?? ""} ${className}`;
   return (
     <div className={composed} data-coral-shell="column" {...rest}>
       {children}

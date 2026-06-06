@@ -20,10 +20,15 @@ from azure.cosmos.exceptions import (
     CosmosResourceNotFoundError,
 )
 
-from backend.core.providers import databases
-from backend.core.providers.databases.cosmosdb import CosmosDBClient
+from backend.core.providers.databases import registry as databases_registry
+from backend.core.providers.databases.cosmosdb import (
+    CosmosDBClient,
+    CosmosFixedItemId,
+    CosmosItemType,
+    CosmosSystemPartition,
+)
 from backend.core.settings import AppSettings, DatabaseSettings
-from backend.core.types import ChatMessage
+from backend.core.types import AdminAuditEntry, ChatMessage, RuntimeConfig
 
 
 # ---------------------------------------------------------------------------
@@ -89,8 +94,8 @@ def _make_client(
 
 
 def test_cosmosdb_registers_under_expected_key() -> None:
-    assert "cosmosdb" in databases.registry.keys()
-    assert databases.registry.get("cosmosdb") is CosmosDBClient
+    assert "cosmosdb" in databases_registry.registry.keys()
+    assert databases_registry.registry.get("cosmosdb") is CosmosDBClient
 
 
 # ---------------------------------------------------------------------------
@@ -107,8 +112,6 @@ def test_cosmos_item_type_membership_is_frozen() -> None:
     runtime-config row added in this turn; CU-010b1 added `AGENT`
     for the agent-id registry. #35f-1 adds `ADMIN_AUDIT` for the
     append-only admin-audit log."""
-    from backend.core.providers.databases.cosmosdb import CosmosItemType
-
     assert {member.value for member in CosmosItemType} == {
         "conversation",
         "message",
@@ -125,8 +128,6 @@ def test_cosmos_item_type_config_serializes_as_bare_string() -> None:
     without coupling to the enum import (mirrors the
     `CosmosItemType.AGENT` precedent locked in
     `test_upsert_agent_id_writes_canonical_shape`)."""
-    from backend.core.providers.databases.cosmosdb import CosmosItemType
-
     assert CosmosItemType.CONFIG == "config"
     assert CosmosItemType.CONFIG.value == "config"
     assert str(CosmosItemType.CONFIG) == "config"
@@ -141,8 +142,6 @@ def test_cosmos_system_partition_membership_is_frozen() -> None:
     non-user-scoped surface), so membership is locked here -- the
     Hard Rule #11 sweep that introduced this enum (#35c-2-followup)
     relied on it staying a closed set."""
-    from backend.core.providers.databases.cosmosdb import CosmosSystemPartition
-
     assert {member.value for member in CosmosSystemPartition} == {"_system"}
 
 
@@ -153,8 +152,6 @@ def test_cosmos_system_partition_default_serializes_as_bare_string() -> None:
     existing assertion (e.g. `body["userId"] == "_system"` in the
     agent-registry tests) keep working without coupling to the
     enum import."""
-    from backend.core.providers.databases.cosmosdb import CosmosSystemPartition
-
     assert CosmosSystemPartition.DEFAULT == "_system"
     assert CosmosSystemPartition.DEFAULT.value == "_system"
     assert str(CosmosSystemPartition.DEFAULT) == "_system"
@@ -168,8 +165,6 @@ def test_cosmos_fixed_item_id_membership_is_frozen() -> None:
     singleton row, not a generic id container. Locked at one
     member (`RUNTIME_CONFIG`) by #35c-2-followup; CU-010b1 added no
     member because agent ids are caller-supplied."""
-    from backend.core.providers.databases.cosmosdb import CosmosFixedItemId
-
     assert {member.value for member in CosmosFixedItemId} == {"runtime"}
 
 
@@ -178,8 +173,6 @@ def test_cosmos_fixed_item_id_runtime_config_serializes_as_bare_string() -> None
     `item=CosmosFixedItemId.RUNTIME_CONFIG` reaches the Cosmos
     SDK as the bare string `"runtime"` -- the wire shape stays
     exactly the documented singleton id (#35c-2)."""
-    from backend.core.providers.databases.cosmosdb import CosmosFixedItemId
-
     assert CosmosFixedItemId.RUNTIME_CONFIG == "runtime"
     assert CosmosFixedItemId.RUNTIME_CONFIG.value == "runtime"
     assert str(CosmosFixedItemId.RUNTIME_CONFIG) == "runtime"
@@ -560,8 +553,6 @@ async def test_upsert_agent_id_writes_canonical_shape() -> None:
     string `"agent"`), agentId carries the Foundry id, and both
     timestamps are present so an audit query can sort either way.
     """
-    from backend.core.providers.databases.cosmosdb import CosmosItemType
-
     client, container = _make_client()
     await client.upsert_agent_id("cwyd", "asst_abc123")
 
@@ -632,11 +623,6 @@ async def test_get_runtime_config_point_read_uses_system_partition() -> None:
     AGENT row precedent in CU-010b1). Reading from a per-user
     partition would silently miss the row and force the resolver
     to over-provision RU on a cross-partition fan-out scan."""
-    from backend.core.providers.databases.cosmosdb import (
-        CosmosFixedItemId,
-        CosmosSystemPartition,
-    )
-
     client, container = _make_client()
     await client.get_runtime_config()
     container.read_item.assert_awaited_once_with(
@@ -652,13 +638,6 @@ async def test_get_runtime_config_round_trips_persisted_payload() -> None:
     `RuntimeConfig` instance with every field round-tripping
     (booleans included -- explicit False must not collapse into
     None)."""
-    from backend.core.providers.databases.cosmosdb import (
-        CosmosFixedItemId,
-        CosmosItemType,
-        CosmosSystemPartition,
-    )
-    from backend.core.types import RuntimeConfig
-
     persisted = RuntimeConfig(
         orchestrator_name="agent_framework",
         openai_temperature=0.7,
@@ -689,12 +668,6 @@ async def test_get_runtime_config_rejects_wrong_type_discriminator() -> None:
     a non-config item under the same id, refuse to deserialize its
     `payload` rather than mis-resolving as a `RuntimeConfig`. Same
     invariant `get_agent_id` enforces (CU-010b1)."""
-    from backend.core.providers.databases.cosmosdb import (
-        CosmosFixedItemId,
-        CosmosItemType,
-        CosmosSystemPartition,
-    )
-
     client, container = _make_client()
     container.read_item = AsyncMock(
         return_value={
@@ -715,13 +688,6 @@ async def test_get_runtime_config_returns_empty_runtime_config_for_empty_payload
     to env defaults across the board. Asserting this guards the
     'cleared all overrides' UX path against silently returning
     None (cold start) instead."""
-    from backend.core.providers.databases.cosmosdb import (
-        CosmosFixedItemId,
-        CosmosItemType,
-        CosmosSystemPartition,
-    )
-    from backend.core.types import RuntimeConfig
-
     client, container = _make_client()
     container.read_item = AsyncMock(
         return_value={
@@ -750,13 +716,6 @@ async def test_upsert_runtime_config_writes_canonical_shape() -> None:
     round-trip), and both timestamps are present so an audit query
     can sort either way. Mirrors the `upsert_agent_id` precedent.
     """
-    from backend.core.providers.databases.cosmosdb import (
-        CosmosFixedItemId,
-        CosmosItemType,
-        CosmosSystemPartition,
-    )
-    from backend.core.types import RuntimeConfig
-
     config = RuntimeConfig(
         orchestrator_name="agent_framework",
         openai_temperature=0.7,
@@ -790,8 +749,6 @@ async def test_upsert_runtime_config_uses_upsert_not_create() -> None:
     against the singleton id. Mirrors the `upsert_agent_id`
     invariant locked in `test_upsert_agent_id_uses_upsert_not_create`.
     """
-    from backend.core.types import RuntimeConfig
-
     client, container = _make_client()
     await client.upsert_runtime_config(RuntimeConfig())
     container.upsert_item.assert_awaited_once()
@@ -808,8 +765,6 @@ async def test_upsert_runtime_config_is_idempotent_on_repeat_call() -> None:
     relies on so an operator can change `openai_temperature` from
     0.5 to 0.9 without first clearing the row.
     """
-    from backend.core.types import RuntimeConfig
-
     client, container = _make_client()
     first = RuntimeConfig(openai_temperature=0.5)
     second = RuntimeConfig(openai_temperature=0.9)
@@ -831,8 +786,6 @@ async def test_upsert_runtime_config_serializes_empty_payload_for_cleared_overri
     overrides' UX path stays a first-class state distinct from
     'no row at all' (cold start).
     """
-    from backend.core.types import RuntimeConfig
-
     client, container = _make_client()
     await client.upsert_runtime_config(RuntimeConfig())
     body = container.upsert_item.await_args.kwargs["body"]
@@ -1052,8 +1005,6 @@ async def test_upsert_agent_id_logs_and_reraises_on_http_error(
 async def test_upsert_runtime_config_logs_and_reraises_on_http_error(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    from backend.core.types import RuntimeConfig
-
     client, container = _make_client()
     container.upsert_item = AsyncMock(side_effect=_http_error(429, "throttled"))
 
@@ -1115,8 +1066,6 @@ def test_cosmos_item_type_admin_audit_serializes_as_bare_string() -> None:
     consumers reading `body["type"] == "admin_audit"` keep working
     without coupling to the enum import (mirrors the
     `CosmosItemType.CONFIG` precedent locked in #35c-1)."""
-    from backend.core.providers.databases.cosmosdb import CosmosItemType
-
     assert CosmosItemType.ADMIN_AUDIT == "admin_audit"
     assert CosmosItemType.ADMIN_AUDIT.value == "admin_audit"
     assert str(CosmosItemType.ADMIN_AUDIT) == "admin_audit"
@@ -1135,12 +1084,6 @@ async def test_write_admin_audit_writes_canonical_shape() -> None:
     Mirrors the `upsert_runtime_config` write shape, but uses
     `create_item` (not `upsert_item`) because the audit log is
     append-only -- a UUID collision would be a silent log loss."""
-    from backend.core.providers.databases.cosmosdb import (
-        CosmosItemType,
-        CosmosSystemPartition,
-    )
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     before = RuntimeConfig(openai_temperature=0.1)
     after = RuntimeConfig(openai_temperature=0.9, updated_by="u-admin")
     entry = AdminAuditEntry(
@@ -1172,8 +1115,6 @@ async def test_write_admin_audit_serializes_before_as_none_for_first_patch() -> 
     truthful about the cold-start moment, not silently filled with
     an empty `RuntimeConfig()` shape that an operator query would
     misread as "every field was already overridden to None"."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     entry = AdminAuditEntry(
         actor="u-admin",
         action="patch_config",
@@ -1194,8 +1135,6 @@ async def test_write_admin_audit_assigns_distinct_ids_per_call() -> None:
     future refactor that hard-codes the id (e.g. accidentally
     pinning to the `_system` partition's `RUNTIME_CONFIG`
     sentinel) is caught immediately."""
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     entry = AdminAuditEntry(
         actor="u-admin",
         action="patch_config",
@@ -1222,8 +1161,6 @@ async def test_write_admin_audit_logs_and_reraises_on_sdk_error(
     PATCH route in #35f-3 will let the audit-write failure bubble
     up rather than silently dropping the audit row).
     """
-    from backend.core.types import AdminAuditEntry, RuntimeConfig
-
     client, container = _make_client()
     container.create_item = AsyncMock(
         side_effect=CosmosHttpResponseError(message="boom")

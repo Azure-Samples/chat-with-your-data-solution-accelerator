@@ -10,12 +10,15 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
+from backend.core.settings import Environment
 from backend.core.types import RuntimeConfig
 from backend.dependencies import (
     get_agents_provider,
+    get_content_safety_guard,
     get_database_client,
     get_runtime_overrides,
     get_search_provider,
+    get_user_id,
     requires_role,
 )
 
@@ -163,8 +166,18 @@ def _claims(*role_pairs: tuple[str, str]) -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
-def _settings(environment: str = "production") -> Any:
-    return SimpleNamespace(environment=environment)
+def _settings(environment: Environment | str = Environment.PRODUCTION) -> Any:
+    # Accept either an `Environment` member (preferred) or a raw
+    # string (legacy callsites in this module) so the helper stays
+    # stable as new tests are added. Strings are coerced to the
+    # enum so `is Environment.LOCAL` dispatch in `requires_role`
+    # works regardless of how the caller spelled the value.
+    coerced = (
+        environment
+        if isinstance(environment, Environment)
+        else Environment(environment)
+    )
+    return SimpleNamespace(environment=coerced)
 
 
 def _request(headers: dict[str, str] | None = None) -> Request:
@@ -285,3 +298,223 @@ def test_requires_role_factory_returns_distinct_callable_per_call() -> None:
     dep_a = requires_role("admin")
     dep_b = requires_role("admin")
     assert dep_a is not dep_b
+
+
+# ---------------------------------------------------------------------------
+# U-CS-3: get_content_safety_guard -- builds the per-request guard from
+# the lifespan-owned ContentSafetyClient. Returns None when the client
+# is absent (content safety disabled) so consumers can treat None as
+# "screening off" and pass the user input through unchanged.
+# ---------------------------------------------------------------------------
+
+
+def _settings_with_threshold(threshold: int) -> Any:
+    """Build a stand-in ``AppSettings`` exposing only the field the dep reads.
+
+    Keeps the test focused on the guard wiring -- a full ``AppSettings()``
+    would force every test to set the full COSMOS_ENV fixture even though
+    only ``content_safety.severity_threshold`` is consumed here.
+    """
+    return SimpleNamespace(
+        content_safety=SimpleNamespace(severity_threshold=threshold)
+    )
+
+
+def test_get_content_safety_guard_returns_none_when_attr_missing() -> None:
+    """Lifespan never ran -> attribute is absent entirely. Dep MUST
+    return None rather than raise -- content safety is an optional
+    layer; missing it means 'guard off', not 500.
+    """
+    request = _request_with_state()
+    settings = _settings_with_threshold(4)
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+def test_get_content_safety_guard_returns_none_when_client_is_none() -> None:
+    """Lifespan ran with content_safety disabled -> attribute is
+    explicitly None. Same handling as the missing-attribute case.
+    """
+    request = _request_with_state(content_safety_client=None)
+    settings = _settings_with_threshold(4)
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+def test_get_content_safety_guard_builds_with_client_and_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When lifespan stashed a real client, the dep constructs a fresh
+    ``ContentSafetyGuard`` per request, threading the configured
+    severity_threshold. ContentSafetyGuard itself is cheap (no
+    network) so per-request construction is intentional -- it keeps
+    the runtime-override channel (U-CS-7) trivial to wire in later.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    request = _request_with_state(content_safety_client=fake_client)
+    settings = _settings_with_threshold(6)
+
+    fake_guard = MagicMock(name="content_safety_guard")
+    ctor_spy = MagicMock(return_value=fake_guard)
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    result = get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert result is fake_guard
+    ctor_spy.assert_called_once_with(
+        client=fake_client, severity_threshold=6
+    )
+
+
+def test_get_content_safety_guard_threads_default_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Threshold flows from ``settings.content_safety.severity_threshold``
+    verbatim -- the dep itself MUST NOT hard-code a default. The
+    Pydantic sub-model owns the default-and-validation contract.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    request = _request_with_state(content_safety_client=fake_client)
+    settings = _settings_with_threshold(2)
+
+    ctor_spy = MagicMock(return_value=MagicMock())
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert ctor_spy.call_args.kwargs["severity_threshold"] == 2
+
+
+# ---------------------------------------------------------------------------
+# U-CS-7: runtime-override cascade. The `RuntimeConfig.content_safety_enabled`
+# override layer wins over the env baseline at request time. Rules:
+#
+#   * override is `None` (the cold default + the post-clear state once an
+#     admin has PATCHed `null`) -> defer to the env baseline (client exists
+#     iff env enabled at lifespan).
+#   * override is `False` (admin explicitly turned the guard off) -> return
+#     None even when the lifespan client exists; operator-off ALWAYS wins.
+#   * override is `True` (admin explicitly turned the guard on) -> the
+#     override cannot synthesize a client out of thin air (no endpoint /
+#     credential at request time), so the lifespan client must already
+#     exist -- when it does, return the guard; when it doesn't, return
+#     None (fail-open, consistent with the "no client" rule above).
+# ---------------------------------------------------------------------------
+
+
+def test_get_content_safety_guard_returns_guard_when_override_enabled_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Override = True + lifespan client present -> guard returned.
+
+    Covers the 'admin explicitly turned screening on AND lifespan was
+    able to build the client' path -- the override doesn't add new
+    behavior beyond the env baseline here, but the test locks in that
+    the cascade doesn't accidentally drop the guard.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    overrides = RuntimeConfig(content_safety_enabled=True)
+    request = _request_with_state(
+        content_safety_client=fake_client,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    fake_guard = MagicMock(name="content_safety_guard")
+    ctor_spy = MagicMock(return_value=fake_guard)
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    result = get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert result is fake_guard
+
+
+def test_get_content_safety_guard_returns_none_when_override_enabled_false() -> None:
+    """Override = False + lifespan client present -> guard MUST be None.
+
+    The load-bearing override case (mirrors U-CS-5's distinguish-False-
+    from-None semantic). Operator-off always wins; the lifespan client
+    stays built (cheap, no network), but no guard is handed to the
+    request, so screening is effectively disabled until the operator
+    PATCHes the override back to True or null.
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    overrides = RuntimeConfig(content_safety_enabled=False)
+    request = _request_with_state(
+        content_safety_client=fake_client,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+def test_get_content_safety_guard_returns_guard_when_override_enabled_none_and_client_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Override = None (the cold default + post-clear state) -> defer
+    to env baseline. With a lifespan client present, that means the
+    guard is returned -- proves the cascade doesn't treat None as
+    'disabled' (which would be a regression on the U-CS-3 contract).
+    """
+    fake_client = MagicMock(name="content_safety_client")
+    overrides = RuntimeConfig(content_safety_enabled=None)
+    request = _request_with_state(
+        content_safety_client=fake_client,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    fake_guard = MagicMock(name="content_safety_guard")
+    ctor_spy = MagicMock(return_value=fake_guard)
+    monkeypatch.setattr("backend.dependencies.ContentSafetyGuard", ctor_spy)
+
+    result = get_content_safety_guard(request, settings)  # type: ignore[arg-type]
+
+    assert result is fake_guard
+
+
+def test_get_content_safety_guard_returns_none_when_override_false_and_no_client() -> None:
+    """Override = False + no lifespan client -> None (vacuously).
+
+    Belt-and-braces: the 'no client' rule already wins on its own, but
+    the test pins the override = False path to 'always None' regardless
+    of whether the client is present. Prevents a future refactor from
+    accidentally short-circuiting the override check above the client
+    check and synthesizing a guard from nothing.
+    """
+    overrides = RuntimeConfig(content_safety_enabled=False)
+    request = _request_with_state(
+        content_safety_client=None,
+        runtime_overrides=overrides,
+    )
+    settings = _settings_with_threshold(4)
+
+    assert get_content_safety_guard(request, settings) is None  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# get_user_id -- Easy Auth principal extraction (no role gate)
+#
+# Sibling of `requires_role`: reads `x-ms-client-principal-id` and
+# returns the caller's Entra object id. Falls back to "local-dev"
+# only when `settings.environment is Environment.LOCAL` so chat
+# history is exercisable in dev without forging Easy Auth headers;
+# production raises 401 on a missing header (fail-closed).
+# ---------------------------------------------------------------------------
+
+
+def test_get_user_id_returns_principal_id_when_header_present() -> None:
+    request = _request({_PRINCIPAL_ID: "user-oid-42"})
+    assert get_user_id(request, _settings("production")) == "user-oid-42"
+
+
+def test_get_user_id_falls_back_to_local_dev_when_local_and_header_missing() -> None:
+    request = _request({})
+    assert get_user_id(request, _settings(Environment.LOCAL)) == "local-dev"
+
+
+def test_get_user_id_raises_401_when_production_and_header_missing() -> None:
+    request = _request({})
+    with pytest.raises(HTTPException) as exc_info:
+        get_user_id(request, _settings(Environment.PRODUCTION))
+    assert exc_info.value.status_code == 401
+    assert "Missing client principal" in exc_info.value.detail

@@ -18,8 +18,8 @@ services:
   backend:
     profiles: ["", "backend-only"]
     build:
-      context: ../..
-      dockerfile: v2/docker/Dockerfile.backend
+      context: ..
+      dockerfile: docker/Dockerfile.backend
     image: cwyd-v2-backend:dev
     container_name: cwyd-v2-backend
     # Loads v2/.env (operator-supplied; copy from v2/.env.sample). Marked
@@ -48,7 +48,7 @@ services:
     volumes:
       # REFACTOR-B (2026-05-06): src/shared was moved to src/backend/core,
       # so the backend mount alone now covers what used to require two mounts.
-      - ../src/backend:/app/v2/src/backend
+      - ../src/backend:/app/src/backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,8 +63,8 @@ services:
   frontend:
     profiles: ["", "frontend-only"]
     build:
-      context: ../..
-      dockerfile: v2/docker/Dockerfile.frontend
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
       target: dev
     image: cwyd-v2-frontend:dev
     container_name: cwyd-v2-frontend
@@ -79,8 +79,8 @@ services:
   functions:
     profiles: [""]
     build:
-      context: ../..
-      dockerfile: v2/docker/Dockerfile.functions
+      context: ..
+      dockerfile: docker/Dockerfile.functions
     image: cwyd-v2-functions:dev
     container_name: cwyd-v2-functions
     # See backend service note on `required: false` + v2/.env path (debt #Q5, CU-008a).

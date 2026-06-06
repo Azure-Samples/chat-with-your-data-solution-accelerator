@@ -36,15 +36,11 @@ import {
   Delete16Regular,
   Edit16Regular,
 } from "@fluentui/react-icons";
+import type { HistoryConversation } from "@/models/chat";
 import styles from "./HistoryPanel.module.css";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "";
-
-export interface HistoryConversation {
-  id: string;
-  title: string;
-  updated_at: string;
-}
+const BACKEND_URL =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
 
 interface HistoryStatus {
   enabled: boolean;
@@ -66,13 +62,13 @@ function buildUrl(path: string): string {
 }
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const resp = await fetch(buildUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (init?.headers !== undefined) {
+    Object.assign(headers, init.headers as Record<string, string>);
+  }
+  const resp = await fetch(buildUrl(path), { ...init, headers });
   if (!resp.ok) {
     throw new Error(`HTTP ${resp.status}`);
   }
@@ -93,11 +89,10 @@ export function HistoryPanel({
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
+      const init: RequestInit = signal ? { signal } : {};
       const [statusPayload, list] = await Promise.all([
-        fetchJson<HistoryStatus>("/api/history/status", { signal }),
-        fetchJson<HistoryConversation[]>("/api/history/conversations", {
-          signal,
-        }),
+        fetchJson<HistoryStatus>("/api/history/status", init),
+        fetchJson<HistoryConversation[]>("/api/history/conversations", init),
       ]);
       if (signal?.aborted) {
         return;
@@ -119,8 +114,10 @@ export function HistoryPanel({
 
   useEffect(() => {
     const controller = new AbortController();
-    refresh(controller.signal);
-    return () => controller.abort();
+    void refresh(controller.signal);
+    return () => {
+      controller.abort();
+    };
   }, [refresh]);
 
   const handleNew = useCallback(async () => {
@@ -167,7 +164,7 @@ export function HistoryPanel({
         return;
       }
       try {
-        await fetchJson<void>(
+        await fetchJson<null>(
           `/api/history/conversations/${encodeURIComponent(id)}`,
           { method: "DELETE" },
         );
@@ -190,7 +187,9 @@ export function HistoryPanel({
           <h3 className={styles.title}>History</h3>
           <button
             type="button"
-            onClick={handleNew}
+            onClick={() => {
+              void handleNew();
+            }}
             data-testid="history-new"
             aria-label="New chat"
             title="New chat"
@@ -245,7 +244,9 @@ export function HistoryPanel({
                 <div className={styles.actions}>
                   <button
                     type="button"
-                    onClick={() => handleRename(c.id, c.title)}
+                    onClick={() => {
+                      void handleRename(c.id, c.title);
+                    }}
                     data-testid={`history-rename-${c.id}`}
                     aria-label={`Rename ${c.title || "Untitled"}`}
                     title="Rename"
@@ -255,7 +256,9 @@ export function HistoryPanel({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDelete(c.id)}
+                    onClick={() => {
+                      void handleDelete(c.id);
+                    }}
                     data-testid={`history-delete-${c.id}`}
                     aria-label={`Delete ${c.title || "Untitled"}`}
                     title="Delete"

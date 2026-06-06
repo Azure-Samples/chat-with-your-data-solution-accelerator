@@ -1,0 +1,88 @@
+
+> cwyd-frontend@0.0.1 lint
+> eslint .
+
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\App.tsx
+   37:7   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+   40:18  error  Invalid type "any" of template literal expression                                                                                                                   @typescript-eslint/restrict-template-expressions
+   40:18  error  Unsafe call of an `any` typed value                                                                                                                                 @typescript-eslint/no-unsafe-call
+   40:30  error  Unsafe member access .replace on an `any` value                                                                                                                     @typescript-eslint/no-unsafe-member-access
+   44:50  error  Invalid type "number" of template literal expression                                                                                                                @typescript-eslint/restrict-template-expressions
+   72:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+   79:18  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function                                                  @typescript-eslint/no-confusing-void-expression
+  104:36  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function                                                  @typescript-eslint/no-confusing-void-expression
+  105:30  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function                                                  @typescript-eslint/no-confusing-void-expression
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\api\admin.tsx
+  30:53  error  Invalid type "number" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\api\feedback.tsx
+  47:50  error  Invalid type "number" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\api\speech.tsx
+  37:54  error  Invalid type "number" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\api\streamChat.tsx
+  53:53  error  Invalid type "number" of template literal expression  @typescript-eslint/restrict-template-expressions
+  64:10  error  Unnecessary conditional, value is always truthy       @typescript-eslint/no-unnecessary-condition
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\components\CoralShell\CoralShellColumn.tsx
+  32:12  error  Invalid type "string | undefined" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\components\CoralShell\CoralShellRow.tsx
+  31:12  error  Invalid type "string | undefined" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\components\CoralShell\PanelLeft.tsx
+  32:12  error  Invalid type "string | undefined" of template literal expression  @typescript-eslint/restrict-template-expressions
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\hooks\useSpeechRecognition.tsx
+  101:17  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function  @typescript-eslint/no-confusing-void-expression
+  102:17  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function  @typescript-eslint/no-confusing-void-expression
+  136:23  error  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined                  @typescript-eslint/no-unnecessary-condition
+  144:25  error  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined                  @typescript-eslint/no-unnecessary-condition
+  161:44  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function  @typescript-eslint/no-confusing-void-expression
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\pages\chat\ChatContext.tsx
+  37:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  50:7   error    Unnecessary conditional, value is always truthy                                                                                 @typescript-eslint/no-unnecessary-condition
+  54:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  99:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\pages\chat\components\FeedbackButtons.tsx
+   86:12  error  `FormEvent` is deprecated. FormEvent doesn't actually exist.
+You probably meant to use {@link ChangeEvent}, {@link InputEvent}, {@link SubmitEvent}, or just {@link SyntheticEvent} instead
+depending on the event type  @typescript-eslint/no-deprecated
+  112:19  error  Promise-returning function provided to attribute where a void return was expected                                                                                                                                        @typescript-eslint/no-misused-promises
+  137:20  error  Promise-returning function provided to attribute where a void return was expected                                                                                                                                        @typescript-eslint/no-misused-promises
+  149:30  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function                                                                                                       @typescript-eslint/no-confusing-void-expression
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\pages\chat\components\HistoryPanel.tsx
+   42:7   error  Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+   60:13  error  Invalid type "any" of template literal expression                                                                                                                   @typescript-eslint/restrict-template-expressions
+   60:13  error  Unsafe call of an `any` typed value                                                                                                                                 @typescript-eslint/no-unsafe-call
+   60:25  error  Unsafe member access .replace on an `any` value                                                                                                                     @typescript-eslint/no-unsafe-member-access
+   68:7   error  Using the spread operator on an array in an object will result in a list of indices                                                                                 @typescript-eslint/no-misused-spread
+   72:29  error  Invalid type "number" of template literal expression                                                                                                                @typescript-eslint/restrict-template-expressions
+  116:5   error  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+  117:18  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function                                                  @typescript-eslint/no-confusing-void-expression
+  164:25  error  void is only valid as a return type or generic type argument                                                                                                        @typescript-eslint/no-invalid-void-type
+  187:21  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  242:29  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+  252:29  error  Promise-returning function provided to attribute where a void return was expected                                                                                   @typescript-eslint/no-misused-promises
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\pages\chat\components\MessageInput.tsx
+   87:38  error  `FormEvent` is deprecated. FormEvent doesn't actually exist.
+You probably meant to use {@link ChangeEvent}, {@link InputEvent}, {@link SubmitEvent}, or just {@link SyntheticEvent} instead
+depending on the event type  @typescript-eslint/no-deprecated
+  162:5   error  Prefer using nullish coalescing operator (`??`) instead of a ternary expression, as it is simpler to read                                                                                                                @typescript-eslint/prefer-nullish-coalescing
+  170:16  error  Promise-returning function provided to attribute where a void return was expected                                                                                                                                        @typescript-eslint/no-misused-promises
+  181:26  error  Returning a void expression from an arrow function shorthand is forbidden. Please add braces to the arrow function                                                                                                       @typescript-eslint/no-confusing-void-expression
+  191:17  error  Promise-returning function provided to attribute where a void return was expected                                                                                                                                        @typescript-eslint/no-misused-promises
+
+C:\workstation\Microsoft\github\chat-with-your-data-solution-accelerator\v2\src\frontend\src\theme\themeContext.tsx
+  83:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+Γ£û 48 problems (44 errors, 4 warnings)
+  9 errors and 0 warnings potentially fixable with the `--fix` option.
+

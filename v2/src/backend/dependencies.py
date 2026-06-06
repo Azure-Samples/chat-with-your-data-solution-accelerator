@@ -1,7 +1,7 @@
 """FastAPI dependency-injection wiring.
 
 Pillar: Stable Core
-Phase: 2 (DI seam) + Phase 5 (#39 Easy Auth role gate)
+Phase: 2
 
 Single source of truth for how routers obtain settings, credentials,
 and providers. Routers MUST go through `Depends(...)` -- no module-
@@ -27,6 +27,7 @@ import logging
 from collections.abc import Callable
 from typing import Annotated, Any, cast
 
+from azure.core.credentials_async import AsyncTokenCredential
 from fastapi import Depends, HTTPException, Request, status
 
 from backend.core.providers.agents.base import BaseAgentsProvider
@@ -34,7 +35,8 @@ from backend.core.providers.credentials.base import BaseCredentialProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
-from backend.core.settings import AppSettings, get_settings
+from backend.core.settings import AppSettings, Environment, get_settings
+from backend.core.tools.content_safety import ContentSafetyGuard
 from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
@@ -66,6 +68,28 @@ def get_credential_provider(request: Request) -> BaseCredentialProvider:
 CredentialProviderDep = Annotated[
     BaseCredentialProvider, Depends(get_credential_provider)
 ]
+
+
+def get_credential(request: Request) -> AsyncTokenCredential:
+    """Return the lifespan-cached `AsyncTokenCredential` from app.state.
+
+    Lifespan resolves the credential provider once (`select_default`),
+    constructs a single `AsyncTokenCredential`, and stashes it on
+    `app.state.credential`. Routers that need to hand a credential to
+    an SDK client (e.g. the `agent_framework` orchestrator constructing
+    a per-request `FoundryAgent`) reuse that same instance via this
+    dep so we don't build a fresh `DefaultAzureCredential` (which is
+    not free) on every request.
+    """
+    credential = getattr(request.app.state, "credential", None)
+    if credential is None:
+        raise RuntimeError(
+            "credential missing on app.state -- lifespan did not run."
+        )
+    return credential
+
+
+CredentialDep = Annotated[AsyncTokenCredential, Depends(get_credential)]
 
 
 def get_llm_provider(request: Request) -> BaseLLMProvider:
@@ -136,6 +160,59 @@ def get_agents_provider(request: Request) -> BaseAgentsProvider:
 
 AgentsProviderDep = Annotated[
     BaseAgentsProvider, Depends(get_agents_provider)
+]
+
+
+def get_content_safety_guard(
+    request: Request,
+    settings: SettingsDep,
+) -> ContentSafetyGuard | None:
+    """Return a per-request ``ContentSafetyGuard``, or ``None``.
+
+    Lifespan owns the singleton ``ContentSafetyClient`` (built behind
+    the ``content_safety.enabled`` + ``endpoint`` gate). When that
+    client is absent -- either the gate is open False, or lifespan
+    was skipped (some ASGI test transports) -- the dep returns
+    ``None`` and consumers MUST treat that as 'screening disabled'
+    (pass the user input through unchanged). Returning ``None``
+    rather than raising keeps content safety opt-in: a half-set or
+    unset operator config fails open with no guard, not 500.
+
+    The guard itself is cheap (no network at construction time, the
+    first call happens inside ``screen()``), so building a fresh one
+    per request is intentional -- it leaves room for the runtime
+    override channel below to flip ``enabled`` between requests
+    without rebuilding the underlying client.
+
+    Override cascade (in order):
+
+    * ``runtime_overrides.content_safety_enabled is False`` -> the
+      operator explicitly disabled screening from the admin UI;
+      return ``None`` even when the lifespan client is present.
+      Operator-off ALWAYS wins.
+    * ``runtime_overrides.content_safety_enabled is True`` -> defer
+      to env baseline. The override cannot synthesize a client out
+      of thin air (no endpoint/credential at request time), so the
+      lifespan client must already exist for screening to engage.
+    * ``runtime_overrides.content_safety_enabled is None`` (the
+      cold default + post-clear state) -> defer to env baseline.
+    * ``runtime_overrides`` attribute missing or ``None`` -> defer
+      to env baseline. Runtime overrides are an optional layer.
+    """
+    client = getattr(request.app.state, "content_safety_client", None)
+    if client is None:
+        return None
+    overrides = getattr(request.app.state, "runtime_overrides", None)
+    if overrides is not None and overrides.content_safety_enabled is False:
+        return None
+    return ContentSafetyGuard(
+        client=client,
+        severity_threshold=settings.content_safety.severity_threshold,
+    )
+
+
+ContentSafetyGuardDep = Annotated[
+    ContentSafetyGuard | None, Depends(get_content_safety_guard)
 ]
 
 
@@ -211,6 +288,36 @@ _ROLE_TYP_SHORT = "roles"
 _ROLE_TYP_FULL = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
 
 
+def get_user_id(request: Request, settings: SettingsDep) -> str:
+    """Return the caller's user id from the Easy Auth principal-id header.
+
+    Reads ``x-ms-client-principal-id`` (the user's Entra object id).
+    When the header is absent we fall back to ``"local-dev"`` **only**
+    when ``settings.environment == "local"`` so the chat-history
+    panel is exercisable end-to-end during development. In
+    ``production`` a missing header raises ``401 Unauthorized`` -- a
+    misconfigured Easy Auth must fail closed, never silently fold
+    every anonymous caller into the ``local-dev`` partition.
+
+    Sibling of ``requires_role`` below: same Easy Auth surface, no
+    role gate. Routers that only need tenant isolation (chat history)
+    consume ``UserIdDep``; routers that need role enforcement (admin)
+    consume ``AdminUserIdDep``.
+    """
+    value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
+    if value:
+        return value
+    if settings.environment is Environment.LOCAL:
+        return _LOCAL_DEV_USER
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Missing client principal; Easy Auth header required.",
+    )
+
+
+UserIdDep = Annotated[str, Depends(get_user_id)]
+
+
 def _decode_easy_auth_principal(raw: str) -> dict[str, Any] | None:
     """Decode the base64 JSON ``x-ms-client-principal`` header.
 
@@ -264,8 +371,8 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
 
     Each call returns a NEW callable -- modules that need a stable
     key for ``app.dependency_overrides`` MUST cache the returned dep
-    at module import time (see ``backend.routers.admin`` for the
-    ``_REQUIRE_ADMIN_USER`` singleton pattern).
+    at module import time (see ``REQUIRE_ADMIN_USER`` below for the
+    admin-role singleton).
     """
 
     def _checker(request: Request, settings: SettingsDep) -> str:
@@ -274,7 +381,7 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
 
         # Local-dev bypass: no headers at all in `local` -> synthetic user.
         if not principal_id and not claims_raw:
-            if settings.environment == "local":
+            if settings.environment is Environment.LOCAL:
                 return _LOCAL_DEV_USER
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -309,7 +416,7 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
         # the header is absent in local environments.
         if principal_id:
             return principal_id
-        if settings.environment == "local":
+        if settings.environment is Environment.LOCAL:
             return _LOCAL_DEV_USER
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -319,20 +426,35 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
     return _checker
 
 
+# Cached admin auth gate. ``requires_role("admin")`` returns a fresh
+# callable on every call, so a stable key for
+# ``app.dependency_overrides`` requires caching the dep once at module
+# import. ``REQUIRE_ADMIN_USER`` is that singleton; ``AdminUserIdDep``
+# is the typed alias routers attach to admin-gated route signatures.
+REQUIRE_ADMIN_USER = requires_role("admin")
+AdminUserIdDep = Annotated[str, Depends(REQUIRE_ADMIN_USER)]
+
+
 __all__ = [
+    "AdminUserIdDep",
     "AgentsProviderDep",
+    "CredentialDep",
     "CredentialProviderDep",
     "DatabaseClientDep",
     "LLMProviderDep",
+    "REQUIRE_ADMIN_USER",
     "RuntimeOverridesDep",
     "SearchProviderDep",
     "SettingsDep",
+    "UserIdDep",
     "get_agents_provider",
     "get_app_settings",
+    "get_credential",
     "get_credential_provider",
     "get_database_client",
     "get_llm_provider",
     "get_runtime_overrides",
     "get_search_provider",
+    "get_user_id",
     "requires_role",
 ]

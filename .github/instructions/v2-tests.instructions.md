@@ -52,3 +52,4 @@ async def test_conversation_emits_reasoning_then_answer(client, mock_foundry_iq)
 - Real network calls (no Azure, no `httpx` to public URLs).
 - `time.sleep` — use `asyncio.sleep` or virtual time.
 - Skipping tests without a tracked issue link in the skip reason.
+- In-function imports — Hard Rule #17 in [.github/copilot-instructions.md](../copilot-instructions.md) requires all imports at module top, with zero carve-outs (tests included). Enforced by `v2/tests/shared/test_imports_at_top_only.py`.

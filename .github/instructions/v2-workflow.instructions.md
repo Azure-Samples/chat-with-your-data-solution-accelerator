@@ -77,7 +77,7 @@ Concrete orchestrators self-register via `@registry.register("langgraph")` / `@r
 
 **Removed features (do not re-add, do not re-document as a feature):** one-click "Deploy to Azure" ARM button (v2 is `azd`-only), Streamlit admin app (merged into the React/Vite frontend), Azure Bot Service integration, Teams extension. Full list: [v2/docs/development_plan.md](../../v2/docs/development_plan.md) §2.1.
 
-**Forbidden code patterns:** `if/elif` provider dispatch outside a `Registry[T]`; lazy in-function imports of provider classes; module-level client instantiation. Pluggable concerns belong under `v2/src/backend/core/providers/<domain>/` and self-register.
+**Forbidden code patterns:** `if/elif` provider dispatch outside a `Registry[T]`; lazy in-function imports of provider classes (and any other in-function import — see Hard Rule #17 in [.github/copilot-instructions.md](../copilot-instructions.md), enforced by `v2/tests/shared/test_imports_at_top_only.py`); module-level client instantiation. Pluggable concerns belong under `v2/src/backend/core/providers/<domain>/` and self-register.
 
 ## Anti-overengineering gate (4 questions, all must pass)
 

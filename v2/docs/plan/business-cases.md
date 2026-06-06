@@ -16,7 +16,7 @@ CWYD v1 ships with three documented industry scenarios, each with sample data an
 | **Sample Data** | `data/employee_handbook.pdf`, `data/Benefit_Options.pdf`, `data/Northwind_Health_Plus_Benefits_Details.pdf`, `data/Northwind_Standard_Benefits_Details.pdf`, `data/PerksPlus.pdf`, `data/Woodgrove_Insurance_Summary_Plan_Description_Employee_Benefits.pdf` | Same files, loaded via post-deploy script |
 | **Orchestrator** | Semantic Kernel (recommended) | LangGraph or Agent Framework |
 | **Database** | CosmosDB | CosmosDB or PostgreSQL |
-| **Conversation Flow** | BYOD | BYOD or Custom |
+| **Conversation Flow** | BYOD | Custom only (BYOD removed — see [development_plan.md](../development_plan.md) §2.1) |
 | **Preset** | `employee assistant` in active.json | Same — `active.json` preset carried over |
 | **v2 Phase** | M3 (core chat with sample data) |
 
@@ -28,7 +28,7 @@ CWYD v1 ships with three documented industry scenarios, each with sample data an
 | **Sample Data** | `data/contract_data/` folder with sample legal contracts | Same files, loaded via post-deploy script |
 | **Orchestrator** | Semantic Kernel (recommended) | LangGraph or Agent Framework |
 | **Database** | CosmosDB | CosmosDB or PostgreSQL |
-| **Conversation Flow** | BYOD | BYOD or Custom |
+| **Conversation Flow** | BYOD | Custom only (BYOD removed — see [development_plan.md](../development_plan.md) §2.1) |
 | **Preset** | `contract assistant` in active.json | Same — `active.json` preset carried over |
 | **System Prompt** | Contract-focused: "You are a contract assistant…" | Same — configurable via `active.json` |
 | **v2 Phase** | M3 (core chat with sample data) |
@@ -58,13 +58,26 @@ All presets are runtime-switchable via `active.json` → `ai_assistant_type`. No
 
 ## 2. Conversation Flows
 
-CWYD supports two conversation flows, selected at deployment time via the `CONVERSATION_FLOW` environment variable.
+> **v2 update (2026-05-20):** v1 supported two conversation flows
+> (`CONVERSATION_FLOW=custom|byod`). v2 ships the **Custom flow only**
+> — BYOD was formally removed (see
+> [development_plan.md](../development_plan.md) §2.1). The
+> `CONVERSATION_FLOW` env var is banned in v2 (see
+> [env-vars.md](../env-vars.md)). The BYOD section below is preserved
+> for historical context only.
+
+In v1, CWYD supported two conversation flows, selected at deployment time via the `CONVERSATION_FLOW` environment variable.
 
 ### Custom Flow
 
 The **Custom** flow is the full-featured path. The application owns the entire RAG pipeline: it queries Azure AI Search, builds the prompt with retrieved context, calls the LLM, and optionally validates the answer before returning it. Because the application controls every step, all advanced features are available — multiple orchestrators, both database backends, advanced image processing, post-answering validation, and custom business logic hooks.
 
 ### BYOD Flow (Bring Your Own Data)
+
+> **Note (2026-05-20):** BYOD was formally removed from v2 scope. See
+> [development_plan.md](../development_plan.md) §2.1. The description
+> below is retained for historical context only. v2 ships the Custom
+> flow exclusively.
 
 The **BYOD** flow delegates retrieval and grounding to Azure OpenAI's built-in "On Your Data" capability. Instead of the application running its own search-then-prompt pipeline, it sends the user's question to Azure OpenAI with a data-source configuration that points to Azure AI Search. Azure OpenAI performs the retrieval, grounding, and citation generation internally. This makes BYOD simpler to set up and maintain, but limits customisation — there is no application-level post-processing, no advanced image pipeline, and the data source must be CosmosDB-backed Azure AI Search.
 
@@ -73,7 +86,7 @@ The **BYOD** flow delegates retrieval and grounding to Azure OpenAI's built-in "
 | Flow | v1 | v2 | Status |
 |---|---|---|---|
 | **Custom** | Full-featured, all databases, all orchestrators, advanced image processing, semantic search | Same — now async-native via FastAPI | **Kept** |
-| **BYOD** (On Your Data) | Delegates to Azure OpenAI's built-in RAG; CosmosDB only; simplified orchestration | Same constraint (CosmosDB only); routed through Foundry IQ instead of direct SDK | **Kept** |
+| **BYOD** (On Your Data) | Delegates to Azure OpenAI's built-in RAG; CosmosDB only; simplified orchestration | **Removed** — incompatible with Hard Rules #4/#5/#6/#7. See [development_plan.md](../development_plan.md) §2.1. | **Removed in v2** |
 
 ### Feature Availability by Flow
 
@@ -281,7 +294,7 @@ All v1 file types carry to v2 unchanged:
 | Contract Review scenario | **Kept** | M3 | New orchestrators |
 | Financial Advisor scenario | **Kept** | M3 | New orchestrators |
 | Custom conversation flow | **Kept** | M3 | Async-native |
-| BYOD conversation flow | **Kept** | M3 | Via Foundry IQ |
+| BYOD conversation flow | **Removed** | — | See [development_plan.md](../development_plan.md) §2.1 |
 | OpenAI Functions orchestrator | **Kept** | M3 | Via Foundry IQ |
 | LangChain orchestrator | **Upgraded** → LangGraph | M3 | `StateGraph` + `ToolNode` |
 | Semantic Kernel orchestrator | **Removed** | — | Consolidated |

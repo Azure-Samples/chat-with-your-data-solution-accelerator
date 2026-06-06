@@ -125,6 +125,10 @@ def function_app_slice(bicep_text: str) -> str:
 # OR pgvector). Both endpoint vars per database mode are bound
 # unconditionally so a single image can target either deployment without
 # rebuild; the Bicep outputs return empty strings in the inactive mode.
+# AZURE_UAMI_CLIENT_ID is bound alongside AZURE_CLIENT_ID so the
+# credentials provider's select_default() resolves managed_identity (not
+# cli) at lifespan startup; without it the AAD chain falls back to az-cli
+# inside the container and crashes with CLI_NOT_FOUND.
 _BACKEND_REQUIRED_ENVS = (
     "AZURE_DB_TYPE",
     "AZURE_INDEX_STORE",
@@ -132,6 +136,7 @@ _BACKEND_REQUIRED_ENVS = (
     "AZURE_AI_SEARCH_ENDPOINT",
     "AZURE_POSTGRES_ENDPOINT",
     "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME",
+    "AZURE_UAMI_CLIENT_ID",
 )
 
 
@@ -159,14 +164,20 @@ def test_backend_aca_env_block_binds_required_phase4_settings(
 
 # Function app runs the indexing pipeline (Phase 6). It writes vectors to
 # AzureSearch (cosmosdb mode) OR pgvector (postgresql mode), so it needs
-# the same routing flags + the active-mode endpoint(s). It does NOT need
-# `AZURE_COSMOS_ENDPOINT` (no chat-history writes from the function host).
+# the same routing flags + the active-mode endpoint(s). `AZURE_COSMOS_ENDPOINT`
+# is also bound because `DatabaseSettings._enforce_mode_consistency`
+# cross-validates `AZURE_DB_TYPE=cosmosdb` against a non-empty endpoint at
+# `AppSettings()` construction time -- the function worker fails to start
+# (Pydantic `ValidationError` during settings load) otherwise, even though
+# the function host performs no chat-history writes.
 _FUNCTION_REQUIRED_ENVS = (
     "AZURE_DB_TYPE",
     "AZURE_INDEX_STORE",
+    "AZURE_COSMOS_ENDPOINT",
     "AZURE_AI_SEARCH_ENDPOINT",
     "AZURE_POSTGRES_ENDPOINT",
     "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME",
+    "AZURE_UAMI_CLIENT_ID",
 )
 
 

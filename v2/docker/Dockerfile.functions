@@ -13,13 +13,13 @@ RUN pip install --no-cache-dir uv
 
 WORKDIR /home/site/wwwroot
 
-COPY v2/src/functions/pyproject.toml v2/src/functions/uv.lock* ./
+COPY src/functions/pyproject.toml src/functions/uv.lock* ./
 RUN uv sync --frozen --no-install-project || uv sync --no-install-project || true
 
-COPY v2/src/functions /home/site/wwwroot
+COPY src/functions /home/site/wwwroot
 # REFACTOR-B (2026-05-06): functions imports backend.core, so the backend
 # tree is copied next to functions at /home/site/wwwroot/backend. The
 # functions/core/ namespace package only EXTENDS backend/core (no duplicates).
-COPY v2/src/backend   /home/site/wwwroot/backend
+COPY src/backend   /home/site/wwwroot/backend
 
 ENV PATH="/opt/venv/bin:$PATH"
