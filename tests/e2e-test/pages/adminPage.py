@@ -3,10 +3,10 @@ from base.base import BasePage
 
 class AdminPage(BasePage):
     ADMIN_PAGE_TITLE = "//h1[contains(., 'Chat with your data Solution Accelerator')]"
-    INGEST_DATA_TAB = "//span[text()='Ingest Data']"
-    EXPLORE_DATA_TAB = "//span[text()='Explore Data']"
-    DELETE_DATA_TAB = "//span[text()='Delete Data']"
-    CONFIGURATION_TAB = "//span[text()='Configuration']"
+    INGEST_DATA_TAB = "//a[normalize-space()='Ingest Data']"
+    EXPLORE_DATA_TAB = "//a[normalize-space()='Explore Data']"
+    DELETE_DATA_TAB = "//a[normalize-space()='Delete Data']"
+    CONFIGURATION_TAB = "//a[normalize-space()='Configuration']"
     BROWSE_FILES_BUTTON = "//button[normalize-space()='Browse files']"
     UPLOAD_SUCCESS_MESSAGE = "//div[@data-testid='stAlertContentSuccess']//p"
     REPROCESS_ALL_DOCUMENTS_BUTTON = "//p[contains(text(),'Reprocess all documents')]"

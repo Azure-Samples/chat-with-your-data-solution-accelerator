@@ -143,11 +143,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Upgrade Azure CLI and install extensions
-        run: |
-          az upgrade --yes --all
-          az extension add --name rdbms-connect --upgrade --yes || true
-
       - name: Discover PostgreSQL Server from Resource Group
         env:
           INPUT_RESOURCE_GROUP_NAME: ${{ inputs.RESOURCE_GROUP_NAME }}

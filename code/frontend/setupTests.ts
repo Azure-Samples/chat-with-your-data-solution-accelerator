@@ -13,6 +13,7 @@ class IntersectionObserverMock {
 
   root: Element | null = null; // Required property
   rootMargin: string = '0px'; // Required property
+  scrollMargin: string = '0px'; // Required property (added in newer DOM types)
   thresholds: number[] = [0]; // Required property
 
   constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit) {
