@@ -1241,6 +1241,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
       'EnableServerless'
     ]
     networkRestrictions: {
+      networkAclBypass: 'None'
       publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     }
     diagnosticSettings: enableMonitoring

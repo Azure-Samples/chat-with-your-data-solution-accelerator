@@ -22,6 +22,10 @@ services:
       dockerfile: docker/Dockerfile.backend
     image: cwyd-v2-backend:dev
     container_name: cwyd-v2-backend
+    # Dev-only --reload override. The image's CMD is deploy-ready (no
+    # --reload) so the same Dockerfile.backend ships unchanged to
+    # Container Apps via azd; the watcher is opt-in per environment.
+    command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--app-dir", "/app/src"]
     # Loads v2/.env (operator-supplied; copy from v2/.env.sample). Marked
     # `required: false` (compose v2.24+) so a clean checkout can boot the
     # backend-only profile without first creating the file. Single source

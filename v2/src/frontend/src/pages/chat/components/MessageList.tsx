@@ -75,6 +75,12 @@ import styles from "./MessageList.module.css";
 export function MessageList() {
   const { state, dispatch } = useChat();
   const { dispatchToast } = useToastController(TOASTER_ID);
+  // Bottom sentinel kept just below the last <li>. A useEffect keyed
+  // on transcript size + the last message's content length scrolls it
+  // into view so the freshest answer (and live streaming tokens) stay
+  // visible without manual scrolling. Plain <div> + scrollIntoView is
+  // the smallest contract jsdom can spy on.
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   // Track every (message id, error string) pair we have already
   // toasted so identical error frames — or React Strict Mode's
   // double-invoked effect in dev — do not stutter the toaster. A
@@ -97,6 +103,18 @@ export function MessageList() {
       );
     }
   }, [state.messages, dispatchToast]);
+
+  // Compute a content-aware dep so the effect fires on every streamed
+  // token, not just on add/finish. The last message's content length
+  // changes on every append_answer dispatch.
+  const lastContentLen =
+    state.messages.length > 0
+      ? (state.messages.at(-1)?.content.length ?? 0)
+      : 0;
+  useEffect(() => {
+    if (state.messages.length === 0) return;
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [state.messages.length, lastContentLen]);
 
   const handleFeedback = useCallback(
     async (m: ChatMessage, value: string): Promise<void> => {
@@ -142,7 +160,8 @@ export function MessageList() {
   }
 
   return (
-    <ol data-testid="message-list" className={styles.list}>
+    <>
+      <ol data-testid="message-list" className={styles.list}>
       {state.messages.map((m) => (
         <li
           key={m.id}
@@ -215,6 +234,13 @@ export function MessageList() {
           )}
         </li>
       ))}
-    </ol>
+      </ol>
+      <div
+        ref={bottomRef}
+        data-testid="message-list-bottom"
+        aria-hidden="true"
+        className={styles.bottom ?? ""}
+      />
+    </>
   );
 }

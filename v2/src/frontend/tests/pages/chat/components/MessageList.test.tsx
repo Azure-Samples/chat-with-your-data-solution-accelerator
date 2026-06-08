@@ -801,3 +801,108 @@ describe("MessageList answer-token rendering", () => {
     expect(headerB.getAttribute("aria-expanded")).toBe("true");
   });
 });
+
+describe("MessageList auto scroll-to-bottom", () => {
+  let scrollSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    scrollSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollIntoView")
+      .mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    scrollSpy.mockRestore();
+  });
+
+  function getDispatch(): (
+    action:
+      | { type: "add"; message: ChatMessage }
+      | { type: "append_answer"; id: string; chunk: string },
+  ) => void {
+    return (
+      Seed as unknown as {
+        _dispatch: (
+          a:
+            | { type: "add"; message: ChatMessage }
+            | { type: "append_answer"; id: string; chunk: string },
+        ) => void;
+      }
+    )._dispatch;
+  }
+
+  it("renders a bottom sentinel inside the message list", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    act(() => {
+      dispatch({ type: "add", message: m1 });
+    });
+    expect(
+      screen.getByTestId("message-list-bottom"),
+    ).toBeInTheDocument();
+  });
+
+  it("scrolls the bottom sentinel into view when a new message is added", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    scrollSpy.mockClear();
+    act(() => {
+      dispatch({ type: "add", message: m1 });
+    });
+    expect(scrollSpy).toHaveBeenCalled();
+    const [scrolledEl] = scrollSpy.mock.contexts;
+    expect(
+      (scrolledEl as HTMLElement).getAttribute("data-testid"),
+    ).toBe("message-list-bottom");
+  });
+
+  it("scrolls the bottom sentinel into view as streaming content grows", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = getDispatch();
+    act(() => {
+      dispatch({
+        type: "add",
+        message: {
+          id: "live",
+          role: "assistant",
+          content: "",
+          streaming: true,
+        },
+      });
+    });
+    scrollSpy.mockClear();
+    act(() => {
+      dispatch({ type: "append_answer", id: "live", chunk: "hello " });
+    });
+    expect(scrollSpy).toHaveBeenCalled();
+    scrollSpy.mockClear();
+    act(() => {
+      dispatch({ type: "append_answer", id: "live", chunk: "world" });
+    });
+    expect(scrollSpy).toHaveBeenCalled();
+  });
+
+  it("does not call scrollIntoView when the transcript is empty", () => {
+    render(
+      <ChatProvider>
+        <MessageList />
+      </ChatProvider>,
+    );
+    expect(scrollSpy).not.toHaveBeenCalled();
+  });
+});

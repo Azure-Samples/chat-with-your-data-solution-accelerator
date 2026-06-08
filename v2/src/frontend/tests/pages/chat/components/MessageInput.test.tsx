@@ -402,7 +402,7 @@ describe("MessageInput SSE wiring", () => {
     });
   });
 
-  it("disables the input and Send button while streaming, re-enables on finish", async () => {
+  it("disables the input while streaming and swaps Send for a Cancel button", async () => {
     const def = deferredIterable();
     streamChatMock.mockReturnValue(def.iterable);
     renderInput();
@@ -410,15 +410,23 @@ describe("MessageInput SSE wiring", () => {
 
     await waitFor(() => {
       expect(getField()).toBeDisabled();
-      expect(getSend()).toBeDisabled();
+      // Send is hidden mid-stream; Cancel takes its place.
+      expect(
+        screen.queryByRole("button", { name: /^send$/i }),
+      ).toBeNull();
+      const cancel = screen.getByTestId(
+        "message-input-cancel",
+      ) as HTMLButtonElement;
+      expect(cancel).toBeEnabled();
     });
 
     act(() => def.end());
     await waitFor(() => {
       expect(getField()).not.toBeDisabled();
     });
-    // Send stays disabled because draft is empty after submit.
+    // Send is back; disabled because draft is empty after submit.
     expect(getSend()).toBeDisabled();
+    expect(screen.queryByTestId("message-input-cancel")).toBeNull();
   });
 
   it("does not re-trigger streamChat while a stream is in flight", async () => {
@@ -435,6 +443,169 @@ describe("MessageInput SSE wiring", () => {
     // canSend must guard against re-entry.
     fireEvent.submit(screen.getByTestId("message-input"));
     expect(streamChatMock).toHaveBeenCalledTimes(1);
+
+    act(() => def.end());
+  });
+});
+
+describe("MessageInput cancel button", () => {
+  beforeEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  afterEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  function getCancel(): HTMLButtonElement {
+    return screen.getByTestId(
+      "message-input-cancel",
+    ) as HTMLButtonElement;
+  }
+
+  it("forwards a fresh AbortSignal on every submit", async () => {
+    streamChatMock.mockReturnValueOnce(
+      iterableOf([{ channel: "answer", content: "a", metadata: {} }]),
+    );
+    streamChatMock.mockReturnValueOnce(
+      iterableOf([{ channel: "answer", content: "b", metadata: {} }]),
+    );
+
+    renderInput();
+    await submit("first");
+    await waitFor(() => {
+      expect(probeMessages()[1].streaming).toBe(false);
+    });
+
+    await submit("second");
+    await waitFor(() => {
+      expect(streamChatMock).toHaveBeenCalledTimes(2);
+    });
+
+    const firstOpts = streamChatMock.mock.calls[0]![1];
+    const secondOpts = streamChatMock.mock.calls[1]![1];
+    expect(firstOpts?.signal).toBeInstanceOf(AbortSignal);
+    expect(secondOpts?.signal).toBeInstanceOf(AbortSignal);
+    expect(firstOpts?.signal).not.toBe(secondOpts?.signal);
+  });
+
+  it("aborts the in-flight stream when Cancel is clicked", async () => {
+    const def = deferredIterable();
+    let capturedSignal: AbortSignal | undefined;
+    streamChatMock.mockImplementation((_msgs, opts) => {
+      capturedSignal = opts?.signal;
+      return def.iterable;
+    });
+
+    renderInput();
+    await submit("hi");
+    await waitFor(() => {
+      expect(streamChatMock).toHaveBeenCalledTimes(1);
+    });
+    expect(capturedSignal?.aborted).toBe(false);
+
+    fireEvent.click(getCancel());
+    expect(capturedSignal?.aborted).toBe(true);
+
+    // Simulate streamChat reacting to the abort by throwing AbortError,
+    // matching the real implementation's contract.
+    act(() => {
+      def.end();
+    });
+  });
+
+  it("treats AbortError as a clean stop (no error toast, partial content kept)", async () => {
+    streamChatMock.mockImplementation(() => ({
+      async *[Symbol.asyncIterator]() {
+        yield { channel: "answer", content: "partial", metadata: {} };
+        throw new DOMException("streamChat aborted", "AbortError");
+      },
+    }));
+
+    renderInput();
+    await submit("hi");
+
+    await waitFor(() => {
+      const m = probeMessages()[1];
+      expect(m.streaming).toBe(false);
+      expect(m.content).toBe("partial");
+      expect(m.error ?? null).toBeNull();
+    });
+  });
+});
+
+describe("MessageInput clear-conversation button", () => {
+  beforeEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  afterEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  function getClear(): HTMLButtonElement {
+    return screen.getByTestId(
+      "message-input-clear",
+    ) as HTMLButtonElement;
+  }
+
+  it("renders a clear-conversation button that is disabled while the transcript is empty", () => {
+    streamChatMock.mockReturnValue(iterableOf([]));
+    renderInput();
+    const clear = getClear();
+    expect(clear.getAttribute("aria-label")).toMatch(/new conversation/i);
+    expect(clear).toBeDisabled();
+  });
+
+  it("enables Clear once at least one message has landed in the transcript", async () => {
+    streamChatMock.mockReturnValue(
+      iterableOf([{ channel: "answer", content: "hi", metadata: {} }]),
+    );
+    renderInput();
+    await submit("hello");
+    await waitFor(() => {
+      expect(probeMessages()).toHaveLength(2);
+    });
+    expect(getClear()).toBeEnabled();
+  });
+
+  it("clears the transcript when clicked", async () => {
+    streamChatMock.mockReturnValue(
+      iterableOf([{ channel: "answer", content: "hi", metadata: {} }]),
+    );
+    renderInput();
+    await submit("hello");
+    await waitFor(() => {
+      expect(probeMessages()).toHaveLength(2);
+    });
+
+    fireEvent.click(getClear());
+    await waitFor(() => {
+      expect(probeMessages()).toEqual([]);
+    });
+    expect(getClear()).toBeDisabled();
+  });
+
+  it("is disabled while a stream is in flight (even with prior messages)", async () => {
+    // First submit completes so the transcript has content.
+    streamChatMock.mockReturnValueOnce(
+      iterableOf([{ channel: "answer", content: "hi", metadata: {} }]),
+    );
+    // Second submit hangs so we can observe the streaming state.
+    const def = deferredIterable();
+    streamChatMock.mockReturnValueOnce(def.iterable);
+
+    renderInput();
+    await submit("first");
+    await waitFor(() => {
+      expect(probeMessages()).toHaveLength(2);
+    });
+    expect(getClear()).toBeEnabled();
+
+    await submit("second");
+    await waitFor(() => {
+      expect(getClear()).toBeDisabled();
+    });
 
     act(() => def.end());
   });
