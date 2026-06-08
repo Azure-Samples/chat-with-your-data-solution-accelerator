@@ -132,9 +132,101 @@ describe("streamChat", () => {
     ]);
   });
 
-  it("throws when the response is not 2xx", async () => {
-    fetchMock.mockResolvedValueOnce(sseResponse([], { status: 500 }));
-    await expect(collect(streamChat([]))).rejects.toThrow(/500/);
+  it("throws immediately on a 4xx response without retrying", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([], { status: 400 }));
+    await expect(
+      collect(streamChat([], { maxRetries: 2, baseDelayMs: 1 })),
+    ).rejects.toThrow(/400/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries on a network error from fetch() and succeeds on the next attempt", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        'event: answer\ndata: {"content":"ok-after-retry","metadata":{}}\n\n',
+      ]),
+    );
+    const events = await collect(
+      streamChat([], { maxRetries: 2, baseDelayMs: 1 }),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(events).toEqual([
+      { channel: "answer", content: "ok-after-retry", metadata: {} },
+    ]);
+  });
+
+  it("retries on a 5xx response and succeeds on the next attempt", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([], { status: 503 }));
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        'event: answer\ndata: {"content":"ok-after-503","metadata":{}}\n\n',
+      ]),
+    );
+    const events = await collect(
+      streamChat([], { maxRetries: 2, baseDelayMs: 1 }),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(events).toEqual([
+      { channel: "answer", content: "ok-after-503", metadata: {} },
+    ]);
+  });
+
+  it("throws after exhausting the retry budget on repeated network errors", async () => {
+    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+    await expect(
+      collect(streamChat([], { maxRetries: 2, baseDelayMs: 1 })),
+    ).rejects.toThrow(/Failed to fetch|SSE request failed/);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not retry once the stream has started yielding events", async () => {
+    // First attempt: deliver one frame then error the underlying stream.
+    let pulls = 0;
+    const droppingStream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulls === 0) {
+          controller.enqueue(
+            enc.encode(
+              'event: answer\ndata: {"content":"partial","metadata":{}}\n\n',
+            ),
+          );
+          pulls += 1;
+        } else {
+          controller.error(new Error("connection reset"));
+        }
+      },
+    });
+    fetchMock.mockResolvedValueOnce(
+      new Response(droppingStream, {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    );
+
+    const seen: StreamEvent[] = [];
+    await expect(
+      (async () => {
+        for await (const ev of streamChat([], {
+          maxRetries: 2,
+          baseDelayMs: 1,
+        })) {
+          seen.push(ev);
+        }
+      })(),
+    ).rejects.toThrow(/connection reset|interrupted/);
+    expect(seen).toEqual([
+      { channel: "answer", content: "partial", metadata: {} },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("honors maxRetries: 0 by performing a single attempt", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    await expect(
+      collect(streamChat([], { maxRetries: 0, baseDelayMs: 1 })),
+    ).rejects.toThrow(/Failed to fetch|SSE request failed/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("ignores frames with unknown channels (defensive forward-compat)", async () => {
