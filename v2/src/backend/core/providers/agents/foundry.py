@@ -29,12 +29,14 @@ Try/except policy:
 """
 
 import logging
+from typing import Callable
 
 from azure.ai.agents.aio import AgentsClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
 from backend.core.settings import AppSettings
+from backend.core.types import RuntimeConfig
 
 from .registry import registry
 from .base import BaseAgentsProvider
@@ -50,8 +52,13 @@ class FoundryAgentsProvider(BaseAgentsProvider):
         credential: AsyncTokenCredential,
         *,
         client: AgentsClient | None = None,
+        runtime_overrides_getter: Callable[[], RuntimeConfig | None] | None = None,
     ) -> None:
-        super().__init__(settings, credential)
+        super().__init__(
+            settings,
+            credential,
+            runtime_overrides_getter=runtime_overrides_getter,
+        )
         # Allow tests to inject a fake AgentsClient. Production path
         # constructs lazily so we don't open an HTTP session at import.
         self._client_override = client

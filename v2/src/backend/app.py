@@ -90,9 +90,16 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # constructed (the SDK client is lazy -- no HTTP session opened until
     # the first `get_client()` call), so the `langgraph` orchestrator
     # incurs zero overhead. Registry-only dispatch (Hard Rule #4); the
-    # only key today is `"foundry"`.
+    # only key today is `"foundry"`. `runtime_overrides_getter` is
+    # late-binding: the persisted `RuntimeConfig` is loaded a few
+    # lines below, and each cold-start `create_agent` call resolves
+    # the operator-editable CWYD instructions through this lambda.
     agents_provider = agents_registry.registry.get("foundry")(
-        settings=settings, credential=credential
+        settings=settings,
+        credential=credential,
+        runtime_overrides_getter=lambda: getattr(
+            app.state, "runtime_overrides", None
+        ),
     )
 
     app.state.credential_provider = cred_provider

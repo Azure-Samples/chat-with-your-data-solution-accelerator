@@ -47,14 +47,16 @@ azure_search):
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from typing import Callable
 
 from azure.ai.agents.aio import AgentsClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError, ResourceNotFoundError
 
-from backend.core.agents.definitions import AgentDefinition
+from backend.core.agents.definitions import CWYD_AGENT, AgentDefinition
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
+from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +66,17 @@ class BaseAgentsProvider(ABC):
         self,
         settings: AppSettings,
         credential: AsyncTokenCredential,
+        *,
+        runtime_overrides_getter: Callable[[], RuntimeConfig | None] | None = None,
     ) -> None:
         self._settings = settings
         self._credential = credential
+        # Late-binding handle to the persisted `RuntimeConfig`. The
+        # lifespan owns the canonical reference on `app.state` and
+        # reassigns it on every successful PATCH; the getter shape
+        # keeps the provider decoupled from `app.state` and lets each
+        # cold-start create-agent call read the most recent value.
+        self._runtime_overrides_getter = runtime_overrides_getter
         # Process-local cache of resolved Foundry agent ids, keyed by
         # `AgentDefinition.name`. Populated by `get_or_create_agent` so
         # the steady-state path is a dict lookup -- no DB read, no
@@ -88,6 +98,30 @@ class BaseAgentsProvider(ABC):
     @abstractmethod
     async def aclose(self) -> None:
         """Close the underlying SDK transport. Idempotent."""
+
+    def _resolve_definition(self, definition: AgentDefinition) -> AgentDefinition:
+        """Apply operator-supplied instruction overrides from `RuntimeConfig`.
+
+        Returns the original `definition` when no override is wired,
+        when nothing has been persisted yet, when `definition` is not
+        part of the operator-editable set, or when the override is
+        empty / whitespace-only (treated as "clear -- fall back to
+        the in-code default"). Only `CWYD_AGENT` is editable today;
+        `RAI_AGENT` and any future safety surfaces are intentionally
+        not exposed through this seam so an operator cannot weaken
+        the classifier prompt.
+        """
+        if self._runtime_overrides_getter is None:
+            return definition
+        overrides = self._runtime_overrides_getter()
+        if overrides is None:
+            return definition
+        if definition.name != CWYD_AGENT.name:
+            return definition
+        text = overrides.cwyd_agent_instructions
+        if text is None or not text.strip():
+            return definition
+        return definition.model_copy(update={"instructions": text})
 
     async def get_or_create_agent(
         self,
@@ -166,13 +200,14 @@ class BaseAgentsProvider(ABC):
             if cached is not None:
                 return cached
 
+            resolved = self._resolve_definition(definition)
             try:
                 created = await client.create_agent(
                     model=deployment,
-                    name=definition.name,
-                    description=definition.description,
-                    instructions=definition.instructions,
-                    tools=list(definition.tools),
+                    name=resolved.name,
+                    description=resolved.description,
+                    instructions=resolved.instructions,
+                    tools=list(resolved.tools),
                 )
             except AzureError:
                 # Cold-start write failure -- do NOT swallow. The

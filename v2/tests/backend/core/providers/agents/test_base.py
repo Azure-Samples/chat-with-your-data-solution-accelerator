@@ -18,7 +18,7 @@ Coverage:
 
 import asyncio
 import logging
-from typing import Sequence
+from typing import Callable, Sequence
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -59,8 +59,13 @@ class _StubAgentsProvider(BaseAgentsProvider):
         credential: MagicMock,
         *,
         client: MagicMock,
+        runtime_overrides_getter: Callable[[], RuntimeConfig | None] | None = None,
     ) -> None:
-        super().__init__(settings, credential)
+        super().__init__(
+            settings,
+            credential,
+            runtime_overrides_getter=runtime_overrides_getter,
+        )
         self._injected_client = client
 
     def get_client(self) -> MagicMock:  # type: ignore[override]
@@ -517,3 +522,166 @@ async def test_create_agent_azure_error_releases_per_key_lock(
     assert out == "asst_retry"
     assert call_count["n"] == 2
     assert db.upsert_calls == [("cwyd", "asst_retry")]
+
+
+# ---------------------------------------------------------------------------
+# `_resolve_definition` -- operator-supplied instruction overrides
+#
+# The runtime-overrides getter is the seam between the lifespan-owned
+# `RuntimeConfig` and the agents provider. Only `CWYD_AGENT` is
+# operator-editable; RAI (and any future safety surface) must be
+# immune to overrides so the classifier prompt cannot be weakened.
+# ---------------------------------------------------------------------------
+
+
+def _runtime_config(cwyd_instructions: str | None) -> RuntimeConfig:
+    return RuntimeConfig(
+        cwyd_agent_instructions=cwyd_instructions,
+        updated_by="tester",
+    )
+
+
+def test_resolve_definition_returns_original_when_getter_is_none() -> None:
+    provider = _StubAgentsProvider(
+        _make_settings(), MagicMock(), client=_make_client()
+    )
+    definition = _definition()
+    assert provider._resolve_definition(definition) is definition
+
+
+def test_resolve_definition_returns_original_when_no_overrides_persisted() -> None:
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=_make_client(),
+        runtime_overrides_getter=lambda: None,
+    )
+    definition = _definition()
+    assert provider._resolve_definition(definition) is definition
+
+
+def test_resolve_definition_returns_original_when_cwyd_override_is_none() -> None:
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=_make_client(),
+        runtime_overrides_getter=lambda: _runtime_config(None),
+    )
+    definition = _definition()
+    assert provider._resolve_definition(definition) is definition
+
+
+def test_resolve_definition_returns_original_when_cwyd_override_is_whitespace() -> None:
+    """Empty / whitespace-only override means "operator cleared the
+    override" -- fall back to the in-code default."""
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=_make_client(),
+        runtime_overrides_getter=lambda: _runtime_config("   \n  "),
+    )
+    definition = _definition()
+    assert provider._resolve_definition(definition) is definition
+
+
+def test_resolve_definition_clones_cwyd_with_overridden_instructions() -> None:
+    """Non-empty override on CWYD produces a model-copy with the
+    operator's text in place of the hard-coded instructions; the
+    original frozen definition is left untouched."""
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=_make_client(),
+        runtime_overrides_getter=lambda: _runtime_config("operator prompt"),
+    )
+    definition = _definition()
+    resolved = provider._resolve_definition(definition)
+    assert resolved is not definition
+    assert resolved.instructions == "operator prompt"
+    # Every other field carries over.
+    assert resolved.name == definition.name
+    assert resolved.description == definition.description
+    assert resolved.deployment_attr == definition.deployment_attr
+    assert resolved.tools == definition.tools
+    # Original is unmutated (frozen anyway, but assert the invariant).
+    assert definition.instructions == "i"
+
+
+def test_resolve_definition_does_not_override_non_cwyd_definitions() -> None:
+    """RAI -- and any future safety surface -- must NOT be editable
+    via the operator override. The resolver returns the original
+    instance untouched even when an override is set."""
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=_make_client(),
+        runtime_overrides_getter=lambda: _runtime_config("attempted override"),
+    )
+    rai_definition = _definition(name="rai")
+    assert provider._resolve_definition(rai_definition) is rai_definition
+
+
+@pytest.mark.asyncio
+async def test_cold_start_uses_overridden_instructions_when_set() -> None:
+    """End-to-end: a cold-start `create_agent` call MUST forward the
+    operator-supplied instructions instead of the in-code default."""
+    client = _make_client(agent_id="asst_with_override")
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=client,
+        runtime_overrides_getter=lambda: _runtime_config("custom prompt"),
+    )
+    await provider.get_or_create_agent(_definition(), _StubDB())
+    create_kwargs = client.create_agent.await_args.kwargs
+    assert create_kwargs["instructions"] == "custom prompt"
+
+
+@pytest.mark.asyncio
+async def test_cold_start_uses_definition_instructions_when_override_cleared() -> None:
+    """When the operator has cleared the override (None), cold-start
+    falls back to the in-code default instructions."""
+    client = _make_client(agent_id="asst_default")
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=client,
+        runtime_overrides_getter=lambda: _runtime_config(None),
+    )
+    await provider.get_or_create_agent(_definition(), _StubDB())
+    create_kwargs = client.create_agent.await_args.kwargs
+    assert create_kwargs["instructions"] == "i"
+
+
+@pytest.mark.asyncio
+async def test_getter_is_invoked_lazily_per_cold_start() -> None:
+    """The getter must be re-read on each cold-start `create_agent`
+    call, not captured at provider-construction time -- the PATCH
+    route reassigns the persisted `RuntimeConfig` on every successful
+    upsert and existing providers must see the new value."""
+    current = {"text": "first"}
+
+    def _getter() -> RuntimeConfig | None:
+        return _runtime_config(current["text"])
+
+    client_a = _make_client(agent_id="asst_a")
+    provider_a = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=client_a,
+        runtime_overrides_getter=_getter,
+    )
+    await provider_a.get_or_create_agent(_definition(), _StubDB())
+    assert client_a.create_agent.await_args.kwargs["instructions"] == "first"
+
+    current["text"] = "second"
+
+    client_b = _make_client(agent_id="asst_b")
+    provider_b = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=client_b,
+        runtime_overrides_getter=_getter,
+    )
+    await provider_b.get_or_create_agent(_definition(), _StubDB())
+    assert client_b.create_agent.await_args.kwargs["instructions"] == "second"
