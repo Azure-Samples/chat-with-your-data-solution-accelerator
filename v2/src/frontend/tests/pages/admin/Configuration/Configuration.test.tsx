@@ -38,6 +38,9 @@ const CONFIG_FIXTURE: AdminConfig = {
   log_level: "INFO",
   content_safety_enabled: false,
   cwyd_agent_instructions: "You are the Chat With Your Data assistant.",
+  post_answering_prompt: "",
+  post_answering_enabled: false,
+  post_answering_filter_message: "",
 };
 
 const PATCHED_CONFIG_FIXTURE: AdminConfig = {
@@ -55,6 +58,9 @@ const RUNTIME_FIXTURE: RuntimeConfig = {
   log_level: null,
   content_safety_enabled: null,
   cwyd_agent_instructions: null,
+  post_answering_prompt: null,
+  post_answering_enabled: null,
+  post_answering_filter_message: null,
   updated_at: "2026-06-03T11:00:00Z",
   updated_by: "admin-user-id",
 };

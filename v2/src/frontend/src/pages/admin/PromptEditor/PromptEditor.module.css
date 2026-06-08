@@ -62,3 +62,24 @@
   justify-content: flex-end;
   gap: var(--spacingHorizontalS);
 }
+
+.statusMessage {
+  margin: 0;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground2);
+  color: var(--colorNeutralForeground2);
+  font-size: var(--fontSizeBase300);
+}
+
+.errorMessage {
+  composes: statusMessage;
+  background: var(--colorPaletteRedBackground1);
+  color: var(--colorPaletteRedForeground1);
+}
+
+.successMessage {
+  composes: statusMessage;
+  background: var(--colorPaletteGreenBackground1);
+  color: var(--colorPaletteGreenForeground1);
+}

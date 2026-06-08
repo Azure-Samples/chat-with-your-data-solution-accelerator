@@ -29,6 +29,60 @@ const ADMIN_DOCUMENTS_INGEST_URL = "/api/admin/documents/url";
 const ADMIN_DOCUMENTS_REPROCESS_URL = "/api/admin/documents/reprocess";
 
 /**
+ * Structured object form of FastAPI's `detail` field. The backend
+ * 422 RAI gate (`backend.routers.admin.patch_config_endpoint`)
+ * stamps `{msg, field, reason}` so callers can render a per-field
+ * inline rejection without resorting to regex on the message.
+ */
+export interface AdminApiErrorDetailObject {
+  msg?: string;
+  field?: string;
+  reason?: string;
+}
+
+export type AdminApiErrorDetail = string | AdminApiErrorDetailObject;
+
+export interface AdminApiErrorBody {
+  detail?: AdminApiErrorDetail;
+}
+
+/**
+ * Typed Error thrown by `patchAdminConfig` on a non-2xx response.
+ * Exposes the raw HTTP status and the parsed JSON body so callers
+ * can branch on 422 RAI rejections vs. 401/403 RBAC vs. 5xx.
+ *
+ * `body` is `null` when the response body was empty or unparseable.
+ */
+export class AdminApiError extends Error {
+  readonly status: number;
+  readonly body: AdminApiErrorBody | null;
+  constructor(
+    operation: string,
+    status: number,
+    body: AdminApiErrorBody | null,
+  ) {
+    super(`${operation}: request failed with status ${status}`);
+    this.name = "AdminApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+async function parseErrorBody(
+  response: Response,
+): Promise<AdminApiErrorBody | null> {
+  const text = await response.text().catch(() => "");
+  if (text === "") {
+    return null;
+  }
+  try {
+    return JSON.parse(text) as AdminApiErrorBody;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch the sanitized backend status snapshot.
  *
  * @throws Error when the response status is not 2xx. Callers should
@@ -231,8 +285,11 @@ export async function patchAdminConfig(
     body: JSON.stringify(patch),
   });
   if (!response.ok) {
-    throw new Error(
-      `patchAdminConfig: request failed with status ${response.status}`,
+    const errorBody = await parseErrorBody(response);
+    throw new AdminApiError(
+      "patchAdminConfig",
+      response.status,
+      errorBody,
     );
   }
   const body = (await response.json()) as RuntimeConfig;

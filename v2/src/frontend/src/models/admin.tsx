@@ -115,14 +115,21 @@ export interface DeleteDocumentResponse {
  * Runtime-toggle subset of `AppSettings` returned by
  * `GET /api/admin/config`. Mirrors `backend.models.admin.AdminConfig`.
  *
- * Exactly eight v2-canonical fields. The selection is the closed set
- * the backend allow-list permits PATCHing -- any new field must be
- * added in lockstep across `AdminConfig`, `RuntimeConfig`, and the
- * `WRITABLE_FIELDS` allow-list (enforced server-side with a 422).
+ * The selection is the closed set the backend allow-list permits
+ * PATCHing -- any new field must be added in lockstep across
+ * `AdminConfig`, `RuntimeConfig`, and the `WRITABLE_FIELDS` allow-list
+ * (enforced server-side with a 422).
  *
  * `cwyd_agent_instructions` is the system prompt for the primary
  * `CWYD_AGENT`; the GET surfaces the built-in default and the PATCH
  * channel lets an operator persist an override.
+ *
+ * `post_answering_prompt`, `post_answering_enabled`, and
+ * `post_answering_filter_message` configure the optional
+ * `PostPromptValidator` wired into the chat pipeline. The GET surfaces
+ * the env baseline (empty / disabled by default) and the PATCH channel
+ * lets an operator turn the validator on, supply a prompt template, and
+ * override the rejection message shown to end users.
  */
 export interface AdminConfig {
   orchestrator_name: string;
@@ -133,6 +140,9 @@ export interface AdminConfig {
   log_level: string;
   content_safety_enabled: boolean;
   cwyd_agent_instructions: string;
+  post_answering_prompt: string;
+  post_answering_enabled: boolean;
+  post_answering_filter_message: string;
 }
 
 /**
@@ -153,13 +163,16 @@ export interface RuntimeConfig {
   log_level: string | null;
   content_safety_enabled: boolean | null;
   cwyd_agent_instructions: string | null;
+  post_answering_prompt: string | null;
+  post_answering_enabled: boolean | null;
+  post_answering_filter_message: string | null;
   updated_at: string;
   updated_by: string;
 }
 
 /**
  * Request body for `PATCH /api/admin/config`. RFC 7396 JSON Merge
- * Patch over the same seven-field surface as `AdminConfig`.
+ * Patch over the same surface as `AdminConfig`.
  *
  * Semantics enforced by the backend:
  *   * Absent key      -> existing override unchanged.
@@ -179,4 +192,7 @@ export interface AdminConfigPatch {
   log_level?: string | null;
   content_safety_enabled?: boolean | null;
   cwyd_agent_instructions?: string | null;
+  post_answering_prompt?: string | null;
+  post_answering_enabled?: boolean | null;
+  post_answering_filter_message?: string | null;
 }

@@ -283,6 +283,16 @@ class RuntimeConfig(BaseModel):
     `AgentDefinition` singleton; when set, the provider applies the
     override at agent-creation time.
 
+    `post_answering_prompt`, `post_answering_enabled`, and
+    `post_answering_filter_message` configure the optional
+    `PostPromptValidator` wired into the chat pipeline. When
+    `post_answering_enabled` is `True` and `post_answering_prompt` is
+    non-empty, the chat pipeline runs the validator after the answer
+    is composed; on a FALSE verdict, the user receives
+    `post_answering_filter_message` (or a built-in default when the
+    override is empty). All three default to `None` so the validator
+    stays off until an operator explicitly enables it.
+
     `updated_at` is an ISO-8601 string for the same reason
     `Conversation.updated_at` is -- the wire shape stays uniform
     across providers (Cosmos JSON, Postgres). `updated_by` carries
@@ -300,6 +310,9 @@ class RuntimeConfig(BaseModel):
     log_level: str | None = None
     content_safety_enabled: bool | None = None
     cwyd_agent_instructions: str | None = None
+    post_answering_prompt: str | None = None
+    post_answering_enabled: bool | None = None
+    post_answering_filter_message: str | None = None
     updated_at: str = ""
     updated_by: str = ""
 
