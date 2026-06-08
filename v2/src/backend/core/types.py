@@ -277,6 +277,12 @@ class RuntimeConfig(BaseModel):
     distinction: an absent JSON key leaves the override alone, an
     explicit `null` clears the override, an explicit value sets it.
 
+    `cwyd_agent_instructions` is the operator-editable system prompt
+    for the primary `CWYD_AGENT`. When `None`, the agents provider
+    falls through to the built-in instructions on the
+    `AgentDefinition` singleton; when set, the provider applies the
+    override at agent-creation time.
+
     `updated_at` is an ISO-8601 string for the same reason
     `Conversation.updated_at` is -- the wire shape stays uniform
     across providers (Cosmos JSON, Postgres). `updated_by` carries
@@ -293,6 +299,7 @@ class RuntimeConfig(BaseModel):
     search_top_k: int | None = None
     log_level: str | None = None
     content_safety_enabled: bool | None = None
+    cwyd_agent_instructions: str | None = None
     updated_at: str = ""
     updated_by: str = ""
 

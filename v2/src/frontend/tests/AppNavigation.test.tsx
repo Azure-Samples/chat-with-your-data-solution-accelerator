@@ -39,6 +39,7 @@ const ADMIN_CONFIG_FIXTURE = {
   search_top_k: 5,
   log_level: "INFO",
   content_safety_enabled: false,
+  cwyd_agent_instructions: "You are the Chat With Your Data assistant.",
 };
 
 function stubFetch({ adminOk }: FetchStubOptions): void {

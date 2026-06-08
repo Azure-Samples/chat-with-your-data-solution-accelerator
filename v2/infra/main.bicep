@@ -191,8 +191,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // WAF flags             //
 // ===================== //
 
-@description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.')
-param enableMonitoring bool = false
+@description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource. Defaults to `true` for any deployed env (ADR-0018): observability is Stable Core, not a WAF opt-in. The `false` branch stays only for `bicep build` self-checks and unit tests.')
+param enableMonitoring bool = true
 
 @description('Optional. Higher SKUs and autoscaling on App Service Plan, Container Apps, Search, and PostgreSQL.')
 param enableScalability bool = false
@@ -307,6 +307,16 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = if (en
     applicationType: 'web'
     kind: 'web'
     disableLocalAuth: true
+    // The UAMI ingests telemetry via Entra (local auth disabled above).
+    // Without `Monitoring Metrics Publisher` every workload write path
+    // silently 401s and telemetry vanishes. ADR-0018.
+    roleAssignments: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Monitoring Metrics Publisher'
+      }
+    ]
   }
 }
 

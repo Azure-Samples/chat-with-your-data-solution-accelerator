@@ -64,6 +64,7 @@ from backend.dependencies import (
     SearchProviderDep,
     SettingsDep,
 )
+from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.models.admin import (
     APP_VERSION,
@@ -141,6 +142,7 @@ async def config_endpoint(
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
         content_safety_enabled=settings.content_safety.enabled,
+        cwyd_agent_instructions=CWYD_AGENT.instructions,
     )
 
 
@@ -168,6 +170,7 @@ async def config_effective_endpoint(
         "search_top_k": settings.search.top_k,
         "log_level": settings.observability.log_level,
         "content_safety_enabled": settings.content_safety.enabled,
+        "cwyd_agent_instructions": CWYD_AGENT.instructions,
     }
     merged: dict[str, Any] = dict(env_values)
     sources: dict[str, ConfigSource] = {

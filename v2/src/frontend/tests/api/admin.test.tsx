@@ -87,6 +87,7 @@ const ADMIN_CONFIG_FIXTURE: AdminConfig = {
   search_top_k: 5,
   log_level: "INFO",
   content_safety_enabled: false,
+  cwyd_agent_instructions: "You are the Chat With Your Data assistant.",
 };
 
 const RUNTIME_CONFIG_FIXTURE: RuntimeConfig = {
@@ -97,6 +98,7 @@ const RUNTIME_CONFIG_FIXTURE: RuntimeConfig = {
   search_top_k: null,
   log_level: null,
   content_safety_enabled: null,
+  cwyd_agent_instructions: null,
   updated_at: "2026-06-03T11:00:00Z",
   updated_by: "admin-user-id",
 };

@@ -197,3 +197,87 @@ def test_function_app_settings_bind_required_phase4_settings(
         "Add it to the function `appSettings: union([...])` array in "
         "main.bicep so the indexing pipeline can populate it at runtime."
     )
+
+
+# ---------------------------------------------------------------------------
+# ADR-0018: Monitoring Metrics Publisher RBAC for UAMI on AppI.
+#
+# The `applicationInsights` AVM module is created with
+# `disableLocalAuth: true`, so ingestion authenticates via Entra. Without
+# `Monitoring Metrics Publisher` granted to the UAMI, every telemetry
+# write from the backend container app + function app silently 401s and
+# telemetry vanishes from AppI -- exactly the observability gap
+# ADR-0018 closes.
+#
+# The role assignment lives inline on the AVM module's `roleAssignments`
+# param (mirrors the aiServices pattern at ~line 552) so it inherits the
+# same `if (enableMonitoring)` gate as the AppI module itself; a sibling
+# top-level resource would either always deploy or need a duplicated gate.
+# ---------------------------------------------------------------------------
+
+_MONITORING_METRICS_PUBLISHER_ROLE_NAME = "Monitoring Metrics Publisher"
+
+
+@pytest.fixture(scope="module")
+def application_insights_slice(bicep_text: str) -> str:
+    """Bicep source between `module applicationInsights` and the next section."""
+    return _slice_module(
+        bicep_text,
+        "module applicationInsights ",
+        "// Virtual network ",
+    )
+
+
+def test_application_insights_grants_metrics_publisher_to_uami(
+    application_insights_slice: str,
+) -> None:
+    """The AppI module must grant `Monitoring Metrics Publisher` to the UAMI (ADR-0018)."""
+    assert "roleAssignments:" in application_insights_slice, (
+        "applicationInsights AVM module must declare a `roleAssignments` "
+        "param granting the UAMI ingestion permission. AppI is created "
+        "with disableLocalAuth=true, so without this role telemetry "
+        "silently 401s -- the observability gap ADR-0018 closes."
+    )
+    assert _MONITORING_METRICS_PUBLISHER_ROLE_NAME in application_insights_slice, (
+        "applicationInsights roleAssignments must reference "
+        f"'{_MONITORING_METRICS_PUBLISHER_ROLE_NAME}' (AVM resolves the "
+        "built-in role name) per ADR-0018."
+    )
+    assert (
+        "userAssignedIdentity.outputs.principalId" in application_insights_slice
+    ), (
+        "applicationInsights roleAssignments must use "
+        "`userAssignedIdentity.outputs.principalId` so the workload UAMI "
+        "(not the system MI, not a fixed principal) is the grantee."
+    )
+
+
+# ADR-0018 drift-guard pair: backend + function env blocks must wire
+# `APPLICATIONINSIGHTS_CONNECTION_STRING` from the AppI module output, so
+# the OpenTelemetry exporter inside each workload knows where to send
+# telemetry. The env entry lives inside an `enableMonitoring ? [...] : []`
+# ternary so it stays absent in non-monitoring builds (no SDK auto-init
+# against an empty string); the drift-guard fires on the static Bicep
+# source text and so is flag-agnostic.
+@pytest.mark.parametrize(
+    "slice_fixture",
+    ["backend_aca_slice", "function_app_slice"],
+)
+def test_appinsights_connection_string_bound_to_workload(
+    slice_fixture: str, request: pytest.FixtureRequest
+) -> None:
+    """Backend + function env blocks must wire APPLICATIONINSIGHTS_CONNECTION_STRING (ADR-0018)."""
+    module_slice: str = request.getfixturevalue(slice_fixture)
+    assert "'APPLICATIONINSIGHTS_CONNECTION_STRING'" in module_slice, (
+        f"APPLICATIONINSIGHTS_CONNECTION_STRING missing from {slice_fixture}. "
+        "Wire it inside an `enableMonitoring ? [...] : []` ternary sourced "
+        "from `applicationInsights!.outputs.connectionString` so the "
+        "workload OpenTelemetry exporter knows where to ingest telemetry "
+        "(ADR-0018)."
+    )
+    assert "applicationInsights!.outputs.connectionString" in module_slice, (
+        f"{slice_fixture} must source the AppI connection string from "
+        "`applicationInsights!.outputs.connectionString` (Bicep output), "
+        "not a hand-set secret or runtime `az config appsettings set` "
+        "patch (Hard Rule #7 + ADR-0018)."
+    )

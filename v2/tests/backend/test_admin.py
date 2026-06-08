@@ -23,6 +23,7 @@ from fastapi import FastAPI
 from pydantic import ValidationError
 
 import backend.routers.admin as _admin_module
+from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.providers.search.base import SourceListing
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
@@ -39,6 +40,7 @@ from backend.models.admin import (
     IngestUrlResponse,
     ReprocessResponse,
     UploadResponse,
+    WRITABLE_FIELDS,
 )
 from backend.routers.admin import router as admin_router
 
@@ -452,6 +454,7 @@ _EXPECTED_CONFIG_KEYS = {
     "search_top_k",
     "log_level",
     "content_safety_enabled",
+    "cwyd_agent_instructions",
 }
 
 
@@ -530,6 +533,22 @@ async def test_config_surfaces_content_safety_enabled_from_settings(
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config")
     assert resp.json()["content_safety_enabled"] is enabled
+
+
+@pytest.mark.asyncio
+async def test_config_surfaces_cwyd_agent_instructions_default(
+    admin_app_factory,
+) -> None:
+    """GET /api/admin/config must surface the built-in CWYD agent
+    system prompt as the env baseline so the admin UI can render the
+    current default before any operator override has been persisted.
+    The field reads from `CWYD_AGENT.instructions` (the source of
+    truth for the built-in system prompt) -- not from an env var --
+    because the v2 agent definitions are scenario data, not config."""
+    app = admin_app_factory(_settings())
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config")
+    assert resp.json()["cwyd_agent_instructions"] == CWYD_AGENT.instructions
 
 
 @pytest.mark.asyncio
@@ -816,6 +835,77 @@ async def test_patch_config_explicit_null_clears_content_safety_override(
     assert resp.json()["content_safety_enabled"] is None
 
 
+def test_writable_fields_includes_cwyd_agent_instructions() -> None:
+    """The `WRITABLE_FIELDS` allow-list is auto-derived from
+    `RuntimeConfig.model_fields`; this test locks the derivation in so
+    a future refactor that swaps the comprehension for a hard-coded
+    set cannot silently drop the new field."""
+    assert "cwyd_agent_instructions" in WRITABLE_FIELDS
+
+
+@pytest.mark.asyncio
+async def test_patch_config_persists_cwyd_agent_instructions(
+    admin_app_factory,
+) -> None:
+    """PATCH must accept a non-empty `cwyd_agent_instructions` string
+    as a runtime override. Without this the operator-editable system
+    prompt channel cannot persist anything for the agents provider to
+    consume on the next agent-creation pass."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"cwyd_agent_instructions": "You are the operator override."},
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.cwyd_agent_instructions == "You are the operator override."
+    assert resp.json()["cwyd_agent_instructions"] == "You are the operator override."
+
+
+@pytest.mark.asyncio
+async def test_patch_config_explicit_null_clears_cwyd_agent_instructions(
+    admin_app_factory,
+) -> None:
+    """RFC 7396 `null` semantics for the system-prompt override: a
+    PATCH with `cwyd_agent_instructions: null` MUST clear the
+    persisted override so the agents provider falls back to
+    `CWYD_AGENT.instructions` on the next agent-creation pass."""
+    db = _fake_db(
+        current=RuntimeConfig(cwyd_agent_instructions="prior override text")
+    )
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"cwyd_agent_instructions": None},
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.cwyd_agent_instructions is None
+    assert resp.json()["cwyd_agent_instructions"] is None
+
+
+@pytest.mark.asyncio
+async def test_patch_config_rejects_non_string_cwyd_agent_instructions(
+    admin_app_factory,
+) -> None:
+    """Type mismatch on the system-prompt field must 422 -- a numeric
+    or boolean payload reaching the agents provider would crash the
+    Foundry SDK at agent-creation time. Pydantic validation on the
+    merged `RuntimeConfig` catches it at the route boundary."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"cwyd_agent_instructions": 42},
+        )
+    assert resp.status_code == 422
+    db.upsert_runtime_config.assert_not_awaited()
+
+
 @pytest.mark.asyncio
 async def test_patch_config_requires_easy_auth_in_production() -> None:
     """H1 hardening parity with GET: anonymous callers must be
@@ -1073,6 +1163,7 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "search_top_k": 5,
         "log_level": "INFO",
         "content_safety_enabled": False,
+        "cwyd_agent_instructions": CWYD_AGENT.instructions,
     }
     assert body["sources"] == {
         "orchestrator_name": "env",
@@ -1082,6 +1173,7 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "search_top_k": "env",
         "log_level": "env",
         "content_safety_enabled": "env",
+        "cwyd_agent_instructions": "env",
     }
     assert body["updated_at"] is None
     assert body["updated_by"] is None
@@ -1135,6 +1227,7 @@ async def test_config_effective_overlays_partial_overrides(
         "search_top_k": "env",
         "log_level": "override",
         "content_safety_enabled": "env",
+        "cwyd_agent_instructions": "env",
     }
     # Audit fields surfaced from the override row.
     assert body["updated_at"] == "2026-05-07T12:00:00+00:00"
@@ -1189,6 +1282,7 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         search_top_k=10,
         log_level="DEBUG",
         content_safety_enabled=True,
+        cwyd_agent_instructions="You are the override assistant.",
         updated_at="2026-05-07T14:00:00+00:00",
         updated_by="u-admin",
     )
@@ -1205,6 +1299,7 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         "search_top_k": 10,
         "log_level": "DEBUG",
         "content_safety_enabled": True,
+        "cwyd_agent_instructions": "You are the override assistant.",
     }
     assert all(src == "override" for src in body["sources"].values())
 
@@ -1249,6 +1344,40 @@ async def test_config_effective_overlays_content_safety_enabled_override(
     body = resp.json()
     assert body["values"]["content_safety_enabled"] is False
     assert body["sources"]["content_safety_enabled"] == "override"
+
+
+@pytest.mark.asyncio
+async def test_config_effective_overlays_cwyd_agent_instructions_override(
+    admin_app_factory,
+) -> None:
+    """A RuntimeConfig override on `cwyd_agent_instructions` must
+    flip the merged value to the operator string + flag the field's
+    source as `override`, while leaving the env-baseline prompt for
+    the cold case. Mirrors the content-safety overlay pattern; the
+    env baseline is `CWYD_AGENT.instructions` (the built-in default)."""
+    # Cold case -- no override -> built-in default, source 'env'.
+    app = admin_app_factory(_settings())
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    body = resp.json()
+    assert body["values"]["cwyd_agent_instructions"] == CWYD_AGENT.instructions
+    assert body["sources"]["cwyd_agent_instructions"] == "env"
+
+    # Override case -- persisted prompt -> override value, source 'override'.
+    app2 = admin_app_factory(_settings())
+    app2.state.runtime_overrides = RuntimeConfig(
+        cwyd_agent_instructions="You are a custom CWYD assistant.",
+        updated_at="2026-05-28T10:00:00+00:00",
+        updated_by="u-admin",
+    )
+    async with _client(app2) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    body = resp.json()
+    assert (
+        body["values"]["cwyd_agent_instructions"]
+        == "You are a custom CWYD assistant."
+    )
+    assert body["sources"]["cwyd_agent_instructions"] == "override"
 
 
 # ---------------------------------------------------------------------------
@@ -1339,6 +1468,7 @@ def test_effective_admin_config_coerces_string_to_enum(
             search_top_k=5,
             log_level="INFO",
             content_safety_enabled=False,
+            cwyd_agent_instructions="You are the assistant.",
         ),
         sources={"orchestrator_name": wire_value},  # type: ignore[dict-item]
     )
@@ -1361,6 +1491,7 @@ def test_effective_admin_config_rejects_unknown_source_value() -> None:
                 search_top_k=5,
                 log_level="INFO",
                 content_safety_enabled=False,
+                cwyd_agent_instructions="You are the assistant.",
             ),
             sources={"orchestrator_name": "fallback"},  # type: ignore[dict-item]
         )
@@ -1381,6 +1512,7 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
             search_top_k=5,
             log_level="INFO",
             content_safety_enabled=False,
+            cwyd_agent_instructions="You are the assistant.",
         ),
         sources={
             "orchestrator_name": ConfigSource.ENV,

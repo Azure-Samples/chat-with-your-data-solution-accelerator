@@ -1,0 +1,47 @@
+# Pillar: Stable Core
+# Phase: 1
+# Keeps Docker build context small. Backend image only needs pyproject.toml + uv.lock + src/.
+# Frontend / functions Dockerfiles share this file because they all build from the v2/ root.
+
+# Local virtual env
+.venv/
+.python-version
+
+# Frontend / Node
+**/node_modules/
+**/dist/
+**/.vite/
+**/.next/
+
+# Test / cache / IDE
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage*
+htmlcov/
+.vscode/
+.idea/
+.scratch/
+
+# azd / Azure artifacts
+.azure/
+build-functions/
+
+# Docs / infra / scripts (not needed in app images)
+docs/
+infra/
+scripts/
+
+# CI helpers (not consumed by app images)
+docker/ci-entrypoint.sh
+docker/docker-compose.*.yml
+docker/Dockerfile.ci-validate
+
+# Git / OS noise
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+*.log
+*.tar.gz

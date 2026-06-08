@@ -64,6 +64,7 @@ class AdminConfig(BaseModel):
     search_top_k: int
     log_level: str
     content_safety_enabled: bool
+    cwyd_agent_instructions: str
 
 
 # Allow-list of writable `RuntimeConfig` fields (the mutable subset --

@@ -115,10 +115,14 @@ export interface DeleteDocumentResponse {
  * Runtime-toggle subset of `AppSettings` returned by
  * `GET /api/admin/config`. Mirrors `backend.models.admin.AdminConfig`.
  *
- * Exactly seven v2-canonical fields. The selection is the closed set
+ * Exactly eight v2-canonical fields. The selection is the closed set
  * the backend allow-list permits PATCHing -- any new field must be
  * added in lockstep across `AdminConfig`, `RuntimeConfig`, and the
  * `WRITABLE_FIELDS` allow-list (enforced server-side with a 422).
+ *
+ * `cwyd_agent_instructions` is the system prompt for the primary
+ * `CWYD_AGENT`; the GET surfaces the built-in default and the PATCH
+ * channel lets an operator persist an override.
  */
 export interface AdminConfig {
   orchestrator_name: string;
@@ -128,6 +132,7 @@ export interface AdminConfig {
   search_top_k: number;
   log_level: string;
   content_safety_enabled: boolean;
+  cwyd_agent_instructions: string;
 }
 
 /**
@@ -147,6 +152,7 @@ export interface RuntimeConfig {
   search_top_k: number | null;
   log_level: string | null;
   content_safety_enabled: boolean | null;
+  cwyd_agent_instructions: string | null;
   updated_at: string;
   updated_by: string;
 }
@@ -172,4 +178,5 @@ export interface AdminConfigPatch {
   search_top_k?: number | null;
   log_level?: string | null;
   content_safety_enabled?: boolean | null;
+  cwyd_agent_instructions?: string | null;
 }

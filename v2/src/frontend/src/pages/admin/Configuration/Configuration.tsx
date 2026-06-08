@@ -51,12 +51,28 @@ import {
 import styles from "./Configuration.module.css";
 
 /**
- * One row in the seven-field form. `key` is the wire-shape field
- * name (must match `AdminConfig` + the backend `WRITABLE_FIELDS`
- * allow-list verbatim).
+ * The subset of `AdminConfig` keys that render as inline knob rows
+ * on the configuration page. Fields that need their own dedicated
+ * editor surface (e.g. the multi-line system prompt on the
+ * PromptEditor route) are intentionally absent so the closed list
+ * never silently drifts when `AdminConfig` grows.
+ */
+type ConfigFieldKey =
+  | "orchestrator_name"
+  | "openai_temperature"
+  | "openai_max_tokens"
+  | "search_use_semantic_search"
+  | "search_top_k"
+  | "log_level"
+  | "content_safety_enabled";
+
+/**
+ * One row in the inline configuration form. `key` is the wire-shape
+ * field name and must match `AdminConfig` + the backend
+ * `WRITABLE_FIELDS` allow-list verbatim.
  */
 interface FieldSpec {
-  key: keyof AdminConfig;
+  key: ConfigFieldKey;
   label: string;
   hint: string;
   kind: "text" | "number" | "boolean";
@@ -118,7 +134,7 @@ const FIELD_SPECS: readonly FieldSpec[] = [
 ] as const;
 
 type FieldValue = string | number | boolean;
-type FormValues = Record<keyof AdminConfig, FieldValue>;
+type FormValues = Record<ConfigFieldKey, FieldValue>;
 
 interface ConfigurationState {
   loadStatus: LoadStatus;
@@ -149,7 +165,7 @@ type ConfigurationAction =
   | { type: typeof ConfigActionType.LoadFailed; error: string }
   | {
       type: typeof ConfigActionType.FieldChanged;
-      key: keyof AdminConfig;
+      key: ConfigFieldKey;
       value: FieldValue;
     }
   | { type: typeof ConfigActionType.Discard }
@@ -404,7 +420,7 @@ export function Configuration(): JSX.Element {
   const dirty = isDirty(state.serverConfig, state.formValues);
 
   const handleTextChange = useCallback(
-    (key: keyof AdminConfig) =>
+    (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
         dispatch({
           type: ConfigActionType.FieldChanged,
@@ -416,7 +432,7 @@ export function Configuration(): JSX.Element {
   );
 
   const handleNumberChange = useCallback(
-    (key: keyof AdminConfig) =>
+    (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
         const parsed = data.value === "" ? Number.NaN : Number(data.value);
         dispatch({
@@ -429,7 +445,7 @@ export function Configuration(): JSX.Element {
   );
 
   const handleSwitchChange = useCallback(
-    (key: keyof AdminConfig) =>
+    (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: SwitchOnChangeData): void => {
         dispatch({
           type: ConfigActionType.FieldChanged,
