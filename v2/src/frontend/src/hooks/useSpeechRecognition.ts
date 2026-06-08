@@ -74,7 +74,10 @@ function buildRecognizer(
     return SpeechRecognizer.FromConfig(speechConfig, autoDetect, audioConfig);
   }
   if (languages.length === 1) {
-    speechConfig.speechRecognitionLanguage = languages[0];
+    const [language] = languages;
+    if (language !== undefined) {
+      speechConfig.speechRecognitionLanguage = language;
+    }
   }
   return new SpeechRecognizer(speechConfig, audioConfig);
 }

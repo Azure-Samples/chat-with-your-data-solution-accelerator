@@ -115,8 +115,8 @@ describe("streamChat", () => {
     );
     const events = await collect(streamChat([]));
     expect(events).toHaveLength(1);
-    expect(events[0].channel).toBe("citation");
-    expect(events[0].metadata).toEqual({ id: "c1", title: "Doc" });
+    expect(events[0]?.channel).toBe("citation");
+    expect(events[0]?.metadata).toEqual({ id: "c1", title: "Doc" });
   });
 
   it("yields error events without throwing", async () => {
