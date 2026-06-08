@@ -26,6 +26,13 @@
  * silently re-invoking the LLM, since the in-flight assistant turn
  * is already partially visible to the user and a fresh attempt would
  * either duplicate output or stitch together two unrelated answers.
+ *
+ * Cancellation: the optional `signal` honours the standard
+ * `AbortController` contract. When the signal fires, the in-flight
+ * `fetch()` is aborted, the underlying body stream is cancelled, any
+ * pending backoff delay rejects early, and the async iterator throws
+ * an `AbortError` so the caller can distinguish user-initiated cancel
+ * from a network failure.
  */
 import { StreamChannel } from "@/models/chat";
 import type { StreamEvent, StreamMessage } from "@/models/chat";
@@ -51,6 +58,12 @@ export interface StreamChatOptions {
    * default). Default 500.
    */
   baseDelayMs?: number;
+  /**
+   * Optional `AbortSignal` for user-initiated cancellation. When it
+   * fires, the in-flight request is aborted and the iterator throws
+   * an `AbortError`.
+   */
+  signal?: AbortSignal;
 }
 
 /** Connection-class failure: safe to retry if nothing has been yielded yet. */
@@ -76,27 +89,36 @@ export async function* streamChat(
 ): AsyncIterable<StreamEvent> {
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   const baseDelayMs = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
+  const signal = options.signal;
+
+  throwIfAborted(signal);
 
   for (let attempt = 0; ; attempt++) {
     let yieldedAny = false;
     try {
-      for await (const ev of streamChatOnce(messages)) {
+      for await (const ev of streamChatOnce(messages, signal)) {
         yieldedAny = true;
         yield ev;
       }
       return;
     } catch (err) {
+      // An abort always wins — never retry, never wrap it as a network
+      // failure, even when the SDK error path bubbled up first.
+      if (signal?.aborted === true || isAbortError(err)) {
+        throw abortError();
+      }
       const retryable = err instanceof RetryableStreamError;
       if (!retryable || yieldedAny || attempt >= maxRetries) {
         throw err;
       }
-      await sleep(baseDelayMs * 2 ** attempt);
+      await sleep(baseDelayMs * 2 ** attempt, signal);
     }
   }
 }
 
 async function* streamChatOnce(
   messages: StreamMessage[],
+  signal: AbortSignal | undefined,
 ): AsyncIterable<StreamEvent> {
   let response: Response;
   try {
@@ -107,8 +129,10 @@ async function* streamChatOnce(
         Accept: "text/event-stream",
       },
       body: JSON.stringify({ messages }),
+      ...(signal ? { signal } : {}),
     });
   } catch (cause) {
+    if (isAbortError(cause)) throw cause;
     throw new RetryableStreamError(
       `streamChat: SSE request failed before reaching the server (${describeCause(cause)})`,
     );
@@ -128,50 +152,119 @@ async function* streamChatOnce(
   const decoder = new TextDecoder();
   let buffer = "";
 
-  for (;;) {
-    let chunk: ReadableStreamReadResult<Uint8Array>;
-    try {
-      chunk = await reader.read();
-    } catch (cause) {
-      throw new RetryableStreamError(
-        `streamChat: SSE stream interrupted (${describeCause(cause)})`,
-      );
-    }
-    const { done, value } = chunk;
-    if (done) {
-      // Flush any trailing bytes through the decoder so multibyte
-      // characters that straddle the final chunk boundary are emitted.
-      buffer += decoder.decode();
-      if (buffer.length > 0) {
-        const trailing = parseFrame(buffer);
-        if (trailing !== null) {
-          yield trailing;
+  try {
+    for (;;) {
+      if (signal?.aborted === true) throw abortError();
+      let chunk: ReadableStreamReadResult<Uint8Array>;
+      try {
+        chunk = await raceWithSignal(reader.read(), signal);
+      } catch (cause) {
+        if (isAbortError(cause)) throw cause;
+        throw new RetryableStreamError(
+          `streamChat: SSE stream interrupted (${describeCause(cause)})`,
+        );
+      }
+      const { done, value } = chunk;
+      if (done) {
+        // Flush any trailing bytes through the decoder so multibyte
+        // characters that straddle the final chunk boundary are emitted.
+        buffer += decoder.decode();
+        if (buffer.length > 0) {
+          const trailing = parseFrame(buffer);
+          if (trailing !== null) {
+            yield trailing;
+          }
         }
+        return;
       }
-      return;
-    }
-    buffer += decoder.decode(value, { stream: true });
+      buffer += decoder.decode(value, { stream: true });
 
-    // SSE frames are separated by a blank line (`\n\n`). Anything left
-    // in `buffer` after the last separator is a partial frame and is
-    // carried over to the next read.
-    let separator = buffer.indexOf("\n\n");
-    while (separator !== -1) {
-      const frame = buffer.slice(0, separator);
-      buffer = buffer.slice(separator + 2);
-      const event = parseFrame(frame);
-      if (event !== null) {
-        yield event;
+      // SSE frames are separated by a blank line (`\n\n`). Anything left
+      // in `buffer` after the last separator is a partial frame and is
+      // carried over to the next read.
+      let separator = buffer.indexOf("\n\n");
+      while (separator !== -1) {
+        const frame = buffer.slice(0, separator);
+        buffer = buffer.slice(separator + 2);
+        const event = parseFrame(frame);
+        if (event !== null) {
+          yield event;
+        }
+        separator = buffer.indexOf("\n\n");
       }
-      separator = buffer.indexOf("\n\n");
+    }
+  } finally {
+    // Best-effort: release the underlying body so the connection can
+    // be torn down on abort or early return.
+    try {
+      await reader.cancel();
+    } catch {
+      // Ignore — cancel can reject if the stream is already closed.
     }
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+function raceWithSignal<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined,
+): Promise<T> {
+  if (signal === undefined) return promise;
+  return new Promise<T>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(abortError());
+      return;
+    }
+    const onAbort = (): void => {
+      reject(abortError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (cause: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(cause instanceof Error ? cause : new Error(String(cause)));
+      },
+    );
   });
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted === true) {
+      reject(abortError());
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(abortError());
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted === true) {
+    throw abortError();
+  }
+}
+
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof DOMException !== "undefined" &&
+    err instanceof DOMException &&
+    err.name === "AbortError"
+  );
+}
+
+function abortError(): DOMException {
+  return new DOMException("streamChat aborted", "AbortError");
 }
 
 function describeCause(cause: unknown): string {

@@ -229,6 +229,92 @@ describe("streamChat", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards the AbortSignal to fetch()", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    const controller = new AbortController();
+    await collect(streamChat([], { signal: controller.signal }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.signal).toBe(controller.signal);
+  });
+
+  it("aborts mid-stream when the AbortSignal fires", async () => {
+    // Enqueue exactly one frame in `start`, then expose no `pull` —
+    // the reader's second `read()` call hangs forever until the signal
+    // races it down via `streamChat`'s signal-aware read wrapper.
+    let cancelled = false;
+    const hangingStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          enc.encode(
+            'event: answer\ndata: {"content":"hi","metadata":{}}\n\n',
+          ),
+        );
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    fetchMock.mockResolvedValueOnce(
+      new Response(hangingStream, {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    );
+
+    const controller = new AbortController();
+    const seen: StreamEvent[] = [];
+    const drained = (async () => {
+      for await (const ev of streamChat([], { signal: controller.signal })) {
+        seen.push(ev);
+        if (seen.length === 1) {
+          controller.abort();
+        }
+      }
+    })();
+
+    await expect(drained).rejects.toThrow(/abort|cancel/i);
+    expect(seen).toEqual([
+      { channel: "answer", content: "hi", metadata: {} },
+    ]);
+    expect(cancelled).toBe(true);
+  });
+
+  it("aborts during backoff delay between retry attempts", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    // The second attempt should never run because the signal fires
+    // before the backoff timer elapses.
+    fetchMock.mockResolvedValue(
+      sseResponse([
+        'event: answer\ndata: {"content":"should-not-arrive","metadata":{}}\n\n',
+      ]),
+    );
+
+    const controller = new AbortController();
+    const drained = collect(
+      streamChat([], {
+        maxRetries: 5,
+        baseDelayMs: 10_000,
+        signal: controller.signal,
+      }),
+    );
+    // Let the first attempt's rejection surface and the backoff begin.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    controller.abort();
+
+    await expect(drained).rejects.toThrow(/abort|cancel/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects synchronously when the signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      collect(streamChat([], { signal: controller.signal })),
+    ).rejects.toThrow(/abort|cancel/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("ignores frames with unknown channels (defensive forward-compat)", async () => {
     fetchMock.mockResolvedValueOnce(
       sseResponse([
