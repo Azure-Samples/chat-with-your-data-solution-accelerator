@@ -97,6 +97,7 @@ describe("FluentThemeBridge — theme flip", () => {
           themeProps.push(theme);
           return <div data-testid="mocked-fluent-provider">{children}</div>;
         },
+        Toaster: () => <div data-testid="mocked-toaster" />,
         teamsLightTheme: { __id: "teamsLightTheme" },
         teamsDarkTheme: { __id: "teamsDarkTheme" },
       };
@@ -141,5 +142,74 @@ describe("FluentThemeBridge — theme flip", () => {
 
     const flippedTheme = themeProps.at(-1) as { __id?: string } | undefined;
     expect(flippedTheme?.__id).toBe("teamsDarkTheme");
+  });
+});
+
+describe("FluentThemeBridge — Toaster mount", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
+    vi.resetModules();
+    vi.unmock("@fluentui/react-components");
+  });
+
+  it("mounts a Fluent v9 Toaster with the exported TOASTER_ID inside the provider", async () => {
+    const toasterProps: Array<{ toasterId?: unknown }> = [];
+
+    vi.doMock("@fluentui/react-components", () => {
+      type ProviderProps = {
+        children?: React.ReactNode;
+        theme?: unknown;
+      };
+      type ToasterProps = {
+        toasterId?: unknown;
+      };
+      return {
+        FluentProvider: ({ children }: ProviderProps) => (
+          <div data-testid="mocked-fluent-provider">{children}</div>
+        ),
+        Toaster: (props: ToasterProps) => {
+          toasterProps.push(props);
+          return <div data-testid="mocked-toaster" />;
+        },
+        teamsLightTheme: { __id: "teamsLightTheme" },
+        teamsDarkTheme: { __id: "teamsDarkTheme" },
+      };
+    });
+
+    const { ThemeProvider } = await import("@/theme/themeContext");
+    const { FluentThemeBridge, TOASTER_ID } = await import(
+      "@/theme/FluentThemeBridge"
+    );
+
+    render(
+      <ThemeProvider>
+        <FluentThemeBridge>
+          <span data-testid="toaster-child">child</span>
+        </FluentThemeBridge>
+      </ThemeProvider>,
+    );
+
+    // Constant has its expected literal value so consumers can import
+    // it without spelunking through Fluent's internals.
+    expect(TOASTER_ID).toBe("cwyd-toaster");
+
+    // Toaster was rendered with the canonical id…
+    const toaster = screen.getByTestId("mocked-toaster");
+    expect(toaster).toBeInTheDocument();
+    const latest = toasterProps.at(-1);
+    expect(latest?.toasterId).toBe(TOASTER_ID);
+
+    // …and it lives inside the provider tree (sibling of children),
+    // not as a detached portal outside it.
+    const provider = screen.getByTestId("mocked-fluent-provider");
+    expect(provider.contains(toaster)).toBe(true);
+    expect(provider.contains(screen.getByTestId("toaster-child"))).toBe(true);
   });
 });

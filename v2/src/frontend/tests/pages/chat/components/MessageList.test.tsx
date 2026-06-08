@@ -7,6 +7,32 @@ import {
 import { MessageList } from "@/pages/chat/components/MessageList";
 import type { ChatMessage } from "@/models/chat";
 
+// Capture every dispatchToast() call across the suite so error-toast
+// wiring can be asserted without standing up the real Fluent Toaster
+// portal in jsdom. All other Fluent exports pass through unchanged.
+const dispatchToastMock = vi.fn();
+vi.mock("@fluentui/react-components", async () => {
+  const actual =
+    await vi.importActual<typeof import("@fluentui/react-components")>(
+      "@fluentui/react-components",
+    );
+  return {
+    ...actual,
+    useToastController: () => ({
+      dispatchToast: dispatchToastMock,
+      dismissToast: vi.fn(),
+      dismissAllToasts: vi.fn(),
+      updateToast: vi.fn(),
+      pauseToast: vi.fn(),
+      playToast: vi.fn(),
+    }),
+  };
+});
+
+beforeEach(() => {
+  dispatchToastMock.mockClear();
+});
+
 const m1: ChatMessage = { id: "1", role: "user", content: "hello" };
 const m2: ChatMessage = { id: "2", role: "assistant", content: "hi back" };
 const mWithReasoning: ChatMessage = {
@@ -212,7 +238,7 @@ describe("MessageList", () => {
     expect(screen.queryByTestId("message-5-reasoning")).toBeNull();
   });
 
-  it("renders an inline error notice when message.error is set", () => {
+  it("dispatches a Fluent error toast when message.error is set, and renders no inline alert", () => {
     render(
       <ChatProvider>
         <Seed messages={[]} />
@@ -225,12 +251,24 @@ describe("MessageList", () => {
       dispatch({ type: "add", message: mWithError });
     });
 
-    const notice = screen.getByTestId("message-4-error");
-    expect(notice.getAttribute("role")).toBe("alert");
-    expect(notice.textContent).toContain("stream blew up");
+    expect(dispatchToastMock).toHaveBeenCalledTimes(1);
+    const [toastNode, options] = dispatchToastMock.mock.calls[0] as [
+      React.ReactElement,
+      { intent?: string },
+    ];
+    expect(options.intent).toBe("error");
+    // The toast content carries the raw error message somewhere in
+    // its rendered subtree; we don't pin the exact element shape so
+    // future copy / icon tweaks don't break the wiring test.
+    const probe = render(toastNode);
+    expect(probe.getByText("stream blew up")).toBeInTheDocument();
+    probe.unmount();
+
+    // The inline <p role="alert"> is gone — surfaced via toast only.
+    expect(screen.queryByTestId("message-4-error")).toBeNull();
   });
 
-  it("does not render an error notice when message.error is unset", () => {
+  it("does not dispatch a toast when message.error is unset", () => {
     render(
       <ChatProvider>
         <Seed messages={[]} />
@@ -243,7 +281,37 @@ describe("MessageList", () => {
       dispatch({ type: "add", message: m2 });
     });
 
+    expect(dispatchToastMock).not.toHaveBeenCalled();
     expect(screen.queryByTestId("message-2-error")).toBeNull();
+  });
+
+  it("deduplicates toast dispatch for the same (id, error) across re-renders", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: unknown) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mWithError });
+    });
+    expect(dispatchToastMock).toHaveBeenCalledTimes(1);
+
+    // Re-dispatching the same set_error payload (e.g. a second
+    // identical SSE error frame) must not re-toast.
+    act(() => {
+      dispatch({ type: "set_error", id: "4", error: "stream blew up" });
+    });
+    expect(dispatchToastMock).toHaveBeenCalledTimes(1);
+
+    // A different error string for the same id IS a new failure and
+    // must surface a fresh toast.
+    act(() => {
+      dispatch({ type: "set_error", id: "4", error: "second failure" });
+    });
+    expect(dispatchToastMock).toHaveBeenCalledTimes(2);
   });
 });
 
