@@ -31,6 +31,7 @@ from backend.dependencies import (
     CredentialDep,
     DatabaseClientDep,
     LLMProviderDep,
+    PostPromptValidatorDep,
     SearchProviderDep,
     SettingsDep,
 )
@@ -58,6 +59,7 @@ async def conversation(
     credential: CredentialDep,
     db: DatabaseClientDep,
     content_safety: ContentSafetyGuardDep,
+    post_prompt: PostPromptValidatorDep,
     accept: str | None = Header(default=None),
 ) -> ConversationResponse | StreamingResponse:
     """Run the configured orchestrator and stream / buffer the result."""
@@ -98,6 +100,7 @@ async def conversation(
         body.messages,
         orchestrator=orchestrator,
         content_safety=content_safety,
+        post_prompt=post_prompt,
     )
 
     if wants_sse(accept):

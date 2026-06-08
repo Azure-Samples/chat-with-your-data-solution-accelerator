@@ -13,6 +13,7 @@ import {
   Configuration,
 } from "@/pages/admin/Configuration/Configuration";
 import {
+  AdminApiError,
   getAdminConfig,
   patchAdminConfig,
 } from "@/api/admin";
@@ -21,10 +22,14 @@ import type {
   RuntimeConfig,
 } from "@/models/admin";
 
-vi.mock("../../../../src/api/admin", () => ({
-  getAdminConfig: vi.fn(),
-  patchAdminConfig: vi.fn(),
-}));
+vi.mock("../../../../src/api/admin", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../../src/api/admin")>();
+  return {
+    ...actual,
+    getAdminConfig: vi.fn(),
+    patchAdminConfig: vi.fn(),
+  };
+});
 
 const getMock = vi.mocked(getAdminConfig);
 const patchMock = vi.mocked(patchAdminConfig);
@@ -111,6 +116,9 @@ describe("Configuration -- initial load", () => {
       "search_top_k",
       "log_level",
       "content_safety_enabled",
+      "post_answering_enabled",
+      "post_answering_prompt",
+      "post_answering_filter_message",
     ]) {
       expect(screen.getByTestId(`config-field-${key}`)).toBeInTheDocument();
       expect(screen.getByTestId(`config-input-${key}`)).toBeInTheDocument();
@@ -430,5 +438,204 @@ describe("Configuration -- save flow", () => {
       ).toBe("agent_framework");
     });
     expect(getMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("Configuration -- post-answering trio", () => {
+  it("renders the post-answering prompt as a <textarea> and the other two as Input + Switch", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const promptInput = screen.getByTestId(
+      "config-input-post_answering_prompt",
+    );
+    expect(promptInput.tagName).toBe("TEXTAREA");
+    const filterInput = screen.getByTestId(
+      "config-input-post_answering_filter_message",
+    );
+    expect(filterInput.tagName).toBe("INPUT");
+    const enabledSwitch = screen.getByTestId(
+      "config-input-post_answering_enabled",
+    ) as HTMLInputElement;
+    expect(enabledSwitch.type).toBe("checkbox");
+    expect(enabledSwitch.checked).toBe(false);
+  });
+
+  it("accepts empty strings for the two post-answering text fields without surfacing a validation error", async () => {
+    getMock.mockResolvedValueOnce({
+      ...CONFIG_FIXTURE,
+      post_answering_prompt: "Validate: {question} / {answer} / {sources}",
+      post_answering_filter_message: "Sorry, that was not grounded.",
+    });
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_prompt"),
+      { target: { value: "" } },
+    );
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_filter_message"),
+      { target: { value: "" } },
+    );
+    expect(
+      screen.queryByTestId("config-field-error-post_answering_prompt"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(
+        "config-field-error-post_answering_filter_message",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("PATCHes the three post-answering fields when edited together", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_prompt"),
+      {
+        target: {
+          value: "Validate {question} given {answer} and {sources}.",
+        },
+      },
+    );
+    fireEvent.click(screen.getByTestId("config-input-post_answering_enabled"));
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_filter_message"),
+      { target: { value: "Sorry, that was not grounded." } },
+    );
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(patchMock).toHaveBeenCalledTimes(1);
+    });
+    expect(patchMock).toHaveBeenCalledWith({
+      post_answering_prompt:
+        "Validate {question} given {answer} and {sources}.",
+      post_answering_enabled: true,
+      post_answering_filter_message: "Sorry, that was not grounded.",
+    });
+  });
+
+  it("surfaces a 422 RAI rejection inline on the post_answering_prompt row and suppresses the generic banner", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockRejectedValueOnce(
+      new AdminApiError("patchAdminConfig", 422, {
+        detail: {
+          msg: "RAI safety check rejected the submitted prompt",
+          field: "post_answering_prompt",
+          reason: "rai_blocked",
+        },
+      }),
+    );
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_prompt"),
+      { target: { value: "unsafe prompt body" } },
+    );
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    const rejection = await screen.findByTestId(
+      "config-field-rai-post_answering_prompt",
+    );
+    expect(rejection).toHaveTextContent("rai_blocked");
+    expect(
+      screen.queryByTestId("config-save-error"),
+    ).not.toBeInTheDocument();
+    // The dirty draft is retained so the operator can revise.
+    expect(
+      (
+        screen.getByTestId(
+          "config-input-post_answering_prompt",
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe("unsafe prompt body");
+  });
+
+  it("falls back to the generic save-error banner when a 422 targets a non-RAI-guarded field", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockRejectedValueOnce(
+      new AdminApiError("patchAdminConfig", 422, {
+        detail: {
+          msg: "value out of range",
+          field: "openai_temperature",
+          reason: "out_of_range",
+        },
+      }),
+    );
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-openai_temperature"), {
+      target: { value: "1.5" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-save-error")).toHaveTextContent(
+        /422/,
+      );
+    });
+    expect(
+      screen.queryByTestId("config-field-rai-post_answering_prompt"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears the inline RAI rejection when the offending field is edited again", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockRejectedValueOnce(
+      new AdminApiError("patchAdminConfig", 422, {
+        detail: {
+          msg: "RAI safety check rejected the submitted prompt",
+          field: "post_answering_prompt",
+          reason: "rai_blocked",
+        },
+      }),
+    );
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_prompt"),
+      { target: { value: "unsafe" } },
+    );
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await screen.findByTestId("config-field-rai-post_answering_prompt");
+    fireEvent.change(
+      screen.getByTestId("config-input-post_answering_prompt"),
+      { target: { value: "safer version" } },
+    );
+    expect(
+      screen.queryByTestId("config-field-rai-post_answering_prompt"),
+    ).not.toBeInTheDocument();
   });
 });

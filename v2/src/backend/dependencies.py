@@ -37,7 +37,9 @@ from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings, Environment, get_settings
 from backend.core.tools.content_safety import ContentSafetyGuard
+from backend.core.tools.post_prompt import PostPromptValidator
 from backend.core.types import RuntimeConfig
+from backend.services.conversation import build_post_prompt_validator
 
 logger = logging.getLogger(__name__)
 
@@ -249,6 +251,31 @@ def get_runtime_overrides(request: Request) -> RuntimeConfig | None:
 
 RuntimeOverridesDep = Annotated[
     RuntimeConfig | None, Depends(get_runtime_overrides)
+]
+
+
+def get_post_prompt_validator(
+    llm: LLMProviderDep,
+    overrides: RuntimeOverridesDep,
+) -> PostPromptValidator | None:
+    """Return a per-request ``PostPromptValidator``, or ``None``.
+
+    Delegates the override cascade to
+    :func:`backend.services.conversation.build_post_prompt_validator`:
+    runtime overrides must opt in
+    (``post_answering_enabled is True``) AND supply a non-empty
+    ``post_answering_prompt`` template; otherwise the dep returns
+    ``None`` and the chat pipeline streams without buffering. The
+    post-answering knobs live only in ``RuntimeConfig`` (no
+    ``AppSettings`` env baseline), so a missing
+    ``app.state.runtime_overrides`` collapses to ``None`` and the
+    feature stays off.
+    """
+    return build_post_prompt_validator(llm, overrides)
+
+
+PostPromptValidatorDep = Annotated[
+    PostPromptValidator | None, Depends(get_post_prompt_validator)
 ]
 
 

@@ -16,6 +16,7 @@ from backend.dependencies import (
     get_credential,
     get_database_client,
     get_llm_provider,
+    get_post_prompt_validator,
     get_search_provider,
 )
 from backend.core.agents.definitions import CWYD_AGENT
@@ -654,3 +655,62 @@ async def test_router_forwards_content_safety_guard_when_dep_returns_guard(
 
     assert resp.status_code == 200
     assert calls[0]["kwargs"]["content_safety"] is sentinel_guard
+
+
+# ---------------------------------------------------------------------------
+# post-prompt validator forwarded into pipelines.chat.run_chat
+# ---------------------------------------------------------------------------
+
+
+async def test_router_forwards_none_post_prompt_when_dep_returns_none(
+    app_with_fakes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Default DI path: ASGITransport skips lifespan so no
+    ``app.state.runtime_overrides`` is set ->
+    ``get_post_prompt_validator`` returns ``None`` -> router must
+    forward ``post_prompt=None`` to ``run_chat``.
+    """
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert len(calls) == 1
+    assert "post_prompt" in calls[0]["kwargs"], (
+        "router must pass `post_prompt` kwarg explicitly to run_chat"
+    )
+    assert calls[0]["kwargs"]["post_prompt"] is None
+
+
+async def test_router_forwards_post_prompt_validator_when_dep_returns_validator(
+    app_with_fakes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When ``get_post_prompt_validator`` returns a validator instance
+    (DI-overridden here with a sentinel object), the router must
+    forward that exact instance into ``run_chat(post_prompt=...)``.
+    """
+    sentinel_validator = object()
+    app_with_fakes.dependency_overrides[get_post_prompt_validator] = (
+        lambda: sentinel_validator
+    )
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert calls[0]["kwargs"]["post_prompt"] is sentinel_validator
