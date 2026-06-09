@@ -14,7 +14,12 @@ from azure.core.exceptions import HttpResponseError
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
-from backend.core.settings import AppSettings, FoundrySettings, SearchSettings
+from backend.core.settings import (
+    AppSettings,
+    FoundrySettings,
+    OpenAISettings,
+    SearchSettings,
+)
 from backend.core.types import ChatMessage
 
 
@@ -32,6 +37,9 @@ def _settings(endpoint: str = "https://example.services.ai.azure.com/api/project
     settings.search.knowledge_base_name = "cwyd-kb"
     settings.search.knowledge_source_name = "cwyd-index-ks"
     settings.search.knowledge_base_api_version = "2025-11-01-preview"
+    settings.openai = MagicMock(spec=OpenAISettings)
+    settings.openai.temperature = 0.0
+    settings.openai.max_tokens = 1000
     return settings
 
 
@@ -94,8 +102,22 @@ class _FakeFoundryAgent:
         self.run_calls: list[Any] = []
         self.close = AsyncMock(return_value=None)
 
-    def run(self, messages: Any, *, stream: bool = False) -> Any:
-        self.run_calls.append({"messages": messages, "stream": stream})
+    def run(
+        self,
+        messages: Any,
+        *,
+        stream: bool = False,
+        tools: Any = None,
+        options: Any = None,
+    ) -> Any:
+        self.run_calls.append(
+            {
+                "messages": messages,
+                "stream": stream,
+                "tools": tools,
+                "options": options,
+            }
+        )
         if self._run_error is not None:
             raise self._run_error
         return _FakeAsyncIter(self._updates)
@@ -128,6 +150,18 @@ def _make_factory(
     return factory, created
 
 
+def _async_credential(*, token: str = "fake-token") -> Any:
+    """An AsyncTokenCredential whose get_token returns a fake AccessToken.
+
+    run() awaits credential.get_token(SEARCH_DATA_PLANE_SCOPE) to mint the
+    KB bearer, so the default credential must be awaitable and yield an
+    object exposing `.token`.
+    """
+    cred = AsyncMock()
+    cred.get_token.return_value = SimpleNamespace(token=token)
+    return cred
+
+
 def _make_orchestrator(
     *,
     agent_name: str = "cwyd",
@@ -139,7 +173,7 @@ def _make_orchestrator(
         settings=settings if settings is not None else _settings(),
         llm=MagicMock(spec=BaseLLMProvider),
         agent_name=agent_name,
-        credential=credential if credential is not None else MagicMock(),
+        credential=credential if credential is not None else _async_credential(),
         agent_factory=factory,
     )
 
@@ -215,7 +249,7 @@ def test_constructor_swallows_uniform_extras() -> None:
 
 @pytest.mark.asyncio
 async def test_run_constructs_agent_with_endpoint_credential_and_name() -> None:
-    cred = MagicMock()
+    cred = _async_credential()
     factory, created = _make_factory(
         updates=[_update(_text_block("hello"))]
     )
@@ -499,3 +533,119 @@ def test_build_kb_tool_header_provider_injects_bearer() -> None:
     assert headers["Authorization"] == "Bearer tok123"
     # Existing headers are preserved (merge, not replace).
     assert headers["Content-Type"] == "application/json"
+
+
+# ---------------------------------------------------------------------------
+# run() KB tool wiring -- token acquisition + tool forwarding
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_acquires_search_data_plane_token() -> None:
+    cred = _async_credential()
+    factory, _ = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(credential=cred, factory=factory)
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    cred.get_token.assert_awaited_once_with("https://search.azure.com/.default")
+
+
+@pytest.mark.asyncio
+async def test_run_forwards_kb_tool_to_agent() -> None:
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        settings=_settings_with_search(
+            endpoint="https://srch.example",
+            kb_name="cwyd-kb",
+            api_version="2025-11-01-preview",
+        ),
+        factory=factory,
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    tools = created[0].run_calls[0]["tools"]
+    assert tools is not None
+    assert len(tools) == 1
+    assert tools[0].url == (
+        "https://srch.example/knowledgebases/cwyd-kb/mcp"
+        "?api-version=2025-11-01-preview"
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_skips_token_and_tool_when_kb_unconfigured() -> None:
+    cred = _async_credential()
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        settings=_settings_with_search(endpoint=""),  # KB not configured
+        credential=cred,
+        factory=factory,
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert created[0].run_calls[0]["tools"] is None
+    cred.get_token.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_raises_when_token_acquisition_fails() -> None:
+    cred = AsyncMock()
+    cred.get_token = AsyncMock(side_effect=HttpResponseError("no token"))
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(credential=cred, factory=factory)
+
+    with pytest.raises(HttpResponseError):
+        _ = [
+            ev
+            async for ev in orch.run([ChatMessage(role="user", content="hi")])
+        ]
+    # The token is acquired before the agent transport, so a failure must
+    # surface without constructing (and leaking) an agent.
+    assert created == []
+
+
+# ---------------------------------------------------------------------------
+# run() sampling knobs -- temperature / max_tokens via ChatOptions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_threads_temperature_and_max_tokens_via_options() -> None:
+    settings = _settings()
+    settings.openai.temperature = 0.5
+    settings.openai.max_tokens = 256
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(settings=settings, factory=factory)
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    options = created[0].run_calls[0]["options"]
+    assert options is not None
+    assert options["temperature"] == 0.5
+    assert options["max_tokens"] == 256
+
+
+@pytest.mark.asyncio
+async def test_run_passes_default_sampling_knobs_via_options() -> None:
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(factory=factory)  # default _settings()
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    options = created[0].run_calls[0]["options"]
+    assert options is not None
+    assert options["temperature"] == 0.0
+    assert options["max_tokens"] == 1000

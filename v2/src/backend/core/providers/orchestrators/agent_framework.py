@@ -36,7 +36,12 @@ import logging
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
-from agent_framework import AgentResponseUpdate, MCPStreamableHTTPTool, Message
+from agent_framework import (
+    AgentResponseUpdate,
+    ChatOptions,
+    MCPStreamableHTTPTool,
+    Message,
+)
 # Debt (dev_plan §0.1 B-IMPL-FOUNDRY-STUBS-DEBT): the OSS
 # `agent_framework_foundry` PyPI distribution ships no `py.typed`
 # marker, so pyright cannot find stubs even though the package is
@@ -60,6 +65,11 @@ logger = logging.getLogger(__name__)
 # MCP endpoint. Pinned via `allowed_tools` so the agent may call only KB
 # retrieval, never arbitrary server-side tools.
 KB_RETRIEVE_TOOL_NAME = "knowledge_base_retrieve"
+
+# AAD scope for Azure AI Search data-plane access. The KB's managed MCP
+# endpoint is hosted by the search service, so retrieval requests carry a
+# bearer minted for this scope.
+SEARCH_DATA_PLANE_SCOPE = "https://search.azure.com/.default"
 
 
 @registry.register("agent_framework")
@@ -99,6 +109,14 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         self._search_endpoint = search.endpoint
         self._kb_name = search.knowledge_base_name
         self._kb_api_version = search.knowledge_base_api_version
+        # Sampling knobs are infra/admin-configured (not per-request), so
+        # capture them once here -- same rationale as the KB scalars
+        # above. The Foundry agent owns its model deployment, so these are
+        # the only inference knobs the agent path honors; they are
+        # threaded into every `agent.run(...)` via `ChatOptions`.
+        openai = settings.openai
+        self._temperature = openai.temperature
+        self._max_tokens = openai.max_tokens
         # Test seam: callers (tests) may inject a callable that returns
         # a fake FoundryAgent. Defaults to the real constructor.
         self._agent_factory: Any = agent_factory or _default_agent_factory
@@ -114,6 +132,28 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         settings_override: dict[str, Any] | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         oss_messages = self._to_oss_messages(messages)
+
+        # Build the KB retrieval tool only when a Knowledge Base is
+        # configured. Acquire the Search data-plane bearer first (before
+        # allocating the agent transport) so an auth failure surfaces
+        # cleanly without leaking one; the token feeds the tool's
+        # synchronous header hook, which cannot await the credential.
+        kb_tool: MCPStreamableHTTPTool | None = None
+        if self._search_endpoint and self._kb_name:
+            try:
+                token = await self._credential.get_token(SEARCH_DATA_PLANE_SCOPE)
+            except AzureError:
+                logger.exception(
+                    "Search data-plane token acquisition failed",
+                    extra={
+                        "operation": "kb_token_acquire",
+                        "provider": "agent_framework",
+                        "agent_name": self._agent_name,
+                    },
+                )
+                raise
+            kb_tool = self._build_kb_tool(bearer_token=token.token)
+
         try:
             agent = self._agent_factory(
                 project_endpoint=self._project_endpoint,
@@ -136,7 +176,15 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             saw_any_content = False
 
             try:
-                stream = agent.run(oss_messages, stream=True)
+                stream = agent.run(
+                    oss_messages,
+                    stream=True,
+                    tools=[kb_tool] if kb_tool is not None else None,
+                    options=ChatOptions(
+                        temperature=self._temperature,
+                        max_tokens=self._max_tokens,
+                    ),
+                )
                 async for update in stream:
                     for event in self._update_to_events(update, answer_parts):
                         saw_any_content = True
