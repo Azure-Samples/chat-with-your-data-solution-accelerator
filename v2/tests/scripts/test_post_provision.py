@@ -141,6 +141,42 @@ def test_ensure_search_index_propagates_unexpected_errors(monkeypatch):
     assert fake.closed is True
 
 
+def test_build_knowledge_base_seed_shape():
+    knowledge_source, knowledge_base = post_provision._build_knowledge_base_seed(
+        knowledge_source_name="cwyd-index-ks",
+        knowledge_base_name="cwyd-kb",
+        index_name="cwyd-index",
+        semantic_configuration_name="default",
+        openai_resource_uri="https://ai.example/",
+        reasoning_deployment="reasoning",
+        reasoning_model_name="gpt-5",
+    )
+
+    # Knowledge source: a searchIndex kind wrapping the existing chat index,
+    # pinning its semantic configuration for agentic retrieval.
+    assert knowledge_source["name"] == "cwyd-index-ks"
+    assert knowledge_source["kind"] == "searchIndex"
+    assert knowledge_source["searchIndexParameters"] == {
+        "searchIndexName": "cwyd-index",
+        "semanticConfigurationName": "default",
+    }
+
+    # Knowledge base: references the knowledge source by name and lists the
+    # Azure OpenAI reasoning model used for query planning.
+    assert knowledge_base["name"] == "cwyd-kb"
+    assert knowledge_base["knowledgeSources"] == [{"name": "cwyd-index-ks"}]
+    models = knowledge_base["models"]
+    assert isinstance(models, list)
+    assert len(models) == 1
+    model = models[0]
+    assert model["kind"] == "azureOpenAI"
+    assert model["azureOpenAIParameters"] == {
+        "resourceUri": "https://ai.example/",
+        "deploymentId": "reasoning",
+        "modelName": "gpt-5",
+    }
+
+
 def test_main_dry_run_cosmosdb_skips_postgres_and_search_calls(
     monkeypatch, capsys
 ):

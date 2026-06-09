@@ -1,6 +1,7 @@
 """Pillar: Stable Core
 Phase:  1 (Infrastructure + Project Skeleton, task #19)
 Phase:  3 (Conversation + RAG, task #26 — search-index bootstrap)
+Phase:  8 (agent_framework default + Foundry IQ Knowledge Base — KB seed)
 
 Post-provision hook executed by `azd up` / `azd provision` after every
 Bicep deployment. Idempotent and safe to re-run.
@@ -71,6 +72,16 @@ DEFAULT_EMBEDDING_DIMENSIONS = 1536  # text-embedding-3-small / -ada-002
 VECTOR_PROFILE_NAME = "cwyd-vector-profile"
 HNSW_ALGORITHM_NAME = "cwyd-hnsw"
 SEMANTIC_CONFIG_NAME = "default"
+
+# Foundry IQ Knowledge Base seed. A `searchIndex` knowledge source wraps
+# the existing chat index, and the knowledge base references that source
+# plus the Azure OpenAI reasoning model used for query planning. Created
+# once via the Search REST `knowledgesources` / `knowledgebases` endpoints
+# (api-version from SearchSettings) — never per-document. The two `kind`
+# discriminators below are the only values this script emits, so they are
+# pinned as single-value constants.
+KNOWLEDGE_SOURCE_KIND_SEARCH_INDEX = "searchIndex"
+KNOWLEDGE_BASE_MODEL_KIND_AZURE_OPENAI = "azureOpenAI"
 
 # Outputs surfaced in the summary block. Kept in display order; missing
 # entries are skipped silently (e.g. cosmos vars in postgresql mode).
@@ -289,6 +300,57 @@ def _ensure_search_index(*, dry_run: bool, client_factory=None) -> str:
         close = getattr(client, "close", None)
         if callable(close):
             close()
+
+
+def _build_knowledge_base_seed(
+    *,
+    knowledge_source_name: str,
+    knowledge_base_name: str,
+    index_name: str,
+    semantic_configuration_name: str,
+    openai_resource_uri: str,
+    reasoning_deployment: str,
+    reasoning_model_name: str,
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Build the ``(knowledge_source, knowledge_base)`` REST request bodies.
+
+    Returns the two PUT bodies the Foundry IQ KB seed needs, in order:
+
+    1. A ``searchIndex`` knowledge source that wraps ``index_name`` (the
+       existing chat index) and pins ``semantic_configuration_name`` so
+       agentic retrieval uses the index's semantic configuration.
+    2. A knowledge base that references the knowledge source by name and
+       lists the Azure OpenAI reasoning model used for query planning.
+
+    The shapes match the Azure AI Search ``knowledgesources`` /
+    ``knowledgebases`` REST contract; the caller pins the api-version from
+    ``SearchSettings.knowledge_base_api_version`` and PUTs each body. These
+    are externally-owned REST payloads, so plain dicts rather than typed
+    models.
+    """
+    knowledge_source_body: dict[str, object] = {
+        "name": knowledge_source_name,
+        "kind": KNOWLEDGE_SOURCE_KIND_SEARCH_INDEX,
+        "searchIndexParameters": {
+            "searchIndexName": index_name,
+            "semanticConfigurationName": semantic_configuration_name,
+        },
+    }
+    knowledge_base_body: dict[str, object] = {
+        "name": knowledge_base_name,
+        "knowledgeSources": [{"name": knowledge_source_name}],
+        "models": [
+            {
+                "kind": KNOWLEDGE_BASE_MODEL_KIND_AZURE_OPENAI,
+                "azureOpenAIParameters": {
+                    "resourceUri": openai_resource_uri,
+                    "deploymentId": reasoning_deployment,
+                    "modelName": reasoning_model_name,
+                },
+            }
+        ],
+    }
+    return knowledge_source_body, knowledge_base_body
 
 
 def main(argv: Sequence[str] | None = None) -> int:
