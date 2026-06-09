@@ -77,6 +77,7 @@ class BaseSearch(ABC):
         query: str,
         *,
         top_k: int | None = None,
+        use_semantic_search: bool | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
     ) -> Sequence[SearchResult]:
@@ -86,6 +87,10 @@ class BaseSearch(ABC):
           searches (used for hybrid scoring + semantic re-ranking).
         - `top_k`: max hits to return. None = provider default
           (`settings.search.top_k`).
+        - `use_semantic_search`: per-call override for semantic
+          re-ranking. None = provider default
+          (`settings.search.use_semantic_search`). Providers without a
+          semantic mode (pgvector) accept the flag and ignore it.
         - `vector`: optional dense embedding for hybrid / pure-vector
           retrieval. Providers that don't support vectors ignore it.
         - `filter_expression`: provider-specific filter (OData for

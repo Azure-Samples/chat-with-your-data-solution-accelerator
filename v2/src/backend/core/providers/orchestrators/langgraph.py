@@ -76,13 +76,26 @@ class LangGraphOrchestrator(OrchestratorBase):
         settings: AppSettings,
         llm: BaseLLMProvider,
         search: BaseSearch | None = None,
+        system_prompt: str | None = None,
+        search_top_k: int | None = None,
+        search_use_semantic_search: bool | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
-        # orchestrator (e.g. `agents_client`, `agent_id` for `agent_framework`).
+        # orchestrator (e.g. `credential`, `agent_name` for `agent_framework`).
         # Avoids name-based dispatch in the caller (Hard Rule #4).
+        # `system_prompt` carries the effective `cwyd_agent_instructions`
+        # (admin-saved override or the `CWYD_AGENT.instructions` default);
+        # `run()` injects it as the leading system message.
+        # `search_top_k` / `search_use_semantic_search` carry the effective
+        # per-request retrieval knobs (admin-saved overrides or the
+        # `settings.search` defaults); `run()` forwards them to
+        # `BaseSearch.search`, where `None` means "use the provider default".
         super().__init__(settings, llm)
         self._search = search
+        self._system_prompt = system_prompt
+        self._search_top_k = search_top_k
+        self._search_use_semantic_search = search_use_semantic_search
         self._graph = self._build_graph()
 
     # ------------------------------------------------------------------
@@ -124,23 +137,40 @@ class LangGraphOrchestrator(OrchestratorBase):
         *,
         settings_override: dict[str, Any] | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
-        # Optional retrieval: when a search provider is wired, prepend a
-        # system message containing the [docN] block before invoking the
-        # graph. Citation events are emitted only for markers actually
-        # referenced in the final answer.
-        graph_messages: list[ChatMessage] = list(messages)
+        # Leading system messages, assembled in priority order:
+        #   1. the configured system prompt (admin-editable
+        #      `cwyd_agent_instructions`, threaded in at construction;
+        #      defaults to `CWYD_AGENT.instructions` when no override is
+        #      saved), then
+        #   2. the optional `[docN]` sources block, emitted only when a
+        #      search provider is wired and returns hits.
+        # Both precede the inbound conversation so the model sees its
+        # instructions and grounding before the user turn. Citation
+        # events are emitted only for markers actually referenced in the
+        # final answer.
+        system_messages: list[ChatMessage] = []
+        if self._system_prompt:
+            system_messages.append(
+                ChatMessage(role=ChatRole.SYSTEM, content=self._system_prompt)
+            )
+
         citations = []
         if self._search is not None:
             query = self._latest_user_text(messages)
             if query:
-                sources = await self._search.search(query)
+                sources = await self._search.search(
+                    query,
+                    top_k=self._search_top_k,
+                    use_semantic_search=self._search_use_semantic_search,
+                )
                 if sources:
                     citations = build_citations(sources)
                     block = format_sources_block(sources)
-                    graph_messages = [
-                        ChatMessage(role=ChatRole.SYSTEM, content=f"Sources:\n{block}"),
-                        *messages,
-                    ]
+                    system_messages.append(
+                        ChatMessage(role=ChatRole.SYSTEM, content=f"Sources:\n{block}")
+                    )
+
+        graph_messages: list[ChatMessage] = [*system_messages, *messages]
 
         # CU-004b: stream events through the LLM-layer factory
         # (CU-004a). `complete()` auto-routes to `chat()` / `reason()`

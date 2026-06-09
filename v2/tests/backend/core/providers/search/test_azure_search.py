@@ -213,6 +213,48 @@ async def test_search_skips_semantic_when_setting_false(
 
 
 @pytest.mark.asyncio
+async def test_search_semantic_override_true_wins_over_settings_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    settings.search.use_semantic_search = False
+    client = _make_client()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+    await handler.search("ping", use_semantic_search=True)
+    kwargs = client.search.await_args.kwargs
+    assert kwargs.get("query_type") is not None
+    assert kwargs.get("semantic_configuration_name") == "default"
+
+
+@pytest.mark.asyncio
+async def test_search_semantic_override_false_wins_over_settings_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    settings.search.use_semantic_search = True
+    client = _make_client()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+    await handler.search("ping", use_semantic_search=False)
+    kwargs = client.search.await_args.kwargs
+    assert "query_type" not in kwargs
+    assert "semantic_configuration_name" not in kwargs
+
+
+@pytest.mark.asyncio
+async def test_search_semantic_none_falls_back_to_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    settings.search.use_semantic_search = True
+    client = _make_client()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+    await handler.search("ping", use_semantic_search=None)
+    kwargs = client.search.await_args.kwargs
+    assert kwargs.get("query_type") is not None
+    assert kwargs.get("semantic_configuration_name") == "default"
+
+
+@pytest.mark.asyncio
 async def test_search_maps_documents_to_search_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

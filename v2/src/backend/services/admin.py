@@ -6,15 +6,25 @@ Phase: 5 (admin surface helpers)
 
 import logging
 from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import urlparse
 
 from azure.core.exceptions import AzureError
 
+from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
+from backend.core.settings import AppSettings
 from backend.core.tools.content_safety import rai_check
+from backend.core.types import RuntimeConfig
+from backend.models.admin import AdminConfig
 
-__all__ = ["host_only", "utcnow_iso", "validate_prompt_with_rai"]
+__all__ = [
+    "host_only",
+    "resolve_effective_config",
+    "utcnow_iso",
+    "validate_prompt_with_rai",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +58,54 @@ def utcnow_iso() -> str:
     so persisted ``RuntimeConfig`` rows are comparable across providers.
     """
     return datetime.now(UTC).isoformat()
+
+
+def resolve_effective_config(
+    settings: AppSettings,
+    overrides: RuntimeConfig | None,
+) -> AdminConfig:
+    """Resolve the effective admin config: env / code defaults overlaid
+    with any persisted ``RuntimeConfig`` overrides.
+
+    For each admin-mutable field the effective value is the override
+    when the operator has set one (a non-``None`` value on
+    ``overrides``) and the ``AppSettings`` env default -- or the
+    built-in code constant for the prompt fields -- otherwise. A
+    ``None`` on ``overrides`` means 'not overridden, fall through to
+    the default': ``RuntimeConfig`` stores the mutable subset as
+    ``T | None = None`` precisely so a boolean ``False`` override is
+    distinguishable from 'unset', matching the RFC 7396 merge
+    semantics of ``PATCH /api/admin/config``.
+
+    Returns an ``AdminConfig`` -- the fully-resolved, non-optional
+    view -- so request-time callers read concrete values
+    (``effective.orchestrator_name``) without re-deriving the
+    env-vs-override precedence. The audit fields (``updated_at`` /
+    ``updated_by``) live on ``RuntimeConfig`` and are intentionally
+    not part of the effective value surface.
+    """
+    values: dict[str, Any] = {
+        "orchestrator_name": settings.orchestrator.name,
+        "openai_temperature": settings.openai.temperature,
+        "openai_max_tokens": settings.openai.max_tokens,
+        "search_use_semantic_search": settings.search.use_semantic_search,
+        "search_top_k": settings.search.top_k,
+        "log_level": settings.observability.log_level,
+        "content_safety_enabled": settings.content_safety.enabled,
+        "cwyd_agent_instructions": CWYD_AGENT.instructions,
+        "post_answering_prompt": "",
+        "post_answering_enabled": False,
+        "post_answering_filter_message": "",
+    }
+    if overrides is not None:
+        for name in values:
+            override_value = getattr(overrides, name)
+            # `None` means 'not overridden, fall through to the default'
+            # (RuntimeConfig stores the mutable subset as `T | None`);
+            # only non-None values overlay the env / code default.
+            if override_value is not None:
+                values[name] = override_value
+    return AdminConfig(**values)
 
 
 async def validate_prompt_with_rai(

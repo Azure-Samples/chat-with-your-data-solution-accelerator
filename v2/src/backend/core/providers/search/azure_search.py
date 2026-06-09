@@ -132,6 +132,7 @@ class AzureSearch(BaseSearch):
         query: str,
         *,
         top_k: int | None = None,
+        use_semantic_search: bool | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
     ) -> Sequence[SearchResult]:
@@ -140,6 +141,14 @@ class AzureSearch(BaseSearch):
         # would propagate; today it'd 400 from the SDK, but the call
         # site stays honest.
         effective_top_k = top_k if top_k is not None else cfg.top_k
+        # Same None-means-default rule for the semantic flag so an
+        # explicit per-call `False` can disable re-ranking even when the
+        # settings default is on (and vice versa).
+        effective_semantic = (
+            use_semantic_search
+            if use_semantic_search is not None
+            else cfg.use_semantic_search
+        )
         kwargs: dict[str, Any] = {
             "search_text": query,
             "top": effective_top_k,
@@ -158,7 +167,7 @@ class AzureSearch(BaseSearch):
                     fields="content_vector",
                 )
             ]
-        if cfg.use_semantic_search:
+        if effective_semantic:
             kwargs["query_type"] = QueryType.SEMANTIC
             kwargs["semantic_configuration_name"] = "default"
 

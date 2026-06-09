@@ -183,9 +183,11 @@ class _FakeSearch:
     def __init__(self, hits):
         self.hits = [SearchResult(**h) if isinstance(h, dict) else h for h in hits]
         self.calls: list[str] = []
+        self.kwargs_calls: list[dict[str, object]] = []
 
-    async def search(self, query, **_kwargs):
+    async def search(self, query, **kwargs):
         self.calls.append(query)
+        self.kwargs_calls.append(dict(kwargs))
         return self.hits
 
 
@@ -244,6 +246,115 @@ async def test_run_with_search_injects_sources_block_into_llm_prompt() -> None:
     assert "[doc1]: alpha" in sent[0].content
     assert sent[1].role == "user"
     assert sent[1].content == "q?"
+
+
+# ---------------------------------------------------------------------------
+# System-prompt injection (effective cwyd_agent_instructions)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_injects_system_prompt_as_leading_system_message() -> None:
+    """The configured system prompt is prepended as the first system
+    message so the model sees its instructions before the user turn."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM(reply="ok")
+    orch = LangGraphOrchestrator(
+        settings=settings, llm=fake_llm, system_prompt="You are CWYD."
+    )
+
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
+
+    sent = fake_llm.calls[0]
+    assert sent[0].role == "system"
+    assert sent[0].content == "You are CWYD."
+    assert sent[1].role == "user"
+    assert sent[1].content == "q?"
+
+
+@pytest.mark.asyncio
+async def test_run_system_prompt_precedes_sources_block() -> None:
+    """With both a system prompt and search hits, the prompt comes first,
+    then the [docN] sources block, then the user turn."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM(reply="ok")
+    fake_search = _FakeSearch(
+        [{"id": "x", "content": "alpha", "title": "A", "url": "http://a"}]
+    )
+    orch = LangGraphOrchestrator(
+        settings=settings,
+        llm=fake_llm,
+        search=fake_search,
+        system_prompt="You are CWYD.",
+    )
+
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
+
+    sent = fake_llm.calls[0]
+    assert sent[0].role == "system"
+    assert sent[0].content == "You are CWYD."
+    assert sent[1].role == "system"
+    assert "[doc1]: alpha" in sent[1].content
+    assert sent[2].role == "user"
+    assert sent[2].content == "q?"
+
+
+@pytest.mark.asyncio
+async def test_run_without_system_prompt_injects_no_system_message() -> None:
+    """`system_prompt=None` (the default) preserves pass-through mode --
+    no leading system message is fabricated."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM(reply="ok")
+    orch = LangGraphOrchestrator(settings=settings, llm=fake_llm)
+
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="hi")])]
+
+    assert all(m.role != "system" for m in fake_llm.calls[0])
+
+
+# ---------------------------------------------------------------------------
+# Search-knob forwarding (effective search_top_k / search_use_semantic_search)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_forwards_search_knobs_to_search_provider() -> None:
+    """The effective `search_top_k` / `search_use_semantic_search`
+    threaded in at construction are forwarded into `BaseSearch.search`."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM(reply="ok")
+    fake_search = _FakeSearch(
+        [{"id": "x", "content": "alpha", "title": "A", "url": "http://a"}]
+    )
+    orch = LangGraphOrchestrator(
+        settings=settings,
+        llm=fake_llm,
+        search=fake_search,
+        search_top_k=7,
+        search_use_semantic_search=True,
+    )
+
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
+
+    assert fake_search.kwargs_calls == [{"top_k": 7, "use_semantic_search": True}]
+
+
+@pytest.mark.asyncio
+async def test_run_defaults_search_knobs_to_none_when_unset() -> None:
+    """Without explicit knobs, `run()` forwards `None` for both so the
+    provider falls back to its `settings.search` defaults."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM(reply="ok")
+    fake_search = _FakeSearch(
+        [{"id": "x", "content": "alpha", "title": "A", "url": "http://a"}]
+    )
+    orch = LangGraphOrchestrator(
+        settings=settings, llm=fake_llm, search=fake_search
+    )
+
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
+
+    assert fake_search.kwargs_calls == [{"top_k": None, "use_semantic_search": None}]
 
 
 @pytest.mark.asyncio

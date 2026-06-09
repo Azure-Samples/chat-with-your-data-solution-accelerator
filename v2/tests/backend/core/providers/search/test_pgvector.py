@@ -120,6 +120,25 @@ async def test_search_falls_back_to_fts_when_no_vector_supplied() -> None:
 
 
 @pytest.mark.asyncio
+async def test_search_accepts_and_ignores_use_semantic_search() -> None:
+    # pgvector has no semantic re-ranking mode; the flag exists only for
+    # BaseSearch-seam parity. Passing it must not alter the emitted SQL
+    # or raise -- the query runs exactly as if it were omitted.
+    pool = _make_pool([_row(score=0.42)])
+    provider = PgVector(
+        settings=_make_settings(top_k=3), credential=AsyncMock(), pool=pool
+    )
+
+    hits = await provider.search("ping", use_semantic_search=True)
+
+    assert len(hits) == 1
+    sql, query_param, top_param = pool.fetch.await_args.args
+    assert "to_tsvector('english', content)" in sql
+    assert query_param == "ping"
+    assert top_param == 3
+
+
+@pytest.mark.asyncio
 async def test_search_appends_filter_expression_in_vector_mode() -> None:
     pool = _make_pool([])
     provider = PgVector(
