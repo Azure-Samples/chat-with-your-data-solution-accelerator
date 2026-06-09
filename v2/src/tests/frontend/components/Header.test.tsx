@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/theme/themeContext";
 function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
   const onToggleHistory = props?.onToggleHistory ?? vi.fn();
   const onNewChat = props?.onNewChat ?? vi.fn();
+  const onOpenAdmin = props?.onOpenAdmin ?? vi.fn();
   const utils = render(
     <ThemeProvider>
       <FluentThemeBridge>
@@ -26,11 +27,15 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
           historyOpen={props?.historyOpen ?? false}
           onToggleHistory={onToggleHistory}
           onNewChat={onNewChat}
+          onOpenAdmin={onOpenAdmin}
+          {...(props?.adminAvailable !== undefined
+            ? { adminAvailable: props.adminAvailable }
+            : {})}
         />
       </FluentThemeBridge>
     </ThemeProvider>,
   );
-  return { ...utils, onToggleHistory, onNewChat };
+  return { ...utils, onToggleHistory, onNewChat, onOpenAdmin };
 }
 
 describe("Header", () => {
@@ -78,5 +83,21 @@ describe("Header", () => {
     renderHeader({ historyOpen: true });
     const historyBtn = screen.getByRole("button", { name: /history/i });
     expect(historyBtn).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("renders the admin entry button when adminAvailable is true", () => {
+    renderHeader({ adminAvailable: true });
+    expect(screen.getByTestId("header-admin")).toBeInTheDocument();
+  });
+
+  it("calls onOpenAdmin when the admin entry button is clicked", () => {
+    const { onOpenAdmin } = renderHeader({ adminAvailable: true });
+    fireEvent.click(screen.getByTestId("header-admin"));
+    expect(onOpenAdmin).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not render the admin entry button when adminAvailable is not true", () => {
+    renderHeader({ adminAvailable: false });
+    expect(screen.queryByTestId("header-admin")).not.toBeInTheDocument();
   });
 });

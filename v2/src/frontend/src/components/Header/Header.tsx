@@ -6,12 +6,12 @@
  * `commonComponents/components/Header/Header.tsx`:
  *   - Left brand: <Avatar shape="square" color="neutral"> wrapping
  *     <MsftColorLogo/> + a "<title> | <subtitle>" label row.
- *   - Middle nav (optional): <nav> with one button per primary view
- *     (Chat, Admin). The Admin button only renders when the caller
- *     reports `adminAvailable === true` so non-admin sessions never
- *     see a dead-end link.
- *   - Right tools: <HeaderTools> — Fluent <Toolbar> with new-chat,
- *     history toggle, theme toggle.
+ *   - Middle nav (optional): <nav> with one button per admin page
+ *     (Ingest data, Delete data, Configuration, Prompt editor). These
+ *     only render when the caller reports `adminAvailable === true` so
+ *     non-admin sessions never see a dead-end link.
+ *   - Right tools: <HeaderTools> — Fluent <Toolbar> with new-chat, a
+ *     gated admin entry, history toggle, theme toggle.
  *
  * The accessible name "app-header" testid is preserved verbatim.
  */
@@ -34,6 +34,7 @@ export interface HeaderProps {
   view?: AppView;
   onSelectView?: (view: AppView) => void;
   adminAvailable?: boolean | null;
+  onOpenAdmin?: () => void;
 }
 
 const DEFAULT_SUBTITLE = "Solution Accelerator";
@@ -53,6 +54,7 @@ export function Header({
   view,
   onSelectView,
   adminAvailable,
+  onOpenAdmin,
 }: HeaderProps): JSX.Element {
   const showNav = view !== undefined && onSelectView !== undefined;
   return (
@@ -84,16 +86,6 @@ export function Header({
           data-testid="primary-nav"
           data-admin-status={adminStatusAttr(adminAvailable)}
         >
-          <Button
-            appearance={view === SectionValue.Chat ? "primary" : "subtle"}
-            aria-current={view === SectionValue.Chat ? "page" : undefined}
-            data-testid="nav-chat"
-            onClick={() => {
-              onSelectView(SectionValue.Chat);
-            }}
-          >
-            Chat
-          </Button>
           {adminAvailable === true && (
             <>
               <Button
@@ -144,6 +136,8 @@ export function Header({
         historyOpen={historyOpen}
         onToggleHistory={onToggleHistory}
         onNewChat={onNewChat}
+        adminAvailable={adminAvailable ?? null}
+        {...(onOpenAdmin !== undefined ? { onOpenAdmin } : {})}
       />
     </header>
   );

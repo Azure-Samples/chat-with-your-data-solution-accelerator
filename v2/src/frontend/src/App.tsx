@@ -5,8 +5,9 @@
  * Router-driven app shell. `App` provides the theme + Fluent UI v9
  * bridge and a `<BrowserRouter>`; `AppShell` derives the active page
  * from the URL and drives navigation through the `<Header>` nav.
- * Browser routes: `/` -> chat, `/admin/ingest|delete|config|prompt` ->
- * the admin pages, any other path -> redirect to `/`.
+ * Browser routes: `/` -> chat; `/admin` -> the `<AdminLayout>` shell
+ * wrapping the `ingest|delete|config|prompt` pages (bare `/admin`
+ * redirects to `ingest`); any other path -> redirect to `/`.
  *
  * On mount `AppShell` pings `/api/health` (so docker compose can verify
  * `VITE_BACKEND_URL` wiring) and runs a one-shot `getAdminStatus()`
@@ -30,6 +31,7 @@ import { Header } from "./components/Header/Header";
 import { CoralShellColumn } from "./components/CoralShell/CoralShellColumn";
 import { CoralShellRow } from "./components/CoralShell/CoralShellRow";
 import { ChatPage } from "./pages/chat/ChatPage";
+import { AdminLayout } from "./pages/admin/AdminLayout";
 import { IngestData } from "./pages/admin/IngestData/IngestData";
 import { DeleteData } from "./pages/admin/DeleteData/DeleteData";
 import { Configuration } from "./pages/admin/Configuration/Configuration";
@@ -47,6 +49,14 @@ type HealthState =
 
 const BACKEND_URL =
   (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
+
+/** Parent route the admin pages nest under (see <AdminLayout>). */
+const ADMIN_BASE_PATH = "/admin";
+
+/** Trailing segment of an admin `SectionPath` for its nested <Route>. */
+function adminChildPath(section: Section): string {
+  return SectionPath[section].slice(ADMIN_BASE_PATH.length + 1);
+}
 
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   const url = `${BACKEND_URL.replace(/\/$/, "")}/api/health`;
@@ -149,6 +159,9 @@ function AppShell(): JSX.Element {
           void navigate(SectionPath[next]);
         }}
         adminAvailable={adminAvailable}
+        onOpenAdmin={() => {
+          void navigate(SectionPath[Section.AdminIngest]);
+        }}
       />
       <section
         aria-label="backend health"
@@ -183,22 +196,30 @@ function AppShell(): JSX.Element {
             path={SectionPath[Section.Chat]}
             element={<ChatPage key={newChatNonce} historyOpen={historyOpen} />}
           />
-          <Route
-            path={SectionPath[Section.AdminIngest]}
-            element={<IngestData />}
-          />
-          <Route
-            path={SectionPath[Section.AdminDelete]}
-            element={<DeleteData />}
-          />
-          <Route
-            path={SectionPath[Section.AdminConfig]}
-            element={<Configuration />}
-          />
-          <Route
-            path={SectionPath[Section.AdminPrompt]}
-            element={<PromptEditor />}
-          />
+          <Route path={ADMIN_BASE_PATH} element={<AdminLayout />}>
+            <Route
+              index
+              element={
+                <Navigate to={adminChildPath(Section.AdminIngest)} replace />
+              }
+            />
+            <Route
+              path={adminChildPath(Section.AdminIngest)}
+              element={<IngestData />}
+            />
+            <Route
+              path={adminChildPath(Section.AdminDelete)}
+              element={<DeleteData />}
+            />
+            <Route
+              path={adminChildPath(Section.AdminConfig)}
+              element={<Configuration />}
+            />
+            <Route
+              path={adminChildPath(Section.AdminPrompt)}
+              element={<PromptEditor />}
+            />
+          </Route>
           <Route
             path="*"
             element={<Navigate to={SectionPath[Section.Chat]} replace />}

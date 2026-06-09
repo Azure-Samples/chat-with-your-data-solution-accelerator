@@ -10,7 +10,7 @@ applyTo: "v2/src/frontend/**"
 - React 19, TypeScript 5.9+, Vite 7+.
 - **Fluent UI v9** (`@fluentui/react-components` + `@fluentui/react-icons`) is the bundled component library. The MACAE re-skin (dev_plan task #34) committed the decision; new components consume Fluent primitives unless a CSS-Modules-only carve-out is explicitly justified.
 - **State management: React Context + `useReducer`.** Lightweight, zero new dep, idiomatic for the reasoning-channel fan-out. Reducers live next to their Context (chat) or page (admin) — do **not** extract reducers into `services/`. Revisit (e.g. Zustand, Redux Toolkit) only if cross-page state grows beyond what context comfortably handles.
-- **Routing: none.** Page selection is driven by the `Section` enum (`src/models/sections.tsx`) consumed by the page registry in `src/services/app/pageRegistry.tsx`. Add a router only when a deep-linking / browser-history need lands.
+- **Routing: `react-router-dom` v7.** `App` mounts `<BrowserRouter>`; the active page is derived from the URL by `pathToSection(location.pathname)` and navigation goes through `useNavigate()` + the `SectionPath` map (`src/models/sections.tsx`). Deep links to `/admin/*` are first-class.
 - Testing: Vitest + Testing Library. Tests live under `v2/src/tests/frontend/` mirroring `src/` (relocated from `v2/src/frontend/tests/` per ADR 0020).
 
 ## API layer (`src/api/`)
@@ -87,9 +87,9 @@ applyTo: "v2/src/frontend/**"
 
 ## Routing
 
-- No router. Page selection is the `Section` enum from `src/models/sections.tsx` consumed by `services/app/pageRegistry.tsx`. `App.tsx` reads the current section from local state and calls `pageRegistry.get(section)()` to render — there is no `view === "…" && <Page />` ternary chain. The header navigation calls `setSection(Section.AdminIngest)` etc. to switch pages.
-- Admin pages live under `src/pages/admin/` and register themselves with `pageRegistry`. They are part of the same SPA — no separate Streamlit, ever.
-- A real router (browser history, deep links) lands only when the first deep-linking requirement surfaces; until then the page-registry pattern is the contract.
+- **`react-router-dom` v7.** `App` mounts `<BrowserRouter>`; `AppShell` renders a `<Routes>` block — one `<Route>` per `Section` (admin pages mounted as nested `/admin/*` routes under a shared admin layout), plus a `path="*"` catch-all that `<Navigate>`s to `SectionPath[Section.Chat]`. There is no page registry and no `view === "…" && <Page />` ternary chain.
+- The active section is **derived from the URL**: `view = pathToSection(location.pathname)`. The `<Header>` nav calls `onSelectView(Section.X)`, which `AppShell` maps to `navigate(SectionPath[X])`. The `Section` ↔ URL mapping lives in `src/models/sections.tsx`.
+- Admin pages live under `src/pages/admin/`, mounted as nested routes behind a shared `AdminLayout` (`<Outlet/>` + admin sub-nav). They are part of the same SPA — no separate Streamlit, ever.
 ## Conventions
 
 - TypeScript strictness: `strict: true`, `noUncheckedIndexedAccess: true`, `exactOptionalPropertyTypes: true`. The three flags are non-negotiable — `tsconfig.json` is the single source of truth. Rationale + ADR: [v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md](../../v2/docs/adr/0013-frontend-strict-ts-and-tsx-everywhere.md).

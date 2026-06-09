@@ -2,7 +2,7 @@
 title: CWYD v2 — Project Status Snapshot
 description: Current QA-readiness snapshot of CWYD v2, organized by review dimension. Replaces the stale qa_report_v2 narrative.
 author: CWYD Engineering
-ms.date: 2026-06-04
+ms.date: 2026-06-08
 topic: status
 keywords: status, qa, readiness, v2, snapshot
 estimated_reading_time: 8
@@ -20,22 +20,23 @@ For the historical, Phase 3.5-era QA report kept for archeology only, see [qa_re
 
 **Phase 7 backend tier is drained.** As of `U-P7-AUDIT-3` (2026-06-02), every backend §0.1 debt row originating in Phases 1–7 is ✅ cleared except a small handful that are externally blocked (FE-owned, upstream OSS SDK, or gated on `#39` tenant claim propagation). All 9 AST gates are green. Backend full suite runs `2047 passed / 1 skipped / 3 deselected / 6 warnings` as of the 2026-06-04 QA review baseline (up from 1986 passes on 2026-06-02; the two extra warnings are upstream `agent_framework` experimental notices). `pyright src/backend src/functions` is `0 errors / 0 warnings / 0 informations`.
 
-**Phase 7 frontend tier is in progress.** `#50` feedback thumbs and `#53` Ingest Data admin UI (backend half) are ✅ done; `#54` Delete Data admin UI is ⏳ partial (backend route + ABC + 2 impls shipped, FE multi-select half open); `#35d` Streamlit-to-React admin merge is ⏳ in progress on the FE tier (prompt-editor route shell + Section-based dispatch refactor shipped 2026-06-04); `#24` SSE FE wiring is ⏳ partial (demo path live; citation cards / abort / reconnect remain on FE backlog). The FE conventions refactor (`U-P7-FE-REFAC`, 6 units) closed 2026-06-02; current FE numbers as of 2026-06-04 are `npm run lint` 0 errors / 7 advisory `react-refresh/only-export-components` warnings on the new admin pages, `npx tsc --noEmit` clean, and `vitest 361 tests / 32 suites` green.
+**Phase 7 frontend tier is in progress.** `#50` feedback thumbs and `#53` Ingest Data admin UI (backend half) are ✅ done; `#54` Delete Data admin UI is ⏳ partial (backend route + ABC + 2 impls shipped, FE multi-select half open); `#35d` Streamlit-to-React admin merge is ✅ cleared (2026-06-08, `U-P7-35D-AUDIT`); `#24` SSE FE wiring is ⏳ partial (demo path live; citation cards / abort / reconnect remain on FE backlog). On top of the closed `#35d`, the post-Phase-7 (PP7) work stream landed the Vitest test-tree relocation to `v2/src/tests/frontend` as an npm-workspace member (`U-PP7-RELOC`, [ADR 0020](adr/0020-frontend-tests-under-src-tests-frontend.md)) and real browser URLs for the admin pages (`U-PP7-ROUTE` — `/admin/ingest|delete|config|prompt` via `react-router-dom`, with an `frontend_app.py` SPA catch-all). The FE conventions refactor (`U-P7-FE-REFAC`, 6 units) closed 2026-06-02; current FE numbers as of 2026-06-08 (all run from the `v2/` npm-workspace root) are `npm run lint` 0 errors / 9 advisory `react-refresh/only-export-components` warnings, `npx tsc -p src/frontend` + `npx tsc -p src/tests/frontend` both clean, and `npm test` 403 tests / 32 suites green.
 
 ---
 
-## Verified Metrics (2026-06-04)
+## Verified Metrics (backend 2026-06-04 · frontend 2026-06-08)
 
 | Surface | Tool | Result |
 |---|---|---|
 | Backend test suite | `cd v2 ; uv run pytest -q` | 2047 passed / 1 skipped / 3 deselected / 6 warnings |
 | Backend type check | `cd v2 ; uv run pyright src/backend src/functions` | 0 errors / 0 warnings / 0 informations |
 | AST invariant gates | `uv run pytest tests/shared tests/test_no_silent_excepts.py -q` | 981 passed / 1 skipped — 9 gates green (8 tree-walking + 1 silent-except + router-only) |
-| Frontend unit suite | `npm test -- --run` from `v2/src/frontend` | 361 passed / 32 suites |
-| Frontend lint | `npm run lint` from `v2/src/frontend` | 0 errors / 7 react-refresh advisory warnings (HMR fast-refresh hints on Configuration / DeleteData / IngestData / ChatContext / themeContext — non-blocking) |
-| Frontend type check | `npx tsc --noEmit` from `v2/src/frontend` | clean |
+| Frontend unit suite | `npm test` from `v2/` | 403 passed / 32 suites |
+| Frontend lint | `npm run lint` from `v2/` | 0 errors / 9 react-refresh advisory warnings (HMR fast-refresh hints on the admin pages, chat/theme contexts, and `models/sections.tsx` — non-blocking) |
+| Frontend type check | `npx tsc -p src/frontend` + `npx tsc -p src/tests/frontend` from `v2/` | both clean (0 errors) |
+| Frontend SPA fallback (ASGI) | `uv run pytest tests/frontend/test_frontend_app.py` from `v2/` | 4 passed |
 
-The two extra backend warnings (vs. 2026-06-02 baseline) are upstream `agent_framework` experimental notices for `SkillResource` and `MemoryStore`. The three additional FE lint warnings (vs. 2026-06-02 baseline) are new admin page modules that co-export helpers alongside their default component — advisory only.
+The two extra backend warnings (vs. 2026-06-02 baseline) are upstream `agent_framework` experimental notices for `SkillResource` and `MemoryStore`. The FE lint warnings (9 as of 2026-06-08, up from 7 at the 2026-06-04 baseline) are modules that co-export helpers alongside their default component — the two added by the PP7 routing work live in `models/sections.tsx` — advisory only.
 
 Re-run baselines via [qa_review_plan.md](qa_review_plan.md) Phase B (validation snapshot).
 
@@ -108,7 +109,7 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | `GET /api/admin/documents` (list indexed sources with chunk counts) | ✅ shipped (`U-P7-54-BE`) |
 | `DELETE /api/admin/documents/{source}` (delete by source) | ✅ shipped (`U-P7-54-BE`) |
 | Per-tenant config overrides | ☐ blocked on `#39` tenant claim propagation (`#35g`) |
-| FE admin route merge | ⏳ in progress (`#35d`) |
+| FE admin route merge | ✅ cleared (`#35d`, 2026-06-08) + real admin URLs (`U-PP7-ROUTE`) |
 
 ### Chat History
 
@@ -134,10 +135,10 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | 3 — Conversation + RAG (Core Chat) | ✅ done | LangGraph + Agent Framework orchestrators, AzureSearch + pgvector handlers |
 | 3.5 — QA Remediation | ✅ done | Q1–Q14 + Q10 structural realignment |
 | 4 — Chat History + Both Databases | ✅ done | Cosmos + Postgres clients + pgvector injected pool |
-| 5 — Admin + Frontend Merge | ✅ done (backend); ⏳ in progress (FE `#35d`) | All 9 admin routes + RBAC + audit log shipped |
+| 5 — Admin + Frontend Merge | ✅ done | All 9 admin routes + RBAC + audit log shipped; FE merge `#35d` cleared 2026-06-08 |
 | 5.5 — Stable Core Refactor | ✅ done | `shared/` → `backend/core/` + `functions/core/` + `try/except` policy + 29 SDK boundary wraps |
 | 6 — RAG Indexing Pipeline (Split Functions) | ✅ done | 4 blueprints (`batch_start`, `batch_push`, `add_url`, `search_skill`) + standalone-backend smoke CI |
-| 7 — Testing + Documentation | ⏳ in progress | Backend tier drained 2026-06-02; FE tier in progress |
+| 7 — Testing + Documentation | ⏳ in progress | Backend tier drained 2026-06-02; FE `#35d` cleared + PP7 relocation/routing landed 2026-06-08; `#24`/`#54` FE polish remain (non-blocking) |
 
 ---
 
