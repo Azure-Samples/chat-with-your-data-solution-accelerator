@@ -18,7 +18,7 @@ import {
 } from "@/api/admin";
 import type { AdminConfig, RuntimeConfig } from "@/models/admin";
 
-vi.mock("../../../../src/api/admin", async () => {
+vi.mock("@/api/admin", async () => {
   const actual =
     await vi.importActual<typeof import("@/api/admin")>("@/api/admin");
   return {

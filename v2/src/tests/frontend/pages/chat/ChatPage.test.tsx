@@ -8,7 +8,7 @@ import type { StreamEvent } from "@/models/chat";
 // Stub the module so the integration assertions stay focused on the
 // shell wiring rather than the SSE wire format (covered in the unit
 // tests for `streamChat` + `MessageInput`).
-vi.mock("../../../src/api/streamChat", () => ({
+vi.mock("@/api/streamChat", () => ({
   streamChat: vi.fn(),
 }));
 const streamChatMock = vi.mocked(streamChat);

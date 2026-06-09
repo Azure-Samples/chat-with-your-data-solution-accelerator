@@ -48,3 +48,26 @@ def test_serves_static_asset(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert "console.log" in response.text
+
+
+def test_serves_index_html_for_spa_deep_link(tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<html><body>cwyd v2 spa</body></html>")
+    module = _load_app(tmp_path)
+    client = TestClient(module.app)
+
+    response = client.get("/admin/ingest")
+
+    assert response.status_code == 200
+    assert "cwyd v2 spa" in response.text
+
+
+def test_unknown_nested_route_falls_back_to_index(tmp_path: Path) -> None:
+    (tmp_path / "index.html").write_text("<html><body>fallback</body></html>")
+    (tmp_path / "assets").mkdir()
+    module = _load_app(tmp_path)
+    client = TestClient(module.app)
+
+    response = client.get("/assets/does-not-exist.js")
+
+    assert response.status_code == 200
+    assert "fallback" in response.text

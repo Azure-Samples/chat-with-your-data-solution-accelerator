@@ -1,11 +1,14 @@
 # ADR 0012 — Frontend tests live under `v2/src/frontend/tests/` mirroring the `src/` tree (no colocation)
 
-- **Status**: Accepted
+> **Superseded by [ADR 0020](0020-frontend-tests-under-src-tests-frontend.md) (2026-06-08).** The mirror-tree + no-colocation decision below still holds, but the test-tree root moved from `v2/src/frontend/tests/` to `v2/src/tests/frontend/`. Read ADR 0020 for the current location and the build/tooling mechanics.
+
+- **Status**: Superseded by [ADR 0020](0020-frontend-tests-under-src-tests-frontend.md) (2026-06-08)
 - **Date**: 2026-06-02
 - **Phase**: Phase 7 close-out (FE conventions refactor U-P7-FE-REFAC-0)
 - **Pillar**: Stable Core (frontend layout policy)
 - **Deciders**: CWYD v2 maintainers
 - **Supersedes**: nothing. This ADR ratifies an existing convention from [v2-frontend.instructions.md](../../../.github/instructions/v2-frontend.instructions.md) so it can be cited by future refactors without re-litigating it.
+- **Superseded by**: [ADR 0020](0020-frontend-tests-under-src-tests-frontend.md) — frontend tests relocated from `v2/src/frontend/tests/` to `v2/src/tests/frontend/` (mirror-tree + no-colocation invariants retained).
 
 ## Context
 

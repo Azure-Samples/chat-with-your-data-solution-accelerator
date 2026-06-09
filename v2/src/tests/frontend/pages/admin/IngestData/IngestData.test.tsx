@@ -20,7 +20,7 @@ import type {
   UploadResponse,
 } from "@/models/admin";
 
-vi.mock("../../../../src/api/admin", () => ({
+vi.mock("@/api/admin", () => ({
   uploadDocument: vi.fn(),
   addDocumentUrl: vi.fn(),
   reprocessAll: vi.fn(),

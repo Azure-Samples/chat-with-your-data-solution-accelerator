@@ -20,7 +20,7 @@ import type {
   SourceListing,
 } from "@/models/admin";
 
-vi.mock("../../../../src/api/admin", () => ({
+vi.mock("@/api/admin", () => ({
   listDocuments: vi.fn(),
   deleteDocument: vi.fn(),
 }));

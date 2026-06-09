@@ -9,11 +9,11 @@ import { streamChat } from "@/api/streamChat";
 import type { StreamEvent } from "@/models/chat";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
-vi.mock("../../../../src/api/streamChat", () => ({
+vi.mock("@/api/streamChat", () => ({
   streamChat: vi.fn(),
 }));
 
-vi.mock("../../../../src/hooks/useSpeechRecognition", () => ({
+vi.mock("@/hooks/useSpeechRecognition", () => ({
   useSpeechRecognition: vi.fn(),
 }));
 

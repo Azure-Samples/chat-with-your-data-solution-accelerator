@@ -110,7 +110,7 @@ vi.mock("microsoft-cognitiveservices-speech-sdk", () => sdkMock);
 
 // --- API client mock --------------------------------------------------------
 
-vi.mock("../../src/api/speech", () => ({
+vi.mock("@/api/speech", () => ({
   getSpeechConfig: vi.fn(),
 }));
 

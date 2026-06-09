@@ -1,0 +1,16 @@
+{
+  "name": "cwyd-v2",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "src/frontend",
+    "src/tests/frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace cwyd-frontend",
+    "dev": "npm run dev --workspace cwyd-frontend",
+    "test": "npm run test --workspace cwyd-frontend-tests",
+    "test:watch": "npm run test:watch --workspace cwyd-frontend-tests",
+    "lint": "npm run lint --workspaces --if-present"
+  }
+}

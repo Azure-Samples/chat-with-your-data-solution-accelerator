@@ -17,11 +17,12 @@
     "resolveJsonModule": true,
     "allowImportingTsExtensions": false,
     "noEmit": true,
-    "types": ["vite/client"],
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["../../frontend/src/*"]
     }
   },
-  "include": ["src"]
+  "include": [".", "../../frontend/src"],
+  "exclude": ["vitest.config.ts"]
 }

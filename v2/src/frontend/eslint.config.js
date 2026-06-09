@@ -8,9 +8,8 @@
 // per ADR 0013 to `.tsx`-only files. Type information is supplied via
 // `projectService: true`, which reads `tsconfig.json` automatically.
 //
-// Two file groups: `src/**` runs the full ruleset; `tests/**` relaxes
-// `@typescript-eslint/no-explicit-any` so mock typings can use `any`
-// where typed stand-ins add cost without value.
+// Scoped to `src/**`. The frontend Vitest tree is a separate workspace
+// member (v2/src/tests/frontend) and carries its own ESLint config.
 
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
@@ -27,7 +26,7 @@ export default tseslint.config(
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,
   {
-    files: ["src/**/*.tsx", "tests/**/*.tsx"],
+    files: ["src/**/*.tsx"],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",
@@ -80,33 +79,6 @@ export default tseslint.config(
           ],
         },
       ],
-    },
-  },
-  {
-    files: ["tests/**/*.tsx"],
-    rules: {
-      // Mock + test-double affordances: tests routinely use `any` for SDK stubs,
-      // empty arrow functions as no-op callbacks, sync `async` for mock signatures,
-      // and trivial type-narrowing operators. Tighter rules add cost without value
-      // inside the test tier.
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
-      "@typescript-eslint/no-unsafe-call": "off",
-      "@typescript-eslint/no-unsafe-argument": "off",
-      "@typescript-eslint/no-unsafe-return": "off",
-      "@typescript-eslint/no-non-null-assertion": "off",
-      "@typescript-eslint/no-empty-function": "off",
-      "@typescript-eslint/require-await": "off",
-      "@typescript-eslint/no-confusing-void-expression": "off",
-      "@typescript-eslint/no-unnecessary-type-assertion": "off",
-      "@typescript-eslint/no-unnecessary-condition": "off",
-      "@typescript-eslint/no-base-to-string": "off",
-      "@typescript-eslint/consistent-type-definitions": "off",
-      "@typescript-eslint/dot-notation": "off",
-      "@typescript-eslint/prefer-regexp-exec": "off",
-      "@typescript-eslint/array-type": "off",
-      "@typescript-eslint/no-unused-vars": "off",
     },
   },
 );

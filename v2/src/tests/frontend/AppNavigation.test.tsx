@@ -389,4 +389,50 @@ describe("App primary navigation", () => {
       "page",
     );
   });
+
+  it("updates the browser URL when an admin nav link is clicked", async () => {
+    stubFetch({ adminOk: true });
+    render(<App />);
+    const ingestLink = await screen.findByTestId("nav-admin-ingest");
+
+    fireEvent.click(ingestLink);
+
+    expect(window.location.pathname).toBe("/admin/ingest");
+    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
+  });
+
+  it("deep-links straight to an admin page from its URL", async () => {
+    window.history.pushState({}, "", "/admin/delete");
+    stubFetch({ adminOk: true });
+    render(<App />);
+
+    expect(screen.getByTestId("delete-data")).toBeInTheDocument();
+    expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
+    expect(window.location.pathname).toBe("/admin/delete");
+    // Flush the admin probe so the gated nav link settles before teardown.
+    await screen.findByTestId("nav-admin-delete");
+  });
+
+  it("redirects an unknown route back to the chat root", async () => {
+    window.history.pushState({}, "", "/does/not/exist");
+    stubFetch({ adminOk: true });
+    render(<App />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe("/");
+    });
+    expect(screen.getByTestId("chat-page")).toBeInTheDocument();
+  });
+
+  it("returns to the chat root URL when the Chat nav link is clicked", async () => {
+    window.history.pushState({}, "", "/admin/config");
+    stubFetch({ adminOk: true });
+    render(<App />);
+    const chatLink = await screen.findByTestId("nav-chat");
+
+    fireEvent.click(chatLink);
+
+    expect(window.location.pathname).toBe("/");
+    expect(screen.getByTestId("chat-page")).toBeInTheDocument();
+  });
 });

@@ -2,14 +2,19 @@ name: v2 frontend checks (lint + typecheck + vitest)
 
 # ADR 0014 (2026-06-02): hard CI gate for the v2 frontend.
 #
-# Three sequential checks against the v2 React 19 + TS 5.9 + Vite 7
-# package at `v2/src/frontend`:
-#   1. `npm run lint`  -- ESLint flat config, strict-type-checked.
-#   2. `npx tsc -p .`  -- tsc strict mode + noUncheckedIndexedAccess
-#                          + exactOptionalPropertyTypes (noEmit:true
-#                          in tsconfig.json so this is type-check only).
-#   3. `npm test`      -- vitest run (147 tests across 18 suites at
-#                          time of wiring).
+# The v2 frontend is an npm workspace rooted at `v2/` with two members:
+#   - `v2/src/frontend`       -- the React 19 + TS + Vite 7 application.
+#   - `v2/src/tests/frontend` -- the Vitest tree (sibling workspace member).
+# A single `npm ci` at the workspace root produces one hoisted
+# `v2/node_modules` shared by both members, so the test tree resolves the
+# frontend's deps natively (one React instance, no resolver shims).
+#
+# Gates, all run after the root install:
+#   1. `npm run lint`                  -- ESLint flat config, both members.
+#   2. `npx tsc -p src/frontend`       -- app type-check (noEmit).
+#   3. `npx tsc -p src/tests/frontend` -- test-tree type-check (noEmit).
+#   4. `npm test`                      -- vitest run (the suite under
+#                                         src/tests/frontend).
 #
 # Mirrors `v2-typecheck.yml` (backend pyright) and `v2-backend-only-smoke.yml`
 # (backend smoke). Path-scoped so unrelated edits do not pay CI cost.
@@ -19,13 +24,19 @@ on:
     branches:
       - main
     paths:
+      - "v2/package.json"
+      - "v2/package-lock.json"
       - "v2/src/frontend/**"
+      - "v2/src/tests/frontend/**"
       - ".github/workflows/v2-frontend-checks.yml"
   pull_request:
     branches:
       - main
     paths:
+      - "v2/package.json"
+      - "v2/package-lock.json"
       - "v2/src/frontend/**"
+      - "v2/src/tests/frontend/**"
       - ".github/workflows/v2-frontend-checks.yml"
   workflow_dispatch:
 
@@ -34,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: v2/src/frontend
+        working-directory: v2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -44,16 +55,19 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
-          cache-dependency-path: "v2/src/frontend/package-lock.json"
+          cache-dependency-path: "v2/package-lock.json"
 
-      - name: Install dependencies (npm ci, frozen lockfile)
+      - name: Install workspace (npm ci, frozen lockfile, hoisted node_modules)
         run: npm ci
 
-      - name: Lint (ESLint strict-type-checked, hard gate)
+      - name: Lint (ESLint strict-type-checked, both workspace members)
         run: npm run lint
 
-      - name: Typecheck (tsc strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes)
-        run: npx tsc -p .
+      - name: Typecheck app (tsc strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes)
+        run: npx tsc -p src/frontend
+
+      - name: Typecheck tests (tsc strict, test tree)
+        run: npx tsc -p src/tests/frontend
 
       - name: Vitest (npm test)
         run: npm test
