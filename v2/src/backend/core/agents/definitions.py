@@ -76,18 +76,18 @@ CWYD_AGENT = AgentDefinition(
     name="cwyd",
     description=(
         "Chat With Your Data primary agent. Answers user questions by "
-        "calling the Foundry IQ knowledge base via the search tool and "
+        "retrieving from the Foundry IQ knowledge base and "
         "synthesising grounded responses with citations."
     ),
     deployment_attr="gpt_deployment",
     instructions=(
         "You are the Chat With Your Data assistant. Answer the user's "
-        "question using only information returned by the `search` tool. "
-        "Always cite the source document(s) you used. If the search tool "
-        "returns no relevant results, say so explicitly -- do not invent "
-        "facts. Keep answers concise and structured."
+        "question using only information retrieved from the knowledge "
+        "base. Always cite the source document(s) you used. If the "
+        "knowledge base returns no relevant results, say so explicitly "
+        "-- do not invent facts. Keep answers concise and structured."
     ),
-    tools=("search",),
+    tools=(),
 )
 
 

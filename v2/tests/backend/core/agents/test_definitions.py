@@ -99,13 +99,17 @@ def test_agent_definition_tools_is_tuple_for_immutability() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_cwyd_agent_declares_search_tool() -> None:
-    """CWYD is a RAG agent -- the search tool is the whole point. If
-    this regresses, the orchestrator silently falls back to ungrounded
-    LLM output.
+def test_cwyd_agent_grounds_in_knowledge_base() -> None:
+    """CWYD is a RAG agent, but its retrieval tool is a runtime MCP
+    tool bound at `run()` time -- not a server-side tool baked into
+    the agent at `create_agent`. So `tools` must stay empty (a stale
+    `"search"` placeholder would be forwarded to `create_agent` as a
+    bogus tool key), and the grounding intent must live in the
+    instructions instead.
     """
     assert CWYD_AGENT.name == "cwyd"
-    assert "search" in CWYD_AGENT.tools
+    assert CWYD_AGENT.tools == ()
+    assert "knowledge base" in CWYD_AGENT.instructions.lower()
 
 
 def test_rai_agent_uses_macae_classifier_pattern() -> None:

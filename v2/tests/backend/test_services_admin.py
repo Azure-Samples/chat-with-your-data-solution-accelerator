@@ -12,6 +12,7 @@ from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.types import RuntimeConfig
 from backend.models.admin import AdminConfig
 from backend.services.admin import (
+    ConfigResolutionError,
     host_only,
     resolve_effective_config,
     utcnow_iso,
@@ -47,6 +48,45 @@ def test_host_only_strips_path_and_query() -> None:
     assert "/tenant/abc" not in result
     assert "token" not in result
     assert result == "example.com"
+
+
+# ---------------------------------------------------------------------------
+# ConfigResolutionError
+# ---------------------------------------------------------------------------
+
+
+def test_config_resolution_error_is_an_exception() -> None:
+    """The app-level handler registers against an ``Exception`` subclass;
+    if this regressed to a plain object the handler would never fire."""
+    assert issubclass(ConfigResolutionError, Exception)
+
+
+def test_config_resolution_error_exposes_message_reason_and_context() -> None:
+    """The 409 body reads ``str(exc)`` + ``exc.reason``; the telemetry
+    record reads ``exc.reason`` + ``exc.context``. All three must be
+    addressable as documented."""
+    exc = ConfigResolutionError(
+        "agent_framework needs an Azure AI Search index.",
+        reason="orchestrator_requires_azure_search",
+        context={
+            "index_store": "pgvector",
+            "configured_orchestrator": "agent_framework",
+        },
+    )
+    assert str(exc) == "agent_framework needs an Azure AI Search index."
+    assert exc.reason == "orchestrator_requires_azure_search"
+    assert exc.context == {
+        "index_store": "pgvector",
+        "configured_orchestrator": "agent_framework",
+    }
+
+
+def test_config_resolution_error_context_defaults_to_empty_dict() -> None:
+    """``context`` is optional -- a reason-only raise must still give the
+    handler a mapping to splat into the log ``extra`` without a None
+    guard."""
+    exc = ConfigResolutionError("bad config", reason="some_reason")
+    assert exc.context == {}
 
 
 # ---------------------------------------------------------------------------

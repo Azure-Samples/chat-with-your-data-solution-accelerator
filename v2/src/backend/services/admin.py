@@ -20,6 +20,7 @@ from backend.core.types import RuntimeConfig
 from backend.models.admin import AdminConfig
 
 __all__ = [
+    "ConfigResolutionError",
     "host_only",
     "resolve_effective_config",
     "utcnow_iso",
@@ -37,6 +38,38 @@ RAI_PROMPT_REJECTION_REASON = (
     "The submitted prompt was rejected by the Responsible AI safety "
     "classifier and was not persisted."
 )
+
+
+class ConfigResolutionError(Exception):
+    """Effective configuration is invalid or self-contradictory.
+
+    Pillar: Stable Core
+    Phase: 8 (agent_framework default + Foundry IQ Knowledge Base retrieval)
+
+    Raised by ``resolve_effective_config`` -- the single choke point
+    where every admin override is overlaid on the env / code defaults
+    -- when the resulting effective configuration cannot be served
+    (for example, an orchestrator that requires an Azure AI Search
+    index selected on a deployment that has none).
+
+    Carries a human-readable ``message`` (surfaced to the operator in
+    the response body), a ``reason`` discriminator, and a ``context``
+    map of the conflicting ``field -> value`` pairs. The app-level
+    handler maps it to HTTP 409 and emits one ERROR-level telemetry
+    record built from these attributes; the resolver only raises (it
+    does not log), so the record is written exactly once (ADR 0022).
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason: str,
+        context: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.context: dict[str, str] = context or {}
 
 
 def host_only(url: str) -> str:
