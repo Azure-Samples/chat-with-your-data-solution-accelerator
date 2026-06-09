@@ -177,6 +177,134 @@ def test_build_knowledge_base_seed_shape():
     }
 
 
+class _FakeResponse:
+    def __init__(self, status_code: int = 200):
+        self.status_code = status_code
+
+    def raise_for_status(self) -> None:
+        return None
+
+
+class _FakeHttpClient:
+    """Records PUT calls; stands in for httpx.Client (the test seam)."""
+
+    def __init__(self):
+        self.puts: list[dict[str, object]] = []
+        self.closed = False
+
+    def put(self, url, *, params=None, json=None):
+        self.puts.append({"url": url, "params": params, "json": json})
+        return _FakeResponse(200)
+
+    def close(self):
+        self.closed = True
+
+
+def _set_kb_env(monkeypatch):
+    monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
+    monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://aoai.example/")
+    monkeypatch.setenv("AZURE_OPENAI_REASONING_DEPLOYMENT", "gpt-5")
+
+
+def test_ensure_knowledge_base_skips_when_endpoint_missing(capsys):
+    # AZURE_AI_SEARCH_ENDPOINT not set -- postgresql-mode deploy.
+    sentinel = {"called": False}
+
+    def factory():
+        sentinel["called"] = True
+        raise AssertionError("client_factory should not be invoked")
+
+    result = post_provision._ensure_knowledge_base(
+        dry_run=False, client_factory=factory
+    )
+
+    assert result == "skipped"
+    assert sentinel["called"] is False
+    assert "skipping knowledge base" in capsys.readouterr().out
+
+
+def test_ensure_knowledge_base_dry_run_makes_no_calls(monkeypatch, capsys):
+    _set_kb_env(monkeypatch)
+
+    def factory():
+        raise AssertionError("dry-run must not build a client")
+
+    result = post_provision._ensure_knowledge_base(
+        dry_run=True, client_factory=factory
+    )
+
+    out = capsys.readouterr().out
+    assert result == "dry-run"
+    assert "[dry-run]" in out
+    assert "cwyd-kb" in out
+
+
+def test_ensure_knowledge_base_requires_openai_config(monkeypatch):
+    # Search endpoint set, but no OpenAI endpoint / reasoning deployment.
+    monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
+    with pytest.raises(SystemExit) as excinfo:
+        post_provision._ensure_knowledge_base(
+            dry_run=False, client_factory=lambda: _FakeHttpClient()
+        )
+    assert excinfo.value.code == 9
+
+
+def test_ensure_knowledge_base_puts_source_then_base(monkeypatch):
+    _set_kb_env(monkeypatch)
+    fake = _FakeHttpClient()
+
+    result = post_provision._ensure_knowledge_base(
+        dry_run=False, client_factory=lambda: fake
+    )
+
+    assert result == "ensured"
+    assert fake.closed is True
+    # Two PUTs, source before base (the base references the source by name).
+    assert len(fake.puts) == 2
+    ks_put, kb_put = fake.puts
+    assert ks_put["url"] == "https://srch.example/knowledgesources('cwyd-index-ks')"
+    assert kb_put["url"] == "https://srch.example/knowledgebases('cwyd-kb')"
+    # api-version pinned from the settings default on both calls.
+    assert ks_put["params"] == {"api-version": "2025-11-01-preview"}
+    assert kb_put["params"] == {"api-version": "2025-11-01-preview"}
+    # Bodies are wired from _build_knowledge_base_seed.
+    assert ks_put["json"]["kind"] == "searchIndex"
+    assert (
+        ks_put["json"]["searchIndexParameters"]["searchIndexName"] == "cwyd-index"
+    )
+    assert kb_put["json"]["knowledgeSources"] == [{"name": "cwyd-index-ks"}]
+    aoai = kb_put["json"]["models"][0]["azureOpenAIParameters"]
+    assert aoai["resourceUri"] == "https://aoai.example/"
+    assert aoai["deploymentId"] == "gpt-5"
+    # Deployment doubles as the model name when no explicit override is set.
+    assert aoai["modelName"] == "gpt-5"
+
+
+def test_ensure_knowledge_base_is_idempotent(monkeypatch):
+    _set_kb_env(monkeypatch)
+    # PUT is create-or-update: a second run "updates" what the first
+    # "created", issuing the same two PUTs with no error.
+    first = _FakeHttpClient()
+    second = _FakeHttpClient()
+    clients = iter((first, second))
+
+    assert (
+        post_provision._ensure_knowledge_base(
+            dry_run=False, client_factory=lambda: next(clients)
+        )
+        == "ensured"
+    )
+    assert (
+        post_provision._ensure_knowledge_base(
+            dry_run=False, client_factory=lambda: next(clients)
+        )
+        == "ensured"
+    )
+    assert len(first.puts) == 2
+    assert len(second.puts) == 2
+    assert [p["url"] for p in first.puts] == [p["url"] for p in second.puts]
+
+
 def test_main_dry_run_cosmosdb_skips_postgres_and_search_calls(
     monkeypatch, capsys
 ):
