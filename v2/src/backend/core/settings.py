@@ -211,6 +211,14 @@ class SearchSettings(BaseSettings):
     use_semantic_search: bool = True
     top_k: int = 5
 
+    # Foundry IQ Knowledge Base over `index`: a `searchIndex` knowledge source
+    # wraps the existing index, and the agent_framework orchestrator grounds on
+    # the KB. `knowledge_base_api_version` pins the KB REST API version so an
+    # operator can bump it via env var without a code change.
+    knowledge_base_name: str = "cwyd-kb"
+    knowledge_source_name: str = "cwyd-index-ks"
+    knowledge_base_api_version: str = "2025-11-01-preview"
+
 
 class StorageSettings(BaseSettings):
     """Shared storage account (RAG documents + indexing queues)."""

@@ -126,6 +126,32 @@ def test_loads_from_env_postgresql_mode(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.search.endpoint == ""
 
 
+def test_search_knowledge_base_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    settings = AppSettings()
+    assert settings.search.knowledge_base_name == "cwyd-kb"
+    assert settings.search.knowledge_source_name == "cwyd-index-ks"
+    assert settings.search.knowledge_base_api_version == "2025-11-01-preview"
+
+
+def test_search_knowledge_base_env_override_beats_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(
+        monkeypatch,
+        {
+            **COSMOS_ENV,
+            "AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME": "kb-custom",
+            "AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME": "ks-custom",
+            "AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION": "2026-04-01",
+        },
+    )
+    settings = AppSettings()
+    assert settings.search.knowledge_base_name == "kb-custom"
+    assert settings.search.knowledge_source_name == "ks-custom"
+    assert settings.search.knowledge_base_api_version == "2026-04-01"
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
