@@ -178,6 +178,15 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
 // CU-009a (2026-05-05): a previous Bicep param + container-app env
 // binding for the Foundry agent identity were removed. Per ADR 0008
 // (lazy-foundry-agent-bootstrap), agent identity is no longer an
@@ -976,6 +985,7 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
     aiServicesAccountName: aiServicesName
     projectName: aiProject.outputs.name
     searchServiceName: effectiveSearchName
+    knowledgeBaseName: searchKnowledgeBaseName
   }
 }
 
@@ -1688,6 +1698,15 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
             { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
             { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
+            // Foundry IQ knowledge base config (agent_framework orchestrator).
+            // The agent grounds on the KB via the Search MCP endpoint
+            // ({search}/knowledgebases/{kb}/mcp?api-version=<ver>); the
+            // api-version is operator-tunable so the KB protocol can advance
+            // without a new image. Defaults match the names post_provision.py
+            // seeds; resolved through the Project-Search connection.
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
@@ -2258,6 +2277,15 @@ output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveS
 
 @description('AI Search service name. Empty in postgresql mode.')
 output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? effectiveSearchName : ''
+
+@description('Foundry IQ knowledge base name. Backend grounds the agent_framework orchestrator on it; post_provision.py seeds it. Carries the configured name in both modes (post_provision skips seeding when the Search endpoint is empty).')
+output AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME string = searchKnowledgeBaseName
+
+@description('Foundry IQ knowledge source name backing the knowledge base. Seeded by post_provision.py before the knowledge base (the base references it).')
+output AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME string = searchKnowledgeSourceName
+
+@description('Foundry IQ knowledge base / knowledge source REST API version (operator-tunable). Used by post_provision.py to seed and by the backend to build the MCP retrieval URL.')
+output AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION string = searchKnowledgeBaseApiVersion
 
 // --- Conditional: Cosmos DB (cosmosdb mode only) ---
 

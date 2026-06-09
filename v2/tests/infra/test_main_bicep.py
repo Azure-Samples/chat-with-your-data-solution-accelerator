@@ -281,3 +281,83 @@ def test_appinsights_connection_string_bound_to_workload(
         "not a hand-set secret or runtime `az config appsettings set` "
         "patch (Hard Rule #7 + ADR-0018)."
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 8 (agent_framework default + Foundry IQ Knowledge Base): KB wiring.
+#
+# The agent_framework orchestrator grounds on a Foundry IQ knowledge base
+# resolved by name through the Project-Search connection. main.bicep must
+# (a) pass `knowledgeBaseName` into the `aiProjectSearchConnection` module,
+# (b) bind the KB name/source/api-version onto the backend Container App
+# `env:` array so the agent can build the Search MCP retrieval URL, and
+# (c) emit the same three values as outputs so the azd postprovision hook
+# (post_provision.py) seeds a knowledge base whose names match what the
+# backend reads. The api-version is operator-tunable, so it must reach the
+# container as an env var rather than a baked-in URL.
+# ---------------------------------------------------------------------------
+
+_BACKEND_KB_ENVS = (
+    "AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME",
+    "AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME",
+    "AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION",
+)
+
+
+@pytest.mark.parametrize("env_name", _BACKEND_KB_ENVS)
+def test_backend_aca_env_block_binds_knowledge_base_settings(
+    backend_aca_slice: str, env_name: str
+) -> None:
+    """Backend ACA `env:` array must bind every Foundry IQ KB setting.
+
+    `SearchSettings` (env_prefix AZURE_AI_SEARCH_) reads these to resolve
+    and query the Foundry IQ knowledge base for the agent_framework
+    orchestrator. The api-version is operator-tunable (Phase 8 / ADR 0021),
+    so it must reach the container as an env var, not a baked-in URL.
+    """
+    assert f"'{env_name}'" in backend_aca_slice, (
+        f"{env_name} missing from backend Container App env block. Add it "
+        "to the backend ACA `env: union([...])` array in main.bicep so "
+        "SearchSettings can populate it; the agent_framework orchestrator "
+        "needs it to resolve and query the Foundry IQ knowledge base."
+    )
+
+
+def test_search_connection_module_receives_knowledge_base_name(
+    bicep_text: str,
+) -> None:
+    """The `aiProjectSearchConnection` module call must pass `knowledgeBaseName`.
+
+    The module records the KB the agent resolves through the
+    Project-Search connection. Without the pass-through the module falls
+    back to its own default and an operator's `searchKnowledgeBaseName`
+    override never reaches the connection metadata.
+    """
+    module_call = _slice_module(
+        bicep_text,
+        "module aiProjectSearchConnection ",
+        "// Storage account. Triple-purpose",
+    )
+    assert "knowledgeBaseName: searchKnowledgeBaseName" in module_call, (
+        "aiProjectSearchConnection module call must pass "
+        "`knowledgeBaseName: searchKnowledgeBaseName` so the Project-Search "
+        "connection records the KB the agent_framework orchestrator resolves."
+    )
+
+
+@pytest.mark.parametrize("output_name", _BACKEND_KB_ENVS)
+def test_main_bicep_outputs_knowledge_base_settings(
+    bicep_text: str, output_name: str
+) -> None:
+    """main.bicep must emit each KB setting as an output for post_provision.py.
+
+    post_provision.py (the azd postprovision hook) seeds the knowledge
+    source + knowledge base from these azd-env values. Emitting them keeps
+    the seeded names / api-version in lock-step with what the backend
+    container reads, so an operator override flows to both halves.
+    """
+    assert f"output {output_name} string =" in bicep_text, (
+        f"{output_name} output missing from main.bicep. Emit it so the azd "
+        "postprovision hook (post_provision.py) seeds a Foundry IQ knowledge "
+        "base / knowledge source whose names match what the backend reads."
+    )
