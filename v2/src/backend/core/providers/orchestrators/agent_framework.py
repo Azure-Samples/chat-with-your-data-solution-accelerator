@@ -36,7 +36,7 @@ import logging
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
-from agent_framework import AgentResponseUpdate, Message
+from agent_framework import AgentResponseUpdate, MCPStreamableHTTPTool, Message
 # Debt (dev_plan §0.1 B-IMPL-FOUNDRY-STUBS-DEBT): the OSS
 # `agent_framework_foundry` PyPI distribution ships no `py.typed`
 # marker, so pyright cannot find stubs even though the package is
@@ -55,6 +55,11 @@ from .registry import registry
 from .base import OrchestratorBase
 
 logger = logging.getLogger(__name__)
+
+# The single managed retrieval tool a Foundry IQ Knowledge Base exposes on its
+# MCP endpoint. Pinned via `allowed_tools` so the agent may call only KB
+# retrieval, never arbitrary server-side tools.
+KB_RETRIEVE_TOOL_NAME = "knowledge_base_retrieve"
 
 
 @registry.register("agent_framework")
@@ -86,6 +91,14 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         self._agent_name = agent_name
         self._credential = credential
         self._project_endpoint = endpoint
+        # Foundry IQ Knowledge Base coordinates are infra-pinned (not
+        # per-request), so capture them once here -- mirroring the
+        # `_project_endpoint` extraction above -- rather than holding a
+        # reference to `settings` and reaching through it later.
+        search = settings.search
+        self._search_endpoint = search.endpoint
+        self._kb_name = search.knowledge_base_name
+        self._kb_api_version = search.knowledge_base_api_version
         # Test seam: callers (tests) may inject a callable that returns
         # a fake FoundryAgent. Defaults to the real constructor.
         self._agent_factory: Any = agent_factory or _default_agent_factory
@@ -178,6 +191,40 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _build_kb_tool(
+        self, *, bearer_token: str
+    ) -> MCPStreamableHTTPTool | None:
+        """Build the Foundry IQ Knowledge Base retrieval tool.
+
+        Returns a per-request `MCPStreamableHTTPTool` bound to the KB's
+        managed MCP endpoint, or `None` when the KB is unconfigured
+        (empty Search endpoint or knowledge-base name -- e.g. a pgvector
+        deployment, where `agent_framework` is rejected upstream rather
+        than reaching this path). `bearer_token` is a Search data-plane
+        access token injected on every MCP request through the SDK's
+        synchronous `header_provider` hook; the async caller in `run()`
+        fetches it because that hook cannot await the credential.
+        """
+        endpoint = self._search_endpoint.rstrip("/")
+        kb_name = self._kb_name
+        if not endpoint or not kb_name:
+            return None
+        url = (
+            f"{endpoint}/knowledgebases/{kb_name}/mcp"
+            f"?api-version={self._kb_api_version}"
+        )
+        authorization = f"Bearer {bearer_token}"
+        return MCPStreamableHTTPTool(
+            kb_name,
+            url,
+            approval_mode="never_require",
+            allowed_tools=[KB_RETRIEVE_TOOL_NAME],
+            header_provider=lambda headers: {
+                **headers,
+                "Authorization": authorization,
+            },
+        )
 
     @staticmethod
     def _to_oss_messages(messages: Sequence[ChatMessage]) -> list[Message]:

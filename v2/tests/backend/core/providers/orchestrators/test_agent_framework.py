@@ -14,7 +14,7 @@ from azure.core.exceptions import HttpResponseError
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
-from backend.core.settings import AppSettings, FoundrySettings
+from backend.core.settings import AppSettings, FoundrySettings, SearchSettings
 from backend.core.types import ChatMessage
 
 
@@ -27,6 +27,11 @@ def _settings(endpoint: str = "https://example.services.ai.azure.com/api/project
     settings = MagicMock(spec=AppSettings)
     settings.foundry = MagicMock(spec=FoundrySettings)
     settings.foundry.project_endpoint = endpoint
+    settings.search = MagicMock(spec=SearchSettings)
+    settings.search.endpoint = "https://srch.example"
+    settings.search.knowledge_base_name = "cwyd-kb"
+    settings.search.knowledge_source_name = "cwyd-index-ks"
+    settings.search.knowledge_base_api_version = "2025-11-01-preview"
     return settings
 
 
@@ -429,3 +434,68 @@ async def test_aclose_is_a_noop() -> None:
     orch = _make_orchestrator(factory=factory)
     # Must not raise -- credential lifecycle is owned by the wiring layer.
     await orch.aclose()
+
+
+# ---------------------------------------------------------------------------
+# _build_kb_tool() -- Foundry IQ Knowledge Base MCP tool construction
+# ---------------------------------------------------------------------------
+
+
+def _settings_with_search(
+    *,
+    endpoint: str = "https://srch.example",
+    kb_name: str = "cwyd-kb",
+    api_version: str = "2025-11-01-preview",
+) -> AppSettings:
+    settings = _settings()
+    settings.search.endpoint = endpoint
+    settings.search.knowledge_base_name = kb_name
+    settings.search.knowledge_base_api_version = api_version
+    return settings
+
+
+def test_build_kb_tool_returns_none_when_search_endpoint_missing() -> None:
+    orch = _make_orchestrator(settings=_settings_with_search(endpoint=""))
+    assert orch._build_kb_tool(bearer_token="tok") is None
+
+
+def test_build_kb_tool_returns_none_when_kb_name_missing() -> None:
+    orch = _make_orchestrator(settings=_settings_with_search(kb_name=""))
+    assert orch._build_kb_tool(bearer_token="tok") is None
+
+
+def test_build_kb_tool_constructs_managed_mcp_url_with_api_version() -> None:
+    orch = _make_orchestrator(
+        settings=_settings_with_search(
+            endpoint="https://srch.example/",  # trailing slash trimmed
+            kb_name="cwyd-kb",
+            api_version="2025-11-01-preview",
+        )
+    )
+    tool = orch._build_kb_tool(bearer_token="tok")
+    assert tool is not None
+    assert tool.name == "cwyd-kb"
+    assert tool.url == (
+        "https://srch.example/knowledgebases/cwyd-kb/mcp"
+        "?api-version=2025-11-01-preview"
+    )
+
+
+def test_build_kb_tool_sets_never_require_and_allowed_tools() -> None:
+    orch = _make_orchestrator(settings=_settings_with_search())
+    tool = orch._build_kb_tool(bearer_token="tok")
+    assert tool is not None
+    assert tool.approval_mode == "never_require"
+    assert list(tool.allowed_tools or []) == ["knowledge_base_retrieve"]
+
+
+def test_build_kb_tool_header_provider_injects_bearer() -> None:
+    orch = _make_orchestrator(settings=_settings_with_search())
+    tool = orch._build_kb_tool(bearer_token="tok123")
+    assert tool is not None
+    # `_header_provider` is the SDK's private storage for the header hook;
+    # poking it directly is the only way to assert the bearer is injected.
+    headers = tool._header_provider({"Content-Type": "application/json"})
+    assert headers["Authorization"] == "Bearer tok123"
+    # Existing headers are preserved (merge, not replace).
+    assert headers["Content-Type"] == "application/json"
