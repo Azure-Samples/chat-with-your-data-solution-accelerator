@@ -18,7 +18,6 @@ from backend.dependencies import (
     get_database_client,
     get_runtime_overrides,
     get_search_provider,
-    get_tenant_id,
     get_user_id,
     requires_role,
 )
@@ -150,7 +149,6 @@ def test_get_runtime_overrides_returns_none_when_attr_missing() -> None:
 _PRINCIPAL_ID = "x-ms-client-principal-id"
 _PRINCIPAL = "x-ms-client-principal"
 _ROLE_TYP_FULL = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-_TENANT_TYP_FULL = "http://schemas.microsoft.com/identity/claims/tenantid"
 
 
 def _claims(*role_pairs: tuple[str, str]) -> str:
@@ -300,99 +298,6 @@ def test_requires_role_factory_returns_distinct_callable_per_call() -> None:
     dep_a = requires_role("admin")
     dep_b = requires_role("admin")
     assert dep_a is not dep_b
-
-
-# ---------------------------------------------------------------------------
-# #35g unblock: get_tenant_id -- Easy Auth tenant-claim extraction
-#
-# Per-tenant config isolation needs the caller's Entra tenant id.
-# Unlike the user object id (carried in the dedicated
-# `x-ms-client-principal-id` header), the tenant id lives ONLY inside
-# the base64 `x-ms-client-principal` claims blob, so `get_tenant_id`
-# decodes the blob and extracts the `tid` claim. It is tolerant to both
-# the short `typ="tid"` and the full URI tenantid claim forms (mirrors
-# the role gate accepting both `roles` and the full role URI).
-#
-# Fail-closed in production (missing/malformed/absent claim -> 401);
-# local-dev bypass returns "local-dev-tenant" when the claim is
-# unavailable so per-tenant flows are exercisable without forging a
-# claims blob -- but a malformed blob still fails closed even in local
-# (parity with requires_role).
-# ---------------------------------------------------------------------------
-
-
-def test_get_tenant_id_returns_tid_short_form() -> None:
-    """Short ``typ="tid"`` claim -> returned verbatim in production."""
-    request = _request({_PRINCIPAL: _claims(("tid", "tenant-abc"))})
-    assert get_tenant_id(request, _settings("production")) == "tenant-abc"
-
-
-def test_get_tenant_id_accepts_full_uri_tenant_claim() -> None:
-    """Easy Auth may emit the tenant id with the schema-URI ``typ``."""
-    request = _request({_PRINCIPAL: _claims((_TENANT_TYP_FULL, "tenant-xyz"))})
-    assert get_tenant_id(request, _settings("production")) == "tenant-xyz"
-
-
-def test_get_tenant_id_raises_401_when_claims_header_missing_in_production() -> None:
-    """No claims blob in production -> fail closed (401)."""
-    request = _request({})
-    with pytest.raises(HTTPException) as exc:
-        get_tenant_id(request, _settings("production"))
-    assert exc.value.status_code == 401
-
-
-def test_get_tenant_id_raises_401_when_tenant_claim_absent_in_production() -> None:
-    """Valid claims blob carrying no tenant claim -> 401 in production.
-
-    A blob with only a role claim and no ``tid`` must not silently fold
-    the caller into a single shared tenant -- that would defeat the
-    per-tenant isolation this dep exists to provide.
-    """
-    request = _request({_PRINCIPAL: _claims(("roles", "admin"))})
-    with pytest.raises(HTTPException) as exc:
-        get_tenant_id(request, _settings("production"))
-    assert exc.value.status_code == 401
-
-
-def test_get_tenant_id_raises_401_on_malformed_base64() -> None:
-    """Undecodable claims blob -> fail closed (401)."""
-    request = _request({_PRINCIPAL: "not!valid!base64==="})
-    with pytest.raises(HTTPException) as exc:
-        get_tenant_id(request, _settings("production"))
-    assert exc.value.status_code == 401
-
-
-def test_get_tenant_id_raises_401_on_malformed_json() -> None:
-    """Valid base64 wrapping non-JSON bytes -> fail closed (401)."""
-    bad = base64.b64encode(b"not-json-at-all").decode("ascii")
-    request = _request({_PRINCIPAL: bad})
-    with pytest.raises(HTTPException) as exc:
-        get_tenant_id(request, _settings("production"))
-    assert exc.value.status_code == 401
-
-
-def test_get_tenant_id_falls_back_to_local_dev_tenant_when_no_headers_in_local() -> None:
-    """Local-dev bypass: no claims blob + ``environment == 'local'`` ->
-    return the synthetic ``'local-dev-tenant'`` so per-tenant flows are
-    exercisable end-to-end without forging Easy Auth claims."""
-    request = _request({})
-    assert get_tenant_id(request, _settings("local")) == "local-dev-tenant"
-
-
-def test_get_tenant_id_in_local_returns_real_tenant_when_claim_present() -> None:
-    """Local environment does NOT blindly synthesize when a real tenant
-    claim is present -- the forged blob's ``tid`` wins over the synthetic
-    fallback (parity with requires_role honoring forged claims locally)."""
-    request = _request({_PRINCIPAL: _claims(("tid", "tenant-local-real"))})
-    assert get_tenant_id(request, _settings("local")) == "tenant-local-real"
-
-
-def test_get_tenant_id_falls_back_to_local_dev_tenant_when_claim_absent_in_local() -> None:
-    """Local + valid blob but no ``tid`` claim -> synthetic tenant (the
-    soft-fallback branch, mirroring requires_role's local fallback when
-    the principal id is absent from an otherwise-valid blob)."""
-    request = _request({_PRINCIPAL: _claims(("roles", "admin"))})
-    assert get_tenant_id(request, _settings("local")) == "local-dev-tenant"
 
 
 # ---------------------------------------------------------------------------

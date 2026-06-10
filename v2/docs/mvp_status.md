@@ -161,7 +161,7 @@ sequenceDiagram
 - ✅ Frontend: four pages, real URLs, dedicated layout, Home-to-chat, gated header entry. The Streamlit→React admin merge (`#35d`) is cleared.
 - ⏳ **Delete Data UX (`#54`):** backend delete surface is shipped and the FE has multi-select delete + retry; final operator-workflow parity and table-state polish remain.
 - ☐ **Audit-log viewer:** the backend persists admin config-change audit rows, but there is no FE page to view them yet.
-- ☐ **Per-tenant config overrides (`#35g`):** deferred until tenant claims land on top of `#39` RBAC.
+- **Per-tenant config overrides (`#35g`): withdrawn — out of scope.** The single-tenant deployment makes tenant-keyed config a no-op over the singleton; the speculative tenant-claim seam was removed (see [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md)).
 
 ---
 
@@ -231,7 +231,7 @@ Tasks and subtasks left to call the MVP done. None of these block the backend, w
 |---|---|---|---|
 | D1 | Delete Data UX parity (`#54`) | Finalize operator workflow details; table-state UX polish for multi-select + retry | ⏳ |
 | D2 | Admin audit-log viewer | Add a read-only page over the persisted config-change audit rows (needs a list endpoint or reuse of existing storage) | ☐ |
-| D3 | Per-tenant config overrides (`#35g`) | Key `RuntimeConfig` by tenant; narrow PATCH by tenant claim — blocked until tenant claims land on `#39` | ☐ |
+| D3 | Per-tenant config overrides (`#35g`) | **Withdrawn — out of scope.** Single-tenant deployment ⇒ tenant-keyed config is a no-op over the singleton; tenant-claim seam removed (see [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md)) | — withdrawn |
 
 ### E. Deploy and verify
 
@@ -252,7 +252,7 @@ Tasks and subtasks left to call the MVP done. None of these block the backend, w
 | Citations | SSE abort + reconnect | No (polish) | `#24` |
 | Admin | Delete Data final UX parity | No (polish) | `#54` |
 | Admin | Audit-log viewer page | No (nice-to-have) | this doc §D2 |
-| Admin | Per-tenant config overrides | No (deferred) | `#35g` |
+| Admin | Per-tenant config overrides | No (withdrawn — out of scope) | `#35g` / [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md) |
 
 ---
 

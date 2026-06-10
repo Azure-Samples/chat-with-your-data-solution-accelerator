@@ -216,20 +216,15 @@ The split between **build-time / deploy-time settings** and **runtime-mutable se
 
 ---
 
-## 5. Per-tenant overrides (#35g)
+## 5. Per-tenant overrides (#35g) — withdrawn (out of scope)
 
-**Status: not implemented today; deferred behind #39 (Easy Auth tenant claim propagation).**
+**Status: withdrawn. The singleton is the final design for this product. See [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md).**
 
-The current `RuntimeConfig` row is a singleton — one override set per deployment, applied to every admin caller in that deployment. A multi-tenant scenario (one Container App serving multiple Entra tenants, each wanting its own orchestrator / temperature / top-k) requires:
+`#35g` proposed keying `RuntimeConfig` by the caller's Entra tenant id so that one deployment could serve multiple Entra organizations with independent config. **That premise does not hold for CWYD.** The deployment is single-tenant (`v2/infra/main.bicep` binds every tenant reference to `subscription().tenantId`; there is no multi-org Entra app registration), and all data is **user-scoped** (the Cosmos partition key is `/userId`; Postgres reads are `WHERE user_id = $1`). Because the tenant id (`tid`) is constant for a single-tenant deployment, keying the config by it would be a **functional no-op** over the existing singleton — and re-keying one admin row while chat history, documents, and the search index stay user-scoped would be incoherent half-multi-tenancy.
 
-1. Tenant claim propagation from Easy Auth into `requires_role("admin")` so the route knows *which* tenant the caller belongs to.
-2. `RuntimeConfig` keyed by `tenant_id` instead of a fixed singleton id.
-3. PATCH / GET / DELETE routes narrowed by the calling tenant's id.
-4. Per-tenant audit rows.
+The speculative tenant-claim seam that was shipped for this (`get_tenant_id` / `TenantIdDep` in [dependencies.py](../src/backend/dependencies.py)) is therefore dead code and has been removed. The incident and the full reasoning are recorded in [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md), which supersedes [ADR 0023](adr/0023-per-tenant-runtime-config-keying.md).
 
-None of this is shimmed today. Tracked as **#35g** in [development_plan.md](development_plan.md) §0.1, explicitly blocked on **#39** (the role-claim factory at [v2/src/backend/dependencies.py](../src/backend/dependencies.py#L342) only extracts the role literal, not tenant scope). When #39 lands tenant claims, #35g becomes a small, contained change.
-
-Until then: every admin caller with the `admin` role sees and mutates the same singleton row.
+**The `RuntimeConfig` singleton is correct and final:** every admin caller with the `admin` role sees and mutates the same one override document per deployment. Reopen `#35g` only if a real requirement to serve multiple Entra organizations from one deployment is introduced — together with a plan to tenant-scope chat history, documents, and the search index too, not just the admin config row.
 
 ---
 

@@ -311,11 +311,8 @@ PostPromptValidatorDep = Annotated[
 _PRINCIPAL_ID_HEADER = "x-ms-client-principal-id"
 _PRINCIPAL_HEADER = "x-ms-client-principal"
 _LOCAL_DEV_USER = "local-dev"
-_LOCAL_DEV_TENANT = "local-dev-tenant"
 _ROLE_TYP_SHORT = "roles"
 _ROLE_TYP_FULL = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-_TENANT_TYP_SHORT = "tid"
-_TENANT_TYP_FULL = "http://schemas.microsoft.com/identity/claims/tenantid"
 
 
 def get_user_id(request: Request, settings: SettingsDep) -> str:
@@ -390,95 +387,6 @@ def _extract_roles(principal: dict[str, Any]) -> set[str]:
         if typ_obj in (_ROLE_TYP_SHORT, _ROLE_TYP_FULL) and val_obj:
             roles.add(val_obj)
     return roles
-
-
-def _extract_tenant_id(principal: dict[str, Any]) -> str | None:
-    """Return the Entra tenant id from an Easy Auth claims payload.
-
-    Tolerant to both the short ``typ="tid"`` and the full URI
-    ``http://schemas.microsoft.com/identity/claims/tenantid`` claim
-    forms (mirrors ``_extract_roles``), so extraction works regardless
-    of which Entra issuer flavor Easy Auth surfaces. Returns the first
-    matching non-empty value, or ``None`` when no tenant claim is
-    present.
-    """
-    claims_obj: object = principal.get("claims") or []
-    if not isinstance(claims_obj, list):
-        return None
-    claims = cast("list[object]", claims_obj)
-    for claim in claims:
-        if not isinstance(claim, dict):
-            continue
-        claim_dict = cast("dict[str, object]", claim)
-        typ_obj = claim_dict.get("typ", "")
-        val_obj = claim_dict.get("val", "")
-        if not isinstance(typ_obj, str) or not isinstance(val_obj, str):
-            continue
-        if typ_obj in (_TENANT_TYP_SHORT, _TENANT_TYP_FULL) and val_obj:
-            return val_obj
-    return None
-
-
-def get_tenant_id(request: Request, settings: SettingsDep) -> str:
-    """Return the caller's Entra tenant id from the Easy Auth claims blob.
-
-    Decodes the ``x-ms-client-principal`` base64 JSON claims payload
-    and returns the tenant id (``tid``). Easy Auth does NOT surface a
-    dedicated ``x-ms-client-principal-tenant-id`` header -- the tenant
-    claim lives only inside the claims blob -- so this dep mirrors
-    ``requires_role``'s decode-then-extract flow rather than
-    ``get_user_id``'s dedicated-header read.
-
-    Local-dev bypass: when ``settings.environment == "local"`` AND the
-    tenant claim is unavailable (no claims header, or an otherwise-valid
-    blob carrying no tenant claim) the dep returns ``"local-dev-tenant"``
-    so per-tenant flows are exercisable end-to-end during development
-    without forging a base64 claims blob. A *malformed* claims blob
-    still fails closed even in local (parity with ``requires_role``).
-    In ``production`` a missing/malformed claims header -- or a valid
-    blob with no tenant claim -- raises ``401 Unauthorized``: a
-    misconfigured Easy Auth must fail closed, never silently fold every
-    caller into a single synthetic tenant.
-
-    Sibling of ``get_user_id`` and ``requires_role`` (same Easy Auth
-    surface). Routers that need per-tenant config isolation consume
-    ``TenantIdDep``.
-    """
-    claims_raw = request.headers.get(_PRINCIPAL_HEADER, "").strip()
-
-    # No claims blob at all: local-dev bypass, else fail closed.
-    if not claims_raw:
-        if settings.environment is Environment.LOCAL:
-            return _LOCAL_DEV_TENANT
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=(
-                "Missing client principal claims; "
-                "Easy Auth claims header required."
-            ),
-        )
-
-    principal = _decode_easy_auth_principal(claims_raw)
-    if principal is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Malformed client principal payload.",
-        )
-
-    tenant_id = _extract_tenant_id(principal)
-    if tenant_id:
-        return tenant_id
-
-    # Valid blob but no tenant claim: local-dev bypass, else fail closed.
-    if settings.environment is Environment.LOCAL:
-        return _LOCAL_DEV_TENANT
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Missing tenant id claim in client principal.",
-    )
-
-
-TenantIdDep = Annotated[str, Depends(get_tenant_id)]
 
 
 def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
@@ -565,7 +473,6 @@ __all__ = [
     "RuntimeOverridesDep",
     "SearchProviderDep",
     "SettingsDep",
-    "TenantIdDep",
     "UserIdDep",
     "get_agents_provider",
     "get_app_settings",
@@ -575,7 +482,6 @@ __all__ = [
     "get_llm_provider",
     "get_runtime_overrides",
     "get_search_provider",
-    "get_tenant_id",
     "get_user_id",
     "requires_role",
 ]

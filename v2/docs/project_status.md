@@ -110,7 +110,7 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | `POST /api/admin/documents/reprocess` (reprocess all in container) | ✅ shipped (`U-P7-53-BE` BE-3) |
 | `GET /api/admin/documents` (list indexed sources with chunk counts) | ✅ shipped (`U-P7-54-BE`) |
 | `DELETE /api/admin/documents/{source}` (delete by source) | ✅ shipped (`U-P7-54-BE`) |
-| Per-tenant config overrides | ☐ blocked on `#39` tenant claim propagation (`#35g`) |
+| Per-tenant config overrides | — withdrawn (out of scope, single-tenant); see [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md) (`#35g`) |
 | FE admin route merge | ✅ cleared (`#35d`, 2026-06-08) + real admin URLs (`U-PP7-ROUTE`) |
 
 ### Chat History
@@ -326,7 +326,7 @@ Three v1 docs describe concepts that still apply in v2 but lack a v2-side author
 | ID | Item | Status |
 |---|---|---|
 | `#35d` | FE admin route merge — FE-team-owned; backend surface complete | ⏳ in progress |
-| `#35g` | Per-tenant config overrides | ☐ open — blocked on `#39` tenant claim propagation |
+| `#35g` | Per-tenant config overrides | — withdrawn (out of scope, single-tenant); [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md) supersedes ADR 0023 |
 | `B-IMPL-FACTORY-CACHE` | Cache `FoundryAgent` instances at orchestrator registry layer | ☐ open — post-Phase-7 hardening |
 | `B-IMPL-EXTRAS` | OSS MAF multi-agent demos (Magentic, Handoff, workflows) | ☐ deferred — awaiting concrete demand |
 | `B-IMPL-FOUNDRY-STUBS-DEBT` | `agent_framework_foundry` PyPI distribution missing `py.typed` | ☐ open — upstream OSS SDK |
@@ -340,7 +340,7 @@ Three v1 docs describe concepts that still apply in v2 but lack a v2-side author
 
 ### `#39`-blocked items
 
-`#35g` is the only backend row formally blocked on `#39` tenant claim propagation. `#39` itself is ✅ cleared (`requires_role("admin")` gate shipped 2026-05-06) — `#35g` waits for tenant-id propagation in the Easy Auth principal claims surface, a separate slice not yet scheduled.
+**None.** `#35g` was previously listed here as blocked on `#39` tenant claim propagation; it is now **withdrawn as out of scope** — the deployment is single-tenant, so tenant-keyed config is a no-op over the singleton (see [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md), which supersedes ADR 0023). `#39` itself (`requires_role("admin")`) shipped 2026-05-06.
 
 ---
 
