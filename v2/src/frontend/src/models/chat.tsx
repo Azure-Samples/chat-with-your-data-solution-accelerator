@@ -10,7 +10,6 @@
  *   the `POST /api/conversation` request body (see ADR 0007).
  * - `MessageRole` / `ChatMessage` / `ChatState` are the FE-owned
  *   domain state shapes held by `<ChatProvider>` and its reducer.
- *   `ChatMessage.feedback` mirrors `backend.core.types.MessageRecord.feedback`.
  * - `HistoryConversation` mirrors a single row of
  *   `GET /api/history/conversations`.
  */
@@ -69,15 +68,6 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Inline error notice from a `channel: "error"` SSE frame. */
   error?: string;
-  /**
-   * Persisted feedback value for this message, mirrored from
-   * `MessageRecord.feedback`. `null` (or absent) means the user has not
-   * submitted feedback yet; a non-empty string is the freeform value the
-   * backend stored (e.g. `"positive"`, `"negative"`, or a structured
-   * reason payload). `<FeedbackButtons>` reads this to drive the
-   * selected-state visualization.
-   */
-  feedback?: string | null;
   /**
    * Citations collected from `channel: "citation"` SSE frames during
    * the answer stream. Each entry is the wire mirror of

@@ -32,7 +32,6 @@ export const ChatActionType = {
   AppendCitation: "append_citation",
   FinishStream: "finish_stream",
   SetError: "set_error",
-  SetFeedback: "set_feedback",
   FocusCitation: "focus_citation",
   Reset: "reset",
 } as const;
@@ -46,7 +45,6 @@ export type ChatAction =
   | { type: typeof ChatActionType.AppendCitation; id: string; citation: Citation }
   | { type: typeof ChatActionType.FinishStream; id: string }
   | { type: typeof ChatActionType.SetError; id: string; error: string }
-  | { type: typeof ChatActionType.SetFeedback; id: string; feedback: string | null }
   | { type: typeof ChatActionType.FocusCitation; citationId: string | null }
   | { type: typeof ChatActionType.Reset };
 
@@ -98,11 +96,6 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...m,
         streaming: false,
         error: action.error,
-      }));
-    case ChatActionType.SetFeedback:
-      return mapMessage(state, action.id, (m) => ({
-        ...m,
-        feedback: action.feedback,
       }));
     case ChatActionType.FocusCitation:
       // No-op when the focus value is already the active one. Keeps

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import {
   ChatProvider,
   useChat,
@@ -313,257 +313,23 @@ describe("MessageList", () => {
     });
     expect(dispatchToastMock).toHaveBeenCalledTimes(2);
   });
-});
 
-describe("MessageList feedback wiring", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
-
-  beforeEach(() => {
-    fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
-  });
-
-  function noContent(): Response {
-    return new Response(null, { status: 204 });
-  }
-
-  function errorResponse(status: number): Response {
-    return new Response(JSON.stringify({ detail: "nope" }), {
-      status,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  function getDispatch(): (action: {
-    type: "add";
-    message: ChatMessage;
-  }) => void {
-    return (
-      Seed as unknown as {
-        _dispatch: (a: { type: "add"; message: ChatMessage }) => void;
-      }
-    )._dispatch;
-  }
-
-  it("renders FeedbackButtons under finished assistant messages", () => {
+  it("does not render any feedback controls under a finished assistant message", () => {
     render(
       <ChatProvider>
         <Seed messages={[]} />
         <MessageList />
       </ChatProvider>,
     );
-    const dispatch = getDispatch();
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
 
     act(() => {
       dispatch({ type: "add", message: m2 });
     });
 
-    expect(screen.getByTestId("feedback-2")).toBeInTheDocument();
-    expect(screen.getByTestId("feedback-2-positive")).toBeInTheDocument();
-    expect(screen.getByTestId("feedback-2-negative")).toBeInTheDocument();
-  });
-
-  it("does NOT render FeedbackButtons for user messages", () => {
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-
-    act(() => {
-      dispatch({ type: "add", message: m1 });
-    });
-
-    expect(screen.queryByTestId("feedback-1")).toBeNull();
-  });
-
-  it("does NOT render FeedbackButtons while an assistant message is still streaming", () => {
-    const mStreaming: ChatMessage = {
-      id: "s1",
-      role: "assistant",
-      content: "",
-      streaming: true,
-    };
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-
-    act(() => {
-      dispatch({ type: "add", message: mStreaming });
-    });
-
-    expect(screen.queryByTestId("feedback-s1")).toBeNull();
-  });
-
-  it("reflects an already-set feedback value as the pressed thumb", () => {
-    const mWithPositive: ChatMessage = {
-      id: "fp",
-      role: "assistant",
-      content: "answer",
-      feedback: "positive",
-    };
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-
-    act(() => {
-      dispatch({ type: "add", message: mWithPositive });
-    });
-
-    expect(screen.getByTestId("feedback-fp-positive")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    expect(screen.getByTestId("feedback-fp-negative")).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-  });
-
-  it("POSTs feedback and optimistically locks the thumb on 👍 click", async () => {
-    fetchMock.mockResolvedValueOnce(noContent());
-
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-    act(() => {
-      dispatch({ type: "add", message: m2 });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("feedback-2-positive"));
-    });
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/history/messages/2/feedback");
-    expect(init.method).toBe("POST");
-    expect(init.body).toBe(JSON.stringify({ feedback: "positive" }));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("feedback-2-positive")).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-    });
-  });
-
-  it("rolls back the optimistic dispatch when the POST fails", async () => {
-    fetchMock.mockResolvedValueOnce(errorResponse(500));
-
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-    act(() => {
-      dispatch({ type: "add", message: m2 });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("feedback-2-positive"));
-    });
-
-    // After rollback the thumb is unpressed again (initial state was undefined).
-    await waitFor(() => {
-      expect(screen.getByTestId("feedback-2-positive")).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
-    });
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("rolls back to the previous feedback value (not null) when overwriting fails", async () => {
-    const mAlreadyPositive: ChatMessage = {
-      id: "fp",
-      role: "assistant",
-      content: "answer",
-      feedback: "positive",
-    };
-    fetchMock.mockResolvedValueOnce(errorResponse(422));
-
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-    act(() => {
-      dispatch({ type: "add", message: mAlreadyPositive });
-    });
-
-    // 👎 is currently unpressed; clicking it opens the reason form,
-    // then submitting sends "negative".
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("feedback-fp-negative"));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("feedback-fp-reason-submit"));
-    });
-
-    // After the 422 rollback the original positive feedback is restored.
-    await waitFor(() => {
-      expect(screen.getByTestId("feedback-fp-positive")).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-    });
-    expect(screen.getByTestId("feedback-fp-negative")).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-  });
-
-  it("URL-encodes the message id when POSTing feedback", async () => {
-    fetchMock.mockResolvedValueOnce(noContent());
-
-    const mFunky: ChatMessage = {
-      id: "msg/with space",
-      role: "assistant",
-      content: "answer",
-    };
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    const dispatch = getDispatch();
-    act(() => {
-      dispatch({ type: "add", message: mFunky });
-    });
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("feedback-msg/with space-positive"));
-    });
-
-    const [url] = fetchMock.mock.calls[0] as [string];
-    expect(url).toBe(
-      "/api/history/messages/msg%2Fwith%20space/feedback",
-    );
+    expect(screen.queryByTestId("feedback-2")).toBeNull();
+    expect(screen.queryByTestId("feedback-2-positive")).toBeNull();
+    expect(screen.queryByTestId("feedback-2-negative")).toBeNull();
   });
 });
 

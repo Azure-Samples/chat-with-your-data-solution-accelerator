@@ -7,12 +7,9 @@
  *           bubble; user is a brand-tinted right-aligned chip; avatars
  *           use Fluent v9 icons; empty state uses Fluent Chat48 +
  *           Title2 "Start a conversation".) +
- *        7 (Testing + Documentation — wire <FeedbackButtons> per
- *           assistant message; optimistic set_feedback dispatch then
- *           POST /api/history/messages/{id}/feedback via setFeedback();
- *           rollback the dispatch on API failure. Error surface
- *           hoisted from an inline `<p role="alert">` to a Fluent v9
- *           Toast dispatched through `<Toaster toasterId=TOASTER_ID>`.)
+ *        7 (Testing + Documentation — error surface hoisted from an
+ *           inline `<p role="alert">` to a Fluent v9 Toast dispatched
+ *           through `<Toaster toasterId=TOASTER_ID>`.)
  *
  * Renders the chat transcript from ChatContext. Each message renders a
  * single <li> with a per-row layout: a 28x28 round avatar (Fluent
@@ -30,23 +27,15 @@
  *     read as one-character mush — we concatenate at render time and
  *     keep the array shape on the wire).
  *   - non-empty `citations?: Citation[]` (finished messages only) →
- *     a `<CitationPanel>` accordion under the answer. Sibling of the
- *     feedback row; hidden while the message is still streaming so
- *     the panel doesn't churn as new sources arrive.
+ *     a `<CitationPanel>` accordion under the answer, hidden while
+ *     the message is still streaming so the panel doesn't churn as
+ *     new sources arrive.
  *   - `error?: string`                   → dispatched as a Fluent v9
  *     error-intent Toast (the app-wide `<Toaster>` is mounted by
  *     `<FluentThemeBridge>`). A per-component `Set<"<id>::<err>">`
  *     ref dedupes so identical SSE error frames or React Strict
  *     Mode double-invocation surface only one toast per failure.
  * Both decorations are skipped when neither field applies.
- *
- * Finished assistant messages (`streaming !== true`) additionally
- * render a <FeedbackButtons> row. Click flow is optimistic: dispatch
- * `set_feedback` first so the thumb visually "locks in" before the
- * fetch round-trip, then call `setFeedback()`. If the POST fails the
- * dispatch rolls back to the prior value so the UI matches reality.
- * The reasoning panel renders unchanged when feedback is present —
- * feedback is a sibling, not a wrapper.
  *
  * All `data-testid` and `data-role` attributes are preserved verbatim
  * from the Phase-5 contract — visual changes only.
@@ -64,12 +53,9 @@ import {
   Person20Regular,
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
-import type { ChatMessage } from "@/models/chat";
-import { setFeedback } from "@/api/feedback";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
 import { renderAnswerTokens } from "./answerTokens";
 import { CitationPanel } from "./CitationPanel/CitationPanel";
-import { FeedbackButtons } from "./FeedbackButtons";
 import styles from "./MessageList.module.css";
 
 export function MessageList() {
@@ -115,24 +101,6 @@ export function MessageList() {
     if (state.messages.length === 0) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [state.messages.length, lastContentLen]);
-
-  const handleFeedback = useCallback(
-    async (m: ChatMessage, value: string): Promise<void> => {
-      const previous = m.feedback ?? null;
-      dispatch({ type: "set_feedback", id: m.id, feedback: value });
-      try {
-        await setFeedback(m.id, value);
-      } catch {
-        // Rollback: the backend rejected the feedback (404/422/5xx),
-        // so revert the optimistic dispatch and let the UI reflect
-        // reality. We intentionally swallow the error — there is no
-        // user-visible error surface for feedback failures today,
-        // and the rollback is the only visible-tier correction.
-        dispatch({ type: "set_feedback", id: m.id, feedback: previous });
-      }
-    },
-    [dispatch],
-  );
 
   const handleCitationFocus = useCallback(
     (citationId: string) => {
@@ -225,13 +193,6 @@ export function MessageList() {
                 focusedCitationId={state.focusedCitationId}
               />
             )}
-          {m.role === "assistant" && m.streaming !== true && (
-            <FeedbackButtons
-              messageId={m.id}
-              feedback={m.feedback ?? null}
-              onSubmit={(value) => handleFeedback(m, value)}
-            />
-          )}
         </li>
       ))}
       </ol>
