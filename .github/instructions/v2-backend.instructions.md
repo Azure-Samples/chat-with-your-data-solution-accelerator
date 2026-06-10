@@ -14,7 +14,8 @@ applyTo: "v2/src/backend/**"
 
 ## Structure
 
-- `app.py` — app factory, lifespan, CORS, OTel.
+- `app.py` — app factory, lifespan, CORS, OTel. **App-level exception handlers do not live here** — they are extracted to `exception_handlers.py` (keeps the factory free of router-policy logic); `create_app()` only imports and calls `install_exception_handlers(app)`.
+- `exception_handlers.py` — the app-level exception-handler subsystem (sanitized SDK-failure responses + the domain `ConfigResolutionError` → 409 handler). Public `install_exception_handlers(app)` is the single registration entry point, called once from `create_app()`. Per the policy in [v2/docs/exception_handling_policy.md](../../v2/docs/exception_handling_policy.md) "Routers" row: domain/SDK failures surface as sanitized HTTP responses with no stack-trace, PII, or upstream payload leaked.
 - `dependencies.py` — settings, LLM helper, DB factory, search handler — all as cached `Depends`.
 - `routers/<area>.py` — one router per area, prefixed `/api/<area>`.
 - `models/` — Pydantic request/response models. **Never** return raw dicts.

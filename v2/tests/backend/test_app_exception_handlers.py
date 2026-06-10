@@ -7,12 +7,12 @@ Per [v2/docs/exception_handling_policy.md](../../docs/exception_handling_policy.
 "Routers" row: every public route surfaces upstream SDK failures as
 **sanitized** HTTP responses with no SDK stack-trace, no PII, and no
 upstream payload echoed back. The implementation lives in
-`backend/app.py::_install_exception_handlers` and runs once at app
-construction; this module verifies (a) the sanitized status codes,
-(b) the sanitized response bodies, (c) the structured ERROR log
-record carrying `method` / `path` / `user_id` / `exception_class`
-extras, and (d) that `HTTPException` and `RequestValidationError`
-keep their FastAPI defaults (no shadowing).
+`backend/exception_handlers.py::install_exception_handlers` and runs
+once at app construction; this module verifies (a) the sanitized
+status codes, (b) the sanitized response bodies, (c) the structured
+ERROR log record carrying `method` / `path` / `user_id` /
+`exception_class` extras, and (d) that `HTTPException` and
+`RequestValidationError` keep their FastAPI defaults (no shadowing).
 """
 
 import asyncpg
@@ -25,10 +25,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
-from backend.app import _install_exception_handlers
+from backend.exception_handlers import install_exception_handlers
+from backend.services.admin import ConfigResolutionError
 
 
-_APP_LOGGER_NAME = "backend.app"
+_APP_LOGGER_NAME = "backend.exception_handlers"
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +46,7 @@ def _build_app_with_failing_route(exc: Exception) -> FastAPI:
     handler installation contract -- no router wiring side-effects.
     """
     app = FastAPI()
-    _install_exception_handlers(app)
+    install_exception_handlers(app)
 
     @app.get("/_test/raise")
     async def _raise() -> None:
@@ -176,6 +177,59 @@ def test_unhandled_exception_returns_500_with_sanitized_body(
 
 
 # ---------------------------------------------------------------------------
+# ConfigResolutionError -> 409 (domain error -- message surfaced, ADR 0022)
+# ---------------------------------------------------------------------------
+
+
+def test_config_resolution_error_returns_409_with_message_and_reason(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A `ConfigResolutionError` surfaces as a 409 Conflict carrying the
+    actionable `message` + `reason` (ADR 0022) -- NOT a sanitized
+    generic string. Unlike the SDK handlers it logs at ERROR via
+    `logger.error` (so `record.exc_info` is None -- no stack trace),
+    with structured `operation` / `reason` / conflicting-field extras
+    emitted exactly once.
+    """
+    message = (
+        "agent_framework requires an Azure AI Search index; "
+        "set CWYD_ORCHESTRATOR_NAME=langgraph for pgvector."
+    )
+    exc = ConfigResolutionError(
+        message,
+        reason="orchestrator_requires_azure_search",
+        context={
+            "index_store": "pgvector",
+            "configured_orchestrator": "agent_framework",
+        },
+    )
+    app = _build_app_with_failing_route(exc)
+    with caplog.at_level("ERROR", logger=_APP_LOGGER_NAME):
+        with TestClient(app) as client:
+            response = client.get(
+                "/_test/raise",
+                headers={"x-ms-client-principal-id": "admin-7"},
+            )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "error": message,
+        "reason": "orchestrator_requires_azure_search",
+    }
+
+    record = _find_error_record(caplog, "operation", "resolve_effective_config")
+    # Domain error -> logger.error, never logger.exception: no stack trace.
+    assert record.exc_info is None
+    assert record.reason == "orchestrator_requires_azure_search"
+    # The conflicting-field `context` map is splatted into the extras.
+    assert record.index_store == "pgvector"
+    assert record.configured_orchestrator == "agent_framework"
+    assert record.method == "GET"
+    assert record.path == "/_test/raise"
+    assert record.user_id == "admin-7"
+
+
+# ---------------------------------------------------------------------------
 # Pass-through invariants (HTTPException + 422 must NOT be shadowed)
 # ---------------------------------------------------------------------------
 
@@ -209,7 +263,7 @@ def test_request_validation_error_pass_through_returns_422() -> None:
         name: str
 
     app = FastAPI()
-    _install_exception_handlers(app)
+    install_exception_handlers(app)
 
     @app.post("/_test/echo")
     async def _echo(body: _Body) -> dict[str, str]:
