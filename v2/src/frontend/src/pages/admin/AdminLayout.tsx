@@ -67,7 +67,7 @@ export function AdminLayout(): JSX.Element {
             void navigate(SectionPath[Section.Chat]);
           }}
         >
-          Home
+          Back to CWYD
         </Button>
         <nav
           aria-label="Admin"

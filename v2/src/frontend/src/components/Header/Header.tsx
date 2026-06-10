@@ -6,19 +6,16 @@
  * `commonComponents/components/Header/Header.tsx`:
  *   - Left brand: <Avatar shape="square" color="neutral"> wrapping
  *     <MsftColorLogo/> + a "<title> | <subtitle>" label row.
- *   - Middle nav (optional): <nav> with one button per admin page
- *     (Ingest data, Delete data, Configuration, Prompt editor). These
- *     only render when the caller reports `adminAvailable === true` so
- *     non-admin sessions never see a dead-end link.
  *   - Right tools: <HeaderTools> — Fluent <Toolbar> with new-chat, a
- *     gated admin entry, history toggle, theme toggle.
+ *     gated admin entry, history toggle, theme toggle. The admin pages
+ *     are reached solely through that gated admin entry, so a non-admin
+ *     session never sees a dead-end link.
  *
  * The accessible name "app-header" testid is preserved verbatim.
  */
-import { Avatar, Button } from "@fluentui/react-components";
+import { Avatar } from "@fluentui/react-components";
 import { type JSX } from "react";
 import type { Section } from "@/models/sections";
-import { Section as SectionValue } from "@/models/sections";
 import { HeaderTools } from "./HeaderTools";
 import { MsftColorLogo } from "./MsftColorLogo";
 import styles from "./Header.module.css";
@@ -31,19 +28,11 @@ export interface HeaderProps {
   historyOpen: boolean;
   onToggleHistory: () => void;
   onNewChat: () => void;
-  view?: AppView;
-  onSelectView?: (view: AppView) => void;
   adminAvailable?: boolean | null;
   onOpenAdmin?: () => void;
 }
 
 const DEFAULT_SUBTITLE = "Solution Accelerator";
-
-function adminStatusAttr(adminAvailable: boolean | null | undefined): string {
-  if (adminAvailable === true) return "available";
-  if (adminAvailable === false) return "forbidden";
-  return "loading";
-}
 
 export function Header({
   title,
@@ -51,12 +40,9 @@ export function Header({
   historyOpen,
   onToggleHistory,
   onNewChat,
-  view,
-  onSelectView,
   adminAvailable,
   onOpenAdmin,
 }: HeaderProps): JSX.Element {
-  const showNav = view !== undefined && onSelectView !== undefined;
   return (
     <header className={styles.header} data-testid="app-header">
       <div className={styles.brand}>
@@ -79,59 +65,6 @@ export function Header({
           )}
         </div>
       </div>
-      {showNav && (
-        <nav
-          aria-label="Primary"
-          className={styles.nav}
-          data-testid="primary-nav"
-          data-admin-status={adminStatusAttr(adminAvailable)}
-        >
-          {adminAvailable === true && (
-            <>
-              <Button
-                appearance={view === SectionValue.AdminIngest ? "primary" : "subtle"}
-                aria-current={view === SectionValue.AdminIngest ? "page" : undefined}
-                data-testid="nav-admin-ingest"
-                onClick={() => {
-                  onSelectView(SectionValue.AdminIngest);
-                }}
-              >
-                Ingest data
-              </Button>
-              <Button
-                appearance={view === SectionValue.AdminDelete ? "primary" : "subtle"}
-                aria-current={view === SectionValue.AdminDelete ? "page" : undefined}
-                data-testid="nav-admin-delete"
-                onClick={() => {
-                  onSelectView(SectionValue.AdminDelete);
-                }}
-              >
-                Delete data
-              </Button>
-              <Button
-                appearance={view === SectionValue.AdminConfig ? "primary" : "subtle"}
-                aria-current={view === SectionValue.AdminConfig ? "page" : undefined}
-                data-testid="nav-admin-config"
-                onClick={() => {
-                  onSelectView(SectionValue.AdminConfig);
-                }}
-              >
-                Configuration
-              </Button>
-              <Button
-                appearance={view === SectionValue.AdminPrompt ? "primary" : "subtle"}
-                aria-current={view === SectionValue.AdminPrompt ? "page" : undefined}
-                data-testid="nav-admin-prompt"
-                onClick={() => {
-                  onSelectView(SectionValue.AdminPrompt);
-                }}
-              >
-                Prompt editor
-              </Button>
-            </>
-          )}
-        </nav>
-      )}
       <HeaderTools
         historyOpen={historyOpen}
         onToggleHistory={onToggleHistory}

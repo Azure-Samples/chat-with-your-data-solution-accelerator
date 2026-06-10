@@ -5,8 +5,8 @@
  * Tests for <AdminLayout>: the shared admin chrome. Verifies the
  * secondary nav renders a link per admin page, the active link is
  * marked aria-current, the routed child renders through <Outlet/>,
- * sub-nav clicks switch pages, and the back-home button returns to the
- * chat root.
+ * sub-nav clicks switch pages, and the "Back to CWYD" button returns
+ * to the chat root.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
@@ -73,6 +73,13 @@ describe("AdminLayout", () => {
     fireEvent.click(screen.getByTestId("admin-subnav-config"));
     expect(screen.getByTestId("config-child")).toBeInTheDocument();
     expect(screen.queryByTestId("ingest-child")).not.toBeInTheDocument();
+  });
+
+  it("labels the back-home button 'Back to CWYD'", () => {
+    renderAt("/admin/ingest");
+    expect(screen.getByTestId("admin-back-home")).toHaveTextContent(
+      "Back to CWYD",
+    );
   });
 
   it("returns to the chat root when the back-home button is clicked", () => {

@@ -2,13 +2,22 @@
  * Pillar: Stable Core
  * Phase: 5 (Admin + Frontend Merge)
  *
- * App-level navigation tests: the primary nav slot in the header must
- * gate the Admin button on a successful `getAdminStatus()` probe and
- * the App must swap between the chat view and the admin "Ingest data"
- * view based on the active nav selection.
+ * App-level navigation tests: the header's gated admin entry must
+ * appear only on a successful `getAdminStatus()` probe, the App must
+ * route into the admin layout when that entry is clicked, and admin
+ * URLs must deep-link / redirect correctly. The header no longer
+ * renders a primary admin nav — admin is reached solely via the gated
+ * entry. The app header renders only on the chat route — admin routes
+ * hide it so the AdminLayout chrome owns the admin frame.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { App } from "@/App";
 
 interface FetchStubOptions {
@@ -90,6 +99,17 @@ function stubFetch({ adminOk }: FetchStubOptions): void {
   );
 }
 
+/**
+ * Admin routes hide the app header, so there's no probe-gated element
+ * to await on. Flush the in-flight `getAdminStatus()` probe inside
+ * act() so its state update lands before teardown.
+ */
+async function flushAdminProbe(): Promise<void> {
+  await act(async () => {
+    // Drain the pending admin-status promise + its setState.
+  });
+}
+
 beforeEach(() => {
   // Each test sets its own admin posture via stubFetch().
 });
@@ -101,109 +121,38 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-describe("App primary navigation", () => {
-  it("hides the Admin link when /api/admin/status returns 403", async () => {
+describe("App navigation", () => {
+  it("hides the Admin entry when /api/admin/status returns 403", async () => {
     stubFetch({ adminOk: false });
     render(<App />);
+    // Chat renders immediately; once the probe settles to forbidden the
+    // gated admin entry stays hidden.
     await waitFor(() => {
-      expect(screen.getByTestId("primary-nav")).toHaveAttribute(
-        "data-admin-status",
-        "forbidden",
-      );
+      expect(screen.getByTestId("chat-page")).toBeInTheDocument();
     });
+    expect(screen.queryByTestId("header-admin")).not.toBeInTheDocument();
+  });
+
+  it("shows the Admin entry when /api/admin/status returns 200", async () => {
+    stubFetch({ adminOk: true });
+    render(<App />);
+    expect(await screen.findByTestId("header-admin")).toBeInTheDocument();
+  });
+
+  it("does not render a primary admin nav in the header", async () => {
+    // Regression guard: the four admin nav buttons that used to sit in
+    // the header are gone; admin is reached only via the gated entry.
+    stubFetch({ adminOk: true });
+    render(<App />);
+    await screen.findByTestId("header-admin");
+    expect(screen.queryByTestId("primary-nav")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-admin-ingest")).not.toBeInTheDocument();
-  });
-
-  it("shows the Admin link when /api/admin/status returns 200", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("primary-nav")).toHaveAttribute(
-        "data-admin-status",
-        "available",
-      );
-    });
-    expect(screen.getByTestId("nav-admin-ingest")).toBeInTheDocument();
-  });
-
-  it("shows the Delete data link when /api/admin/status returns 200", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("nav-admin-delete")).toBeInTheDocument();
-    });
-  });
-
-  it("hides the Delete data link when /api/admin/status returns 403", async () => {
-    stubFetch({ adminOk: false });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("primary-nav")).toHaveAttribute(
-        "data-admin-status",
-        "forbidden",
-      );
-    });
     expect(screen.queryByTestId("nav-admin-delete")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("nav-admin-config")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("nav-admin-prompt")).not.toBeInTheDocument();
   });
 
-  it("switches to the IngestData view when the Admin link is clicked", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const adminLink = await screen.findByTestId("nav-admin-ingest");
-    expect(screen.getByTestId("chat-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-
-    fireEvent.click(adminLink);
-
-    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
-    expect(screen.getByTestId("nav-admin-ingest")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-  });
-
-  it("switches to the DeleteData view when the Delete data link is clicked", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const deleteLink = await screen.findByTestId("nav-admin-delete");
-    expect(screen.getByTestId("chat-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-
-    fireEvent.click(deleteLink);
-
-    expect(screen.getByTestId("delete-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-    expect(screen.getByTestId("nav-admin-delete")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByTestId("nav-admin-ingest")).not.toHaveAttribute(
-      "aria-current",
-    );
-  });
-
-  it("switches between the two admin views when their nav links are clicked", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const ingestLink = await screen.findByTestId("nav-admin-ingest");
-    const deleteLink = screen.getByTestId("nav-admin-delete");
-
-    fireEvent.click(ingestLink);
-    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-
-    fireEvent.click(deleteLink);
-    expect(screen.getByTestId("delete-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-
-    fireEvent.click(ingestLink);
-    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-  });
-
-  it("keeps the nav rendered while the admin probe is still in flight", () => {
+  it("keeps the Admin entry hidden while the admin probe is in flight", () => {
     // Stub fetch with a never-resolving Admin probe so the tri-state
     // `adminAvailable === null` branch is exercised synchronously.
     vi.stubGlobal(
@@ -224,138 +173,8 @@ describe("App primary navigation", () => {
       }),
     );
     render(<App />);
-    expect(screen.getByTestId("primary-nav")).toHaveAttribute(
-      "data-admin-status",
-      "loading",
-    );
-    expect(screen.queryByTestId("nav-admin-ingest")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("nav-admin-delete")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("nav-admin-config")).not.toBeInTheDocument();
-    expect(screen.getByTestId("primary-nav")).toBeInTheDocument();
-  });
-
-  it("shows the Configuration link when /api/admin/status returns 200", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("nav-admin-config")).toBeInTheDocument();
-    });
-  });
-
-  it("hides the Configuration link when /api/admin/status returns 403", async () => {
-    stubFetch({ adminOk: false });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("primary-nav")).toHaveAttribute(
-        "data-admin-status",
-        "forbidden",
-      );
-    });
-    expect(screen.queryByTestId("nav-admin-config")).not.toBeInTheDocument();
-  });
-
-  it("shows the Prompt editor link when /api/admin/status returns 200", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("nav-admin-prompt")).toBeInTheDocument();
-    });
-  });
-
-  it("hides the Prompt editor link when /api/admin/status returns 403", async () => {
-    stubFetch({ adminOk: false });
-    render(<App />);
-    await waitFor(() => {
-      expect(screen.getByTestId("primary-nav")).toHaveAttribute(
-        "data-admin-status",
-        "forbidden",
-      );
-    });
-    expect(screen.queryByTestId("nav-admin-prompt")).not.toBeInTheDocument();
-  });
-
-  it("switches to the Configuration view when the Configuration link is clicked", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const configLink = await screen.findByTestId("nav-admin-config");
-    expect(screen.getByTestId("chat-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
-
-    fireEvent.click(configLink);
-
-    expect(screen.getByTestId("configuration-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-    expect(screen.getByTestId("nav-admin-config")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(screen.getByTestId("nav-admin-ingest")).not.toHaveAttribute(
-      "aria-current",
-    );
-    expect(screen.getByTestId("nav-admin-delete")).not.toHaveAttribute(
-      "aria-current",
-    );
-    await waitFor(() => {
-      expect(screen.getByTestId("config-form")).toBeInTheDocument();
-    });
-  });
-
-  it("round-trips through all three admin views via the nav links", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const ingestLink = await screen.findByTestId("nav-admin-ingest");
-    const deleteLink = screen.getByTestId("nav-admin-delete");
-    const configLink = screen.getByTestId("nav-admin-config");
-
-    fireEvent.click(ingestLink);
-    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
-
-    fireEvent.click(deleteLink);
-    expect(screen.getByTestId("delete-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
-
-    fireEvent.click(configLink);
-    expect(screen.getByTestId("configuration-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-
-    fireEvent.click(ingestLink);
-    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
-    expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
-  });
-
-  it("switches to the Prompt editor view when its nav link is clicked", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const promptLink = await screen.findByTestId("nav-admin-prompt");
-
-    fireEvent.click(promptLink);
-
-    expect(screen.getByTestId("prompt-editor-page")).toBeInTheDocument();
-    expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("ingest-data")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("delete-data")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("configuration-page")).not.toBeInTheDocument();
-    expect(screen.getByTestId("nav-admin-prompt")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-  });
-
-  it("updates the browser URL when an admin nav link is clicked", async () => {
-    stubFetch({ adminOk: true });
-    render(<App />);
-    const ingestLink = await screen.findByTestId("nav-admin-ingest");
-
-    fireEvent.click(ingestLink);
-
-    expect(window.location.pathname).toBe("/admin/ingest");
-    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
+    expect(screen.getByTestId("app-header")).toBeInTheDocument();
+    expect(screen.queryByTestId("header-admin")).not.toBeInTheDocument();
   });
 
   it("deep-links straight to an admin page from its URL", async () => {
@@ -366,8 +185,20 @@ describe("App primary navigation", () => {
     expect(screen.getByTestId("delete-data")).toBeInTheDocument();
     expect(screen.queryByTestId("chat-page")).not.toBeInTheDocument();
     expect(window.location.pathname).toBe("/admin/delete");
-    // Flush the admin probe so the gated nav link settles before teardown.
-    await screen.findByTestId("nav-admin-delete");
+    expect(screen.queryByTestId("app-header")).not.toBeInTheDocument();
+    await flushAdminProbe();
+  });
+
+  it("hides the app header on admin routes", async () => {
+    window.history.pushState({}, "", "/admin/ingest");
+    stubFetch({ adminOk: true });
+    render(<App />);
+
+    expect(screen.getByTestId("admin-layout")).toBeInTheDocument();
+    expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
+    expect(screen.queryByTestId("app-header")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("header-admin")).not.toBeInTheDocument();
+    await flushAdminProbe();
   });
 
   it("redirects an unknown route back to the chat root", async () => {
@@ -401,7 +232,7 @@ describe("App primary navigation", () => {
     expect(screen.getByTestId("admin-layout")).toBeInTheDocument();
     expect(screen.getByTestId("admin-subnav")).toBeInTheDocument();
     expect(screen.getByTestId("delete-data")).toBeInTheDocument();
-    await screen.findByTestId("nav-admin-delete");
+    await flushAdminProbe();
   });
 
   it("redirects bare /admin to the ingest page", async () => {
@@ -413,7 +244,7 @@ describe("App primary navigation", () => {
       expect(window.location.pathname).toBe("/admin/ingest");
     });
     expect(screen.getByTestId("ingest-data")).toBeInTheDocument();
-    await screen.findByTestId("nav-admin-ingest");
+    await flushAdminProbe();
   });
 
   it("returns to chat when the admin back-home button is clicked", async () => {

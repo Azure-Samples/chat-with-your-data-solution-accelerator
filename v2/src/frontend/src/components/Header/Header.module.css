@@ -62,13 +62,6 @@
   text-overflow: ellipsis;
 }
 
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex: 0 1 auto;
-}
-
 .tools {
   display: flex;
   align-items: center;

@@ -3,20 +3,21 @@
  * Phase: 1 (App shell)
  *
  * Router-driven app shell. `App` provides the theme + Fluent UI v9
- * bridge and a `<BrowserRouter>`; `AppShell` derives the active page
- * from the URL and drives navigation through the `<Header>` nav.
- * Browser routes: `/` -> chat; `/admin` -> the `<AdminLayout>` shell
- * wrapping the `ingest|delete|config|prompt` pages (bare `/admin`
- * redirects to `ingest`); any other path -> redirect to `/`.
+ * bridge and a `<BrowserRouter>`; `AppShell` renders the routed view
+ * plus the app header on the chat route only (admin routes hide the
+ * header so `<AdminLayout>` owns the admin chrome). Browser routes:
+ * `/` -> chat; `/admin` -> the
+ * `<AdminLayout>` shell wrapping the `ingest|delete|config|prompt`
+ * pages (bare `/admin` redirects to `ingest`); any other path ->
+ * redirect to `/`.
  *
  * On mount `AppShell` pings `/api/health` (so docker compose can verify
  * `VITE_BACKEND_URL` wiring) and runs a one-shot `getAdminStatus()`
- * probe: a 2xx surfaces the Admin nav links, any non-2xx (or transport
- * failure) keeps them hidden so non-admin sessions never see a
+ * probe: a 2xx surfaces the gated admin entry, any non-2xx (or
+ * transport failure) keeps it hidden so non-admin sessions never see a
  * dead-end link. `historyOpen`, `newChatNonce`, and `adminAvailable`
  * live here as the single source of truth feeding both the header and
- * the routed view; the active section is derived from the URL via
- * `pathToSection`.
+ * the routed view; the admin entry maps to `navigate(SectionPath[...])`.
  */
 import { useState, useEffect, type JSX } from "react";
 import {
@@ -37,7 +38,7 @@ import { DeleteData } from "./pages/admin/DeleteData/DeleteData";
 import { Configuration } from "./pages/admin/Configuration/Configuration";
 import { PromptEditor } from "./pages/admin/PromptEditor/PromptEditor";
 import { getAdminStatus } from "./api/admin";
-import { Section, SectionPath, pathToSection } from "./models/sections";
+import { Section, SectionPath } from "./models/sections";
 import { FluentThemeBridge } from "./theme/FluentThemeBridge";
 import { ThemeProvider } from "./theme/themeContext";
 import "./theme/tokens.css";
@@ -83,7 +84,10 @@ async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
 function AppShell(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
-  const view = pathToSection(location.pathname);
+  // The app header belongs to the chat experience; admin routes render
+  // their own chrome (<AdminLayout> sub-nav + back-to-chat button), so
+  // the header is hidden whenever the URL is under the admin base path.
+  const onAdminRoute = location.pathname.startsWith(ADMIN_BASE_PATH);
   const [health, setHealth] = useState<HealthState>({ status: "loading" });
   const [historyOpen, setHistoryOpen] = useState(false);
   // Bump this counter to force a fresh <ChatPage> mount, which resets
@@ -145,24 +149,22 @@ function AppShell(): JSX.Element {
       >
         CWYD v2
       </h1>
-      <Header
-        title="Chat with your data"
-        historyOpen={historyOpen}
-        onToggleHistory={() => {
-          setHistoryOpen((v) => !v);
-        }}
-        onNewChat={() => {
-          setNewChatNonce((n) => n + 1);
-        }}
-        view={view}
-        onSelectView={(next) => {
-          void navigate(SectionPath[next]);
-        }}
-        adminAvailable={adminAvailable}
-        onOpenAdmin={() => {
-          void navigate(SectionPath[Section.AdminIngest]);
-        }}
-      />
+      {!onAdminRoute && (
+        <Header
+          title="Chat with your data"
+          historyOpen={historyOpen}
+          onToggleHistory={() => {
+            setHistoryOpen((v) => !v);
+          }}
+          onNewChat={() => {
+            setNewChatNonce((n) => n + 1);
+          }}
+          adminAvailable={adminAvailable}
+          onOpenAdmin={() => {
+            void navigate(SectionPath[Section.AdminIngest]);
+          }}
+        />
+      )}
       <section
         aria-label="backend health"
         style={{

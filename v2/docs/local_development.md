@@ -21,6 +21,7 @@ It is the right path when you want to:
 * iterate on backend or Functions code with a debugger and hot reload, while reading/writing **real** chat history (Cosmos) and **real** vectors (Search);
 * drive the ingestion pipeline (`batch_start` → `batch_push`) end-to-end against cloud Storage and Foundry **without** redeploying;
 * reproduce a cloud-only issue locally.
+
 > **Not** the self-contained dev stack. If you want fully local, throwaway dependencies, use the compose stack instead — `docker compose -f v2/docker/docker-compose.dev.yml up` — which bundles its own Postgres/etc. This runbook is the opposite: **local app, cloud data**.
 
 > **No Azurite, no emulators.** Storage, queues, Cosmos, and Search are all the real cloud resources. Local credentials flow through `AzureCliCredential` (your `az login`), so every call is RBAC-gated exactly like production.

@@ -10,7 +10,7 @@ applyTo: "v2/src/frontend/**"
 - React 19, TypeScript 5.9+, Vite 7+.
 - **Fluent UI v9** (`@fluentui/react-components` + `@fluentui/react-icons`) is the bundled component library. The MACAE re-skin (dev_plan task #34) committed the decision; new components consume Fluent primitives unless a CSS-Modules-only carve-out is explicitly justified.
 - **State management: React Context + `useReducer`.** Lightweight, zero new dep, idiomatic for the reasoning-channel fan-out. Reducers live next to their Context (chat) or page (admin) — do **not** extract reducers into `services/`. Revisit (e.g. Zustand, Redux Toolkit) only if cross-page state grows beyond what context comfortably handles.
-- **Routing: `react-router-dom` v7.** `App` mounts `<BrowserRouter>`; the active page is derived from the URL by `pathToSection(location.pathname)` and navigation goes through `useNavigate()` + the `SectionPath` map (`src/models/sections.tsx`). Deep links to `/admin/*` are first-class.
+- **Routing: `react-router-dom` v7.** `App` mounts `<BrowserRouter>`; the active page is derived from the URL by the `<Routes>` block and navigation goes through `useNavigate()` + the `SectionPath` map (`src/models/sections.tsx`). Deep links to `/admin/*` are first-class.
 - Testing: Vitest + Testing Library. Tests live under `v2/src/tests/frontend/` mirroring `src/` (relocated from `v2/src/frontend/tests/` per ADR 0020).
 
 ## API layer (`src/api/`)
@@ -88,7 +88,7 @@ applyTo: "v2/src/frontend/**"
 ## Routing
 
 - **`react-router-dom` v7.** `App` mounts `<BrowserRouter>`; `AppShell` renders a `<Routes>` block — one `<Route>` per `Section` (admin pages mounted as nested `/admin/*` routes under a shared admin layout), plus a `path="*"` catch-all that `<Navigate>`s to `SectionPath[Section.Chat]`. There is no page registry and no `view === "…" && <Page />` ternary chain.
-- The active section is **derived from the URL**: `view = pathToSection(location.pathname)`. The `<Header>` nav calls `onSelectView(Section.X)`, which `AppShell` maps to `navigate(SectionPath[X])`. The `Section` ↔ URL mapping lives in `src/models/sections.tsx`.
+- The active section is **derived from the URL** by the `<Routes>` block. Navigation into admin is initiated by the header's gated admin entry, which `AppShell` maps to `navigate(SectionPath[Section.AdminIngest])`; admin sub-pages are reached via the `AdminLayout` sub-nav. There is no header "primary nav" — the header carries only brand + tools, and it renders **only on the chat route**: admin routes hide the app header entirely so the `AdminLayout` chrome (sub-nav + "Back to CWYD" button) owns the admin frame. The `Section` ↔ URL mapping lives in `src/models/sections.tsx`.
 - Admin pages live under `src/pages/admin/`, mounted as nested routes behind a shared `AdminLayout` (`<Outlet/>` + admin sub-nav). They are part of the same SPA — no separate Streamlit, ever.
 ## Conventions
 
