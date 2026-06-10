@@ -5,6 +5,9 @@
 .env
 .env.local
 
+# Azure Functions local host config (sensitive: storage account, endpoints, deployment names)
+src/functions/local.settings.json
+
 # Local-only scratch / throw-away diagnostics (env dumps, repro scripts)
 .scratch/
 

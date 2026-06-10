@@ -123,10 +123,12 @@ class Chunk(BaseModel):
     section heading, source URL) goes inside the `metadata` dict
     where consumers can opt in.
 
-    `id` is a deterministic chunk identifier (typically
-    `f"{source}__{index}"`) so re-indexing the same source produces
-    stable Search document keys. `source` is the originating filename
-    or URL. `index` is the chunk's position within `source` (0-based).
+    `id` is a deterministic chunk identifier built via
+    `BaseParser.make_chunk_id(source, index)` (a SHA-256 hash of the
+    readable `f"{source}__{index}"`) so re-indexing the same source
+    produces stable, Search-safe document keys. `source` is the
+    originating filename or URL. `index` is the chunk's position
+    within `source` (0-based).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")

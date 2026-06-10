@@ -34,6 +34,7 @@ COSMOS_ENV: dict[str, str] = {
     "AZURE_INDEX_STORE": "AzureSearch",
     "AZURE_COSMOS_ENDPOINT": "https://cosmos-cwyd001.documents.azure.com:443/",
     "AZURE_AI_PROJECT_ENDPOINT": "https://foundry-cwyd001.services.ai.azure.com/api/projects/p1",
+    "AZURE_AI_SERVICES_ENDPOINT": "https://foundry-cwyd001.cognitiveservices.azure.com/",
     "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-4o",
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-small",
     "AZURE_OPENAI_REASONING_DEPLOYMENT": "o4-mini",
@@ -228,9 +229,8 @@ async def test_embed_returns_vectors(
     openai.embeddings.create = AsyncMock(
         return_value=_build_openai_embedding_response([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
     )
-    provider = FoundryIQ(
-        settings, fake_credential, project_client=_build_fake_project_client(openai)
-    )
+    project = _build_fake_project_client(openai)
+    provider = FoundryIQ(settings, fake_credential, project_client=project)
     result = await provider.embed(["foo", "bar"])
     assert isinstance(result, EmbeddingResult)
     assert result.model == "text-embedding-3-small"
@@ -238,6 +238,16 @@ async def test_embed_returns_vectors(
     assert result.vectors == [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
     call = openai.embeddings.create.await_args
     assert call.kwargs["input"] == ["foo", "bar"]
+    # Embeddings must request the index's vector width, not the model's
+    # native default (3072 for text-embedding-3-large).
+    assert call.kwargs["dimensions"] == settings.openai.embedding_dimensions
+    # Embeddings are routed to the AI Services *account* endpoint via a
+    # base_url override -- the Foundry project route doesn't serve them.
+    embed_client_call = project.get_openai_client.call_args
+    assert (
+        embed_client_call.kwargs["base_url"]
+        == "https://foundry-cwyd001.cognitiveservices.azure.com/openai/v1"
+    )
 
 
 # ---------------------------------------------------------------------------

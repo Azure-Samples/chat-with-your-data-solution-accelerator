@@ -164,7 +164,9 @@ class _ProjectClientView(Protocol):
     we don't care about the kwargs surface."
     """
 
-    def get_openai_client(self) -> _OpenAIClient: ...
+    def get_openai_client(
+        self, *, base_url: str | None = None
+    ) -> _OpenAIClient: ...
 
 
 @registry.register("foundry_iq")
@@ -181,10 +183,14 @@ class FoundryIQ(BaseLLMProvider):
         # constructs lazily so we don't open an HTTP session at import.
         self._project_client_override = project_client
         self._project_client: AIProjectClient | None = project_client
-        # Cache the resolved AsyncOpenAI handle so we don't re-run the
-        # factory on every chat / embed call. The underlying client is
-        # designed to be reused.
+        # Cache the resolved project-scoped AsyncOpenAI handle (chat,
+        # reason, agents) so we don't re-run the factory on every call.
+        # The underlying client is designed to be reused.
         self._openai_client: _OpenAIClient | None = None
+        # Embeddings are not served by the Foundry project route, so they
+        # use a separate client pointed at the AI Services account
+        # endpoint. Cached independently; see `_get_embeddings_client`.
+        self._embeddings_client: _OpenAIClient | None = None
 
     # ------------------------------------------------------------------
     # Internals
@@ -231,6 +237,46 @@ class FoundryIQ(BaseLLMProvider):
                 )
                 raise
         return self._openai_client
+
+    async def _get_embeddings_client(self) -> _OpenAIClient:
+        """Return the cached account-scoped client used for embeddings.
+
+        The Foundry **project** route -- the default ``base_url`` of
+        ``get_openai_client()``, ``.../api/projects/<project>/openai/v1``
+        -- proxies chat, responses, and agent calls but does **not**
+        serve ``/embeddings``. Embeddings are an account-scoped Azure
+        OpenAI data operation, so we ask the *same* Foundry factory for
+        a client whose ``base_url`` is overridden to the AI Services
+        account endpoint (``AZURE_AI_SERVICES_ENDPOINT`` +
+        ``/openai/v1``). The Entra token provider is unchanged: the
+        account endpoint accepts the project's
+        ``https://ai.azure.com/.default`` token.
+        """
+        if self._embeddings_client is None:
+            services_endpoint = self._settings.foundry.services_endpoint
+            if not services_endpoint:
+                raise RuntimeError(
+                    "AZURE_AI_SERVICES_ENDPOINT is not set. FoundryIQ "
+                    "embeddings require the AI Services account endpoint "
+                    "because the Foundry project route does not serve "
+                    "/embeddings."
+                )
+            base_url = f"{services_endpoint.rstrip('/')}/openai/v1"
+            project = cast(_ProjectClientView, self._get_project_client())
+            try:
+                self._embeddings_client = project.get_openai_client(
+                    base_url=base_url
+                )
+            except AzureError:
+                logger.exception(
+                    "foundry_iq get_openai_client (embeddings) failed",
+                    extra={
+                        "operation": "get_embeddings_client",
+                        "provider": "foundry_iq",
+                    },
+                )
+                raise
+        return self._embeddings_client
 
     def _resolve_deployment(self, override: str | None, *, kind: str) -> str:
         if override:
@@ -360,10 +406,11 @@ class FoundryIQ(BaseLLMProvider):
         deployment: str | None = None,
     ) -> EmbeddingResult:
         model = self._resolve_deployment(deployment, kind="embed")
-        oai = await self._get_openai_client()
+        oai = await self._get_embeddings_client()
+        dimensions = self._settings.openai.embedding_dimensions
         try:
             response = await oai.embeddings.create(
-                model=model, input=list(inputs)
+                model=model, input=list(inputs), dimensions=dimensions
             )
         except openai.APIError:
             logger.exception(
@@ -508,6 +555,7 @@ class FoundryIQ(BaseLLMProvider):
                     },
                 )
             self._project_client = None
-        # Drop the cached AsyncOpenAI handle either way -- it's bound to
-        # the AIProjectClient lifecycle and stale once that closes.
+        # Drop the cached AsyncOpenAI handles either way -- they're bound
+        # to the AIProjectClient lifecycle and stale once that closes.
         self._openai_client = None
+        self._embeddings_client = None

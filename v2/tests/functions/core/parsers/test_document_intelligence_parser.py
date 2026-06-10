@@ -187,13 +187,13 @@ async def test_parse_returns_one_chunk_per_page_with_deterministic_ids() -> None
     chunks = await parser.parse(b"...", source="report.pdf")
     assert chunks == [
         Chunk(
-            id="report.pdf__0",
+            id=BaseParser.make_chunk_id("report.pdf", 0),
             content="first page line 1\nfirst page line 2",
             source="report.pdf",
             index=0,
         ),
         Chunk(
-            id="report.pdf__1",
+            id=BaseParser.make_chunk_id("report.pdf", 1),
             content="second page only line",
             source="report.pdf",
             index=1,
@@ -219,7 +219,10 @@ async def test_parse_skips_pages_with_no_lines_or_whitespace_content() -> None:
         client=fake_client,
     )
     chunks = await parser.parse(b"...", source="sparse.pdf")
-    assert [c.id for c in chunks] == ["sparse.pdf__0", "sparse.pdf__1"]
+    assert [c.id for c in chunks] == [
+        BaseParser.make_chunk_id("sparse.pdf", 0),
+        BaseParser.make_chunk_id("sparse.pdf", 1),
+    ]
     assert [c.content for c in chunks] == ["real page", "another real page"]
 
 

@@ -170,7 +170,7 @@ If you only need to bounce one service (e.g., after editing Flask code), just
 Restore the cloud network posture and remove dev-only RBAC:
 
 ```powershell
-$me = "7e10c8ea-b586-435b-84ff-e87ed0e4afb7"
+$me = "<AZURE_PRINCIPAL_OBJECT_ID>"   # real value: az ad signed-in-user show --query id -o tsv
 $st = "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.Storage/storageAccounts/st<DATA_SUFFIX>"
 $di = "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.CognitiveServices/accounts/di-<DATA_SUFFIX>"
 

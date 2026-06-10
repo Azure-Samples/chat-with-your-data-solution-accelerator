@@ -15,7 +15,8 @@ expected to chunk in whatever way is appropriate for the format.
 For plain text, paragraphs are the natural semantic unit -- they
 match the v1 default, surface cleanly in downstream embedders, and
 keep chunk boundaries deterministic so re-ingesting the same file
-produces stable Search document keys via `Chunk.id = f"{source}__{index}"`.
+produces stable, Search-safe document keys via
+`BaseParser.make_chunk_id(source, index)`.
 
 Whitespace-only or empty inputs return `[]` so the downstream
 embedder + indexer never see zero-content chunks.
@@ -42,6 +43,11 @@ class TextParser(BaseParser):
         text = content.decode("utf-8")
         paragraphs = [p.strip() for p in _PARAGRAPH_SEPARATOR.split(text)]
         return [
-            Chunk(id=f"{source}__{index}", content=para, source=source, index=index)
+            Chunk(
+                id=self.make_chunk_id(source, index),
+                content=para,
+                source=source,
+                index=index,
+            )
             for index, para in enumerate(p for p in paragraphs if p)
         ]
