@@ -2,7 +2,7 @@
 title: CWYD v2 — Project Status Snapshot
 description: Current QA-readiness snapshot of CWYD v2, organized by review dimension. Replaces the stale qa_report_v2 narrative.
 author: CWYD Engineering
-ms.date: 2026-06-08
+ms.date: 2026-06-10
 topic: status
 keywords: status, qa, readiness, v2, snapshot
 estimated_reading_time: 8
@@ -18,9 +18,9 @@ For the historical, Phase 3.5-era QA report kept for archeology only, see [qa_re
 
 ## Executive Status
 
-**Phase 7 backend tier is drained.** As of `U-P7-AUDIT-3` (2026-06-02), every backend §0.1 debt row originating in Phases 1–7 is ✅ cleared except a small handful that are externally blocked (FE-owned, upstream OSS SDK, or gated on `#39` tenant claim propagation). All 9 AST gates are green. Backend full suite runs `2198 passed / 1 skipped / 3 deselected / 10 warnings` as of the 2026-06-09 Phase 8 baseline (up from 2047 passes at the 2026-06-04 QA review; the added warnings are upstream `agent_framework` experimental notices + FastAPI `HTTP_422_UNPROCESSABLE_ENTITY` deprecation notices). `pyright src/backend src/functions` is `0 errors / 0 warnings / 0 informations`.
+**Phase 7 backend tier is drained.** As of `U-P7-AUDIT-3` (2026-06-02), every backend §0.1 debt row originating in Phases 1–7 is ✅ cleared except a small handful that are deferred or externally blocked (post-Phase-7 hardening `B-IMPL-FACTORY-CACHE`, multi-agent demos `B-IMPL-EXTRAS`, upstream OSS SDK typing `B-IMPL-FOUNDRY-STUBS-DEBT`). All 9 AST gates are green. Backend full suite runs `2198 passed / 1 skipped / 3 deselected / 10 warnings` as of the 2026-06-09 Phase 8 baseline (up from 2047 passes at the 2026-06-04 QA review; the added warnings are upstream `agent_framework` experimental notices + FastAPI `HTTP_422_UNPROCESSABLE_ENTITY` deprecation notices). `pyright src/backend src/functions` is `0 errors / 0 warnings / 0 informations`.
 
-**Phase 7 frontend tier is in progress.** `#50` feedback thumbs and `#53` Ingest Data admin UI (backend half) are ✅ done; `#54` Delete Data admin UI is ⏳ partial (backend route + ABC + 2 impls shipped, FE multi-select half open); `#35d` Streamlit-to-React admin merge is ✅ cleared (2026-06-08, `U-P7-35D-AUDIT`); `#24` SSE FE wiring is ⏳ partial (demo path live; citation cards / abort / reconnect remain on FE backlog). On top of the closed `#35d`, the post-Phase-7 (PP7) work stream landed the Vitest test-tree relocation to `v2/src/tests/frontend` as an npm-workspace member (`U-PP7-RELOC`, [ADR 0020](adr/0020-frontend-tests-under-src-tests-frontend.md)) and real browser URLs for the admin pages (`U-PP7-ROUTE` — `/admin/ingest|delete|config|prompt` via `react-router-dom`, with an `frontend_app.py` SPA catch-all). The FE conventions refactor (`U-P7-FE-REFAC`, 6 units) closed 2026-06-02; current FE numbers as of 2026-06-08 (all run from the `v2/` npm-workspace root) are `npm run lint` 0 errors / 9 advisory `react-refresh/only-export-components` warnings, `npx tsc -p src/frontend` + `npx tsc -p src/tests/frontend` both clean, and `npm test` 403 tests / 32 suites green.
+**Phase 7 is complete (`U-P7-AUDIT-4`, 2026-06-08).** `#50` feedback thumbs, `#53` Ingest Data admin UI, and `#54` Delete Data admin UI are all ✅ done (`#54` `DeleteData.tsx` ships loading/failed/empty/loaded states + multi-select with select-all + per-row error/retry + bulk delete + bulk retry-failed + confirmation dialog); `#35d` Streamlit-to-React admin merge is ✅ cleared (2026-06-08, `U-P7-35D-AUDIT`); `#24` SSE FE wiring is ✅ closed (A2.1–A2.5: citation cards verified end-to-end, deduped error toasts, `streamChat` retry-with-backoff, `AbortController` cancel, and clear-conversation + scroll-to-bottom sentinel). On top of the closed `#35d`, the post-Phase-7 (PP7) work stream landed the Vitest test-tree relocation to `v2/src/tests/frontend` as an npm-workspace member (`U-PP7-RELOC`, [ADR 0020](adr/0020-frontend-tests-under-src-tests-frontend.md)) and real browser URLs for the admin pages (`U-PP7-ROUTE` — `/admin/ingest|delete|config|prompt` via `react-router-dom`, with an `frontend_app.py` SPA catch-all). The FE conventions refactor (`U-P7-FE-REFAC`, 6 units) closed 2026-06-02; current FE numbers as of 2026-06-08 (all run from the `v2/` npm-workspace root) are `npm run lint` 0 errors / 9 advisory `react-refresh/only-export-components` warnings, `npx tsc -p src/frontend` + `npx tsc -p src/tests/frontend` both clean, and `npm test` 403 tests / 32 suites green.
 
 **Phase 8 is complete (2026-06-09).** Phase 8 makes `agent_framework` the **default** orchestrator, grounded by a Foundry IQ Knowledge Base (a `searchIndex` knowledge source wrapping the existing `cwyd-index`, queried live so push-ingestion needs no reseed), with the KB REST API version supplied via the new `AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION` env var (default `2025-11-01-preview`). This is the rules-compliant successor to the v1 BYOD *intent* (platform-grounded retrieval) — **not** a re-introduction of the removed Azure OpenAI `data_sources` mechanism (see [development_plan.md](development_plan.md) §2.1 BYOD clarifier + §4 Phase 8 for the ordered task table; [ADR 0021](adr/0021-agent-framework-foundry-iq-kb-default.md) + [ADR 0022](adr/0022-config-resolution-error-on-incompatible-overrides.md), both **Accepted**). `OrchestratorSettings.name` now defaults to `agent_framework`; because that orchestrator is grounded by a Foundry IQ KB over the Azure AI Search index, pgvector deployments must override to `langgraph` (the dev `docker-compose.dev.yml` pins `CWYD_ORCHESTRATOR_NAME=langgraph`), and selecting `agent_framework` in pgvector mode is rejected at request time with a clean `ConfigResolutionError` (HTTP 409) per ADR 0022 — never a silent fallback.
 
@@ -140,7 +140,7 @@ A full audit walk lives in [qa_review_plan.md](qa_review_plan.md) Phase C.
 | 5 — Admin + Frontend Merge | ✅ done | All 9 admin routes + RBAC + audit log shipped; FE merge `#35d` cleared 2026-06-08 |
 | 5.5 — Stable Core Refactor | ✅ done | `shared/` → `backend/core/` + `functions/core/` + `try/except` policy + 29 SDK boundary wraps |
 | 6 — RAG Indexing Pipeline (Split Functions) | ✅ done | 4 blueprints (`batch_start`, `batch_push`, `add_url`, `search_skill`) + standalone-backend smoke CI |
-| 7 — Testing + Documentation | ⏳ in progress | Backend tier drained 2026-06-02; FE `#35d` cleared + PP7 relocation/routing landed 2026-06-08; `#24`/`#54` FE polish remain (non-blocking) |
+| 7 — Testing + Documentation | ✅ done | Backend tier drained 2026-06-02; FE `#35d` + `#24` + `#54` closed at Phase 7 close (`U-P7-AUDIT-4`, 2026-06-08); PP7 relocation/routing landed 2026-06-08 |
 
 ---
 
@@ -178,11 +178,11 @@ This section is the **canonical v1 → v2 mapping** for the QA review team. Ever
 
 | v1 Streamlit page | v2 React route + backend | Status | Evidence |
 |---|---|---|---|
-| `Admin.py` (top-level tab shell) | React admin shell merged into frontend (per Phase 5) | ✅ replaced | Phase 5 closed; `#35d` FE merge ⏳ partial |
-| `01_Ingest_Data.py` (URL + upload + reprocess) | `POST /api/admin/documents/url`, `POST /api/admin/documents`, `POST /api/admin/documents/reprocess` + IngestData FE route | ✅ replaced (BE done, FE under `#35d`) | `U-P7-53-BE` BE-1/2/3 |
+| `Admin.py` (top-level tab shell) | React admin shell merged into frontend (per Phase 5) | ✅ replaced | Phase 5 closed; `#35d` FE merge ✅ cleared (2026-06-08) |
+| `01_Ingest_Data.py` (URL + upload + reprocess) | `POST /api/admin/documents/url`, `POST /api/admin/documents`, `POST /api/admin/documents/reprocess` + IngestData FE route | ✅ replaced | `U-P7-53-BE` BE-1/2/3 + `U-P7-53-FE` |
 | `02_Explore_Data.py` (chunk preview + search-against-index) | no v2 equivalent | ⏳ gap | Tracked in section M |
-| `03_Delete_Data.py` (delete by source) | `GET /api/admin/documents`, `DELETE /api/admin/documents/{source}` + DeleteData FE (partial) | ✅ replaced (BE done; FE `#54` partial) | `U-P7-54-BE` |
-| `04_Configuration.py` (edit prompts + flags) | `GET/PATCH /api/admin/config` + Configuration FE route (PromptEditor backend persistence on `#35d`) | ✅ replaced | All 9 admin routes per Per-Dimension Status; ADR 0003 |
+| `03_Delete_Data.py` (delete by source) | `GET /api/admin/documents`, `DELETE /api/admin/documents/{source}` + DeleteData FE | ✅ replaced | `U-P7-54-BE` + `#54` FE closed (`U-P7-AUDIT-4`) |
+| `04_Configuration.py` (edit prompts + flags) | `GET/PATCH /api/admin/config` + Configuration FE route (PromptEditor persistence shipped with `#35d`) | ✅ replaced | All 9 admin routes per Per-Dimension Status; ADR 0003 |
 
 ### D. Ingestion + Search
 
@@ -305,7 +305,7 @@ Three small gaps surfaced in the audit. None block the QA acceptance gate. Each 
 | Page-number restitching pipeline | v1 `bp_combine_pages_and_chunknos` Function | No v2 equivalent | ⏳ tracked — depends on whether Foundry IQ knowledge sources need post-processing chunk metadata; revisit after first cloud E2E |
 | `DELETE /history/delete_all` (bulk) | v1 chat_history blueprint | No v2 bulk delete; per-conversation DELETE only | ⏳ deferred — per-row DELETE covers UI need; bulk-delete deferred until customer ask |
 
-Gaps that are **already tracked in §0.1 / §0.2** (mirror — do not re-list here, see Per-Dimension Status > Open Debt by Dimension): `#35d`, `#35g`, `#24`, `#54` FE half, `B-IMPL-FACTORY-CACHE`, `B-IMPL-EXTRAS`, `B-IMPL-FOUNDRY-STUBS-DEBT`, `DV1`.
+Gaps that are **already tracked in §0.1 / §0.2** (mirror — do not re-list here, see Per-Dimension Status > Open Debt by Dimension): `B-IMPL-FACTORY-CACHE`, `B-IMPL-EXTRAS`, `B-IMPL-FOUNDRY-STUBS-DEBT`, `DV1`. (`#35d`, `#24`, `#54` closed at Phase 7 close 2026-06-08; `#35g` withdrawn — see [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md).)
 
 ### Pending v1 docs that need a v2 counterpart (not blocking)
 
@@ -325,7 +325,7 @@ Three v1 docs describe concepts that still apply in v2 but lack a v2-side author
 
 | ID | Item | Status |
 |---|---|---|
-| `#35d` | FE admin route merge — FE-team-owned; backend surface complete | ⏳ in progress |
+| `#35d` | FE admin route merge — backend surface + React merge complete | ✅ cleared (2026-06-08, `U-P7-35D-AUDIT`) |
 | `#35g` | Per-tenant config overrides | — withdrawn (out of scope, single-tenant); [ADR 0024](adr/0024-withdraw-per-tenant-runtime-config-single-tenant.md) supersedes ADR 0023 |
 | `B-IMPL-FACTORY-CACHE` | Cache `FoundryAgent` instances at orchestrator registry layer | ☐ open — post-Phase-7 hardening |
 | `B-IMPL-EXTRAS` | OSS MAF multi-agent demos (Magentic, Handoff, workflows) | ☐ deferred — awaiting concrete demand |
@@ -336,7 +336,7 @@ Three v1 docs describe concepts that still apply in v2 but lack a v2-side author
 | ID | Item | Status |
 |---|---|---|
 | `DV1` | Re-verify `docker compose build frontend` | ⏸ blocked (Docker daemon down on dev machine) |
-| `#24` | FE SSE wiring — citation cards, abort/cancel, reconnect, multi-turn UX polish | ⏳ partial (demo path live since 2026-05-07) |
+| `#24` | FE SSE wiring — citation cards, abort/cancel, retry, multi-turn UX | ✅ cleared (2026-06-08, `U-P7-AUDIT-4` A2.1–A2.5) |
 
 ### `#39`-blocked items
 
