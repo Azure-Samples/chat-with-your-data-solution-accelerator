@@ -25,7 +25,7 @@ Design rules (binding):
 
 from enum import StrEnum
 from functools import lru_cache
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, cast
 
 import json
 
@@ -85,6 +85,25 @@ class IndexStore(StrEnum):
 
     AZURE_SEARCH = "AzureSearch"
     PGVECTOR = "pgvector"
+
+
+class OrchestratorName(StrEnum):
+    """Registry key for the chat orchestrator.
+
+    Values are the registry keys passed to
+    `orchestrators_registry.registry.get(...)`. `StrEnum` subclasses
+    `str` so dict lookups and JSON serialization round-trip unchanged;
+    the enum exists to satisfy Hard Rule #11 at the comparison sites.
+
+    Members:
+        LANGGRAPH: app-owned LangGraph RAG pipeline; works on either
+            index store.
+        AGENT_FRAMEWORK: Foundry agent delegation grounded by a Foundry
+            IQ Knowledge Base over the Azure AI Search index.
+    """
+
+    LANGGRAPH = "langgraph"
+    AGENT_FRAMEWORK = "agent_framework"
 
 
 # ---------------------------------------------------------------------------
@@ -324,13 +343,13 @@ class OrchestratorSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="CWYD_ORCHESTRATOR_", extra="ignore")
 
-    # `Literal[...] | str` widening per Hard Rule #11 registry-driven
-    # carve-out: the first-party closed set stays `"langgraph" |
-    # "agent_framework"`, but the `str` arm admits any third-party
-    # orchestrator key registered against `cwyd.providers.orchestrators`
-    # via `backend.core.discovery.load_entry_points`. Validation moves
-    # to the registry boundary (`orchestrators_registry.registry.get(...)`).
-    name: Literal["langgraph", "agent_framework"] | str = "langgraph"
+    # `OrchestratorName | str` widening per Hard Rule #11 registry-driven
+    # carve-out: the first-party closed set is the `OrchestratorName`
+    # StrEnum, but the `str` arm admits any third-party orchestrator key
+    # registered against `cwyd.providers.orchestrators` via
+    # `backend.core.discovery.load_entry_points`. Validation moves to the
+    # registry boundary (`orchestrators_registry.registry.get(...)`).
+    name: OrchestratorName | str = OrchestratorName.LANGGRAPH
 
 
 class ContentSafetySettings(BaseSettings):

@@ -78,11 +78,12 @@ def _fake_settings(orchestrator_name: str = "fake") -> SimpleNamespace:
 
     The route resolves the effective admin config
     (``resolve_effective_config``), which reads the orchestrator,
-    OpenAI, search, observability, and content-safety sub-settings --
-    a stand-in exposing only ``orchestrator.name`` would
-    ``AttributeError`` inside the resolver. This mirrors the real
-    nested shape with safe defaults; tests vary only
-    ``orchestrator_name``.
+    OpenAI, search, observability, content-safety, and database
+    sub-settings -- a stand-in exposing only ``orchestrator.name``
+    would ``AttributeError`` inside the resolver. This mirrors the
+    real nested shape with safe defaults (``AzureSearch`` keeps the
+    cross-setting guard satisfied for every orchestrator); tests vary
+    only ``orchestrator_name``.
     """
     return SimpleNamespace(
         orchestrator=SimpleNamespace(name=orchestrator_name, agent_id=""),
@@ -90,6 +91,7 @@ def _fake_settings(orchestrator_name: str = "fake") -> SimpleNamespace:
         search=SimpleNamespace(use_semantic_search=True, top_k=5),
         observability=SimpleNamespace(log_level="INFO"),
         content_safety=SimpleNamespace(enabled=False),
+        database=SimpleNamespace(index_store="AzureSearch"),
     )
 
 

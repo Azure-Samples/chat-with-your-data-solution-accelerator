@@ -1,6 +1,6 @@
 # ADR 0022 — Incompatible effective-config overrides raise a reusable `ConfigResolutionError`
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-06-09
 - **Phase**: 8
 - **Pillar**: Stable Core (the `ConfigResolutionError` primitive + app-level handler) over a Configuration Layer rule (the pgvector + `agent_framework` guard)

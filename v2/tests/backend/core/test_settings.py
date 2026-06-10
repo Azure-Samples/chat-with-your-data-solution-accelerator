@@ -18,6 +18,7 @@ from backend.core.settings import (
     DbType,
     DocumentIntelligenceSettings,
     IndexStore,
+    OrchestratorName,
     OrchestratorSettings,
     SpeechSettings,
     get_settings,
@@ -242,7 +243,25 @@ def test_index_store_validation_rejects_third_party_with_first_party_cosmos(
 def test_orchestrator_default_is_langgraph(monkeypatch: pytest.MonkeyPatch) -> None:
     _set(monkeypatch, COSMOS_ENV)
     settings = AppSettings()
-    assert settings.orchestrator.name == "langgraph"
+    assert settings.orchestrator.name == OrchestratorName.LANGGRAPH
+
+
+def test_orchestrator_name_enum_pins_first_party_keys() -> None:
+    """`OrchestratorName` is the StrEnum canonical home for the
+    first-party orchestrator registry keys (Hard Rule #11 registry-
+    driven carve-out). The field default is the enum member -- not a
+    bare string -- so every internal comparison routes through it.
+    """
+    assert OrchestratorName.LANGGRAPH == "langgraph"
+    assert OrchestratorName.AGENT_FRAMEWORK == "agent_framework"
+    assert {member.value for member in OrchestratorName} == {
+        "langgraph",
+        "agent_framework",
+    }
+    assert (
+        OrchestratorSettings.model_fields["name"].default
+        is OrchestratorName.LANGGRAPH
+    )
 
 
 @pytest.mark.parametrize(
@@ -254,9 +273,9 @@ def test_orchestrator_accepts_third_party_registry_key(
     third_party_key: str,
 ) -> None:
     """Hard Rule #11 registry-driven carve-out: `OrchestratorSettings.name`
-    is typed `Literal["langgraph", "agent_framework"] | str` so a
-    third-party-registered orchestrator key flows through Pydantic
-    unmodified. Settings-time rejection of unknown keys is gone; dispatch-
+    is typed `OrchestratorName | str` so a third-party-registered
+    orchestrator key flows through Pydantic unmodified via the `str`
+    arm. Settings-time rejection of unknown keys is gone; dispatch-
     time validation moves to the registry boundary
     (`orchestrators_registry.registry.get(name)` raises `KeyError`
     listing every registered key).
@@ -281,7 +300,7 @@ def test_orchestrator_can_be_set_to_agent_framework(
     monkeypatch.delenv("AZURE_AI_AGENT_ID", raising=False)
     monkeypatch.delenv("CWYD_ORCHESTRATOR_AGENT_ID", raising=False)
     settings = AppSettings()
-    assert settings.orchestrator.name == "agent_framework"
+    assert settings.orchestrator.name == OrchestratorName.AGENT_FRAMEWORK
 
 
 # ---------------------------------------------------------------------------

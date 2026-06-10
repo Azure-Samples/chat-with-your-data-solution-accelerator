@@ -40,6 +40,7 @@ from backend.models.conversation import ConversationRequest, ConversationRespons
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.pipelines.chat import run_chat
 from backend.core.providers.orchestrators import registry as orchestrators_registry
+from backend.core.settings import OrchestratorName
 from backend.services.admin import resolve_effective_config
 from backend.services.conversation import collect_response
 from backend.services.sse import SSE_MEDIA_TYPE, sse_stream, wants_sse
@@ -88,8 +89,9 @@ async def conversation(
     # value here (the resolved agent id) is intentionally discarded --
     # the call is bootstrap-only (create-if-missing).
     #
-    # Hard Rule #4 nuance: the `if orchestrator_name == "agent_framework"`
-    # check below is *kwarg preparation*, not orchestrator dispatch.
+    # Hard Rule #4 nuance: the `if orchestrator_name ==
+    # OrchestratorName.AGENT_FRAMEWORK` check below is *kwarg
+    # preparation*, not orchestrator dispatch.
     # `orchestrators_registry.registry.get(...)` remains the single
     # registry-keyed factory call -- the router never has a chain of
     # `if/elif` that *constructs* different orchestrator instances
@@ -97,7 +99,7 @@ async def conversation(
     # `test_router_uses_registry_dispatch_no_hardcoded_provider_names`
     # (asserts exactly one `orchestrators_registry.registry.get(`
     # call site).
-    if orchestrator_name == "agent_framework":
+    if orchestrator_name == OrchestratorName.AGENT_FRAMEWORK:
         await agents.get_or_create_agent(CWYD_AGENT, db)
 
     # `system_prompt` carries the effective `cwyd_agent_instructions`

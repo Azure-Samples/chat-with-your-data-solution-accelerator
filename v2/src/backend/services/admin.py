@@ -14,7 +14,7 @@ from azure.core.exceptions import AzureError
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, IndexStore, OrchestratorName
 from backend.core.tools.content_safety import rai_check
 from backend.core.types import RuntimeConfig
 from backend.models.admin import AdminConfig
@@ -93,6 +93,13 @@ def utcnow_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+# Reason discriminator carried by `ConfigResolutionError` when the
+# effective orchestrator needs an Azure AI Search index the deployment
+# does not have. Single value -> UPPER_SNAKE constant (per Hard Rule #11);
+# promote to a `StrEnum` when a second reason joins it.
+_REASON_ORCHESTRATOR_REQUIRES_AZURE_SEARCH = "orchestrator_requires_azure_search"
+
+
 def resolve_effective_config(
     settings: AppSettings,
     overrides: RuntimeConfig | None,
@@ -138,6 +145,31 @@ def resolve_effective_config(
             # only non-None values overlay the env / code default.
             if override_value is not None:
                 values[name] = override_value
+
+    # Cross-setting guard (ADR 0022): the agent_framework orchestrator
+    # grounds on a Foundry IQ Knowledge Base whose only knowledge source
+    # is the Azure AI Search index. A pgvector deployment has no such
+    # index, so this effective pairing cannot be served. The check reads
+    # the post-override orchestrator so an admin override into
+    # agent_framework is rejected, not just the env default.
+    effective_orchestrator = values["orchestrator_name"]
+    if (
+        settings.database.index_store == IndexStore.PGVECTOR
+        and effective_orchestrator == OrchestratorName.AGENT_FRAMEWORK
+    ):
+        raise ConfigResolutionError(
+            "Orchestrator 'agent_framework' grounds on a Foundry IQ "
+            "Knowledge Base over an Azure AI Search index, but this "
+            "deployment uses pgvector, which has no Knowledge Base "
+            "source. Set CWYD_ORCHESTRATOR_NAME=langgraph for pgvector "
+            "deployments.",
+            reason=_REASON_ORCHESTRATOR_REQUIRES_AZURE_SEARCH,
+            context={
+                "index_store": str(settings.database.index_store),
+                "configured_orchestrator": str(effective_orchestrator),
+            },
+        )
+
     return AdminConfig(**values)
 
 

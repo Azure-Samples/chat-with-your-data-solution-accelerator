@@ -8,6 +8,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.types import RuntimeConfig
 from backend.models.admin import AdminConfig
@@ -103,6 +105,7 @@ def _settings(
     search_top_k: int = 5,
     log_level: str = "INFO",
     content_safety_enabled: bool = False,
+    index_store: str = "AzureSearch",
 ) -> Any:
     """Minimal ``AppSettings`` stand-in exposing only the attributes
     ``resolve_effective_config`` reads."""
@@ -118,6 +121,7 @@ def _settings(
         ),
         observability=SimpleNamespace(log_level=log_level),
         content_safety=SimpleNamespace(enabled=content_safety_enabled),
+        database=SimpleNamespace(index_store=index_store),
     )
 
 
@@ -219,3 +223,64 @@ def test_resolve_effective_config_false_boolean_override_is_honored() -> None:
     overrides = RuntimeConfig(search_use_semantic_search=False)
     effective = resolve_effective_config(settings, overrides)
     assert effective.search_use_semantic_search is False
+
+
+# ---------------------------------------------------------------------------
+# resolve_effective_config -- cross-setting guard (ADR 0022).
+#
+# pgvector deployments have no Azure AI Search index, so the
+# agent_framework orchestrator (which grounds on a Foundry IQ Knowledge
+# Base over that index) cannot be served there. The resolver -- the single
+# choke point -- raises ConfigResolutionError, which the app-level handler
+# maps to HTTP 409. These call the resolver directly (it is a pure
+# function); the 409 mapping is covered in
+# tests/backend/test_app_exception_handlers.py.
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_raises_on_pgvector_with_agent_framework() -> None:
+    """pgvector + the agent_framework env default -> ConfigResolutionError
+    carrying the actionable reason, the conflicting field/value context,
+    and a message that names the operator fix."""
+    settings = _settings(
+        orchestrator_name="agent_framework", index_store="pgvector"
+    )
+    with pytest.raises(ConfigResolutionError) as excinfo:
+        resolve_effective_config(settings, None)
+    exc = excinfo.value
+    assert exc.reason == "orchestrator_requires_azure_search"
+    assert exc.context == {
+        "index_store": "pgvector",
+        "configured_orchestrator": "agent_framework",
+    }
+    assert "CWYD_ORCHESTRATOR_NAME=langgraph" in str(exc)
+
+
+def test_resolve_allows_azure_search_with_agent_framework() -> None:
+    """AzureSearch + agent_framework is the supported cloud default --
+    the resolver returns the effective config with no raise."""
+    settings = _settings(
+        orchestrator_name="agent_framework", index_store="AzureSearch"
+    )
+    effective = resolve_effective_config(settings, None)
+    assert effective.orchestrator_name == "agent_framework"
+
+
+def test_resolve_allows_pgvector_with_langgraph() -> None:
+    """pgvector + langgraph is the supported local default -- langgraph
+    owns its RAG over pgvector, so no Azure AI Search index is required."""
+    settings = _settings(orchestrator_name="langgraph", index_store="pgvector")
+    effective = resolve_effective_config(settings, None)
+    assert effective.orchestrator_name == "langgraph"
+
+
+def test_resolve_raises_when_override_flips_pgvector_to_agent_framework() -> None:
+    """The guard reads the POST-override orchestrator: a pgvector
+    deployment whose env default is langgraph but whose admin override
+    selects agent_framework is still rejected. This is why the check
+    runs after the override loop, not on settings alone."""
+    settings = _settings(orchestrator_name="langgraph", index_store="pgvector")
+    overrides = RuntimeConfig(orchestrator_name="agent_framework")
+    with pytest.raises(ConfigResolutionError) as excinfo:
+        resolve_effective_config(settings, overrides)
+    assert excinfo.value.context["configured_orchestrator"] == "agent_framework"

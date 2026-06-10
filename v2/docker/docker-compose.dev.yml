@@ -40,6 +40,11 @@ services:
       AZURE_POSTGRES_ENDPOINT: postgresql://cwyd:cwyd@postgres:5432/cwyd?sslmode=disable
       # AppSettings validator: AZURE_DB_TYPE=postgresql requires AZURE_INDEX_STORE=pgvector.
       AZURE_INDEX_STORE: pgvector
+      # This stack is pgvector, which has no Azure AI Search index for a Foundry
+      # IQ Knowledge Base, so agent_framework cannot ground here. Pin langgraph
+      # (overriding any agent_framework value in v2/.env) -- otherwise
+      # resolve_effective_config rejects the first chat with HTTP 409 (ADR 0022).
+      CWYD_ORCHESTRATOR_NAME: langgraph
       AZURE_STORAGE_BLOB_URL: http://azurite:10000/devstoreaccount1
       AZURE_STORAGE_QUEUE_URL: http://azurite:10001/devstoreaccount1
       # Telemetry: when AZURE_APP_INSIGHTS_CONNECTION_STRING is set in v2/.env,
