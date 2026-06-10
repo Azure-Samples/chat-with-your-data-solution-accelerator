@@ -240,10 +240,17 @@ def test_index_store_validation_rejects_third_party_with_first_party_cosmos(
         AppSettings()
 
 
-def test_orchestrator_default_is_langgraph(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_orchestrator_default_is_agent_framework(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The cloud default orchestrator is `agent_framework` (ADR 0021),
+    grounded by a Foundry IQ Knowledge Base over the Azure AI Search
+    index. `COSMOS_ENV` is AzureSearch-backed, so the default pairing is
+    valid; pgvector deployments must override to `langgraph` (ADR 0022).
+    """
     _set(monkeypatch, COSMOS_ENV)
     settings = AppSettings()
-    assert settings.orchestrator.name == OrchestratorName.LANGGRAPH
+    assert settings.orchestrator.name == OrchestratorName.AGENT_FRAMEWORK
 
 
 def test_orchestrator_name_enum_pins_first_party_keys() -> None:
@@ -260,7 +267,7 @@ def test_orchestrator_name_enum_pins_first_party_keys() -> None:
     }
     assert (
         OrchestratorSettings.model_fields["name"].default
-        is OrchestratorName.LANGGRAPH
+        is OrchestratorName.AGENT_FRAMEWORK
     )
 
 

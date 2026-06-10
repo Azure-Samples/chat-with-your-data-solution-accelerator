@@ -1,6 +1,6 @@
 # ADR 0021 — `agent_framework` default + Foundry IQ Knowledge Base retrieval
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Date**: 2026-06-09
 - **Phase**: 8
 - **Pillar**: Configuration Layer (default orchestrator selection + env-pinned KB API version) over a Stable Core seam (KB tool binding on the existing `agent_framework` orchestrator)
@@ -52,4 +52,4 @@ The three open questions were resolved by an empirical reflection probe against 
 - **Scoring profile → not required for MVP.** Agentic retrieval requires a *named semantic configuration*, which `cwyd-index` already has (`default`). A default *scoring profile* is optional ranking tuning, not a prerequisite, so **B2 does not add one** to the index build. Revisit only if retrieval relevance proves inadequate in testing.
 - **Pinned SDK surface → confirmed, with two corrections to the working assumptions.** (1) `azure-ai-projects==2.2.0` exposes agents via `AIProjectClient.agents` = `AgentsOperations.create_version(...)` — there is **no `create_agent`** on this SDK (that lives on the *separate* `azure-ai-agents==1.2.0b6` `AgentsClient`, which CWYD uses today). `MCPTool` + `PromptAgentDefinition` + `AzureAISearchToolResource` exist in `azure.ai.projects.models`, but **`KnowledgeBase` / `KnowledgeSource` model classes do not** — the KB itself is created via the **Azure AI Search REST API** (`knowledgesources` / `knowledgebases`, api-version `2025-11-01-preview`), not a typed SDK model (this is what `post_provision.py` / B2 calls). (2) `agent-framework==1.7.0` ships `Agent` + `MCPStreamableHTTPTool` but **not** `OpenAIChatOptions`, `ChatAgent`, or `HostedMCPTool` (MACAE targets a different agent-framework build), so **Decision 5's knob-threading is via `FoundryAgent` `default_options` / run `options`, not `OpenAIChatOptions`** (this ADR and the dev_plan B4 row are corrected accordingly). The classic `azure.ai.agents.models.AzureAISearchTool(index_connection_id, index_name, top_k=...)` exists and is the smallest possible binding, but it targets the **index directly, not a Foundry IQ KB**, so it is off-table for this ADR's committed KB decision (recorded only to document why it was not chosen).
 
-These resolutions hold for the pinned versions; the ADR moves to **Accepted** at task `C` once KB retrieval is wired and verified end-to-end.
+These resolutions hold for the pinned versions. The ADR is **Accepted** as of task `C`: `OrchestratorSettings.name` now defaults to `agent_framework` with the KB tool bound on the `AgentFrameworkOrchestrator` (task `B4`) and the pgvector incompatibility rejected at request time via `ConfigResolutionError` / HTTP 409 (task `B5`, [ADR 0022](0022-config-resolution-error-on-incompatible-overrides.md)).

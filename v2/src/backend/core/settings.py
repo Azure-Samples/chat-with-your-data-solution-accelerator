@@ -349,7 +349,15 @@ class OrchestratorSettings(BaseSettings):
     # registered against `cwyd.providers.orchestrators` via
     # `backend.core.discovery.load_entry_points`. Validation moves to the
     # registry boundary (`orchestrators_registry.registry.get(...)`).
-    name: OrchestratorName | str = OrchestratorName.LANGGRAPH
+    #
+    # Default is `AGENT_FRAMEWORK` (ADR 0021): Foundry agent delegation
+    # grounded by a Foundry IQ Knowledge Base over the Azure AI Search
+    # index. That pairing requires the `AzureSearch` index store, so
+    # pgvector deployments must override to `LANGGRAPH`; selecting
+    # `agent_framework` in pgvector mode is rejected at request time with
+    # a `ConfigResolutionError` (HTTP 409) per ADR 0022 -- never a silent
+    # fallback.
+    name: OrchestratorName | str = OrchestratorName.AGENT_FRAMEWORK
 
 
 class ContentSafetySettings(BaseSettings):
