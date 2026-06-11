@@ -12,6 +12,8 @@ estimated_reading_time: 8
 
 This document is the **per-dimension QA readiness snapshot** of CWYD v2 for the QA review team. It is the entry point for the structured review that lives in [qa_review_plan.md](qa_review_plan.md) and is anchored against the canonical [development_plan.md](development_plan.md) (§0 status table + §0.1 / §0.2 debt queues).
 
+Observed defects (broken or wrong behavior) are tracked in [bugs.md](bugs.md); day-to-day work is logged under [worklog/](worklog/).
+
 For the historical, Phase 3.5-era QA report kept for archeology only, see [qa_report_v2.archived.md](qa_report_v2.archived.md).
 
 ---

@@ -2,7 +2,7 @@
 
 **Repo**: [Azure-Samples/chat-with-your-data-solution-accelerator](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator)
 **Branch**: `dev-v2`
-**Last updated**: 2026-06-04 (rewritten lean — see [development_plan.old.md](development_plan.old.md) for the historical Phase 1–5 + Cleanup-audit batch 1/2 ledger)
+**Last updated**: 2026-06-10 (see §0.0e — durable worklog + `bugs.md` tracking split. Rewritten lean 2026-06-04 — see [development_plan.old.md](development_plan.old.md) for the historical Phase 1–5 + Cleanup-audit batch 1/2 ledger)
 
 > This is the **canonical, forward-looking** plan. The historical CU/Q ledger and per-phase closure trails live in [development_plan.old.md](development_plan.old.md) (frozen 2026-05-06). New debt and phase deltas land in §0.1 below.
 
@@ -75,6 +75,17 @@ Key architecture decisions captured during planning (full research trail in the 
 
 **Status (2026-06-09).** Phase 8 complete — the full `B0 → B1 → B-Spike → B2 → B3 → B4 → B5a → B5b → C` chain landed. ADRs 0021 + 0022 are **Accepted**; §2.1 clarifier + this receipt + the §4 Phase 8 task table are in place; ADR index completed (0019–0022). Task `C` flipped `OrchestratorSettings.name` from `langgraph` to `agent_framework` **after** KB retrieval was wired (`B4`) and the pgvector guardrail enforced (`B5b` — `ConfigResolutionError` / HTTP 409), so the default is never ungrounded. The dev `docker-compose.dev.yml` pins `CWYD_ORCHESTRATOR_NAME=langgraph` to keep the pgvector dev stack coherent.
 
+### 0.0e Session receipt (2026-06-10) — durable file-based tracking (worklog + bugs registry)
+
+Direction from the repo owner: plans, daily work, and bugs must live in **repo-tracked files**, never only in agent session memory (bug history was lost when a session's memory was cleared). Established the convention and wired it into the governance + agent layer.
+
+- **New defect registry** [bugs.md](bugs.md) — the canonical log of every observed defect with sequential `BUG-####` ids, root cause, and fix. Seeded with `BUG-0001` + `BUG-0002` (the two `INGEST-EMBED-DOCKEY` ingestion bugs).
+- **New daily worklog** under [worklog/](worklog/) — one `YYYY-MM-DD.md` per working day (plan / done / bugs / decisions / next), described by [worklog/README.md](worklog/README.md).
+- **Hard Rule #19** added to [.github/copilot-instructions.md](../../.github/copilot-instructions.md) (durable file-based tracking); **Hard Rule #12** re-scoped so §0.1/§0.2 hold *phase debt and tasks* while *defects* live in `bugs.md`, with a one-line §0.1 pointer when phase-audit visibility is needed.
+- **Agent guidance** updated: `cwyd-planner` persists the Work Order to the worklog; `cwyd-implementer` + `cwyd-tester` record bugs in `bugs.md` and append daily work; `cwyd-qa` recommends `bugs.md` entries (stays read-only).
+
+The `INGEST-EMBED-DOCKEY` row below stays in §0.1 as the phase-audit pointer; full defect detail now lives in `bugs.md` (`BUG-0001` / `BUG-0002`).
+
 ---
 
 ## 0.1 Active debt queue
@@ -82,6 +93,8 @@ Key architecture decisions captured during planning (full research trail in the 
 Forward-looking debt only. **Closed historical items live in [development_plan.old.md](development_plan.old.md) §0.1** (CU-001 through CU-013, CU-004a/b/c, Q1 through Q14, plus #7/#8/#35c).
 
 Append-only during normal work; cleared in batch during the originating phase's end-of-phase audit.
+
+> **Defects vs debt** (Hard Rule #12 + #19): this queue holds *phase debt and tasks*. Observed **defects** (broken or wrong runtime behavior) live in [bugs.md](bugs.md); a row here is only a one-line pointer to its `BUG-####` id when phase-audit visibility is needed.
 
 ### Backend debt
 

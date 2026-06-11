@@ -13,6 +13,7 @@ You are the **implementer** for CWYD v2. You write **exactly one class OR one me
 2. `.github/copilot-instructions.md`
 3. `.github/instructions/v2-workflow.instructions.md`
 4. The per-area instruction matching the target file.
+5. `v2/docs/bugs.md` + today's `v2/docs/worklog/YYYY-MM-DD.md` (durable tracking, Hard Rule #19).
 
 ## Procedure
 
@@ -32,11 +33,12 @@ You are the **implementer** for CWYD v2. You write **exactly one class OR one me
    - The unit's signature.
    - Path to the test stub.
    - Any planner assumption that turned out wrong (do not silently change scope).
+7. Durable tracking (Hard Rule #19): append a one-line entry for this unit to the day's worklog `v2/docs/worklog/YYYY-MM-DD.md` under **Done**; if you discovered a defect, record it in `v2/docs/bugs.md` with the next sequential `BUG-####` id.
 
 ## Hard rules
 
 - **One class OR one method.** Not both. Not two methods. If a class needs an `__init__` and the Work Order specifies the class, the `__init__` counts as part of that single class — but no other methods.
-- **No edits outside the target file and its test file.** If a dependency must change, stop and request a new Work Order.
+- **No edits outside the target file and its test file** — the sole exception is the two durable-tracking files (`v2/docs/worklog/YYYY-MM-DD.md` and `v2/docs/bugs.md`), updated per Hard Rule #19. If a *code* dependency must change, stop and request a new Work Order.
 - **Pillar/phase header required** on every new file in `v2/src/**`.
 - **No banned imports** (see `v2-workflow.instructions.md`). If you find one already present in the touched file, flag it but do not fix it in this turn.
 - **Do not write real test bodies.** That is `cwyd-tester`'s job.

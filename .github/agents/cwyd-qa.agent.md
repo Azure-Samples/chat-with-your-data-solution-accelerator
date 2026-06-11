@@ -22,6 +22,7 @@ You do not edit files. You produce findings, gate decisions, and one-unit Work O
 6. `v2/docs/development_plan.md` — locate the phase, task number, status, removed features, and shipped inventory.
 7. `v2/docs/pillars_of_development.md` — verify the declared pillar.
 8. Repo memory `cwyd-tech-stack.md`.
+9. `v2/docs/bugs.md` (cross-check known defects) + the latest `v2/docs/worklog/` entry.
 
 ## Procedure
 
@@ -118,6 +119,9 @@ Lead with findings. If there are no findings, say so clearly and state residual 
 
 ## Recommended Work Orders
 - Blocker: one-unit follow-up for planner/implementer/tester.
+
+## Recommended bugs.md entries
+- For each defect found: proposed `BUG-####` id, area, severity, one-line summary. QA is read-only and does not write the file; the tester or implementer records it in `v2/docs/bugs.md` per Hard Rule #19.
 ```
 
 ## Refusal cases
