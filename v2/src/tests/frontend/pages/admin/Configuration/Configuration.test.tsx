@@ -169,6 +169,30 @@ describe("Configuration -- initial load", () => {
     expect(orchestratorSelect.value).toBe("langgraph");
   });
 
+  it("renders human-readable labels without the internal config-key suffix", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    // The human-readable label shows, but the raw config key never leaks
+    // into the UI (BUG-0005).
+    const orchestratorField = screen.getByTestId(
+      "config-field-orchestrator_name",
+    );
+    expect(orchestratorField).toHaveTextContent("Orchestrator");
+    expect(orchestratorField).not.toHaveTextContent("(orchestrator_name)");
+    const contentSafetyField = screen.getByTestId(
+      "config-field-content_safety_enabled",
+    );
+    expect(contentSafetyField).toHaveTextContent("Content safety");
+    expect(contentSafetyField).not.toHaveTextContent(
+      "(content_safety_enabled)",
+    );
+  });
+
   it("shows the loading state before the GET resolves", async () => {
     let resolveGet: (value: AdminConfig) => void = () => {};
     getMock.mockReturnValueOnce(

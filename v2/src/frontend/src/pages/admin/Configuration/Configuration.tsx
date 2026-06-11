@@ -745,9 +745,6 @@ export function Configuration(): JSX.Element {
                             className={styles.fieldLabel}
                           >
                             {spec.label}
-                            <span className={styles.fieldName}>
-                              ({spec.key})
-                            </span>
                           </label>
                           {spec.kind === "text" && spec.multiline === true ? (
                             <Textarea

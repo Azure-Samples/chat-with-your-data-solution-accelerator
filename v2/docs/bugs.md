@@ -60,7 +60,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0002 | 2026-06-10 | 2026-06-10 | backend | blocker | fixed | Parser-minted chunk id is an illegal Azure AI Search document key, so Search push fails with `InvalidDocumentKey`. |
 | BUG-0003 | 2026-06-11 | — | backend | high | open | `GET /api/admin/documents` returns `503` even with search fully configured: `list_sources` facets the `title` field, which is not `facetable` in the index schema, so Azure AI Search raises `FieldNotFacetable` and the router maps it to 503. |
 | BUG-0004 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The admin Orchestrator field is a free-text input; it should be a dropdown of the known orchestrator keys. |
-| BUG-0005 | 2026-06-11 | — | frontend | low | open | The admin Configuration labels show internal config-key names such as `(orchestrator_name)`. |
+| BUG-0005 | 2026-06-11 | 2026-06-11 | frontend | low | fixed | The admin Configuration labels show internal config-key names such as `(orchestrator_name)`. |
 | BUG-0006 | 2026-06-11 | — | backend | medium | open | Content Safety defaults to disabled; it should default to enabled. |
 | BUG-0007 | 2026-06-11 | — | backend | medium | open | The default agent instructions do not carry the vetted v1 default prompt text. |
 | BUG-0008 | 2026-06-11 | — | frontend | medium | open | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
@@ -136,13 +136,15 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
 ### BUG-0005 — Admin configuration labels show internal config-key names
 
-Area: frontend. Severity: low. Status: open (found 2026-06-11).
+Area: frontend. Severity: low. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom: every field label on the admin Configuration page appends the raw config key in parentheses, for example "Orchestrator (orchestrator_name)" and "Content safety (content_safety_enabled)".
 
 Root cause: the label rendering in `frontend/src/pages/admin/Configuration/Configuration.tsx` appends each field spec's key to its human-readable label.
 
 Proposed fix: render the human-readable label only and drop the parenthetical config-key suffix.
+
+Fix: removed the `<span>` that rendered `({spec.key})` from the field label so it shows only the human-readable `spec.label`, and deleted the now-dead `.fieldName` CSS class. Added a test asserting rendered labels contain the human text and never the parenthetical config key.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 

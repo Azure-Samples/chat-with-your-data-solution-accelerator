@@ -116,13 +116,6 @@
   color: var(--colorNeutralForeground1);
 }
 
-.fieldName {
-  font-family: var(--fontFamilyMonospace);
-  font-size: var(--fontSizeBase200);
-  color: var(--colorNeutralForeground3);
-  font-weight: var(--fontWeightRegular);
-}
-
 .fieldHint {
   margin: 0;
   font-size: var(--fontSizeBase200);
