@@ -70,12 +70,52 @@
             "program": "${file}",
             "justMyCode": true,
             "envFile": "${input:dotEnvFilePath}",
+        },
+        {
+            "name": "v2: Launch Backend (FastAPI)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "backend.app:app",
+                "--reload",
+                "--app-dir", "src",
+                "--host", "127.0.0.1",
+                "--port", "8000"
+            ],
+            "cwd": "${workspaceFolder}/v2",
+            "python": "${workspaceFolder}/v2/.venv/Scripts/python.exe",
+            "envFile": "${workspaceFolder}/v2/.env",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "preLaunchTask": "v2: uv sync"
+        },
+        {
+            "name": "v2: Attach to Python Functions",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": { "host": "127.0.0.1", "port": 9091 },
+            "preLaunchTask": "v2: func host start",
+            "justMyCode": false
+        },
+        {
+            "name": "v2: Launch Frontend (Edge)",
+            "type": "msedge",
+            "request": "launch",
+            "url": "http://localhost:5273",
+            "webRoot": "${workspaceFolder}/v2/src/frontend/src",
+            "preLaunchTask": "v2: frontend dev"
         }
     ],
     "compounds": [
         {
             "name": "Launch Frontend",
             "configurations": [ "Launch Frontend (UI)", "Launch Backend (FastAPI)" ],
+            "stopAll": true
+        },
+        {
+            "name": "v2: Run all (backend + functions + frontend)",
+            "configurations": [ "v2: Launch Backend (FastAPI)", "v2: Attach to Python Functions", "v2: Launch Frontend (Edge)" ],
             "stopAll": true
         }
     ],

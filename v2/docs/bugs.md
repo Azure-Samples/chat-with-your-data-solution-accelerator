@@ -5,7 +5,7 @@ author: CWYD Engineering
 ms.date: 2026-06-11
 topic: reference
 keywords: bugs, defects, registry, v2, root cause, regression, recovery
-estimated_reading_time: 9
+estimated_reading_time: 14
 ---
 
 ## Purpose
@@ -58,12 +58,23 @@ This file is tracked and may reach public GitHub. Never write real environment v
 |---|---|---|---|---|---|---|
 | BUG-0001 | 2026-06-10 | 2026-06-10 | backend | blocker | fixed | Embeddings call routes to the Foundry project endpoint (no embeddings path → `404`) and omits `dimensions`. |
 | BUG-0002 | 2026-06-10 | 2026-06-10 | backend | blocker | fixed | Parser-minted chunk id is an illegal Azure AI Search document key, so Search push fails with `InvalidDocumentKey`. |
-| BUG-0003 | 2026-06-11 | — | backend | high | open | `GET /api/admin/documents` returns `503` when the deployment has no search endpoint configured, because the lifespan leaves the search provider unset. |
-| BUG-0004 | 2026-06-11 | — | frontend | medium | open | The admin Orchestrator field is a free-text input; it should be a dropdown of the known orchestrator keys. |
+| BUG-0003 | 2026-06-11 | — | backend | high | open | `GET /api/admin/documents` returns `503` even with search fully configured: `list_sources` facets the `title` field, which is not `facetable` in the index schema, so Azure AI Search raises `FieldNotFacetable` and the router maps it to 503. |
+| BUG-0004 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The admin Orchestrator field is a free-text input; it should be a dropdown of the known orchestrator keys. |
 | BUG-0005 | 2026-06-11 | — | frontend | low | open | The admin Configuration labels show internal config-key names such as `(orchestrator_name)`. |
 | BUG-0006 | 2026-06-11 | — | backend | medium | open | Content Safety defaults to disabled; it should default to enabled. |
 | BUG-0007 | 2026-06-11 | — | backend | medium | open | The default agent instructions do not carry the vetted v1 default prompt text. |
 | BUG-0008 | 2026-06-11 | — | frontend | medium | open | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
+| BUG-0009 | 2026-06-11 | — | frontend | medium | open | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
+| BUG-0010 | 2026-06-11 | — | frontend | low | open | Numeric config fields should validate numeric entry on the frontend; the admin Configuration page already enforces this (`type=number` + bounds), so the affected surface needs confirmation. |
+| BUG-0011 | 2026-06-11 | — | backend | high | open | An authored agent prompt is not RAI-validated and fully replaces the system instructions, so it can supersede the system guardrail ("uber") prompt. |
+| BUG-0012 | 2026-06-11 | — | frontend | low | open | The assistant robot avatar and the Thinking (reasoning) panel are not aligned in the chat message layout. |
+| BUG-0013 | 2026-06-11 | — | backend | medium | open | The Thinking/reasoning feed never shows: the backend emits no `reasoning` SSE frames, so the (correctly wired) frontend panel stays empty. |
+| BUG-0014 | 2026-06-11 | — | frontend | medium | open | Assistant responses render as raw markdown; the markdown is not converted to HTML as it is in v1. |
+| BUG-0015 | 2026-06-11 | — | frontend | low | open | The citation/reference block styling under an answer does not match v1. |
+| BUG-0016 | 2026-06-11 | — | frontend | medium | open | Inline `[docN]` references render as literal-text buttons; they should render like v1 (superscript citation links). |
+| BUG-0017 | 2026-06-11 | — | backend | high | open | Starting a conversation does not persist it to chat history, so new conversations never appear in the left history column. |
+| BUG-0018 | 2026-06-11 | — | frontend | low | open | The chat history left column shows the backend database name (`backend: <db_type>`); it should not. |
+| BUG-0019 | 2026-06-11 | — | frontend | low | open | Remove the New chat section and functionality from the chat history left column. |
 
 ## Details
 
@@ -95,27 +106,29 @@ Why it was not caught earlier: the parser tests asserted the raw `id` literal, w
 
 References: [worklog/2026-06-10.md](worklog/2026-06-10.md); [development_plan.md](development_plan.md) §0.1 `INGEST-EMBED-DOCKEY`.
 
-### BUG-0003 — Admin documents endpoint returns 503 when no search endpoint is configured
+### BUG-0003 — Admin documents endpoint returns 503 (`list_sources` facets the non-facetable `title` field)
 
 Area: backend. Severity: high. Status: open (found 2026-06-11).
 
-Symptom: `GET /api/admin/documents` returns `503 Service Unavailable`, so the admin Delete data grid cannot list indexed sources.
+Symptom: `GET /api/admin/documents` returns `503 Service Unavailable` (body `{"detail":"Azure dependency temporarily unavailable."}`), so the admin Delete data grid cannot list indexed sources. Reproduced locally 2026-06-11 against the live cloud data plane **with search fully configured** (endpoint, index, and knowledge base all set, and the `search` readiness check passing) — the listing still 503s.
 
-Root cause: when `index_store` is `azure_search` and `settings.search.endpoint` is empty, the FastAPI lifespan in `backend/app.py` leaves `app.state.search_provider` as `None` (the intended pass-through mode for the backend-only dev profile). The `get_search_provider` dependency in `backend/dependencies.py` then returns `None`, and `list_documents_endpoint` in `backend/routers/admin.py` raises `HTTPException(503)`. Any environment without an Azure AI Search endpoint breaks the admin documents list.
+Root cause: `list_sources()` in `backend/core/providers/search/azure_search.py` issues `client.search(search_text="*", facets=["title,count:10000,sort:value"], top=0)` to bucket chunks by their `title` field, then reads `paged.get_facets()`. The configured index schema does not mark `title` as `facetable`, so Azure AI Search rejects the request with `HttpResponseError` — `(OperationNotAllowed) The field 'title' has not been marked as facetable in the schema` (`Code: FieldNotFacetable`). The SDK-boundary handler in `backend/routers/admin.py` maps that `AzureError` to `HTTPException(503)` per the resilience contract. The failure is independent of endpoint configuration; it fires whenever the index used by the deployment lacks a facetable `title` field. The earlier hypothesis (empty endpoint → `search_provider` is `None` → 503) is a separate latent pass-through path, not the cause of the observed 503.
 
-Proposed fix (direction, to be settled in the fix turn): if the environment is expected to have search, correct the endpoint configuration or injection so the provider is constructed; if pass-through is a valid state, the endpoint should degrade gracefully — return an empty `ListDocumentsResponse` with a clear "search not configured" signal the admin UI can render — instead of a hard `503`.
+Proposed fix (direction, to be settled in the fix turn): prefer a code-side fix in `list_sources()` so the endpoint is robust to existing index schemas — derive the source listing without faceting `title` (for example facet on a field declared `facetable`, or page documents and aggregate distinct sources client-side). Optionally, also mark the source-grouping field `facetable` in the index schema. Separately, decide whether the `search_provider is None` pass-through state should degrade gracefully (empty `ListDocumentsResponse` + a "search not configured" signal) instead of a hard `503`, and track that as its own concern.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
 ### BUG-0004 — Orchestrator field is free text instead of a dropdown
 
-Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+Area: frontend. Severity: medium. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom: on the admin Configuration page the Orchestrator field is a single-line text input, so an operator can type an invalid key and save it.
 
 Root cause: `orchestrator_name` is declared as a text field in the `FIELD_SPECS` array in `frontend/src/pages/admin/Configuration/Configuration.tsx`; there is no select control bound to the known orchestrator keys.
 
 Proposed fix: render a dropdown sourced from the first-party orchestrator keys `langgraph` and `agent_framework` (the `OrchestratorName` enum in `backend/core/settings.py`, registered in `backend/core/providers/orchestrators/registry.py`). Decide in the fix turn whether to keep a free-text escape hatch for third-party registered keys, since the settings type is widened to `OrchestratorName | str`.
+
+Fix: added an `OrchestratorName` closed-set map (`langgraph`, `agent_framework`) to `frontend/src/models/admin.tsx` mirroring the backend StrEnum, extended `FieldSpec` with a `select` kind plus an `options` list, and rendered the Orchestrator field as a Fluent UI `Select` dropdown. Escape-hatch decision: no free-text input is kept, but if the running config already holds a key outside the first-party set (allowed by the widened `OrchestratorName | str` backend type), that current value is added as an extra option so it stays selectable and is never silently dropped. The wire field `orchestrator_name` stays a plain `string`, and `validateField` now treats `select` as a closed choice. Covered by the Configuration Vitest suite (`src/tests/frontend/pages/admin/Configuration/Configuration.test.tsx`); full frontend suite green (371 tests).
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
@@ -166,3 +179,135 @@ Root cause: the prompt-editor route was added during the `#35d` admin merge. `fr
 Proposed fix: move editing of `cwyd_agent_instructions` into the Configuration page field set, then remove the Prompt editor page, its route, its nav entries, and its tests. Update the `#35d` and `U-P7-PROMPT` trail in the development plan in the fix turn.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+
+### BUG-0009 — Log level field is free text instead of a dropdown
+
+Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+
+Symptom: on the admin Configuration page the Log level field is a single-line text input, so an operator can type an arbitrary string and save it.
+
+Root cause: `log_level` is declared with `kind: "text"` in the `FIELD_SPECS` array in `frontend/src/pages/admin/Configuration/Configuration.tsx`, so it renders through the text `<Input>` branch. The field hint even enumerates the closed set (`DEBUG`, `INFO`, `WARNING`, `ERROR`), but no select control is bound to it — the page imports only `Button`, `Input`, `Switch`, and `Textarea` from `@fluentui/react-components`.
+
+Proposed fix: render a dropdown bound to the closed set of log levels. This is the same closed-set-as-free-text family as BUG-0004 (orchestrator dropdown); settle the shared dropdown approach in the fix turn.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0004.
+
+### BUG-0010 — Numeric config fields should validate numeric entry
+
+Area: frontend. Severity: low. Status: open (found 2026-06-11).
+
+Symptom (as reported): numeric configuration values should have frontend validation that enforces a numeric entry.
+
+Current state: on the admin Configuration page the numeric fields (`openai_temperature`, `openai_max_tokens`, `search_top_k`) already render through the `kind === "number"` branch in `frontend/src/pages/admin/Configuration/Configuration.tsx` as `<Input type="number">` with `step`, `min`, and `max`. `handleNumberChange` coerces a non-parseable entry to `NaN`; `validateField` returns "must be a number" for a `NaN` or non-number value and enforces the min/max bounds; the error renders inline and `anyFieldInvalid` blocks Save. The requested validation therefore appears already satisfied on the admin Configuration surface.
+
+Proposed fix: confirm in the fix turn which numeric surface the user observed lacking validation (for example a deployed build that predates the current Configuration page, or a numeric input outside the admin Configuration page). If a gap is reproduced, extend numeric-entry validation there; otherwise close as already-implemented.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+
+### BUG-0011 — Authored prompt is not RAI-validated and can supersede the system prompt
+
+Area: backend. Severity: high. Status: open (found 2026-06-11).
+
+Symptom: when an agent prompt is authored, it is not screened by Responsible AI (RAI) validation, and it can override the system's master ("uber") guardrail prompt.
+
+Root cause: two facets. (1) Guardrail precedence — `backend/core/providers/agents/base.py` applies the configured `cwyd_agent_instructions` with `definition.model_copy(update={"instructions": text})`, so the authored text fully **replaces** the `CWYD_AGENT` system instructions rather than being appended beneath a fixed guardrail prompt. Only `RAI_AGENT` and future safety surfaces are override-shielded (`if definition.name != CWYD_AGENT.name: return definition`), so an authored `CWYD_AGENT` prompt can supersede the intended system instructions. (2) RAI validation coverage — the RAI safety classifier guards only `post_answering_prompt` on save (`RAI_GUARDED_FIELDS` on the frontend; the classifier path in `backend/models/admin.py` and `backend/services/admin.py`). The primary `cwyd_agent_instructions` (the system prompt) is not run through the RAI classifier. End-user chat input is screened by Content Safety (`ContentSafetyGuard` in `backend/app.py`) but is not RAI-classified in the conversation router.
+
+Proposed fix (direction, to be settled in the fix turn): (a) anchor the configured instructions beneath a non-overridable system guardrail prompt so authored text cannot supersede the system "uber" prompt; (b) extend RAI validation to cover the authored `cwyd_agent_instructions`, and decide whether end-user chat input should also be RAI-classified rather than only Content-Safety screened.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0006, BUG-0007.
+
+### BUG-0012 — Robot avatar and Thinking panel are not aligned
+
+Area: frontend. Severity: low. Status: open (found 2026-06-11).
+
+Symptom: in the chat transcript the assistant robot avatar icon and the Thinking (reasoning) panel do not line up.
+
+Root cause: in `frontend/src/pages/chat/components/MessageList.tsx` the assistant avatar (`Bot20Regular`) sits inside the `.row` flex container next to the message bubble, but the reasoning `<details>` panel is rendered as a sibling block at the `<li>` level — outside `.row` — so it starts at the list-item left edge instead of aligning with the avatar/bubble column.
+
+Proposed fix: align the reasoning panel with the bubble column (for example move it inside the bubble column or apply the same left offset as the avatar gutter). Settle the exact layout in the fix turn.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+
+### BUG-0013 — Thinking/reasoning feed never shows
+
+Area: backend. Severity: medium. Status: open (found 2026-06-11).
+
+Symptom: the Thinking/reasoning feed is never visible in the chat UI.
+
+Root cause: the frontend reasoning panel in `frontend/src/pages/chat/components/MessageList.tsx` renders only while `m.streaming === true` or when `m.reasoning` has content, and its body is `m.reasoning.join("")`. The SSE handling in the chat input flow appends `reasoning` frames to `m.reasoning`, so the frontend is wired correctly — but the backend orchestrator emits no `reasoning`-channel SSE frames at runtime (the default `langgraph` orchestrator does not surface o-series reasoning), so `m.reasoning` stays empty and the panel collapses to nothing once streaming ends.
+
+Proposed fix (direction): emit `reasoning`-channel `OrchestratorEvent`s from the orchestrator when a reasoning summary is available, so the existing frontend panel renders. Confirm in the fix turn which orchestrator(s) should surface reasoning and the source of the reasoning text.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+
+### BUG-0014 — Assistant response markdown is not converted to HTML
+
+Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+
+Symptom: assistant answers display as raw markdown (literal `**bold**`, list markers, headings, fenced code, tables) instead of rendered HTML.
+
+Root cause: `frontend/src/pages/chat/components/answerTokens.tsx` (`renderAnswerTokens`) only tokenizes `[docN]` citation markers and otherwise pushes raw text slices as plain strings; it performs no markdown-to-HTML conversion, and the v2 frontend has no markdown renderer dependency. v1 renders answers through `react-markdown` (`code/frontend/src/components/Answer/Answer.tsx`).
+
+Proposed fix (direction): render the answer text through a markdown renderer (matching v1's `react-markdown` behavior) while preserving the inline `[docN]` citation tokenization. Adding a dependency is a structural change — raise it for confirmation in the fix turn (Hard Rule #10).
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0016.
+
+### BUG-0015 — Citation/reference block should look like v1
+
+Area: frontend. Severity: low. Status: open (found 2026-06-11).
+
+Symptom: the reference block shown under an assistant answer does not match the v1 appearance.
+
+Root cause: the v2 reference block is rendered by `frontend/src/pages/chat/components/CitationPanel/CitationPanel.tsx` with its own styling, which differs from the v1 citation presentation (`code/frontend/src/components/Answer/Answer.tsx` plus `Answer.module.css` `.citationContainer` and `.citation`).
+
+Proposed fix: restyle the reference block to match v1. Settle the exact visual parity in the fix turn.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0016.
+
+### BUG-0016 — Inline references should render like v1
+
+Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+
+Symptom: inline citation markers inside the answer render as literal `[docN]` text buttons; v1 shows them as compact superscript citation links.
+
+Root cause: `frontend/src/pages/chat/components/answerTokens.tsx` renders each resolved `[docN]` marker as `<button>{raw}</button>` — the literal bracket text — rather than as a v1-style superscript citation index.
+
+Proposed fix: render resolved inline citations in the v1 style (superscript numbered links) while keeping the click-to-focus behavior. Settle the exact rendering in the fix turn.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0014, BUG-0015.
+
+### BUG-0017 — New conversation is not saved to history
+
+Area: backend. Severity: high. Status: open (found 2026-06-11).
+
+Symptom: when a user starts a conversation by sending a message, the conversation does not appear in the left-hand chat history column.
+
+Root cause: `POST /api/conversation` in `backend/routers/conversation.py` runs the orchestrator and streams the answer but performs no chat-history writes. History persistence is entirely client-driven through the separate `/api/history/*` endpoints — the only create path is the explicit New chat button in `HistoryPanel` (`handleNew` → `POST /api/history/conversations`). So a conversation begun by simply typing a first message is never persisted server-side and never appears in the history list.
+
+Proposed fix (direction): persist the conversation and its turns as part of the conversation flow — either server-side in the conversation router or by having the chat flow create and persist a conversation on the first message. Settle the exact persistence trigger and ownership in the fix turn.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0019.
+
+### BUG-0018 — Chat history column shows the backend database name
+
+Area: frontend. Severity: low. Status: open (found 2026-06-11).
+
+Symptom: the chat history left column header shows `backend: <db_type>` — the configured chat-history database discriminator.
+
+Root cause: `frontend/src/pages/chat/components/HistoryPanel.tsx` renders `<p data-testid="history-db-type">backend: {status.db_type}</p>` from the `/api/history/status` response in the panel header.
+
+Proposed fix: remove the `history-db-type` display from the panel header.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+
+### BUG-0019 — Remove the New chat section from the history column
+
+Area: frontend. Severity: low. Status: open (found 2026-06-11).
+
+Symptom: the chat history left column contains a New chat section that should be removed.
+
+Root cause: `frontend/src/pages/chat/components/HistoryPanel.tsx` renders a New chat button (`data-testid="history-new"`) wired to `handleNew` (`POST /api/history/conversations`). Related New-chat wiring exists outside the panel — the header `HeaderTools` `onNewChat` control and the `newChatNonce` flow in `App.tsx`.
+
+Proposed fix: remove the New chat button and `handleNew` from the history panel; decide in the fix turn whether the header New-chat affordance and the `newChatNonce` wiring are also in scope.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0017.

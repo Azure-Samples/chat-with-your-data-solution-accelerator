@@ -8,6 +8,21 @@
  */
 
 /**
+ * First-party orchestrator registry keys. Mirrors the backend
+ * `OrchestratorName` StrEnum in `backend/core/settings.py`. The wire
+ * field `orchestrator_name` stays a plain `string` because the backend
+ * type is widened to `OrchestratorName | str` for third-party registry
+ * keys; this closed set is the list of built-in choices the admin
+ * Orchestrator dropdown offers.
+ */
+export const OrchestratorName = {
+  LangGraph: "langgraph",
+  AgentFramework: "agent_framework",
+} as const;
+export type OrchestratorName =
+  (typeof OrchestratorName)[keyof typeof OrchestratorName];
+
+/**
  * Sanitized snapshot of the running backend configuration.
  * Mirrors `backend.models.admin.AdminStatus`; non-secret fields only.
  */

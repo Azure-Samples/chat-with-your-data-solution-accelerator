@@ -2,10 +2,10 @@
 title: CWYD v2 — Local Development Against Cloud Resources
 description: Operator runbook for running the CWYD v2 backend and Functions host natively on a developer workstation while wiring them to the live cloud data plane (Foundry, Cosmos DB, Azure AI Search, Storage). No emulators, no Azurite — real Azure resources, gated by Managed Identity / az login RBAC.
 author: CWYD Engineering
-ms.date: 2026-06-10
+ms.date: 2026-06-11
 topic: runbook
-keywords: local development, native run, uvicorn, func host start, cosmos, azure ai search, storage public access, rbac, azure cli credential
-estimated_reading_time: 12
+keywords: local development, native run, uvicorn, func host start, vite frontend, vs code one-click, compound launch, cosmos, azure ai search, storage public access, rbac, azure cli credential
+estimated_reading_time: 14
 ---
 
 # CWYD v2 — Local Development Against Cloud Resources
@@ -28,13 +28,78 @@ It is the right path when you want to:
 
 ---
 
+## Quick start (all three tiers)
+
+> **TL;DR for returning developers.** Do the one-time setup once, then use either the VS Code one-click or three terminals. Sections [§2](#2-prerequisites)–[§10](#10-troubleshooting-quick-reference) explain every step and the cloud-side gotchas in full.
+
+**One-time setup** (skip anything already done):
+
+```powershell
+# From the repo root.
+cd v2
+uv sync                                   # build v2/.venv with backend + functions deps
+cd src/frontend; npm install; cd ../..    # frontend deps
+az login                                  # local creds resolve to AzureCliCredential
+```
+
+Ensure the two **gitignored, already-populated** config files exist (they hold your real cloud endpoints — never copy those values into tracked files):
+
+* `v2/.env` — backend config ([§5.1](#51-v2env-gitignored)). Keep `AZURE_UAMI_CLIENT_ID` empty.
+* `v2/src/functions/local.settings.json` — Functions config ([§6.1](#61-v2srcfunctionslocalsettingsjson-gitignored)); isolates onto the `doc-processing-local` queue.
+
+Confirm Storage public access is open for your workstation (one-time, [§4](#4-enable-storage-public-network-access)): `publicNetworkAccess: Enabled`.
+
+### Fast path — VS Code one-click
+
+Run and Debug panel → **`v2: Run all (backend + functions + frontend)`** → ▶. The compound starts all three tiers through their pre-launch tasks (`v2: uv sync`, `v2: func host start`, `v2: frontend dev`).
+
+> The compound's `v2: Attach to Python Functions` step attaches a debugger on port `9091`. If that attach times out, the Functions host itself still runs (its task is independent) — ignore the attach error, or start Functions via the manual path below.
+
+### Manual path — three terminals (from the repo root)
+
+```powershell
+# Terminal 1 — backend (FastAPI on :8000). uv run --env-file injects v2/.env into the process env.
+cd v2
+uv run --env-file .env uvicorn backend.app:app --app-dir src --host 127.0.0.1 --port 8000
+```
+
+```powershell
+# Terminal 2 — frontend (Vite on :5273; proxies /api to the backend).
+cd v2/src/frontend
+npm run dev
+```
+
+```powershell
+# Terminal 3 — Functions host (:7071). Point at v2/.venv + PYTHONPATH, then start.
+cd v2
+$env:VIRTUAL_ENV = "$PWD\.venv"; $env:PATH = "$PWD\.venv\Scripts;$env:PATH"; $env:PYTHONPATH = "$PWD\src"
+cd src/functions
+func host start
+```
+
+### Verify
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/api/health/ready | ConvertTo-Json -Depth 5   # backend: every check PASS
+(Invoke-WebRequest http://localhost:5273/ -UseBasicParsing).StatusCode               # frontend: 200
+Invoke-RestMethod http://localhost:7071/api/health                                   # functions: {"status":"ok"}
+```
+
+| Tier | URL |
+|---|---|
+| Backend (FastAPI) | `http://127.0.0.1:8000` |
+| Frontend (Vite) | `http://localhost:5273` |
+| Functions host | `http://localhost:7071` |
+
+---
+
 ## 1. What runs where
 
 | Component | Where it runs | Talks to (cloud) |
 |---|---|---|
 | Backend API (`backend.app:app`) | local `uvicorn` on `127.0.0.1:8000` | Foundry `proj-<SUFFIX>`, Cosmos `cosmos-<DATA_SUFFIX>`, Search `srch-<DATA_SUFFIX>` |
 | Functions host (`batch_start`, `batch_push`, `add_url`, `search_skill`) | local `func host start` on `:7071` | Storage `st<DATA_SUFFIX>`, Foundry (Document Intelligence + embeddings), Search |
-| Frontend (optional) | local Vite dev server | the local backend via `VITE_BACKEND_URL=http://127.0.0.1:8000` |
+| Frontend (optional) | local Vite dev server on `:5273` | the local backend (the Vite dev server proxies `/api` → `127.0.0.1:8000`) |
 
 The deployed Container App / Function App keep running untouched. See [§7](#7-coexisting-with-the-deployed-function-app) for the one place they can collide (the shared Storage queue) and how this runbook isolates around it.
 

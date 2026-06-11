@@ -40,7 +40,13 @@ import {
   type ChangeEvent,
   type JSX,
 } from "react";
-import { Button, Input, Switch, Textarea } from "@fluentui/react-components";
+import {
+  Button,
+  Input,
+  Select,
+  Switch,
+  Textarea,
+} from "@fluentui/react-components";
 import type {
   SwitchOnChangeData,
   TextareaOnChangeData,
@@ -50,6 +56,7 @@ import {
   getAdminConfig,
   patchAdminConfig,
 } from "@/api/admin";
+import { OrchestratorName } from "@/models/admin";
 import type {
   AdminConfig,
   AdminConfigPatch,
@@ -91,17 +98,21 @@ type ConfigFieldKey =
  * guard -- needed for fields whose empty value carries semantic
  * meaning at the server (e.g. "validator disabled" or "fall back to
  * the built-in default").
+ *
+ * `options` supplies the closed set of choices for a `select` field,
+ * rendered as a dropdown instead of a free-text input.
  */
 interface FieldSpec {
   key: ConfigFieldKey;
   label: string;
   hint: string;
-  kind: "text" | "number" | "boolean";
+  kind: "text" | "number" | "boolean" | "select";
   multiline?: boolean;
   allowEmpty?: boolean;
   numberStep?: string;
   numberMin?: number;
   numberMax?: number;
+  options?: readonly string[];
 }
 
 /**
@@ -153,7 +164,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "orchestrator_name",
     label: "Orchestrator",
     hint: "Registry key of the active orchestrator (e.g. langgraph, agent_framework).",
-    kind: "text",
+    kind: "select",
+    options: [OrchestratorName.LangGraph, OrchestratorName.AgentFramework],
   },
   {
     key: "openai_temperature",
@@ -475,6 +487,12 @@ function validateField(spec: FieldSpec, value: FieldValue): string | null {
     }
     return null;
   }
+  if (spec.kind === "select") {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      return `${spec.label} must be selected.`;
+    }
+    return null;
+  }
   if (spec.kind === "number") {
     if (typeof value !== "number" || Number.isNaN(value)) {
       return `${spec.label} must be a number.`;
@@ -541,6 +559,18 @@ export function Configuration(): JSX.Element {
   const handleTextChange = useCallback(
     (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key,
+          value: data.value,
+        });
+      },
+    [],
+  );
+
+  const handleSelectChange = useCallback(
+    (key: ConfigFieldKey) =>
+      (_ev: ChangeEvent<HTMLSelectElement>, data: { value: string }): void => {
         dispatch({
           type: ConfigActionType.FieldChanged,
           key,
@@ -698,6 +728,12 @@ export function Configuration(): JSX.Element {
                       const value = formValues[spec.key];
                       const fieldError = fieldErrors[spec.key];
                       const inputId = `config-input-${spec.key}`;
+                      const selectOptions: readonly string[] =
+                        spec.kind === "select"
+                          ? (spec.options ?? []).includes(value as string)
+                            ? (spec.options ?? [])
+                            : [value as string, ...(spec.options ?? [])]
+                          : [];
                       return (
                         <div
                           key={spec.key}
@@ -764,6 +800,21 @@ export function Configuration(): JSX.Element {
                                 {value === true ? "Enabled" : "Disabled"}
                               </span>
                             </div>
+                          ) : null}
+                          {spec.kind === "select" ? (
+                            <Select
+                              id={inputId}
+                              value={value as string}
+                              onChange={handleSelectChange(spec.key)}
+                              disabled={state.saveStatus === SaveStatus.Saving}
+                              data-testid={inputId}
+                            >
+                              {selectOptions.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </Select>
                           ) : null}
                           <p className={styles.fieldHint}>{spec.hint}</p>
                           {fieldError !== null ? (

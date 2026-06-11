@@ -133,10 +133,10 @@ describe("Configuration -- initial load", () => {
     await waitFor(() => {
       expect(screen.getByTestId("config-form")).toBeInTheDocument();
     });
-    const orchestratorInput = screen.getByTestId(
+    const orchestratorSelect = screen.getByTestId(
       "config-input-orchestrator_name",
-    ) as HTMLInputElement;
-    expect(orchestratorInput.value).toBe("langgraph");
+    ) as HTMLSelectElement;
+    expect(orchestratorSelect.value).toBe("langgraph");
     const temperatureInput = screen.getByTestId(
       "config-input-openai_temperature",
     ) as HTMLInputElement;
@@ -149,6 +149,24 @@ describe("Configuration -- initial load", () => {
       "config-input-search_use_semantic_search",
     ) as HTMLInputElement;
     expect(semanticSwitch.checked).toBe(true);
+  });
+
+  it("renders the orchestrator field as a dropdown of the known orchestrator keys", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const orchestratorSelect = screen.getByTestId(
+      "config-input-orchestrator_name",
+    ) as HTMLSelectElement;
+    expect(orchestratorSelect.tagName).toBe("SELECT");
+    expect(
+      Array.from(orchestratorSelect.options).map((option) => option.value),
+    ).toEqual(["langgraph", "agent_framework"]);
+    expect(orchestratorSelect.value).toBe("langgraph");
   });
 
   it("shows the loading state before the GET resolves", async () => {
@@ -256,10 +274,10 @@ describe("Configuration -- form editing", () => {
     });
     fireEvent.click(screen.getByTestId("config-discard-button"));
 
-    const orchestratorInput = screen.getByTestId(
+    const orchestratorSelect = screen.getByTestId(
       "config-input-orchestrator_name",
-    ) as HTMLInputElement;
-    expect(orchestratorInput.value).toBe("langgraph");
+    ) as HTMLSelectElement;
+    expect(orchestratorSelect.value).toBe("langgraph");
     expect(
       (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
     ).toBe(true);
@@ -273,11 +291,11 @@ describe("Configuration -- form editing", () => {
     await waitFor(() => {
       expect(screen.getByTestId("config-form")).toBeInTheDocument();
     });
-    fireEvent.change(screen.getByTestId("config-input-orchestrator_name"), {
+    fireEvent.change(screen.getByTestId("config-input-log_level"), {
       target: { value: "" },
     });
     expect(
-      screen.getByTestId("config-field-error-orchestrator_name"),
+      screen.getByTestId("config-field-error-log_level"),
     ).toHaveTextContent(/cannot be empty/i);
     expect(
       (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
