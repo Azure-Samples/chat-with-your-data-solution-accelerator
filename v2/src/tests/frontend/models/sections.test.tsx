@@ -14,21 +14,19 @@ import type { AppView } from "@/components/Header/Header";
 import { Section, SectionPath, pathToSection } from "@/models/sections";
 
 describe("Section", () => {
-  it("exposes the 5 known members and maps each to its wire string", () => {
+  it("exposes the 4 known members and maps each to its wire string", () => {
     expect(Section.Chat).toBe("chat");
     expect(Section.AdminIngest).toBe("admin-ingest");
     expect(Section.AdminDelete).toBe("admin-delete");
     expect(Section.AdminConfig).toBe("admin-config");
-    expect(Section.AdminPrompt).toBe("admin-prompt");
   });
 
-  it("enumerates exactly the 5 known values via Object.values", () => {
+  it("enumerates exactly the 4 known values via Object.values", () => {
     expect(Object.values(Section).sort()).toEqual(
       [
         "admin-config",
         "admin-delete",
         "admin-ingest",
-        "admin-prompt",
         "chat",
       ].sort(),
     );
@@ -59,10 +57,9 @@ describe("SectionPath", () => {
     expect(SectionPath[Section.AdminIngest]).toBe("/admin/ingest");
     expect(SectionPath[Section.AdminDelete]).toBe("/admin/delete");
     expect(SectionPath[Section.AdminConfig]).toBe("/admin/config");
-    expect(SectionPath[Section.AdminPrompt]).toBe("/admin/prompt");
   });
 
-  it("covers exactly the 5 Section members", () => {
+  it("covers exactly the 4 Section members", () => {
     expect(Object.keys(SectionPath).sort()).toEqual(
       Object.values(Section).sort(),
     );
@@ -75,7 +72,6 @@ describe("pathToSection", () => {
     expect(pathToSection("/admin/ingest")).toBe(Section.AdminIngest);
     expect(pathToSection("/admin/delete")).toBe(Section.AdminDelete);
     expect(pathToSection("/admin/config")).toBe(Section.AdminConfig);
-    expect(pathToSection("/admin/prompt")).toBe(Section.AdminPrompt);
   });
 
   it("defaults unknown or partial paths to Chat", () => {

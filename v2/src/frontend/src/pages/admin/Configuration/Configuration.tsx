@@ -70,10 +70,10 @@ import styles from "./Configuration.module.css";
 
 /**
  * The subset of `AdminConfig` keys that render as inline knob rows
- * on the configuration page. Fields that need their own dedicated
- * editor surface (e.g. the multi-line system prompt on the
- * PromptEditor route) are intentionally absent so the closed list
- * never silently drifts when `AdminConfig` grows.
+ * on the configuration page. The closed list is kept explicit so it
+ * never silently drifts when `AdminConfig` grows -- any new writable
+ * field must be added here in lockstep with the wire model and the
+ * backend `WRITABLE_FIELDS` allow-list.
  */
 type ConfigFieldKey =
   | "orchestrator_name"
@@ -83,6 +83,7 @@ type ConfigFieldKey =
   | "search_top_k"
   | "log_level"
   | "content_safety_enabled"
+  | "cwyd_agent_instructions"
   | "post_answering_prompt"
   | "post_answering_enabled"
   | "post_answering_filter_message";
@@ -122,6 +123,7 @@ interface FieldSpec {
  * offending row instead of as a generic save error banner.
  */
 const RAI_GUARDED_FIELDS: ReadonlySet<ConfigFieldKey> = new Set<ConfigFieldKey>([
+  "cwyd_agent_instructions",
   "post_answering_prompt",
 ]);
 
@@ -160,6 +162,14 @@ function extractRaiRejection(
 }
 
 const FIELD_SPECS: readonly FieldSpec[] = [
+  {
+    key: "cwyd_agent_instructions",
+    label: "System prompt",
+    hint: "System prompt for the primary assistant. Leave empty to fall back to the built-in default prompt.",
+    kind: "text",
+    multiline: true,
+    allowEmpty: true,
+  },
   {
     key: "orchestrator_name",
     label: "Orchestrator",
@@ -302,6 +312,7 @@ function configToForm(config: AdminConfig): FormValues {
     search_top_k: config.search_top_k,
     log_level: config.log_level,
     content_safety_enabled: config.content_safety_enabled,
+    cwyd_agent_instructions: config.cwyd_agent_instructions,
     post_answering_prompt: config.post_answering_prompt,
     post_answering_enabled: config.post_answering_enabled,
     post_answering_filter_message: config.post_answering_filter_message,
@@ -440,6 +451,9 @@ function computePatch(
         break;
       case "content_safety_enabled":
         patch.content_safety_enabled = after as boolean;
+        break;
+      case "cwyd_agent_instructions":
+        patch.cwyd_agent_instructions = after as string;
         break;
       case "post_answering_prompt":
         patch.post_answering_prompt = after as string;

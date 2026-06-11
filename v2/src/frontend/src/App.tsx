@@ -7,7 +7,7 @@
  * plus the app header on the chat route only (admin routes hide the
  * header so `<AdminLayout>` owns the admin chrome). Browser routes:
  * `/` -> chat; `/admin` -> the
- * `<AdminLayout>` shell wrapping the `ingest|delete|config|prompt`
+ * `<AdminLayout>` shell wrapping the `ingest|delete|config`
  * pages (bare `/admin` redirects to `ingest`); any other path ->
  * redirect to `/`.
  *
@@ -36,7 +36,6 @@ import { AdminLayout } from "./pages/admin/AdminLayout";
 import { IngestData } from "./pages/admin/IngestData/IngestData";
 import { DeleteData } from "./pages/admin/DeleteData/DeleteData";
 import { Configuration } from "./pages/admin/Configuration/Configuration";
-import { PromptEditor } from "./pages/admin/PromptEditor/PromptEditor";
 import { getAdminStatus } from "./api/admin";
 import { Section, SectionPath } from "./models/sections";
 import { FluentThemeBridge } from "./theme/FluentThemeBridge";
@@ -216,10 +215,6 @@ function AppShell(): JSX.Element {
             <Route
               path={adminChildPath(Section.AdminConfig)}
               element={<Configuration />}
-            />
-            <Route
-              path={adminChildPath(Section.AdminPrompt)}
-              element={<PromptEditor />}
             />
           </Route>
           <Route

@@ -15,7 +15,6 @@ export const Section = Object.freeze({
   AdminIngest: "admin-ingest",
   AdminDelete: "admin-delete",
   AdminConfig: "admin-config",
-  AdminPrompt: "admin-prompt",
 } as const);
 export type Section = (typeof Section)[keyof typeof Section];
 
@@ -25,7 +24,6 @@ export const SectionPath: Record<Section, string> = {
   [Section.AdminIngest]: "/admin/ingest",
   [Section.AdminDelete]: "/admin/delete",
   [Section.AdminConfig]: "/admin/config",
-  [Section.AdminPrompt]: "/admin/prompt",
 };
 
 /**

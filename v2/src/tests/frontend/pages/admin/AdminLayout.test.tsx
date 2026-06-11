@@ -48,7 +48,9 @@ describe("AdminLayout", () => {
     expect(screen.getByTestId("admin-subnav-ingest")).toBeInTheDocument();
     expect(screen.getByTestId("admin-subnav-delete")).toBeInTheDocument();
     expect(screen.getByTestId("admin-subnav-config")).toBeInTheDocument();
-    expect(screen.getByTestId("admin-subnav-prompt")).toBeInTheDocument();
+    // Regression guard: the standalone Prompt editor page was folded
+    // into Configuration, so its sub-nav link no longer renders.
+    expect(screen.queryByTestId("admin-subnav-prompt")).not.toBeInTheDocument();
   });
 
   it("renders the routed admin page through the outlet", () => {

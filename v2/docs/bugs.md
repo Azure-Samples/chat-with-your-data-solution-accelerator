@@ -63,7 +63,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0005 | 2026-06-11 | 2026-06-11 | frontend | low | fixed | The admin Configuration labels show internal config-key names such as `(orchestrator_name)`. |
 | BUG-0006 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | Content Safety defaults to disabled; it should default to enabled. |
 | BUG-0007 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | The default agent instructions do not carry the vetted v1 default prompt text. |
-| BUG-0008 | 2026-06-11 | — | frontend | medium | open | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
+| BUG-0008 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
 | BUG-0009 | 2026-06-11 | — | frontend | medium | open | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
 | BUG-0010 | 2026-06-11 | — | frontend | low | open | Numeric config fields should validate numeric entry on the frontend; the admin Configuration page already enforces this (`type=number` + bounds), so the affected surface needs confirmation. |
 | BUG-0011 | 2026-06-11 | — | backend | high | open | An authored agent prompt is not RAI-validated and fully replaces the system instructions, so it can supersede the system guardrail ("uber") prompt. |
@@ -176,13 +176,13 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
 ### BUG-0008 — Separate Prompt editor page should fold into Configuration
 
-Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+Area: frontend. Severity: medium. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom: v2 exposes a dedicated Prompt editor page, whereas v1 edits all prompts inline on a single Configuration page.
 
 Root cause: the prompt-editor route was added during the `#35d` admin merge. `frontend/src/pages/admin/PromptEditor/PromptEditor.tsx` is wired through `frontend/src/models/sections.tsx` (the `AdminPrompt` section and its `/admin/prompt` route), `frontend/src/App.tsx` (the route element), `frontend/src/pages/admin/AdminLayout.tsx`, and the header nav — built as v1 parity, but v1 has no separate editor.
 
-Proposed fix: move editing of `cwyd_agent_instructions` into the Configuration page field set, then remove the Prompt editor page, its route, its nav entries, and its tests. Update the `#35d` and `U-P7-PROMPT` trail in the development plan in the fix turn.
+Fix: adopted the v1 structure — `cwyd_agent_instructions` is now a multi-line `kind: "text"` field with `allowEmpty: true` at the top of `FIELD_SPECS` on the Configuration page, rendered through the existing `<Textarea>` branch exactly like `post_answering_prompt`. It is added to `RAI_GUARDED_FIELDS`, so a 422 RAI rejection surfaces inline on the field row. v1 has no per-field "Reset to default" button; clearing the textarea and saving sends an empty string, which `_resolve_definition` (`backend/core/providers/agents/base.py`) already treats identically to `null` (both fall back to the built-in `CWYD_AGENT` default), so reset-to-default is preserved without extra `null` plumbing. Removed the standalone page and all its wiring: deleted `frontend/src/pages/admin/PromptEditor/` (page + CSS) and `tests/frontend/pages/admin/PromptEditor/`, dropped the `AdminPrompt` member + its `SectionPath` entry from `sections.tsx`, removed the `admin-subnav-prompt` nav item from `AdminLayout.tsx`, and removed the `PromptEditor` import + `/admin/prompt` route from `App.tsx`. The folded coverage lives in `tests/frontend/pages/admin/Configuration/Configuration.test.tsx` (textarea render, empty-allowed, PATCH, inline RAI rejection + clear). The wire models already declared the field across `AdminConfig` / `RuntimeConfig` / `AdminConfigPatch`, so no model or backend change was needed.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 

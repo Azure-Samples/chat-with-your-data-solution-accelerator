@@ -4,7 +4,7 @@
  *
  * Shared chrome for the admin section. Renders a secondary navigation
  * bar — a "back to chat home" button plus one <NavLink> per admin page
- * (Ingest data, Delete data, Configuration, Prompt editor) — above an
+ * (Ingest data, Delete data, Configuration) — above an
  * <Outlet/> for the active admin route. Mounted as the element of the
  * parent `/admin` route so every admin page shares the same nav frame
  * and the `/admin/<page>` deep links stay first-class.
@@ -41,11 +41,6 @@ const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
     section: Section.AdminConfig,
     label: "Configuration",
     testId: "admin-subnav-config",
-  },
-  {
-    section: Section.AdminPrompt,
-    label: "Prompt editor",
-    testId: "admin-subnav-prompt",
   },
 ];
 

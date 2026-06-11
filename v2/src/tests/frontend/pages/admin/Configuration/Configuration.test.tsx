@@ -116,6 +116,7 @@ describe("Configuration -- initial load", () => {
       "search_top_k",
       "log_level",
       "content_safety_enabled",
+      "cwyd_agent_instructions",
       "post_answering_enabled",
       "post_answering_prompt",
       "post_answering_filter_message",
@@ -678,6 +679,140 @@ describe("Configuration -- post-answering trio", () => {
     );
     expect(
       screen.queryByTestId("config-field-rai-post_answering_prompt"),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("Configuration -- system prompt (folded from PromptEditor)", () => {
+  it("renders the cwyd_agent_instructions field as a multi-line <textarea> seeded with the server value", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const promptInput = screen.getByTestId(
+      "config-input-cwyd_agent_instructions",
+    ) as HTMLTextAreaElement;
+    expect(promptInput.tagName).toBe("TEXTAREA");
+    expect(promptInput.value).toBe(CONFIG_FIXTURE.cwyd_agent_instructions);
+  });
+
+  it("accepts an empty system prompt without a validation error (clear + Save reverts to the built-in default)", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-cwyd_agent_instructions"),
+      { target: { value: "" } },
+    );
+    expect(
+      screen.queryByTestId("config-field-error-cwyd_agent_instructions"),
+    ).not.toBeInTheDocument();
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it("PATCHes cwyd_agent_instructions when the system prompt is edited", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-cwyd_agent_instructions"),
+      { target: { value: "Operator override prompt." } },
+    );
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(patchMock).toHaveBeenCalledTimes(1);
+    });
+    expect(patchMock).toHaveBeenCalledWith({
+      cwyd_agent_instructions: "Operator override prompt.",
+    });
+  });
+
+  it("surfaces a 422 RAI rejection inline on the cwyd_agent_instructions row and suppresses the generic banner", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockRejectedValueOnce(
+      new AdminApiError("patchAdminConfig", 422, {
+        detail: {
+          msg: "RAI safety check rejected the submitted prompt",
+          field: "cwyd_agent_instructions",
+          reason: "rai_blocked",
+        },
+      }),
+    );
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-cwyd_agent_instructions"),
+      { target: { value: "unsafe system prompt" } },
+    );
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    const rejection = await screen.findByTestId(
+      "config-field-rai-cwyd_agent_instructions",
+    );
+    expect(rejection).toHaveTextContent("rai_blocked");
+    expect(
+      screen.queryByTestId("config-save-error"),
+    ).not.toBeInTheDocument();
+    // The dirty draft is retained so the operator can revise.
+    expect(
+      (
+        screen.getByTestId(
+          "config-input-cwyd_agent_instructions",
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe("unsafe system prompt");
+  });
+
+  it("clears the inline RAI rejection when the system prompt is edited again", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockRejectedValueOnce(
+      new AdminApiError("patchAdminConfig", 422, {
+        detail: {
+          msg: "RAI safety check rejected the submitted prompt",
+          field: "cwyd_agent_instructions",
+          reason: "rai_blocked",
+        },
+      }),
+    );
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(
+      screen.getByTestId("config-input-cwyd_agent_instructions"),
+      { target: { value: "unsafe" } },
+    );
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await screen.findByTestId("config-field-rai-cwyd_agent_instructions");
+    fireEvent.change(
+      screen.getByTestId("config-input-cwyd_agent_instructions"),
+      { target: { value: "safer system prompt" } },
+    );
+    expect(
+      screen.queryByTestId("config-field-rai-cwyd_agent_instructions"),
     ).not.toBeInTheDocument();
   });
 });
