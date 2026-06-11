@@ -109,6 +109,29 @@ const RUNTIME_CONFIG_FIXTURE: RuntimeConfig = {
   updated_by: "admin-user-id",
 };
 
+// The effective endpoint envelopes the override-resolved config. Here the
+// operator has pinned the orchestrator to agent_framework, so `values`
+// carries that instead of the langgraph env default -- the exact BUG-0004
+// scenario (save agent_framework -> reload must keep agent_framework).
+const EFFECTIVE_CONFIG_FIXTURE = {
+  values: { ...ADMIN_CONFIG_FIXTURE, orchestrator_name: "agent_framework" },
+  sources: {
+    orchestrator_name: "override",
+    openai_temperature: "env",
+    openai_max_tokens: "env",
+    search_use_semantic_search: "env",
+    search_top_k: "env",
+    log_level: "env",
+    content_safety_enabled: "env",
+    cwyd_agent_instructions: "env",
+    post_answering_prompt: "env",
+    post_answering_enabled: "env",
+    post_answering_filter_message: "env",
+  },
+  updated_at: "2026-06-03T11:00:00Z",
+  updated_by: "admin-user-id",
+};
+
 describe("getAdminStatus", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -551,26 +574,28 @@ describe("getAdminConfig", () => {
     vi.restoreAllMocks();
   });
 
-  it("GETs /api/admin/config with a JSON Accept header", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse(ADMIN_CONFIG_FIXTURE));
+  it("GETs /api/admin/config/effective with a JSON Accept header", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(EFFECTIVE_CONFIG_FIXTURE));
 
     await getAdminConfig();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("/api/admin/config");
+    expect(url).toBe("/api/admin/config/effective");
     expect(init.method).toBe("GET");
     expect((init.headers as Record<string, string>).Accept).toBe(
       "application/json",
     );
   });
 
-  it("returns the typed seven-field payload on 200", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse(ADMIN_CONFIG_FIXTURE));
+  it("returns the override-resolved values unwrapped from the effective envelope", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(EFFECTIVE_CONFIG_FIXTURE));
 
     const result = await getAdminConfig();
 
-    expect(result).toEqual(ADMIN_CONFIG_FIXTURE);
+    // The persisted override wins: agent_framework, not the langgraph default.
+    expect(result).toEqual(EFFECTIVE_CONFIG_FIXTURE.values);
+    expect(result.orchestrator_name).toBe("agent_framework");
   });
 
   it("throws on 401 (missing or malformed Easy Auth)", async () => {

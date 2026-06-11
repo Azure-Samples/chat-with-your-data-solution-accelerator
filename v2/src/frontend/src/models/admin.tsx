@@ -161,6 +161,40 @@ export interface AdminConfig {
 }
 
 /**
+ * Provenance of an `EffectiveAdminConfig.sources` entry. Mirrors the
+ * backend `ConfigSource` StrEnum in `backend/models/admin.py`.
+ *
+ * `Env` -- value comes from the env default snapshot.
+ * `Override` -- value comes from a persisted `RuntimeConfig` row.
+ */
+export const ConfigSource = {
+  Env: "env",
+  Override: "override",
+} as const;
+export type ConfigSource =
+  (typeof ConfigSource)[keyof typeof ConfigSource];
+
+/**
+ * Override-resolved config envelope returned by
+ * `GET /api/admin/config/effective`. Mirrors the backend
+ * `EffectiveAdminConfig` model.
+ *
+ * `values` is the env default snapshot with any persisted runtime
+ * overrides overlaid -- this is what the admin UI loads so a saved
+ * override (e.g. the orchestrator choice) is reflected after a reload.
+ * `sources` maps each field name to whether the effective value came
+ * from the env default or a persisted override. `updated_at` /
+ * `updated_by` surface the audit fields of the persisted override, or
+ * `null` when no override has been saved.
+ */
+export interface EffectiveAdminConfig {
+  values: AdminConfig;
+  sources: Record<string, ConfigSource>;
+  updated_at: string | null;
+  updated_by: string | null;
+}
+
+/**
  * Persisted runtime overrides returned by `PATCH /api/admin/config`.
  * Mirrors `backend.core.types.RuntimeConfig`.
  *

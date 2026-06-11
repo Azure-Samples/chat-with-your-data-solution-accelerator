@@ -14,6 +14,7 @@ import type {
   AdminConfigPatch,
   AdminStatus,
   DeleteDocumentResponse,
+  EffectiveAdminConfig,
   IngestUrlRequest,
   IngestUrlResponse,
   ListDocumentsResponse,
@@ -24,6 +25,7 @@ import type {
 
 const ADMIN_STATUS_URL = "/api/admin/status";
 const ADMIN_CONFIG_URL = "/api/admin/config";
+const ADMIN_CONFIG_EFFECTIVE_URL = "/api/admin/config/effective";
 const ADMIN_DOCUMENTS_URL = "/api/admin/documents";
 const ADMIN_DOCUMENTS_INGEST_URL = "/api/admin/documents/url";
 const ADMIN_DOCUMENTS_REPROCESS_URL = "/api/admin/documents/reprocess";
@@ -235,14 +237,18 @@ export async function deleteDocument(
 }
 
 /**
- * Fetch the runtime-toggle subset of `AppSettings` (seven canonical
- * fields). The response reflects the live-reloaded effective view
- * -- env defaults overlaid with any persisted runtime overrides.
+ * Fetch the override-resolved runtime-toggle config the admin UI loads
+ * on mount. Hits `GET /api/admin/config/effective`, which overlays any
+ * persisted runtime overrides on top of the env default snapshot, then
+ * unwraps the `values` payload. Loading the effective view (rather than
+ * the plain env snapshot at `GET /api/admin/config`) is what lets a
+ * saved override -- e.g. the orchestrator choice -- show up after a
+ * reload instead of reverting to the env default.
  *
  * @throws Error on non-2xx (401/403 RBAC, 5xx backend down).
  */
 export async function getAdminConfig(): Promise<AdminConfig> {
-  const response = await fetch(ADMIN_CONFIG_URL, {
+  const response = await fetch(ADMIN_CONFIG_EFFECTIVE_URL, {
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -251,8 +257,8 @@ export async function getAdminConfig(): Promise<AdminConfig> {
       `getAdminConfig: request failed with status ${response.status}`,
     );
   }
-  const body = (await response.json()) as AdminConfig;
-  return body;
+  const body = (await response.json()) as EffectiveAdminConfig;
+  return body.values;
 }
 
 /**
