@@ -65,7 +65,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0007 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | The default agent instructions do not carry the vetted v1 default prompt text. |
 | BUG-0008 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
 | BUG-0009 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
-| BUG-0010 | 2026-06-11 | — | frontend | low | open | Numeric config fields should validate numeric entry on the frontend; the admin Configuration page already enforces this (`type=number` + bounds), so the affected surface needs confirmation. |
+| BUG-0010 | 2026-06-11 | 2026-06-11 | frontend | low | fixed | Numeric config fields should validate numeric entry on the frontend; the admin Configuration page already enforces this (`type=number` + bounds), so the affected surface needs confirmation. |
 | BUG-0011 | 2026-06-11 | — | backend | high | open | An authored agent prompt is not RAI-validated and fully replaces the system instructions, so it can supersede the system guardrail ("uber") prompt. |
 | BUG-0012 | 2026-06-11 | — | frontend | low | open | The assistant robot avatar and the Thinking (reasoning) panel are not aligned in the chat message layout. |
 | BUG-0013 | 2026-06-11 | — | backend | medium | open | The Thinking/reasoning feed never shows: the backend emits no `reasoning` SSE frames, so the (correctly wired) frontend panel stays empty. |
@@ -200,13 +200,11 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0004.
 
 ### BUG-0010 — Numeric config fields should validate numeric entry
 
-Area: frontend. Severity: low. Status: open (found 2026-06-11).
+Area: frontend. Severity: low. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom (as reported): numeric configuration values should have frontend validation that enforces a numeric entry.
 
-Current state: on the admin Configuration page the numeric fields (`openai_temperature`, `openai_max_tokens`, `search_top_k`) already render through the `kind === "number"` branch in `frontend/src/pages/admin/Configuration/Configuration.tsx` as `<Input type="number">` with `step`, `min`, and `max`. `handleNumberChange` coerces a non-parseable entry to `NaN`; `validateField` returns "must be a number" for a `NaN` or non-number value and enforces the min/max bounds; the error renders inline and `anyFieldInvalid` blocks Save. The requested validation therefore appears already satisfied on the admin Configuration surface.
-
-Proposed fix: confirm in the fix turn which numeric surface the user observed lacking validation (for example a deployed build that predates the current Configuration page, or a numeric input outside the admin Configuration page). If a gap is reproduced, extend numeric-entry validation there; otherwise close as already-implemented.
+Resolution: confirmed already-implemented and closed with a regression test; no production change was needed. The admin Configuration page is the only numeric-entry surface in the entire v2 frontend (a workspace search for `type="number"` / numeric input returns a single hit, in `frontend/src/pages/admin/Configuration/Configuration.tsx`). There the numeric fields (`openai_temperature`, `openai_max_tokens`, `search_top_k`) render through the `kind === "number"` branch as `<Input type="number">` with `step`, `min`, and `max`; `handleNumberChange` coerces an empty or non-parseable entry to `NaN`; `validateField` returns "must be a number" for a `NaN` or non-number value and enforces the min/max bounds; the error renders inline as `config-field-error-<key>` and `anyFieldInvalid` disables Save. The existing Vitest suite already covered the max-bound path (`openai_temperature` = `5` → "2 or less" + Save disabled) and the numeric PATCH delta, but had no test for the literal symptom (a non-numeric entry). Added one regression test — emptying `openai_max_tokens` surfaces "must be a number" and disables Save — pinning the enforce-numeric-entry behavior the bug asked for. Frontend suite green at 371 tests (31 files).
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 

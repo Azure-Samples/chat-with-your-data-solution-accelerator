@@ -363,6 +363,25 @@ describe("Configuration -- form editing", () => {
       (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
     ).toBe(true);
   });
+
+  it("surfaces a 'must be a number' error when a numeric field is emptied", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-openai_max_tokens"), {
+      target: { value: "" },
+    });
+    expect(
+      screen.getByTestId("config-field-error-openai_max_tokens"),
+    ).toHaveTextContent(/must be a number/i);
+    expect(
+      (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
 });
 
 describe("Configuration -- save flow", () => {
