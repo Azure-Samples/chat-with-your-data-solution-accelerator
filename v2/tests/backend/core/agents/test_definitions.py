@@ -99,17 +99,31 @@ def test_agent_definition_tools_is_tuple_for_immutability() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_cwyd_agent_grounds_in_knowledge_base() -> None:
-    """CWYD is a RAG agent, but its retrieval tool is a runtime MCP
-    tool bound at `run()` time -- not a server-side tool baked into
-    the agent at `create_agent`. So `tools` must stay empty (a stale
-    `"search"` placeholder would be forwarded to `create_agent` as a
-    bogus tool key), and the grounding intent must live in the
+def test_cwyd_agent_carries_vetted_v1_default_prompt() -> None:
+    """CWYD ships v1's vetted Azure-OpenAI-On-Your-Data answering
+    system prompt as its default instructions. Its retrieval tool is a
+    runtime MCP tool bound at `run()` time -- not a server-side tool
+    baked into the agent at `create_agent` -- so `tools` stays empty (a
+    stale `"search"` placeholder would be forwarded to `create_agent`
+    as a bogus tool key) and the grounding intent lives in the
     instructions instead.
     """
+    instr = CWYD_AGENT.instructions
     assert CWYD_AGENT.name == "cwyd"
     assert CWYD_AGENT.tools == ()
-    assert "knowledge base" in CWYD_AGENT.instructions.lower()
+    # Grounds strictly in retrieved documents (the vetted intent).
+    assert "retrieved documents" in instr.lower()
+    # Carries the [doc+index] citation format the v2
+    # `filter_to_referenced` citation parser depends on.
+    assert "[doc+index]" in instr
+    # Preserves the vetted out-of-domain refusal string.
+    assert (
+        "The requested information is not available in the retrieved data. "
+        "Please try another query or topic."
+    ) in instr
+    # The stale "knowledge cutoff 2021 / current date in the system
+    # message" line is dropped -- v2 injects no current date.
+    assert "2021" not in instr
 
 
 def test_rai_agent_uses_macae_classifier_pattern() -> None:

@@ -62,7 +62,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0004 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The admin Orchestrator field is a free-text input; it should be a dropdown of the known orchestrator keys. |
 | BUG-0005 | 2026-06-11 | 2026-06-11 | frontend | low | fixed | The admin Configuration labels show internal config-key names such as `(orchestrator_name)`. |
 | BUG-0006 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | Content Safety defaults to disabled; it should default to enabled. |
-| BUG-0007 | 2026-06-11 | — | backend | medium | open | The default agent instructions do not carry the vetted v1 default prompt text. |
+| BUG-0007 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | The default agent instructions do not carry the vetted v1 default prompt text. |
 | BUG-0008 | 2026-06-11 | — | frontend | medium | open | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
 | BUG-0009 | 2026-06-11 | — | frontend | medium | open | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
 | BUG-0010 | 2026-06-11 | — | frontend | low | open | Numeric config fields should validate numeric entry on the frontend; the admin Configuration page already enforces this (`type=number` + bounds), so the affected surface needs confirmation. |
@@ -164,13 +164,13 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
 ### BUG-0007 — Default agent instructions do not carry the v1 default prompt text
 
-Area: backend. Severity: medium. Status: open (found 2026-06-11).
+Area: backend. Severity: medium. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom: the v2 default system prompt does not reflect the vetted default answering prompt that v1 ships.
 
-Root cause: the v1 default prompt text lives in `code/backend/batch/utilities/helpers/config/default.json` (the `answering_system_prompt` and `answering_user_prompt` keys). v2 defines its built-in instructions as `CWYD_AGENT` in `backend/core/agents/definitions.py` and never ported the v1 default text.
+Root cause: the v1 default prompt text lives in `code/backend/batch/utilities/helpers/config/default.json` (the `answering_system_prompt` and `answering_user_prompt` keys). v2 defines its built-in instructions as `CWYD_AGENT` in `backend/core/agents/definitions.py` and never ported the v1 default text. The functional impact is that the prior minimal prompt never told the model the `[docN]` inline citation format, yet the v2 citation pipeline depends on it: the langgraph orchestrator injects a `Sources:` system message, the model is expected to emit `[docN]` markers, and `filter_to_referenced` (`backend/core/tools/citations.py`) extracts those markers into `citation` SSE events. Without the format instruction, citations were unreliable.
 
-Proposed fix: port only the v1 default answering prompt text into the v2 `CWYD_AGENT` instructions default, adapted to v2's single-instructions model. The v1 per-business-unit assistant-type system (Default, Contract assistant, Employee assistant) is out of scope.
+Fix: ported v1's `answering_system_prompt` into `CWYD_AGENT.instructions` as a strict near-verbatim port (Option A, chosen with the operator) -- kept the two code-generation lines and the "private model trained by Open AI" line, and reproduced v1's exact text (including its sub-bullet indentation and its original wording quirks) so the prompt stays the vetted, shipped text. The **only** adaptation was dropping v1's stale knowledge-cutoff line ("Your internal knowledge ... only current until ... 2021 ... The current date will be provided in the system message."), because v2 injects no current date. The v1 per-business-unit assistant-type system (Default / Contract assistant / Employee assistant) and the separate `answering_user_prompt` user-turn template remain out of scope. Updated the test (renamed `test_cwyd_agent_grounds_in_knowledge_base` -> `test_cwyd_agent_carries_vetted_v1_default_prompt`) to assert the ported content: grounds in "retrieved documents", carries the `[doc+index]` citation format, preserves the out-of-domain refusal string, and confirms the 2021 line is gone. `name`/`tools` assertions unchanged. 173 backend tests pass (agents + admin + orchestrators).
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
