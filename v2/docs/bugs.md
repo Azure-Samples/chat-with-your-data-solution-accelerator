@@ -64,7 +64,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0006 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | Content Safety defaults to disabled; it should default to enabled. |
 | BUG-0007 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | The default agent instructions do not carry the vetted v1 default prompt text. |
 | BUG-0008 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
-| BUG-0009 | 2026-06-11 | — | frontend | medium | open | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
+| BUG-0009 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
 | BUG-0010 | 2026-06-11 | — | frontend | low | open | Numeric config fields should validate numeric entry on the frontend; the admin Configuration page already enforces this (`type=number` + bounds), so the affected surface needs confirmation. |
 | BUG-0011 | 2026-06-11 | — | backend | high | open | An authored agent prompt is not RAI-validated and fully replaces the system instructions, so it can supersede the system guardrail ("uber") prompt. |
 | BUG-0012 | 2026-06-11 | — | frontend | low | open | The assistant robot avatar and the Thinking (reasoning) panel are not aligned in the chat message layout. |
@@ -188,13 +188,13 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
 ### BUG-0009 — Log level field is free text instead of a dropdown
 
-Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+Area: frontend. Severity: medium. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom: on the admin Configuration page the Log level field is a single-line text input, so an operator can type an arbitrary string and save it.
 
 Root cause: `log_level` is declared with `kind: "text"` in the `FIELD_SPECS` array in `frontend/src/pages/admin/Configuration/Configuration.tsx`, so it renders through the text `<Input>` branch. The field hint even enumerates the closed set (`DEBUG`, `INFO`, `WARNING`, `ERROR`), but no select control is bound to it — the page imports only `Button`, `Input`, `Switch`, and `Textarea` from `@fluentui/react-components`.
 
-Proposed fix: render a dropdown bound to the closed set of log levels. This is the same closed-set-as-free-text family as BUG-0004 (orchestrator dropdown); settle the shared dropdown approach in the fix turn.
+Fix: rendered `log_level` as a dropdown over the closed set, reusing the same `kind: "select"` machinery as the orchestrator field (BUG-0004). Added a `LogLevel` closed-set const (`Debug`/`Info`/`Warning`/`Error` → `DEBUG`/`INFO`/`WARNING`/`ERROR`) to `frontend/src/models/admin.tsx`, mirroring the existing `OrchestratorName` `as const` + literal-union pattern; the wire field stays a plain `string` because the backend stores `log_level` as a free-form logging level name (`settings.observability.log_level: str = "INFO"`, no backend enum). Switched the `log_level` `FieldSpec` to `kind: "select"` with `options: [LogLevel.Debug, LogLevel.Info, LogLevel.Warning, LogLevel.Error]` and imported `LogLevel`. No change was needed to the select render branch, `selectOptions` derivation, `validateField` (select branch already present), `computePatch` (already sends `log_level` as a string), or `configToForm`. The pre-existing "empty text fields" validation test used `log_level` as its example non-empty text field; since `log_level` is now a select (and after BUG-0008 no `kind: "text"` field is non-`allowEmpty`), that test was retargeted to assert the select-cleared path (`must be selected`). Added two tests: a dropdown-render assertion (`SELECT` tag, options `["DEBUG","INFO","WARNING","ERROR"]`, value `INFO`) and a PATCH assertion (`patchAdminConfig` called with `{ log_level: "DEBUG" }`). Frontend suite green at 370 tests (31 files).
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0004.
 

@@ -170,6 +170,24 @@ describe("Configuration -- initial load", () => {
     expect(orchestratorSelect.value).toBe("langgraph");
   });
 
+  it("renders the log level field as a dropdown of the known log levels", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const logLevelSelect = screen.getByTestId(
+      "config-input-log_level",
+    ) as HTMLSelectElement;
+    expect(logLevelSelect.tagName).toBe("SELECT");
+    expect(
+      Array.from(logLevelSelect.options).map((option) => option.value),
+    ).toEqual(["DEBUG", "INFO", "WARNING", "ERROR"]);
+    expect(logLevelSelect.value).toBe("INFO");
+  });
+
   it("renders human-readable labels without the internal config-key suffix", async () => {
     getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
 
@@ -308,7 +326,7 @@ describe("Configuration -- form editing", () => {
     ).toBe(true);
   });
 
-  it("surfaces a per-field validation error for empty text fields", async () => {
+  it("surfaces a per-field validation error when a required dropdown is cleared", async () => {
     getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
 
     render(<Configuration />);
@@ -321,7 +339,7 @@ describe("Configuration -- form editing", () => {
     });
     expect(
       screen.getByTestId("config-field-error-log_level"),
-    ).toHaveTextContent(/cannot be empty/i);
+    ).toHaveTextContent(/must be selected/i);
     expect(
       (screen.getByTestId("config-save-button") as HTMLButtonElement).disabled,
     ).toBe(true);
@@ -379,6 +397,27 @@ describe("Configuration -- save flow", () => {
       );
     });
     expect(getMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("PATCHes log_level when a different level is selected", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-log_level"), {
+      target: { value: "DEBUG" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(patchMock).toHaveBeenCalledTimes(1);
+    });
+    expect(patchMock).toHaveBeenCalledWith({ log_level: "DEBUG" });
   });
 
   it("surfaces the audit footer with the runtime updated_at / updated_by metadata after save", async () => {

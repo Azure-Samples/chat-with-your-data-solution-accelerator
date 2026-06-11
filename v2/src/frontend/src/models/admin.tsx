@@ -23,6 +23,20 @@ export type OrchestratorName =
   (typeof OrchestratorName)[keyof typeof OrchestratorName];
 
 /**
+ * Standard Python logging levels offered by the admin Log level
+ * dropdown. The wire field `log_level` stays a plain `string` because
+ * the backend stores it as a free-form logging level name; this closed
+ * set is the list of built-in levels the dropdown presents.
+ */
+export const LogLevel = {
+  Debug: "DEBUG",
+  Info: "INFO",
+  Warning: "WARNING",
+  Error: "ERROR",
+} as const;
+export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
+
+/**
  * Sanitized snapshot of the running backend configuration.
  * Mirrors `backend.models.admin.AdminStatus`; non-secret fields only.
  */

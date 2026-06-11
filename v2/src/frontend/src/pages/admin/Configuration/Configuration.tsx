@@ -56,7 +56,7 @@ import {
   getAdminConfig,
   patchAdminConfig,
 } from "@/api/admin";
-import { OrchestratorName } from "@/models/admin";
+import { LogLevel, OrchestratorName } from "@/models/admin";
 import type {
   AdminConfig,
   AdminConfigPatch,
@@ -212,7 +212,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "log_level",
     label: "Log level",
     hint: "Python logging level for the backend process (DEBUG, INFO, WARNING, ERROR).",
-    kind: "text",
+    kind: "select",
+    options: [LogLevel.Debug, LogLevel.Info, LogLevel.Warning, LogLevel.Error],
   },
   {
     key: "content_safety_enabled",
