@@ -735,7 +735,8 @@ def test_init_content_safety_client_returns_none_when_disabled(
         "AZURE_CONTENT_SAFETY_ENDPOINT",
         "https://cs-cwyd001.cognitiveservices.azure.com/",
     )
-    # AZURE_CONTENT_SAFETY_ENABLED stays unset -> defaults to False
+    # Explicitly opt OUT -- the `enabled` default is now True.
+    monkeypatch.setenv("AZURE_CONTENT_SAFETY_ENABLED", "false")
     settings = AppSettings()
     assert settings.content_safety.enabled is False
     assert settings.content_safety.endpoint != ""
@@ -801,8 +802,10 @@ def test_init_content_safety_client_builds_with_endpoint_and_credential(
 async def test_lifespan_stashes_none_when_content_safety_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Default env -> `app.state.content_safety_client` is None and the
-    chat pipeline runs unguarded (matches v1 `enable_content_safety: false`).
+    """No Content Safety endpoint configured -> `app.state.content_safety_client`
+    is None and the chat pipeline runs unguarded. The `enabled` default is
+    True, but the lifespan gate also requires an endpoint, so absent one the
+    guard stays off.
     """
     _apply_env(monkeypatch, COSMOS_ENV)
     _patched_lifespan(monkeypatch)

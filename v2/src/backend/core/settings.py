@@ -371,13 +371,15 @@ class ContentSafetySettings(BaseSettings):
     ``https://cs-cwyd001.cognitiveservices.azure.com/``). When empty
     the lifespan wiring leaves ``app.state.content_safety_client`` as
     ``None`` and `get_content_safety_guard` returns ``None`` so the
-    chat pipeline runs unguarded -- matching the v1
-    ``enable_content_safety: false`` default.
+    chat pipeline runs unguarded -- a missing endpoint disables the
+    guard even when `enabled` is True.
 
-    `enabled` is the operator opt-in. Both `enabled=True` AND a
-    non-empty `endpoint` are required to build the client at lifespan
-    start; either alone is a misconfiguration that the wiring layer
-    treats as "off" (no guard injected, no exception raised).
+    `enabled` is the operator switch and defaults to True
+    (secure-by-default). Both `enabled=True` AND a non-empty `endpoint`
+    are required to build the client at lifespan start; either alone is
+    treated as "off" by the wiring layer (no guard injected, no
+    exception raised), so the default is inert until an endpoint is
+    configured.
 
     `severity_threshold` is the inclusive lower bound at which Content
     Safety verdicts trip. Azure reports severity 0/2/4/6 (0 = safe,
@@ -397,7 +399,7 @@ class ContentSafetySettings(BaseSettings):
     )
 
     endpoint: str = ""
-    enabled: bool = False
+    enabled: bool = True
     severity_threshold: int = Field(default=4, ge=0, le=7)
 
 

@@ -61,7 +61,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0003 | 2026-06-11 | — | backend | high | open | `GET /api/admin/documents` returns `503` even with search fully configured: `list_sources` facets the `title` field, which is not `facetable` in the index schema, so Azure AI Search raises `FieldNotFacetable` and the router maps it to 503. |
 | BUG-0004 | 2026-06-11 | 2026-06-11 | frontend | medium | fixed | The admin Orchestrator field is a free-text input; it should be a dropdown of the known orchestrator keys. |
 | BUG-0005 | 2026-06-11 | 2026-06-11 | frontend | low | fixed | The admin Configuration labels show internal config-key names such as `(orchestrator_name)`. |
-| BUG-0006 | 2026-06-11 | — | backend | medium | open | Content Safety defaults to disabled; it should default to enabled. |
+| BUG-0006 | 2026-06-11 | 2026-06-11 | backend | medium | fixed | Content Safety defaults to disabled; it should default to enabled. |
 | BUG-0007 | 2026-06-11 | — | backend | medium | open | The default agent instructions do not carry the vetted v1 default prompt text. |
 | BUG-0008 | 2026-06-11 | — | frontend | medium | open | The separate Prompt editor page should be removed and folded into the Configuration page, matching v1. |
 | BUG-0009 | 2026-06-11 | — | frontend | medium | open | The admin Log level field is a free-text input; it should be a dropdown of the known log levels (`DEBUG`/`INFO`/`WARNING`/`ERROR`). |
@@ -150,13 +150,15 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
 ### BUG-0006 — Content Safety defaults to disabled
 
-Area: backend. Severity: medium. Status: open (found 2026-06-11).
+Area: backend. Severity: medium. Status: fixed (found 2026-06-11, fixed 2026-06-11).
 
 Symptom: Content Safety starts disabled by default, so the input pre-filter does not run unless an operator opts in.
 
 Root cause: `ContentSafetySettings.enabled` defaults to `False` in `backend/core/settings.py`, a deliberate opt-in. Production infrastructure already sets `AZURE_CONTENT_SAFETY_ENABLED` to `true` in Bicep, and the lifespan activates the client only when both `enabled` is true and an endpoint is set; the shipped `.env.sample` leaves it `false`.
 
 Proposed fix: change the default to `True`. This is safe because the lifespan gates the client on both `enabled` and a configured endpoint — with no endpoint the client stays `None` and the guard is inert. Confirm the intent in the fix turn before flipping the default.
+
+Fix: flipped `ContentSafetySettings.enabled` to default `True` (secure-by-default) and set `.env.sample` `AZURE_CONTENT_SAFETY_ENABLED=true` (chosen with the operator). The lifespan gate still requires both `enabled` and a non-empty endpoint, so the new default is inert until `AZURE_CONTENT_SAFETY_ENDPOINT` is set; production (which already provisions the endpoint via Bicep) is unchanged. Updated the settings docstring, the `.env.sample` comment, and the two backend tests that pinned the old `False` default (`test_content_safety_settings_defaults_when_unset` now asserts `True`; `test_init_content_safety_client_returns_none_when_disabled` now opts out explicitly).
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 

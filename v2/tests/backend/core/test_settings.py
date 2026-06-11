@@ -538,7 +538,10 @@ def test_content_safety_settings_defaults_when_unset(
         monkeypatch.delenv(key, raising=False)
     settings = AppSettings()
     assert settings.content_safety.endpoint == ""
-    assert settings.content_safety.enabled is False
+    # Secure-by-default: the guard opts IN by default. With no endpoint
+    # configured the lifespan still builds no client (the gate needs
+    # both), so this default is inert until an endpoint is set.
+    assert settings.content_safety.enabled is True
     # Azure Content Safety severity is 0/2/4/6; default trips on
     # `medium` (4) -- matches `ContentSafetyGuard.DEFAULT_SEVERITY_THRESHOLD`.
     assert settings.content_safety.severity_threshold == 4
