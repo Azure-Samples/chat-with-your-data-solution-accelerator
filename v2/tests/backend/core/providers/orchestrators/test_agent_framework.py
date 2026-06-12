@@ -66,6 +66,37 @@ def _function_call_block(
     )
 
 
+def _citation_block(
+    *,
+    file_id: str = "",
+    url: str = "",
+    title: str = "",
+    snippet: str = "",
+    tool_name: str = "",
+    annotated_regions: list[dict[str, Any]] | None = None,
+) -> SimpleNamespace:
+    """A streamed text block carrying a native `citation` annotation.
+
+    Mirrors the Foundry / OpenAI Responses client, which attaches
+    server-side grounding citations as `Annotation(type="citation", ...)`
+    on a text `Content` with empty text -- one block per source.
+    """
+    annotation: dict[str, Any] = {"type": "citation"}
+    if file_id:
+        annotation["file_id"] = file_id
+    if url:
+        annotation["url"] = url
+    if title:
+        annotation["title"] = title
+    if snippet:
+        annotation["snippet"] = snippet
+    if tool_name:
+        annotation["tool_name"] = tool_name
+    if annotated_regions is not None:
+        annotation["annotated_regions"] = annotated_regions
+    return SimpleNamespace(type="text", text="", annotations=[annotation])
+
+
 def _update(*contents: Any) -> SimpleNamespace:
     return SimpleNamespace(contents=list(contents))
 
@@ -602,3 +633,131 @@ async def test_run_passes_default_sampling_knobs_via_options() -> None:
     assert options is not None
     assert options["temperature"] == 0.0
     assert options["max_tokens"] == 1000
+
+
+# ---------------------------------------------------------------------------
+# run() citation emission -- native annotations mapped via the shared seam
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_emits_citation_event_from_annotations() -> None:
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _text_block("PTO accrues monthly."),
+                _citation_block(
+                    file_id="doc-1",
+                    url="benefits.pdf",
+                    title="Benefits Guide",
+                    snippet="PTO accrues.",
+                    tool_name="knowledge_base_retrieve",
+                ),
+            ),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert len(citation_events) == 1
+    meta = citation_events[0].metadata
+    assert meta["id"] == "doc-1"
+    assert meta["title"] == "Benefits Guide"
+    assert meta["url"] == "benefits.pdf"
+    assert meta["snippet"] == "PTO accrues."
+    assert meta["metadata"]["source_id"] == "doc-1"
+    assert meta["metadata"]["file_id"] == "doc-1"
+    assert meta["metadata"]["tool_name"] == "knowledge_base_retrieve"
+
+
+@pytest.mark.asyncio
+async def test_run_emits_citations_before_answer() -> None:
+    agent = _FakeAgent(
+        updates=[
+            _update(_text_block("Grounded answer.")),
+            _update(_citation_block(file_id="doc-1", title="Source")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    # Parity with the langgraph path: citations precede the final answer.
+    assert [e.channel for e in events] == ["citation", "answer"]
+
+
+@pytest.mark.asyncio
+async def test_run_dedupes_citations_across_updates() -> None:
+    agent = _FakeAgent(
+        updates=[
+            _update(_citation_block(file_id="doc-1", title="First")),
+            _update(_text_block("answer")),
+            _update(_citation_block(file_id="doc-1", title="ignored repeat")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert len(citation_events) == 1
+    assert citation_events[0].metadata["id"] == "doc-1"
+    assert citation_events[0].metadata["title"] == "First"  # first wins
+
+
+@pytest.mark.asyncio
+async def test_run_merges_annotated_regions_across_updates() -> None:
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _citation_block(
+                    file_id="doc-1",
+                    annotated_regions=[
+                        {"type": "text_span", "start_index": 0, "end_index": 5}
+                    ],
+                )
+            ),
+            _update(
+                _citation_block(
+                    file_id="doc-1",
+                    annotated_regions=[
+                        {"type": "text_span", "start_index": 9, "end_index": 14}
+                    ],
+                )
+            ),
+            _update(_text_block("answer")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert len(citation_events) == 1
+    regions = citation_events[0].metadata["metadata"]["annotated_regions"]
+    assert [(r["start_index"], r["end_index"]) for r in regions] == [
+        (0, 5),
+        (9, 14),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_emits_no_citation_events_when_no_annotations() -> None:
+    agent = _FakeAgent(updates=[_update(_text_block("Plain answer."))])
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [e.channel for e in events] == ["answer"]

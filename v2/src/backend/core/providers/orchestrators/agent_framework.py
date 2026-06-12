@@ -27,7 +27,12 @@ Run loop:
          * `text`           -> buffered, flushed as a single `answer`
          * `text_reasoning` -> `reasoning` event
          * `function_call`  -> `tool` event with id / arguments
+         * citation annots  -> buffered (see step 5)
          * everything else  -> ignored
+    5. Map the buffered native citation annotations through the shared
+       `citations_from_annotations` seam and emit one `citation` event
+       per source -- before the final `answer` -- so the agent path and
+       the `langgraph` path surface the same `Citation` wire shape.
 
 The agent's instructions (including any admin override) are applied by
 `build_agent` via `_resolve_definition`, so this orchestrator does not
@@ -43,6 +48,7 @@ from typing import Any
 
 from agent_framework import (
     AgentResponseUpdate,
+    Annotation,
     ChatOptions,
     Message,
     ToolTypes,
@@ -55,6 +61,7 @@ from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.settings import AppSettings
+from backend.core.tools.citations import citations_from_annotations
 from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
 from .registry import registry
@@ -151,6 +158,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             return
 
         answer_parts: list[str] = []
+        citation_annotations: list[Annotation] = []
         saw_any_content = False
 
         # `agent_framework.Agent` is an async context manager; entering it
@@ -167,7 +175,9 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                     ),
                 )
                 async for update in stream:
-                    for event in self._update_to_events(update, answer_parts):
+                    for event in self._update_to_events(
+                        update, answer_parts, citation_annotations
+                    ):
                         saw_any_content = True
                         yield event
             except AzureError as exc:
@@ -184,6 +194,12 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                     content=f"Agent run failed: {exc}",
                 )
                 return
+
+        for citation in citations_from_annotations(citation_annotations):
+            yield OrchestratorEvent(
+                channel=OrchestratorChannel.CITATION,
+                metadata=citation.model_dump(),
+            )
 
         answer = "".join(answer_parts)
         if answer:
@@ -254,16 +270,24 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         self,
         update: AgentResponseUpdate,
         answer_parts: list[str],
+        citation_annotations: list[Annotation],
     ) -> list[OrchestratorEvent]:
         """Map one streaming update's content blocks to events.
 
         Text blocks are accumulated into `answer_parts` (the caller
         flushes them as a single `answer` event after the stream
         completes); reasoning + function-call blocks are emitted
-        immediately so the FE panel updates in stream-order.
+        immediately so the FE panel updates in stream-order. Native
+        citation annotations ride on text blocks (often with empty
+        text, one per grounded source) and are accumulated into
+        `citation_annotations`; the caller maps them through the shared
+        `citations_from_annotations` seam once the stream completes.
         """
         events: list[OrchestratorEvent] = []
         for content in update.contents or []:
+            annotations = getattr(content, "annotations", None)
+            if annotations:
+                citation_annotations.extend(annotations)
             ctype = getattr(content, "type", None)
             if ctype == "text":
                 text = getattr(content, "text", "") or ""
