@@ -40,7 +40,6 @@ from backend.models.conversation import ConversationRequest, ConversationRespons
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.pipelines.chat import run_chat
 from backend.core.providers.orchestrators import registry as orchestrators_registry
-from backend.core.settings import OrchestratorName
 from backend.services.admin import resolve_effective_config
 from backend.services.conversation import collect_response
 from backend.services.sse import SSE_MEDIA_TYPE, sse_stream, wants_sse
@@ -78,44 +77,34 @@ async def conversation(
     effective = resolve_effective_config(settings, overrides)
     orchestrator_name = effective.orchestrator_name
 
-    # `agents.get_or_create_agent(...)` is the lazy DB-backed resolver:
-    # we only spend the DB + Foundry round-trip on the
-    # `agent_framework` branch -- the langgraph branch never touches
-    # the Agents SDK, so resolving an agent we'd never use is wasted
-    # I/O.
+    # Orchestrator construction is registry-keyed (Hard Rule #4): the
+    # single `orchestrators_registry.registry.get(...)` call below is
+    # the only place an orchestrator is instantiated -- there is no
+    # `if/elif` chain that constructs different orchestrators per name.
+    # The invariant is enforced by
+    # `test_router_uses_registry_dispatch_no_hardcoded_provider_names`.
     #
-    # The orchestrator itself looks the agent up by *name* through the
-    # OSS `agent_framework_foundry.FoundryAgent` client, so the return
-    # value here (the resolved agent id) is intentionally discarded --
-    # the call is bootstrap-only (create-if-missing).
-    #
-    # Hard Rule #4 nuance: the `if orchestrator_name ==
-    # OrchestratorName.AGENT_FRAMEWORK` check below is *kwarg
-    # preparation*, not orchestrator dispatch.
-    # `orchestrators_registry.registry.get(...)` remains the single
-    # registry-keyed factory call -- the router never has a chain of
-    # `if/elif` that *constructs* different orchestrator instances
-    # per name. The invariant is enforced by
-    # `test_router_uses_registry_dispatch_no_hardcoded_provider_names`
-    # (asserts exactly one `orchestrators_registry.registry.get(`
-    # call site).
-    if orchestrator_name == OrchestratorName.AGENT_FRAMEWORK:
-        await agents.get_or_create_agent(CWYD_AGENT, db)
-
-    # `system_prompt` carries the effective `cwyd_agent_instructions`
-    # (admin-saved override or the `CWYD_AGENT.instructions` default).
-    # The `langgraph` orchestrator injects it as the leading system
-    # message; `agent_framework` already applies its own resolved
-    # instructions at agent-create time and swallows this kwarg.
-    # `search_top_k` / `search_use_semantic_search` carry the effective
-    # per-request retrieval knobs; `langgraph` forwards them to
-    # `BaseSearch.search`, `agent_framework` swallows them via `**_extras`.
+    # Every orchestrator receives the same uniform kwargs and keeps
+    # only what it needs (swallowing the rest via `**_extras`):
+    #   * `agents` / `db` -- the `agent_framework` orchestrator resolves
+    #     (create-if-missing) and builds its runtime agent through the
+    #     agents provider's `build_agent`; `langgraph` swallows them.
+    #   * `system_prompt` -- the effective `cwyd_agent_instructions`
+    #     (admin-saved override or the `CWYD_AGENT.instructions`
+    #     default); `langgraph` injects it as the leading system
+    #     message, `agent_framework` resolves instructions through
+    #     `build_agent` and swallows this kwarg.
+    #   * `search_top_k` / `search_use_semantic_search` -- per-request
+    #     retrieval knobs `langgraph` forwards to `BaseSearch.search`
+    #     and `agent_framework` swallows.
     orchestrator = orchestrators_registry.registry.get(
         orchestrator_name
     )(
         settings=settings,
         llm=llm,
         search=search,
+        agents=agents,
+        db=db,
         credential=credential,
         agent_name=CWYD_AGENT.name,
         system_prompt=effective.cwyd_agent_instructions,
