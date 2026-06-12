@@ -76,6 +76,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0018 | 2026-06-11 | — | frontend | low | open | The chat history left column shows the backend database name (`backend: <db_type>`); it should not. |
 | BUG-0019 | 2026-06-11 | — | frontend | low | open | Remove the New chat section and functionality from the chat history left column. |
 | BUG-0020 | 2026-06-11 | 2026-06-11 | backend | high | fixed | Chat fails with `401 Unauthorized` on the Foundry IQ Knowledge Base MCP endpoint: the `agent_framework` orchestrator authenticated only MCP tool calls (SDK `header_provider` hook), leaving the MCP session-initialize connect unauthenticated, so the agent run raised `ToolExecutionException("Failed to enter context manager.")`. |
+| BUG-0021 | 2026-06-11 | — | backend | blocker | open | The `agent_framework` chat path fails with `404 Agent 'cwyd' not found`: `get_or_create_agent` provisions an Assistants-API **persistent agent** (`asst_` id) via `azure.ai.agents.AgentsClient.create_agent`, but the orchestrator's `agent_framework_foundry.FoundryAgent(allow_preview=True)` invokes through the **Responses-API `agent_reference` by name**, which resolves a different Foundry named-agent resource type — so the existing `asst_`-typed `cwyd` agent is not found by name. Surfaces downstream of (and distinct from) the BUG-0020 MCP 401. |
 
 ## Details
 
@@ -225,13 +226,15 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0006, BU
 
 ### BUG-0012 — Robot avatar and Thinking panel are not aligned
 
-Area: frontend. Severity: low. Status: fixed (found 2026-06-11; fixed 2026-06-11).
+Area: frontend. Severity: low. Status: fixed (found 2026-06-11; fixed 2026-06-11; refined 2026-06-11).
 
 Symptom: in the chat transcript the assistant robot avatar icon and the Thinking (reasoning) panel do not line up.
 
 Root cause: in `frontend/src/pages/chat/components/MessageList.module.css` the reasoning `<details>` panel (`.reasoning`) carried `margin: 0 0 0 36px`, indenting it into the bubble column (28px avatar + 8px gap = 36px gutter). The assistant avatar (`Bot20Regular`, inside `.row`) and the `<CitationPanel>` `<section>` rendered below it (`.section`, `margin-left: 0`) both sit at the list-item left edge, so the Thinking panel was the odd one out — offset right from the avatar and from the citation panel. (The originally recorded hypothesis was inverted: the panel was already offset to the bubble column, not starting at the list-item edge, so the original "align with the bubble column" proposal would have been a no-op.)
 
 Fix: set `.reasoning { margin: 0 }` so the panel's left edge is flush with the list-item edge, lining up with the avatar and with the citation panel below it. CSS-only — no JSX change; `.row`, the reasoning `<details>`, and `<CitationPanel>` were already direct `<li>` children, so zeroing the offset gives all three a shared left origin. Added a structural regression test (`renders the reasoning panel and citation panel as list-item siblings of the message row`) asserting both decorations render as direct children of the message `<li>`. Vitest runs with `css: false`, so the margin value itself is not observable in jsdom; the test pins the DOM sibling contract the alignment depends on (re-nesting the panel inside `.row` would fail it).
+
+Refinement (2026-06-11): the left-edge fix gave the three elements a shared left origin but kept the avatar on its own line above the Thinking panel — the avatar lives in `.row`, while the reasoning `<details>` rendered as a sibling `<li>` child below it. The operator asked for the avatar to sit on the *same horizontal line* as the Thinking panel. For an assistant message the reasoning `<details>`, the answer bubble, and the `<CitationPanel>` now stack in a vertical `.content` column rendered *inside* `.row` beside the avatar, so the avatar lines up with the column's first item (the Thinking panel while streaming, else the answer); `flex: 1 1 auto; min-width: 0` moved off the assistant `.bubble` onto `.content`. The user-message branch is unchanged. The regression test was retargeted from the sibling contract to the same-row contract — `renders the reasoning panel and citation panel inside the same row as the avatar` asserts both panels share the `.row` that holds the avatar and are no longer direct `<li>` children.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
@@ -330,5 +333,27 @@ Root cause: the `agent_framework` orchestrator (`backend/core/providers/orchestr
 Fix: `run()` now constructs an `httpx.AsyncClient` carrying the same bearer as a default `Authorization` header and passes it to `_build_kb_tool(..., http_client=...)`, which forwards it to `MCPStreamableHTTPTool(http_client=...)`. httpx applies default headers to every request, so the connect handshake is authenticated as well as tool calls. The `header_provider` hook is retained (belt-and-suspenders for tool calls; the same bearer merges idempotently). Because the MCP streamable-HTTP transport never closes a caller-supplied client (`mcp.client.streamable_http.streamable_http_client` only manages clients it creates), `run()` owns the client lifecycle and closes it in a `finally` that covers both the streaming path and an agent-construction failure. Cross-checked against MACAE, whose one bearer-attached MCP client path sets `headers["Authorization"]` as a default header on the httpx client (`src/backend/v4/common/services/mcp_service.py`), confirming the connection-level default-header approach.
 
 Why it was not caught earlier: this was the first live end-to-end exercise of the agent path against a real Search service; orchestrator unit tests fully fake the FoundryAgent and never enter the MCP tool's context manager, so the connect handshake was never exercised. New tests assert the KB tool is built with a default-`Authorization`-header client and that the client is closed after a normal run and after an agent-construction failure.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+
+### BUG-0021 — `agent_framework` chat 404s: persistent-assistant vs name-referenced Foundry agent mismatch
+
+Area: backend. Severity: blocker. Status: open (found 2026-06-11).
+
+Symptom: every `POST /api/conversation` on the default `agent_framework` orchestrator returns `500` (buffered) / an `error` SSE frame (streaming). Backend log: `ChatClientException: ... 404 - Agent 'cwyd' not found`. The failure surfaces in the chat-completion stream (`agent_framework_openai/_chat_client.py`), i.e. *after* `_prepare_run_context` — so it is downstream of, and distinct from, the BUG-0020 MCP-connect 401 (which is fixed).
+
+Root cause: two different Foundry agent surfaces are crossed.
+
+- Provisioning (`BaseAgentsProvider.get_or_create_agent` → `FoundryAgentsProvider`) calls `azure.ai.agents.aio.AgentsClient.create_agent(...)`, which creates an **Assistants-API persistent agent** identified by an `asst_` id. Confirmed live: the Foundry project holds exactly one agent — an `asst_`-prefixed id with `name='cwyd'` and `model='gpt-5.1'`, i.e. an Assistants-API persistent agent.
+- Invocation (`AgentFrameworkOrchestrator` → `agent_framework_foundry.FoundryAgent(agent_name="cwyd", allow_preview=True)`) references the agent through the **Responses API by name** (`get_openai_client(agent_name=...)` / `agent_reference {"name": "cwyd"}`). That name-reference resolves a Foundry *named/prompt* agent resource, not an Assistants-API `asst_` persistent agent, so Foundry returns 404.
+- The conversation router compounds the gap: it calls `get_or_create_agent(CWYD_AGENT, db)` but **discards the returned `asst_` id** and passes the friendly `CWYD_AGENT.name` ("cwyd") to the orchestrator.
+
+Contributing context: the project endpoint was recently switched to a different Foundry account/project (per `.env`). In the new project only the persistent-assistant create path has run, so no name-referenceable agent resource exists.
+
+Fix direction (recommended — structural, Hard Rule #10, needs operator consent): align the two halves of the decoupled-hybrid (dev_plan §0.1 `B1-MAF-MISLABEL` / `B-IMPL-AUDIT`) on the **name-referenced Prompt Agent** resource type. Switch `FoundryAgentsProvider`'s create path from `azure.ai.agents.AgentsClient.create_agent` (which mints an Assistants-API `asst_` agent) to the Foundry **Prompt Agent** path (`PromptAgentDefinition` + `create_version` on the projects SDK), so a name(+version)-resolvable `cwyd` agent exists for the orchestrator's `FoundryAgent(agent_name=..., agent_version=...)` invocation. This is exactly the alternative the dev_plan **B-Spike** flagged (`PromptAgentDefinition` + `create_version` vs `AgentsClient.create_agent`) but never switched.
+
+Rejected alternatives: (a) invoke the existing `asst_` agent by id — the OSS `FoundryAgent` exposes no `agent_id` parameter (name + optional version only, for Prompt/Hosted agents) and no `agent_framework` persistent-agent (Azure AI Agent Service threads/runs) client is installed; (b) toggling `allow_preview` does not change the resource type the reference resolves — both code paths reference a Prompt/Hosted agent by name.
+
+Why it was not caught earlier: `test_agent_framework.py` injects a fake agent factory, so the persistent-assistant-vs-name-reference distinction is never exercised against the live Responses API. The "Thinking" panel appears as soon as the SSE stream opens, so a screenshot showing "Thinking" does not prove the agent actually ran.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).

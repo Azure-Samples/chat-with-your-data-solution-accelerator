@@ -19,9 +19,11 @@ describe("ConfigActionType", () => {
     expect(ConfigActionType.SaveStarted).toBe("save_started");
     expect(ConfigActionType.SaveSucceeded).toBe("save_succeeded");
     expect(ConfigActionType.SaveFailed).toBe("save_failed");
+    expect(ConfigActionType.ResetRequested).toBe("reset_requested");
+    expect(ConfigActionType.ResetCancelled).toBe("reset_cancelled");
   });
 
-  it("enumerates exactly the 8 known values via Object.values", () => {
+  it("enumerates exactly the 10 known values via Object.values", () => {
     expect([...Object.values(ConfigActionType)].sort()).toEqual(
       [
         "discard",
@@ -29,6 +31,8 @@ describe("ConfigActionType", () => {
         "load_failed",
         "load_started",
         "load_succeeded",
+        "reset_cancelled",
+        "reset_requested",
         "save_failed",
         "save_started",
         "save_succeeded",
@@ -56,6 +60,8 @@ describe("ConfigActionType", () => {
       | "save_started"
       | "save_succeeded"
       | "save_failed"
+      | "reset_requested"
+      | "reset_cancelled"
     >();
   });
 });
