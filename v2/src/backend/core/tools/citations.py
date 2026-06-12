@@ -11,6 +11,12 @@ Turns a list of :class:`SearchResult` hits into:
   numbered ids, ready to emit on the SSE ``citation`` channel
   (ADR 0007).
 
+The ``agent_framework`` orchestrator instead grounds answers through a
+server-side Knowledge Base tool, so its sources arrive as native
+``agent_framework`` citation annotations rather than ``[docN]``
+markers. :func:`citations_from_annotations` maps those onto the same
+:class:`Citation` model, so both orchestrators emit one citation shape.
+
 Lives under ``shared/tools/`` because it is a cross-cutting helper
 imported directly by orchestrators / pipelines (tools are NOT a
 registry domain).
@@ -27,6 +33,8 @@ Caller pattern (Phase 3 wiring)::
 
 import re
 from typing import Sequence
+
+from agent_framework import Annotation, TextSpanRegion
 
 from backend.core.types import Citation, SearchResult
 
@@ -66,6 +74,72 @@ def build_citations(sources: Sequence[SearchResult]) -> list[Citation]:
             )
         )
     return citations
+
+
+def citations_from_annotations(
+    annotations: Sequence[Annotation],
+) -> list[Citation]:
+    """Map ``agent_framework`` citation annotations to :class:`Citation`s.
+
+    The ``agent_framework`` orchestrator grounds answers through a
+    server-side Knowledge Base retrieval tool, so the SDK surfaces
+    sources as native ``Content.annotations`` (``type == "citation"``)
+    rather than the numbered ``[docN]`` markers the ``langgraph`` path
+    injects. This adapter normalizes those annotations onto the same
+    :class:`Citation` model both orchestrators emit on the SSE
+    ``citation`` channel (ADR 0007), so the frontend renders one shape.
+
+    A citation's ``id`` is its ``file_id`` (falling back to ``url``
+    then ``title``); annotations without any of those carry no usable
+    source identity and are dropped. A source cited in more than one
+    place collapses to a single :class:`Citation` (the frontend dedupes
+    by ``id``), keeping the first occurrence's fields and merging the
+    text spans under ``metadata["annotated_regions"]``. ``file_id`` and
+    ``tool_name`` are preserved in ``metadata`` when present.
+    """
+    by_id: dict[str, Citation] = {}
+    regions_by_id: dict[str, list[TextSpanRegion]] = {}
+    ordered: list[Citation] = []
+
+    for ann in annotations:
+        if ann.get("type") != "citation":
+            continue
+        file_id = ann.get("file_id", "")
+        url = ann.get("url", "")
+        title = ann.get("title", "")
+        citation_id = file_id or url or title
+        if not citation_id:
+            continue
+
+        regions = list(ann.get("annotated_regions") or ())
+
+        if citation_id in by_id:
+            regions_by_id[citation_id].extend(regions)
+            continue
+
+        metadata: dict[str, str] = {"source_id": citation_id}
+        if file_id:
+            metadata["file_id"] = file_id
+        tool_name = ann.get("tool_name", "")
+        if tool_name:
+            metadata["tool_name"] = tool_name
+
+        citation = Citation(
+            id=citation_id,
+            title=title,
+            url=url,
+            snippet=ann.get("snippet", ""),
+            metadata=metadata,
+        )
+        by_id[citation_id] = citation
+        regions_by_id[citation_id] = regions
+        ordered.append(citation)
+
+    for citation in ordered:
+        collected = regions_by_id[citation.id]
+        if collected:
+            citation.metadata["annotated_regions"] = collected
+    return ordered
 
 
 def format_sources_block(sources: Sequence[SearchResult]) -> str:
@@ -108,6 +182,7 @@ def filter_to_referenced(
 
 __all__ = [
     "build_citations",
+    "citations_from_annotations",
     "doc_marker",
     "filter_to_referenced",
     "format_sources_block",
