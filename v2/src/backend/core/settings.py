@@ -238,6 +238,11 @@ class SearchSettings(BaseSettings):
     knowledge_source_name: str = "cwyd-index-ks"
     knowledge_base_api_version: str = "2025-11-01-preview"
 
+    # Foundry project connection (category CognitiveSearch) that the KB MCP
+    # tool references for server-side retrieval; surfaced from infra as
+    # `AZURE_AI_SEARCH_CONNECTION_NAME`. Empty in postgresql mode (no KB).
+    connection_name: str = ""
+
 
 class StorageSettings(BaseSettings):
     """Shared storage account (RAG documents + indexing queues)."""

@@ -1707,6 +1707,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
+            // Foundry Project ↔ Search connection name (category CognitiveSearch).
+            // The agent_framework orchestrator passes this as the KB MCP tool's
+            // project_connection_id so Foundry IQ executes retrieval server-side
+            // under the Project identity. Empty in postgresql mode (no connection).
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer

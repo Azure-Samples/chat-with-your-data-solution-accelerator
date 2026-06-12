@@ -133,6 +133,7 @@ def test_search_knowledge_base_defaults(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.search.knowledge_base_name == "cwyd-kb"
     assert settings.search.knowledge_source_name == "cwyd-index-ks"
     assert settings.search.knowledge_base_api_version == "2025-11-01-preview"
+    assert settings.search.connection_name == ""
 
 
 def test_search_knowledge_base_env_override_beats_default(
@@ -145,12 +146,14 @@ def test_search_knowledge_base_env_override_beats_default(
             "AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME": "kb-custom",
             "AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME": "ks-custom",
             "AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION": "2026-04-01",
+            "AZURE_AI_SEARCH_CONNECTION_NAME": "search-conn-custom",
         },
     )
     settings = AppSettings()
     assert settings.search.knowledge_base_name == "kb-custom"
     assert settings.search.knowledge_source_name == "ks-custom"
     assert settings.search.knowledge_base_api_version == "2026-04-01"
+    assert settings.search.connection_name == "search-conn-custom"
 
 
 # ---------------------------------------------------------------------------

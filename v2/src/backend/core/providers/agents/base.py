@@ -11,18 +11,18 @@ Constructors take `AppSettings` + an `AsyncTokenCredential` (managed
 identity in production, AzureCli in local dev) -- never an API key
 or connection string with embedded secrets (Hard Rule #2).
 
-Lifecycle: providers may hold an SDK client (`AgentsClient`) that owns
-an HTTP transport. Callers invoke `await provider.aclose()` during
-shutdown -- the FastAPI lifespan in `backend/app.py` does this for
-the cached singleton.
+Lifecycle: providers may hold an SDK client (`AIProjectClient`) that
+owns an HTTP transport. Callers invoke `await provider.aclose()`
+during shutdown -- the FastAPI lifespan in `backend/app.py` does this
+for the cached singleton.
 
 The `get_client()` method intentionally returns the raw SDK type
-(`azure.ai.agents.aio.AgentsClient`) rather than wrapping it -- the
-`agent_framework` orchestrator already owns the conversation flow
-(thread create / run process / messages list) and the SDK shape is
-stable. Wrapping would add ceremony without any swap-in benefit
-since every provider in this domain ultimately produces the same
-SDK type.
+(`azure.ai.projects.aio.AIProjectClient`) rather than wrapping it --
+the provisioning path drives the Foundry agent control plane
+(`agents.get` / `agents.create_version`) and the orchestrator builds
+its chat client from the same project endpoint. Wrapping would add
+ceremony without any swap-in benefit since every provider in this
+domain ultimately produces the same SDK type.
 
 Try/except policy (Phase C2e -- mirrors C2d for foundry_iq /
 azure_search):
@@ -49,9 +49,14 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Callable
 
-from azure.ai.agents.aio import AgentsClient
+from azure.ai.projects.aio import AIProjectClient
+from azure.ai.projects.models import PromptAgentDefinition
 from azure.core.credentials_async import AsyncTokenCredential
-from azure.core.exceptions import AzureError, ResourceNotFoundError
+from azure.core.exceptions import (
+    AzureError,
+    HttpResponseError,
+    ResourceNotFoundError,
+)
 
 from backend.core.agents.definitions import (
     CWYD_AGENT,
@@ -96,8 +101,8 @@ class BaseAgentsProvider(ABC):
         self._create_locks: dict[str, asyncio.Lock] = {}
 
     @abstractmethod
-    def get_client(self) -> AgentsClient:
-        """Return the (lazily-constructed, cached) `AgentsClient`."""
+    def get_client(self) -> AIProjectClient:
+        """Return the (lazily-constructed, cached) `AIProjectClient`."""
 
     @abstractmethod
     async def aclose(self) -> None:
@@ -140,31 +145,37 @@ class BaseAgentsProvider(ABC):
         definition: AgentDefinition,
         db: BaseDatabaseClient,
     ) -> str:
-        """Resolve `definition` to a Foundry agent id, creating the
-        agent on first call and persisting the id for next time.
+        """Resolve `definition` to a Foundry agent name, creating a
+        versioned Prompt Agent on first call and persisting the name
+        for next time.
+
+        Foundry's GA control plane addresses a hosted agent by its
+        stable *name*: `agents.create_version(name, definition=...)`
+        registers (or adds a version to) the named agent, and the
+        orchestrator / RAI tool invoke it by that same name. The
+        persisted value is therefore the agent name, not an opaque
+        per-instance id.
 
         Algorithm:
 
         1. Process cache hit -> return immediately. This is the
            steady-state path.
         2. DB lookup (`db.get_agent_id`). On hit, validate the
-           persisted id by calling `client.get_agent(...)` -- a stale
-           id (Foundry-side delete, environment rebuild) is detected
-           here and falls through to step 4.
+           persisted name by calling `client.agents.get(...)` -- a
+           name with no live Foundry agent (deleted out-of-band,
+           environment rebuild) is detected here and falls through to
+           step 4.
         3. Per-key lock + double-checked cache. Two concurrent first
            callers race past the cache miss; the second one sees the
            winner's value once the lock releases.
-        4. `client.create_agent(...)` -> `db.upsert_agent_id(...)` ->
-           cache -> return. The Foundry write happens before the DB
-           write so a DB failure leaves a recoverable orphan (the
-           next request will see the DB miss and create-or-replace),
-           rather than a stale id pointing at no Foundry agent.
-
-        Concrete providers implement `get_client()`; this method is
-        provider-agnostic (deviation from cleanup_audit prose: the
-        algorithm is identical for every Agents-SDK backend, so we
-        share it on the base class instead of forcing each provider
-        to reimplement the cache + lock + 404-fallthrough plumbing).
+        4. `client.agents.create_version(...)` ->
+           `db.upsert_agent_id(...)` -> cache -> return. The
+           named-agent registration is idempotent: a concurrent
+           worker that wins the create race surfaces as a 409, which
+           re-reads the agent and reuses it rather than failing. The
+           Foundry write happens before the DB write so a DB failure
+           leaves a recoverable state (the next request re-validates
+           and re-registers).
         """
         cached = self._agent_cache.get(definition.name)
         if cached is not None:
@@ -176,18 +187,18 @@ class BaseAgentsProvider(ABC):
         persisted = await db.get_agent_id(definition.name)
         if persisted is not None:
             try:
-                await client.get_agent(persisted)
+                await client.agents.get(persisted)
             except ResourceNotFoundError:
-                # Stale id -- Foundry agent was deleted out from
-                # under us. Fall through to recreate; the upsert
-                # in step 4 rewrites the DB row with the new id.
-                # Intentionally NOT logged at ERROR: environment
-                # rebuilds are routine and the recovery is silent.
+                # Stale name -- the Foundry agent was deleted out from
+                # under us. Fall through to recreate; the upsert in
+                # step 4 rewrites the DB row. Intentionally NOT logged
+                # at ERROR: environment rebuilds are routine and the
+                # recovery is silent.
                 persisted = None
             except AzureError:
                 # Non-404 azure-core failure (auth, transport, 5xx)
-                # is NOT an orphan-recovery signal -- surface it so
-                # the lifespan / app-level handler maps it to 503.
+                # is NOT a recovery signal -- surface it so the
+                # lifespan / app-level handler maps it to 503.
                 logger.exception(
                     "agents client.get_agent failed",
                     extra={
@@ -213,30 +224,64 @@ class BaseAgentsProvider(ABC):
                 return cached
 
             resolved = self._resolve_definition(definition)
+            prompt_definition = PromptAgentDefinition(
+                model=deployment,
+                instructions=resolved.instructions,
+                tools=list(resolved.tools) or None,
+            )
             try:
-                created = await client.create_agent(
-                    model=deployment,
-                    name=resolved.name,
+                await client.agents.create_version(
+                    agent_name=resolved.name,
+                    definition=prompt_definition,
                     description=resolved.description,
-                    instructions=resolved.instructions,
-                    tools=list(resolved.tools),
                 )
+            except HttpResponseError as exc:
+                if exc.status_code != 409:
+                    # Non-409 HTTP failure (auth, quota, 5xx) -- do
+                    # NOT swallow. The `async with lock:` releases on
+                    # the way out so a retry can proceed; partial
+                    # state is poisonous so we leave cache + DB alone.
+                    logger.exception(
+                        "agents client.create_version failed",
+                        extra={
+                            "operation": "create_version",
+                            "provider": "agents",
+                            "agent_name": definition.name,
+                            "deployment": deployment,
+                        },
+                    )
+                    raise
+                # 409: a concurrent worker registered the named agent
+                # between our get and create. The named-agent identity
+                # is idempotent -- re-read to confirm it resolves, then
+                # reuse it. This is recovery, not an error.
+                try:
+                    await client.agents.get(resolved.name)
+                except AzureError:
+                    logger.exception(
+                        "agents client.get_agent failed",
+                        extra={
+                            "operation": "get_agent",
+                            "provider": "agents",
+                            "agent_name": definition.name,
+                        },
+                    )
+                    raise
             except AzureError:
-                # Cold-start write failure -- do NOT swallow. The
-                # `async with lock:` releases on the way out so a
-                # retry can proceed; partial state is poisonous so
-                # we leave the cache and DB untouched.
+                # Non-HTTP azure-core failure (transport drop, request
+                # build) on the create path -- same no-partial-state
+                # contract as the non-409 branch above.
                 logger.exception(
-                    "agents client.create_agent failed",
+                    "agents client.create_version failed",
                     extra={
-                        "operation": "create_agent",
+                        "operation": "create_version",
                         "provider": "agents",
                         "agent_name": definition.name,
                         "deployment": deployment,
                     },
                 )
                 raise
-            agent_id = created.id
-            await db.upsert_agent_id(definition.name, agent_id)
-            self._agent_cache[definition.name] = agent_id
-            return agent_id
+
+            await db.upsert_agent_id(definition.name, resolved.name)
+            self._agent_cache[definition.name] = resolved.name
+            return resolved.name
