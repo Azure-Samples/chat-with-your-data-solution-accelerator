@@ -47,8 +47,10 @@ azure_search):
 import asyncio
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from typing import Callable
 
+from agent_framework import Agent, ToolTypes
 from azure.ai.projects.aio import AIProjectClient
 from azure.ai.projects.models import PromptAgentDefinition
 from azure.core.credentials_async import AsyncTokenCredential
@@ -107,6 +109,32 @@ class BaseAgentsProvider(ABC):
     @abstractmethod
     async def aclose(self) -> None:
         """Close the underlying SDK transport. Idempotent."""
+
+    @abstractmethod
+    async def build_agent(
+        self,
+        definition: AgentDefinition,
+        db: BaseDatabaseClient,
+        *,
+        extra_tools: Sequence[ToolTypes] | None = None,
+    ) -> Agent:
+        """Resolve `definition` to a runtime `agent_framework.Agent`.
+
+        The single construction seam shared by every caller that needs
+        to *invoke* a hosted agent (the `agent_framework` orchestrator
+        for `CWYD_AGENT`, the RAI tool for `RAI_AGENT`). The named
+        Prompt Agent is resolved / created server-side via
+        `get_or_create_agent`, then a client-side `Agent` is composed
+        over the provider's chat client bound to the agent's own model
+        deployment -- keeping invocation client-side is what lets
+        multi-agent orchestration (Magentic / hand-off) drive the same
+        object.
+
+        `extra_tools` are runtime tool objects the caller attaches to
+        the client-side agent (e.g. the Knowledge Base retrieval tool
+        the orchestrator builds per request); they are additive to any
+        tools already baked into the server-side definition.
+        """
 
     def _resolve_definition(self, definition: AgentDefinition) -> AgentDefinition:
         """Apply operator-supplied instruction overrides from `RuntimeConfig`.

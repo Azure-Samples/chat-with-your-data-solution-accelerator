@@ -22,6 +22,7 @@ from typing import Callable, Sequence
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from agent_framework import Agent, ToolTypes
 from azure.core.exceptions import (
     AzureError,
     ClientAuthenticationError,
@@ -78,6 +79,18 @@ class _StubAgentsProvider(BaseAgentsProvider):
 
     async def aclose(self) -> None:
         return None
+
+    async def build_agent(
+        self,
+        definition: AgentDefinition,
+        db: BaseDatabaseClient,
+        *,
+        extra_tools: Sequence[ToolTypes] | None = None,
+    ) -> Agent:
+        # The base-class resolver tests exercise get_or_create_agent /
+        # _resolve_definition only; build_agent is covered by the
+        # concrete FoundryAgentsProvider's own test module.
+        raise NotImplementedError
 
 
 class _StubDB(BaseDatabaseClient):

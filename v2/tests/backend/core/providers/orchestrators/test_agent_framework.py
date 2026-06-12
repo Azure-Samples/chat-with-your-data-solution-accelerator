@@ -5,13 +5,13 @@ Phase: 3
 """
 
 from types import SimpleNamespace
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from typing import Any, Self
+from unittest.mock import MagicMock
 
-import httpx
 import pytest
 from azure.core.exceptions import HttpResponseError
 
+from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
@@ -29,7 +29,9 @@ from backend.core.types import ChatMessage
 # ---------------------------------------------------------------------------
 
 
-def _settings(endpoint: str = "https://example.services.ai.azure.com/api/projects/p1") -> AppSettings:
+def _settings(
+    endpoint: str = "https://example.services.ai.azure.com/api/projects/p1",
+) -> AppSettings:
     settings = MagicMock(spec=AppSettings)
     settings.foundry = MagicMock(spec=FoundrySettings)
     settings.foundry.project_endpoint = endpoint
@@ -38,6 +40,7 @@ def _settings(endpoint: str = "https://example.services.ai.azure.com/api/project
     settings.search.knowledge_base_name = "cwyd-kb"
     settings.search.knowledge_source_name = "cwyd-index-ks"
     settings.search.knowledge_base_api_version = "2025-11-01-preview"
+    settings.search.connection_name = "search-conn"
     settings.openai = MagicMock(spec=OpenAISettings)
     settings.openai.temperature = 0.0
     settings.openai.max_tokens = 1000
@@ -71,7 +74,7 @@ class _FakeAsyncIter:
     def __init__(self, items: list[Any]) -> None:
         self._items = list(items)
 
-    def __aiter__(self) -> "_FakeAsyncIter":
+    def __aiter__(self) -> Self:
         return self
 
     async def __anext__(self) -> Any:
@@ -80,102 +83,89 @@ class _FakeAsyncIter:
         return self._items.pop(0)
 
 
-class _FakeFoundryAgent:
-    """Captures construction kwargs + run inputs, returns canned updates."""
+class _FakeAgent:
+    """Async-context-manager stand-in for `agent_framework.Agent`.
+
+    Records `run(...)` inputs and counts context-manager entry / exit so
+    tests can assert the orchestrator drives the agent inside
+    `async with` (which owns the chat-client transport).
+    """
 
     def __init__(
         self,
         *,
-        project_endpoint: str,
-        agent_name: str,
-        credential: Any,
         updates: list[Any] | None = None,
         run_error: Exception | None = None,
-        ctor_error: Exception | None = None,
     ) -> None:
-        if ctor_error is not None:
-            raise ctor_error
-        self.project_endpoint = project_endpoint
-        self.agent_name = agent_name
-        self.credential = credential
         self._updates = updates or []
         self._run_error = run_error
-        self.run_calls: list[Any] = []
-        self.close = AsyncMock(return_value=None)
+        self.run_calls: list[dict[str, Any]] = []
+        self.entered = 0
+        self.exited = 0
+
+    async def __aenter__(self) -> Self:
+        self.entered += 1
+        return self
+
+    async def __aexit__(self, *_exc: Any) -> None:
+        self.exited += 1
+        return None
 
     def run(
         self,
         messages: Any,
         *,
         stream: bool = False,
-        tools: Any = None,
         options: Any = None,
     ) -> Any:
         self.run_calls.append(
-            {
-                "messages": messages,
-                "stream": stream,
-                "tools": tools,
-                "options": options,
-            }
+            {"messages": messages, "stream": stream, "options": options}
         )
         if self._run_error is not None:
             raise self._run_error
         return _FakeAsyncIter(self._updates)
 
 
-def _make_factory(
-    *,
-    updates: list[Any] | None = None,
-    run_error: Exception | None = None,
-    ctor_error: Exception | None = None,
-) -> tuple[Any, list[_FakeFoundryAgent]]:
-    """Return (factory, created_agents_list) so tests can assert on the
-    factory call args + on the constructed agent's recorded calls."""
-    created: list[_FakeFoundryAgent] = []
+class _FakeAgentsProvider:
+    """Stand-in for the agents provider's `build_agent` seam.
 
-    def factory(
-        *, project_endpoint: str, agent_name: str, credential: Any
-    ) -> _FakeFoundryAgent:
-        agent = _FakeFoundryAgent(
-            project_endpoint=project_endpoint,
-            agent_name=agent_name,
-            credential=credential,
-            updates=updates,
-            run_error=run_error,
-            ctor_error=ctor_error,
-        )
-        created.append(agent)
-        return agent
-
-    return factory, created
-
-
-def _async_credential(*, token: str = "fake-token") -> Any:
-    """An AsyncTokenCredential whose get_token returns a fake AccessToken.
-
-    run() awaits credential.get_token(SEARCH_DATA_PLANE_SCOPE) to mint the
-    KB bearer, so the default credential must be awaitable and yield an
-    object exposing `.token`.
+    Records each `build_agent` call's `(definition, db, extra_tools)` and
+    returns a pre-seeded `_FakeAgent` (or raises `build_error` to model a
+    cold-start create / transport failure).
     """
-    cred = AsyncMock()
-    cred.get_token.return_value = SimpleNamespace(token=token)
-    return cred
+
+    def __init__(
+        self,
+        *,
+        agent: _FakeAgent | None = None,
+        build_error: Exception | None = None,
+    ) -> None:
+        self._agent = agent
+        self._build_error = build_error
+        self.build_calls: list[dict[str, Any]] = []
+
+    async def build_agent(
+        self, definition: Any, db: Any, *, extra_tools: Any = None
+    ) -> _FakeAgent:
+        self.build_calls.append(
+            {"definition": definition, "db": db, "extra_tools": extra_tools}
+        )
+        if self._build_error is not None:
+            raise self._build_error
+        return self._agent if self._agent is not None else _FakeAgent()
 
 
 def _make_orchestrator(
     *,
-    agent_name: str = "cwyd",
     settings: AppSettings | None = None,
-    credential: Any = None,
-    factory: Any = None,
+    agents: Any = None,
+    db: Any = None,
 ) -> AgentFrameworkOrchestrator:
     return AgentFrameworkOrchestrator(
         settings=settings if settings is not None else _settings(),
         llm=MagicMock(spec=BaseLLMProvider),
-        agent_name=agent_name,
-        credential=credential if credential is not None else _async_credential(),
-        agent_factory=factory,
+        agents=agents if agents is not None else _FakeAgentsProvider(),
+        db=db if db is not None else object(),
     )
 
 
@@ -193,52 +183,31 @@ def test_agent_framework_is_registered() -> None:
 
 
 def test_create_returns_agent_framework_instance() -> None:
-    factory, _ = _make_factory()
     orch = orchestrators_registry.registry.get("agent_framework")(
         settings=_settings(),
         llm=MagicMock(spec=BaseLLMProvider),
-        agent_name="cwyd",
-        credential=MagicMock(),
-        agent_factory=factory,
+        agents=_FakeAgentsProvider(),
+        db=object(),
     )
     assert isinstance(orch, AgentFrameworkOrchestrator)
 
 
-def test_constructor_rejects_empty_agent_name() -> None:
-    factory, _ = _make_factory()
-    with pytest.raises(ValueError, match="agent_name"):
-        AgentFrameworkOrchestrator(
-            settings=_settings(),
-            llm=MagicMock(spec=BaseLLMProvider),
-            agent_name="",
-            credential=MagicMock(),
-            agent_factory=factory,
-        )
-
-
-def test_constructor_rejects_empty_project_endpoint() -> None:
-    factory, _ = _make_factory()
-    with pytest.raises(ValueError, match="project_endpoint"):
-        AgentFrameworkOrchestrator(
-            settings=_settings(endpoint=""),
-            llm=MagicMock(spec=BaseLLMProvider),
-            agent_name="cwyd",
-            credential=MagicMock(),
-            agent_factory=factory,
-        )
-
-
 def test_constructor_swallows_uniform_extras() -> None:
-    """Router forwards `search=` (langgraph-only) to every orchestrator;
-    `**_extras` must absorb it without raising."""
-    factory, _ = _make_factory()
+    """The router forwards a uniform kwarg set to every orchestrator
+    (langgraph-only `search` / `system_prompt` / `search_top_k` plus the
+    legacy `credential` / `agent_name` from the shared wiring contract);
+    `**_extras` must absorb them all without raising."""
     orch = AgentFrameworkOrchestrator(
         settings=_settings(),
         llm=MagicMock(spec=BaseLLMProvider),
-        agent_name="cwyd",
+        agents=_FakeAgentsProvider(),
+        db=object(),
+        search=MagicMock(),
+        system_prompt="ignored",
+        search_top_k=5,
+        search_use_semantic_search=True,
         credential=MagicMock(),
-        agent_factory=factory,
-        search=MagicMock(),  # uniform kwarg from router
+        agent_name="cwyd",
     )
     assert isinstance(orch, AgentFrameworkOrchestrator)
 
@@ -249,33 +218,26 @@ def test_constructor_swallows_uniform_extras() -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_constructs_agent_with_endpoint_credential_and_name() -> None:
-    cred = _async_credential()
-    factory, created = _make_factory(
-        updates=[_update(_text_block("hello"))]
-    )
-    orch = _make_orchestrator(
-        settings=_settings(endpoint="https://ep/api/projects/x"),
-        credential=cred,
-        factory=factory,
-        agent_name="cwyd",
-    )
+async def test_run_invokes_build_agent_with_definition_and_db() -> None:
+    agent = _FakeAgent(updates=[_update(_text_block("hello"))])
+    provider = _FakeAgentsProvider(agent=agent)
+    db = object()
+    orch = _make_orchestrator(agents=provider, db=db)
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    assert len(created) == 1
-    agent = created[0]
-    assert agent.project_endpoint == "https://ep/api/projects/x"
-    assert agent.agent_name == "cwyd"
-    assert agent.credential is cred
+    assert len(provider.build_calls) == 1
+    call = provider.build_calls[0]
+    assert call["definition"] is CWYD_AGENT
+    assert call["db"] is db
 
 
 @pytest.mark.asyncio
 async def test_run_skips_system_and_tool_messages_when_forwarding_to_agent() -> None:
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(factory=factory)
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     _ = [
         ev
@@ -289,8 +251,7 @@ async def test_run_skips_system_and_tool_messages_when_forwarding_to_agent() -> 
         )
     ]
 
-    assert len(created) == 1
-    forwarded = created[0].run_calls[0]["messages"]
+    forwarded = agent.run_calls[0]["messages"]
     # Only user + assistant survive; system + tool are dropped.
     roles = [m.role for m in forwarded]
     assert roles == ["user", "assistant"]
@@ -298,13 +259,13 @@ async def test_run_skips_system_and_tool_messages_when_forwarding_to_agent() -> 
 
 @pytest.mark.asyncio
 async def test_run_buffers_text_chunks_into_single_answer_event() -> None:
-    factory, _ = _make_factory(
+    agent = _FakeAgent(
         updates=[
             _update(_text_block("Hello, ")),
             _update(_text_block("world!")),
         ]
     )
-    orch = _make_orchestrator(factory=factory)
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     events = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
@@ -317,13 +278,13 @@ async def test_run_buffers_text_chunks_into_single_answer_event() -> None:
 
 @pytest.mark.asyncio
 async def test_run_emits_reasoning_events_for_text_reasoning_blocks() -> None:
-    factory, _ = _make_factory(
+    agent = _FakeAgent(
         updates=[
             _update(_reasoning_block("looking up docs")),
             _update(_text_block("Final answer.")),
         ]
     )
-    orch = _make_orchestrator(factory=factory)
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     events = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
@@ -338,7 +299,7 @@ async def test_run_emits_reasoning_events_for_text_reasoning_blocks() -> None:
 
 @pytest.mark.asyncio
 async def test_run_emits_tool_events_for_function_call_blocks() -> None:
-    factory, _ = _make_factory(
+    agent = _FakeAgent(
         updates=[
             _update(
                 _function_call_block(
@@ -350,7 +311,7 @@ async def test_run_emits_tool_events_for_function_call_blocks() -> None:
             _update(_text_block("done")),
         ]
     )
-    orch = _make_orchestrator(factory=factory)
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     events = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
@@ -371,7 +332,7 @@ async def test_run_emits_tool_events_for_function_call_blocks() -> None:
 
 @pytest.mark.asyncio
 async def test_run_serializes_string_arguments_as_is() -> None:
-    factory, _ = _make_factory(
+    agent = _FakeAgent(
         updates=[
             _update(
                 _function_call_block(
@@ -383,7 +344,7 @@ async def test_run_serializes_string_arguments_as_is() -> None:
             _update(_text_block("done")),
         ]
     )
-    orch = _make_orchestrator(factory=factory)
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     events = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
@@ -394,10 +355,8 @@ async def test_run_serializes_string_arguments_as_is() -> None:
 
 @pytest.mark.asyncio
 async def test_run_emits_error_event_when_stream_raises_azure_error() -> None:
-    factory, _ = _make_factory(
-        run_error=HttpResponseError("quota exceeded"),
-    )
-    orch = _make_orchestrator(factory=factory)
+    agent = _FakeAgent(run_error=HttpResponseError("quota exceeded"))
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     events = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
@@ -410,8 +369,8 @@ async def test_run_emits_error_event_when_stream_raises_azure_error() -> None:
 
 @pytest.mark.asyncio
 async def test_run_emits_error_event_when_no_content_returned() -> None:
-    factory, _ = _make_factory(updates=[])  # empty stream
-    orch = _make_orchestrator(factory=factory)
+    agent = _FakeAgent(updates=[])  # empty stream
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     events = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
@@ -423,51 +382,55 @@ async def test_run_emits_error_event_when_no_content_returned() -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_closes_foundry_agent_in_finally() -> None:
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(factory=factory)
+async def test_run_closes_agent_via_async_with() -> None:
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    assert len(created) == 1
-    created[0].close.assert_awaited_once()
+    assert agent.entered == 1
+    assert agent.exited == 1
 
 
 @pytest.mark.asyncio
-async def test_run_closes_foundry_agent_even_when_stream_raises() -> None:
-    factory, created = _make_factory(
-        run_error=HttpResponseError("boom"),
-    )
-    orch = _make_orchestrator(factory=factory)
+async def test_run_closes_agent_even_when_stream_raises() -> None:
+    agent = _FakeAgent(run_error=HttpResponseError("boom"))
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    assert len(created) == 1
-    created[0].close.assert_awaited_once()
+    assert agent.entered == 1
+    assert agent.exited == 1
 
 
 @pytest.mark.asyncio
-async def test_run_propagates_construction_failure_via_logger() -> None:
-    factory, _ = _make_factory(
-        ctor_error=HttpResponseError("invalid endpoint"),
+async def test_run_emits_error_event_when_build_agent_fails() -> None:
+    provider = _FakeAgentsProvider(
+        build_error=HttpResponseError("invalid endpoint")
     )
-    orch = _make_orchestrator(factory=factory)
+    orch = _make_orchestrator(agents=provider)
 
-    with pytest.raises(HttpResponseError):
-        _ = [
-            ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
-        ]
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    # build_agent failure surfaces as a terminal error event (not a raise),
+    # so the SSE stream closes cleanly.
+    assert len(events) == 1
+    assert events[0].channel == "error"
+    assert "initialization failed" in events[0].content.lower()
 
 
 @pytest.mark.asyncio
 async def test_aclose_is_a_noop() -> None:
-    factory, _ = _make_factory()
-    orch = _make_orchestrator(factory=factory)
-    # Must not raise -- credential lifecycle is owned by the wiring layer.
+    orch = _make_orchestrator()
+    # Must not raise -- the per-request Agent is closed inside run()'s
+    # async-with, and the provider + credential are owned by the wiring
+    # layer.
     await orch.aclose()
 
 
@@ -481,22 +444,31 @@ def _settings_with_search(
     endpoint: str = "https://srch.example",
     kb_name: str = "cwyd-kb",
     api_version: str = "2025-11-01-preview",
+    connection_name: str = "search-conn",
 ) -> AppSettings:
     settings = _settings()
     settings.search.endpoint = endpoint
     settings.search.knowledge_base_name = kb_name
     settings.search.knowledge_base_api_version = api_version
+    settings.search.connection_name = connection_name
     return settings
 
 
 def test_build_kb_tool_returns_none_when_search_endpoint_missing() -> None:
     orch = _make_orchestrator(settings=_settings_with_search(endpoint=""))
-    assert orch._build_kb_tool(bearer_token="tok") is None
+    assert orch._build_kb_tool() is None
 
 
 def test_build_kb_tool_returns_none_when_kb_name_missing() -> None:
     orch = _make_orchestrator(settings=_settings_with_search(kb_name=""))
-    assert orch._build_kb_tool(bearer_token="tok") is None
+    assert orch._build_kb_tool() is None
+
+
+def test_build_kb_tool_returns_none_when_connection_name_missing() -> None:
+    orch = _make_orchestrator(
+        settings=_settings_with_search(connection_name="")
+    )
+    assert orch._build_kb_tool() is None
 
 
 def test_build_kb_tool_constructs_managed_mcp_url_with_api_version() -> None:
@@ -507,232 +479,87 @@ def test_build_kb_tool_constructs_managed_mcp_url_with_api_version() -> None:
             api_version="2025-11-01-preview",
         )
     )
-    tool = orch._build_kb_tool(bearer_token="tok")
+    tool = orch._build_kb_tool()
     assert tool is not None
-    assert tool.name == "cwyd-kb"
-    assert tool.url == (
+    payload = tool.as_dict()
+    assert payload["server_label"] == "cwyd-kb"
+    assert payload["server_url"] == (
         "https://srch.example/knowledgebases/cwyd-kb/mcp"
         "?api-version=2025-11-01-preview"
     )
 
 
-def test_build_kb_tool_sets_never_require_and_allowed_tools() -> None:
+def test_build_kb_tool_sets_require_approval_never_and_allowed_tools() -> None:
     orch = _make_orchestrator(settings=_settings_with_search())
-    tool = orch._build_kb_tool(bearer_token="tok")
+    tool = orch._build_kb_tool()
     assert tool is not None
-    assert tool.approval_mode == "never_require"
-    assert list(tool.allowed_tools or []) == ["knowledge_base_retrieve"]
+    payload = tool.as_dict()
+    assert payload["require_approval"] == "never"
+    assert payload["allowed_tools"] == ["knowledge_base_retrieve"]
+    assert payload["type"] == "mcp"
 
 
-def test_build_kb_tool_header_provider_injects_bearer() -> None:
-    orch = _make_orchestrator(settings=_settings_with_search())
-    tool = orch._build_kb_tool(bearer_token="tok123")
+def test_build_kb_tool_sets_project_connection_id() -> None:
+    orch = _make_orchestrator(
+        settings=_settings_with_search(connection_name="my-conn")
+    )
+    tool = orch._build_kb_tool()
     assert tool is not None
-    # `_header_provider` is the SDK's private storage for the header hook;
-    # poking it directly is the only way to assert the bearer is injected.
-    headers = tool._header_provider({"Content-Type": "application/json"})
-    assert headers["Authorization"] == "Bearer tok123"
-    # Existing headers are preserved (merge, not replace).
-    assert headers["Content-Type"] == "application/json"
-
-
-def test_build_kb_tool_wires_provided_http_client() -> None:
-    orch = _make_orchestrator(settings=_settings_with_search())
-    # A sentinel stands in for a pre-authenticated httpx.AsyncClient; the
-    # SDK stores it on `_httpx_client` and uses it for the MCP connect.
-    sentinel: Any = object()
-    tool = orch._build_kb_tool(bearer_token="tok", http_client=sentinel)
-    assert tool is not None
-    assert tool._httpx_client is sentinel
-
-
-def test_build_kb_tool_defaults_http_client_to_none() -> None:
-    orch = _make_orchestrator(settings=_settings_with_search())
-    tool = orch._build_kb_tool(bearer_token="tok")
-    assert tool is not None
-    assert tool._httpx_client is None
+    assert tool.as_dict()["project_connection_id"] == "my-conn"
 
 
 # ---------------------------------------------------------------------------
-# run() KB tool wiring -- token acquisition + tool forwarding
+# run() KB tool wiring -- server-side MCP tool forwarded via build_agent
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_run_acquires_search_data_plane_token() -> None:
-    cred = _async_credential()
-    factory, _ = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(credential=cred, factory=factory)
-
-    _ = [
-        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    cred.get_token.assert_awaited_once_with("https://search.azure.com/.default")
-
-
-@pytest.mark.asyncio
-async def test_run_forwards_kb_tool_to_agent() -> None:
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+async def test_run_forwards_kb_tool_as_dict_to_build_agent() -> None:
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    provider = _FakeAgentsProvider(agent=agent)
     orch = _make_orchestrator(
         settings=_settings_with_search(
             endpoint="https://srch.example",
             kb_name="cwyd-kb",
             api_version="2025-11-01-preview",
+            connection_name="search-conn",
         ),
-        factory=factory,
+        agents=provider,
     )
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    tools = created[0].run_calls[0]["tools"]
-    assert tools is not None
-    assert len(tools) == 1
-    assert tools[0].url == (
+    extra_tools = provider.build_calls[0]["extra_tools"]
+    assert extra_tools is not None
+    assert len(extra_tools) == 1
+    payload = extra_tools[0]
+    # Forwarded as the serialized wire shape (`.as_dict()`), not the SDK
+    # object, so the Responses API receives a server-side MCP tool spec.
+    assert payload["type"] == "mcp"
+    assert payload["server_url"] == (
         "https://srch.example/knowledgebases/cwyd-kb/mcp"
         "?api-version=2025-11-01-preview"
     )
+    assert payload["project_connection_id"] == "search-conn"
+    assert payload["allowed_tools"] == ["knowledge_base_retrieve"]
 
 
 @pytest.mark.asyncio
-async def test_run_skips_token_and_tool_when_kb_unconfigured() -> None:
-    cred = _async_credential()
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+async def test_run_skips_kb_tool_when_unconfigured() -> None:
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    provider = _FakeAgentsProvider(agent=agent)
     orch = _make_orchestrator(
         settings=_settings_with_search(endpoint=""),  # KB not configured
-        credential=cred,
-        factory=factory,
+        agents=provider,
     )
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    assert created[0].run_calls[0]["tools"] is None
-    cred.get_token.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_run_raises_when_token_acquisition_fails() -> None:
-    cred = AsyncMock()
-    cred.get_token = AsyncMock(side_effect=HttpResponseError("no token"))
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(credential=cred, factory=factory)
-
-    with pytest.raises(HttpResponseError):
-        _ = [
-            ev
-            async for ev in orch.run([ChatMessage(role="user", content="hi")])
-        ]
-    # The token is acquired before the agent transport, so a failure must
-    # surface without constructing (and leaking) an agent.
-    assert created == []
-
-
-class _FakeHttpClient:
-    """Stand-in for httpx.AsyncClient that records construction kwargs and
-    whether it was closed, without opening any sockets."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        self.kwargs = kwargs
-        self.aclose = AsyncMock(return_value=None)
-
-
-def _patch_http_client(
-    monkeypatch: pytest.MonkeyPatch,
-) -> list[_FakeHttpClient]:
-    """Replace httpx.AsyncClient with a recording fake; return the list of
-    instances the orchestrator constructs."""
-    created_clients: list[_FakeHttpClient] = []
-
-    def _client_factory(**kwargs: Any) -> _FakeHttpClient:
-        client = _FakeHttpClient(**kwargs)
-        created_clients.append(client)
-        return client
-
-    monkeypatch.setattr(httpx, "AsyncClient", _client_factory)
-    return created_clients
-
-
-@pytest.mark.asyncio
-async def test_run_authenticates_kb_connect_via_default_header_client(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The KB MCP connect (context-manager entry) is authenticated by a
-    default Authorization header on the transport's httpx client -- the
-    SDK's per-call header hook does not cover the connect handshake."""
-    created_clients = _patch_http_client(monkeypatch)
-    cred = _async_credential(token="fake-token")
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(
-        settings=_settings_with_search(), credential=cred, factory=factory
-    )
-
-    _ = [
-        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert len(created_clients) == 1
-    client = created_clients[0]
-    assert client.kwargs["headers"]["Authorization"] == "Bearer fake-token"
-    # The same client instance is handed to the KB tool for the connect.
-    tools = created[0].run_calls[0]["tools"]
-    assert tools[0]._httpx_client is client
-
-
-@pytest.mark.asyncio
-async def test_run_closes_kb_http_client_after_streaming(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    created_clients = _patch_http_client(monkeypatch)
-    factory, _ = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(settings=_settings_with_search(), factory=factory)
-
-    _ = [
-        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert len(created_clients) == 1
-    created_clients[0].aclose.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_run_closes_kb_http_client_when_agent_construction_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    created_clients = _patch_http_client(monkeypatch)
-    factory, _ = _make_factory(ctor_error=HttpResponseError("bad endpoint"))
-    orch = _make_orchestrator(settings=_settings_with_search(), factory=factory)
-
-    with pytest.raises(HttpResponseError):
-        _ = [
-            ev
-            async for ev in orch.run([ChatMessage(role="user", content="hi")])
-        ]
-
-    # The client was allocated before agent construction, so the failure
-    # path must still release it.
-    assert len(created_clients) == 1
-    created_clients[0].aclose.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_run_creates_no_http_client_when_kb_unconfigured(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    created_clients = _patch_http_client(monkeypatch)
-    factory, _ = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(
-        settings=_settings_with_search(endpoint=""), factory=factory
-    )
-
-    _ = [
-        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert created_clients == []
+    assert provider.build_calls[0]["extra_tools"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -745,14 +572,16 @@ async def test_run_threads_temperature_and_max_tokens_via_options() -> None:
     settings = _settings()
     settings.openai.temperature = 0.5
     settings.openai.max_tokens = 256
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(settings=settings, factory=factory)
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        settings=settings, agents=_FakeAgentsProvider(agent=agent)
+    )
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    options = created[0].run_calls[0]["options"]
+    options = agent.run_calls[0]["options"]
     assert options is not None
     assert options["temperature"] == 0.5
     assert options["max_tokens"] == 256
@@ -760,14 +589,16 @@ async def test_run_threads_temperature_and_max_tokens_via_options() -> None:
 
 @pytest.mark.asyncio
 async def test_run_passes_default_sampling_knobs_via_options() -> None:
-    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
-    orch = _make_orchestrator(factory=factory)  # default _settings()
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        agents=_FakeAgentsProvider(agent=agent)
+    )  # default _settings()
 
     _ = [
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    options = created[0].run_calls[0]["options"]
+    options = agent.run_calls[0]["options"]
     assert options is not None
     assert options["temperature"] == 0.0
     assert options["max_tokens"] == 1000
