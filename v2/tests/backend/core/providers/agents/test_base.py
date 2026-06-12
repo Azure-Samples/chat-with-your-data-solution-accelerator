@@ -23,6 +23,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from agent_framework import Agent, ToolTypes
+from azure.ai.projects.models import CodeInterpreterTool, Tool
 from azure.core.exceptions import (
     AzureError,
     ClientAuthenticationError,
@@ -36,7 +37,11 @@ from backend.core.agents.definitions import (
     AgentDefinition,
     compose_cwyd_instructions,
 )
-from backend.core.providers.agents.base import BaseAgentsProvider
+from backend.core.providers.agents.base import (
+    BaseAgentsProvider,
+    _DEFINITION_TOOL_BUILDERS,
+    _definition_tools_to_sdk,
+)
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
 from backend.core.types import (
@@ -177,7 +182,7 @@ def _definition(name: str = "cwyd") -> AgentDefinition:
         description="d",
         deployment_attr="gpt_deployment",
         instructions="i",
-        tools=("search",),
+        tools=(),
     )
 
 
@@ -301,9 +306,9 @@ async def test_cold_start_creates_persists_and_caches() -> None:
     prompt_definition = create_kwargs["definition"]
     assert prompt_definition.model == "gpt-4o-mini"
     assert prompt_definition.instructions == "i"
-    # The definition holds a tuple for immutability; it is forwarded
-    # as a list into PromptAgentDefinition.tools.
-    assert prompt_definition.tools == ["search"]
+    # Both built-in agents declare no definition tools, so the strict
+    # key->Tool converter yields None and the SDK field is omitted.
+    assert prompt_definition.tools is None
     assert db.upsert_calls == [("cwyd", "cwyd")]
     assert provider._agent_cache["cwyd"] == "cwyd"
 
@@ -800,3 +805,38 @@ async def test_getter_is_invoked_lazily_per_cold_start() -> None:
     assert client_b.agents.create_version.await_args.kwargs[
         "definition"
     ].instructions == compose_cwyd_instructions("second")
+
+
+# ---------------------------------------------------------------------------
+# _definition_tools_to_sdk -- strict key -> SDK Tool converter
+# ---------------------------------------------------------------------------
+
+
+def test_definition_tools_to_sdk_empty_returns_none() -> None:
+    """No declared keys -> None so PromptAgentDefinition omits the field.
+    This is the only path the built-in agents take (both `tools=()`)."""
+    assert _definition_tools_to_sdk(()) is None
+
+
+def test_definition_tools_to_sdk_unknown_key_raises() -> None:
+    """A key with no registered builder is a hard error -- a bare string
+    must never reach the SDK's `list[Tool]` slot. The message names the
+    offending key and the registered keys for debuggability."""
+    with pytest.raises(ValueError) as exc_info:
+        _definition_tools_to_sdk(("not_a_real_tool",))
+    message = str(exc_info.value)
+    assert "not_a_real_tool" in message
+    assert "registered keys" in message
+
+
+def test_definition_tools_to_sdk_registered_key_builds_tool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A registered key resolves through its builder to a concrete SDK
+    Tool instance."""
+    monkeypatch.setitem(_DEFINITION_TOOL_BUILDERS, "code", CodeInterpreterTool)
+    out = _definition_tools_to_sdk(("code",))
+    assert out is not None
+    assert len(out) == 1
+    assert isinstance(out[0], CodeInterpreterTool)
+    assert isinstance(out[0], Tool)

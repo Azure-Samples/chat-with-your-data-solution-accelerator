@@ -52,7 +52,7 @@ from typing import Callable
 
 from agent_framework import Agent, ToolTypes
 from azure.ai.projects.aio import AIProjectClient
-from azure.ai.projects.models import PromptAgentDefinition
+from azure.ai.projects.models import PromptAgentDefinition, Tool
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import (
     AzureError,
@@ -70,6 +70,40 @@ from backend.core.settings import AppSettings
 from backend.core.types import RuntimeConfig
 
 logger = logging.getLogger(__name__)
+
+
+# Builders that realize an `AgentDefinition.tools` opaque key as a
+# concrete Foundry SDK `Tool` for the server-side prompt-agent
+# definition. Empty by default: the built-in agents ground via an MCP
+# tool attached client-side at `build_agent` time, so neither declares
+# a definition-level tool. A swap-in agent that needs a server-side
+# tool registers its builder here, keyed by the string it places in
+# `AgentDefinition.tools`.
+_DEFINITION_TOOL_BUILDERS: dict[str, Callable[[], Tool]] = {}
+
+
+def _definition_tools_to_sdk(keys: tuple[str, ...]) -> list[Tool] | None:
+    """Resolve `AgentDefinition.tools` keys to Foundry SDK `Tool`s.
+
+    Returns `None` when no keys are declared so the prompt-agent
+    definition omits the field. Every key must resolve through
+    `_DEFINITION_TOOL_BUILDERS`; an unrecognized key raises rather than
+    being handed to the SDK as a bare string, which keeps the value
+    entering `PromptAgentDefinition.tools` honestly typed as
+    `list[Tool]`.
+    """
+    if not keys:
+        return None
+    resolved: list[Tool] = []
+    for key in keys:
+        builder = _DEFINITION_TOOL_BUILDERS.get(key)
+        if builder is None:
+            raise ValueError(
+                f"Unrecognized agent definition tool key {key!r}; "
+                f"registered keys: {sorted(_DEFINITION_TOOL_BUILDERS)}"
+            )
+        resolved.append(builder())
+    return resolved
 
 
 class BaseAgentsProvider(ABC):
@@ -255,7 +289,7 @@ class BaseAgentsProvider(ABC):
             prompt_definition = PromptAgentDefinition(
                 model=deployment,
                 instructions=resolved.instructions,
-                tools=list(resolved.tools) or None,
+                tools=_definition_tools_to_sdk(resolved.tools),
             )
             try:
                 await client.agents.create_version(
