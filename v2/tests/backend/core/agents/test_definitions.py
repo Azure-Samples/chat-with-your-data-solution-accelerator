@@ -22,8 +22,10 @@ from pydantic import ValidationError
 from backend.core.agents.definitions import (
     BUILTIN_AGENTS,
     CWYD_AGENT,
+    CWYD_GUARDRAIL,
     RAI_AGENT,
     AgentDefinition,
+    compose_cwyd_instructions,
 )
 from backend.core.settings import OpenAISettings
 
@@ -124,6 +126,57 @@ def test_cwyd_agent_carries_vetted_v1_default_prompt() -> None:
     # The stale "knowledge cutoff 2021 / current date in the system
     # message" line is dropped -- v2 injects no current date.
     assert "2021" not in instr
+
+
+def test_compose_cwyd_instructions_appends_guardrail_once() -> None:
+    """`compose_cwyd_instructions` emits the body first and the fixed
+    guardrail once, last, so the non-negotiable rules have last-word
+    precedence and appear exactly once."""
+    composed = compose_cwyd_instructions("BODY")
+    assert composed.startswith("BODY")
+    assert composed.endswith(CWYD_GUARDRAIL)
+    assert "BODY" in composed
+    # Guardrail appears exactly once (suffix only), never duplicated.
+    assert composed.count(CWYD_GUARDRAIL) == 1
+
+
+def test_cwyd_default_instructions_are_guardrail_wrapped() -> None:
+    """The built-in default is itself composed through the guardrail so
+    the default prompt and any operator override share one safety
+    source. The guardrail is appended once, last."""
+    assert CWYD_AGENT.instructions.endswith(CWYD_GUARDRAIL)
+    assert CWYD_AGENT.instructions.count(CWYD_GUARDRAIL) == 1
+    # The body leads; the guardrail does not prefix the composed prompt.
+    assert not CWYD_AGENT.instructions.startswith(CWYD_GUARDRAIL)
+
+
+def test_cwyd_default_instructions_state_each_rule_once() -> None:
+    """Dedup contract: the body defers to the guardrail, so the
+    non-negotiable rules the guardrail owns appear exactly once in the
+    composed prompt -- never duplicated or triplicated."""
+    instr = CWYD_AGENT.instructions
+    # The out-of-domain refusal message lives only in the guardrail.
+    assert (
+        instr.count(
+            "The requested information is not available in the retrieved data. "
+            "Please try another query or topic."
+        )
+        == 1
+    )
+    # The [doc+index] citation format is stated only in the guardrail.
+    assert instr.count("[doc+index]") == 1
+
+
+def test_cwyd_guardrail_states_non_negotiable_rules() -> None:
+    """The guardrail carries the safety, out-of-domain refusal, and
+    citation rules that must remain non-overridable."""
+    assert "[doc+index]" in CWYD_GUARDRAIL
+    assert (
+        "The requested information is not available in the retrieved data."
+        in CWYD_GUARDRAIL
+    )
+    # Refuse-to-modify-rules clause is present.
+    assert "fixed" in CWYD_GUARDRAIL.lower()
 
 
 def test_rai_agent_uses_macae_classifier_pattern() -> None:

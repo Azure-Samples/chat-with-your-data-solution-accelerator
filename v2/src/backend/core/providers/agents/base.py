@@ -53,7 +53,11 @@ from azure.ai.agents.aio import AgentsClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError, ResourceNotFoundError
 
-from backend.core.agents.definitions import CWYD_AGENT, AgentDefinition
+from backend.core.agents.definitions import (
+    CWYD_AGENT,
+    AgentDefinition,
+    compose_cwyd_instructions,
+)
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
 from backend.core.types import RuntimeConfig
@@ -110,6 +114,12 @@ class BaseAgentsProvider(ABC):
         `RAI_AGENT` and any future safety surfaces are intentionally
         not exposed through this seam so an operator cannot weaken
         the classifier prompt.
+
+        The accepted override is wrapped by the fixed guardrail via
+        `compose_cwyd_instructions` so the authored text cannot
+        supersede the non-negotiable safety, out-of-domain, and
+        citation rules -- it customizes the persona between the
+        guardrail bookends, it does not replace them.
         """
         if self._runtime_overrides_getter is None:
             return definition
@@ -121,7 +131,9 @@ class BaseAgentsProvider(ABC):
         text = overrides.cwyd_agent_instructions
         if text is None or not text.strip():
             return definition
-        return definition.model_copy(update={"instructions": text})
+        return definition.model_copy(
+            update={"instructions": compose_cwyd_instructions(text)}
+        )
 
     async def get_or_create_agent(
         self,
