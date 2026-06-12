@@ -14,7 +14,10 @@ from azure.core.exceptions import HttpResponseError
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.llm.base import BaseLLMProvider
-from backend.core.providers.orchestrators.agent_framework import AgentFrameworkOrchestrator
+from backend.core.providers.orchestrators.agent_framework import (
+    KB_RETRIEVE_TOOL_NAME,
+    AgentFrameworkOrchestrator,
+)
 from backend.core.settings import (
     AppSettings,
     FoundrySettings,
@@ -359,6 +362,42 @@ async def test_run_emits_tool_events_for_function_call_blocks() -> None:
         "type": "function",
         "arguments": '{"q": "foundry"}',
     }
+
+
+@pytest.mark.asyncio
+async def test_run_narrates_kb_search_before_tool_event_for_kb_retrieval() -> None:
+    """A `knowledge_base_retrieve` function-call yields a model-agnostic
+    `reasoning` narration (so the FE "thinking" panel is populated for any
+    model, regardless of native reasoning summaries) immediately before the
+    raw `tool` event for the same call."""
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _function_call_block(
+                    call_id="call_kb",
+                    name=KB_RETRIEVE_TOOL_NAME,
+                    arguments={"query": "foundry"},
+                ),
+            ),
+            _update(_text_block("Here is the answer.")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert events[0].channel == "reasoning"
+    assert "knowledge base" in events[0].content.lower()
+    assert (events[1].channel, events[1].content) == (
+        "tool",
+        KB_RETRIEVE_TOOL_NAME,
+    )
+    assert (events[2].channel, events[2].content) == (
+        "answer",
+        "Here is the answer.",
+    )
 
 
 @pytest.mark.asyncio

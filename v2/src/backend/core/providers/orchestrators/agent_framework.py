@@ -26,7 +26,10 @@ Run loop:
        to an `OrchestratorEvent` on the locked channel set:
          * `text`           -> buffered, flushed as a single `answer`
          * `text_reasoning` -> `reasoning` event
-         * `function_call`  -> `tool` event with id / arguments
+         * `function_call`  -> `tool` event with id / arguments (a
+           Knowledge Base retrieval call also emits a leading `reasoning`
+           activity narration, so the FE "thinking" panel is populated
+           even when the model emits no native `text_reasoning` summary)
          * citation annots  -> buffered (see step 5)
          * everything else  -> ignored
     5. Map the buffered native citation annotations through the shared
@@ -73,6 +76,13 @@ logger = logging.getLogger(__name__)
 # MCP endpoint. Pinned via `allowed_tools` so the agent may call only KB
 # retrieval, never arbitrary server-side tools.
 KB_RETRIEVE_TOOL_NAME = "knowledge_base_retrieve"
+
+# Human-readable activity narration surfaced on the `reasoning` channel when
+# the agent invokes Knowledge Base retrieval. Foundry IQ runs the retrieval
+# (query planning, ranking) server-side, so the call itself is the only
+# observable signal of that work; narrating it keeps the FE "thinking" panel
+# populated even when the chat model emits no `text_reasoning` summary blocks.
+_KB_SEARCH_NARRATION = "Searching the knowledge base for relevant sources\u2026"
 
 
 @registry.register("agent_framework")
@@ -308,6 +318,13 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 arguments = self._arguments_to_string(
                     getattr(content, "arguments", None)
                 )
+                if str(name) == KB_RETRIEVE_TOOL_NAME:
+                    events.append(
+                        OrchestratorEvent(
+                            channel=OrchestratorChannel.REASONING,
+                            content=_KB_SEARCH_NARRATION,
+                        )
+                    )
                 metadata: dict[str, Any] = {
                     "id": call_id,
                     "type": "function",
