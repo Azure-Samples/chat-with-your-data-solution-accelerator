@@ -14,6 +14,7 @@ import {
   listDocuments,
   patchAdminConfig,
   reprocessAll,
+  resetAdminConfig,
   uploadDocument,
 } from "@/api/admin";
 import type {
@@ -737,5 +738,77 @@ describe("patchAdminConfig", () => {
     await expect(
       patchAdminConfig({ openai_temperature: 0.7 }),
     ).rejects.toThrow(/status 403/);
+  });
+});
+
+describe("resetAdminConfig", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("PATCHes /api/admin/config (delegates to patchAdminConfig)", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(RUNTIME_CONFIG_FIXTURE));
+
+    await resetAdminConfig();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/admin/config");
+    expect(init.method).toBe("PATCH");
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Accept).toBe("application/json");
+    expect(headers["Content-Type"]).toBe("application/json");
+  });
+
+  it("clears every writable override field with an explicit null", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(RUNTIME_CONFIG_FIXTURE));
+
+    await resetAdminConfig();
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    // Every writable field must ride the wire as an explicit null so the
+    // backend clears the override (RFC 7396) and the field reverts to its
+    // env / built-in default. The full-object match doubles as a lockstep
+    // guard: a new writable field added without a null entry fails here.
+    expect(JSON.parse(init.body as string)).toEqual({
+      orchestrator_name: null,
+      openai_temperature: null,
+      openai_max_tokens: null,
+      search_use_semantic_search: null,
+      search_top_k: null,
+      log_level: null,
+      content_safety_enabled: null,
+      cwyd_agent_instructions: null,
+      post_answering_prompt: null,
+      post_answering_enabled: null,
+      post_answering_filter_message: null,
+    });
+  });
+
+  it("returns the typed RuntimeConfig payload on 200", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(RUNTIME_CONFIG_FIXTURE));
+
+    const result = await resetAdminConfig();
+
+    expect(result).toEqual(RUNTIME_CONFIG_FIXTURE);
+  });
+
+  it("throws AdminApiError on 403 (not in admin role)", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { detail: "Caller is not in the 'admin' role." },
+        { status: 403 },
+      ),
+    );
+
+    await expect(resetAdminConfig()).rejects.toThrow(/status 403/);
   });
 });

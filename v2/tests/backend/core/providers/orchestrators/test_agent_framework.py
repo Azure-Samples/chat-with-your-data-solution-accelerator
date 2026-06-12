@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
 from azure.core.exceptions import HttpResponseError
 
@@ -535,6 +536,23 @@ def test_build_kb_tool_header_provider_injects_bearer() -> None:
     assert headers["Content-Type"] == "application/json"
 
 
+def test_build_kb_tool_wires_provided_http_client() -> None:
+    orch = _make_orchestrator(settings=_settings_with_search())
+    # A sentinel stands in for a pre-authenticated httpx.AsyncClient; the
+    # SDK stores it on `_httpx_client` and uses it for the MCP connect.
+    sentinel: Any = object()
+    tool = orch._build_kb_tool(bearer_token="tok", http_client=sentinel)
+    assert tool is not None
+    assert tool._httpx_client is sentinel
+
+
+def test_build_kb_tool_defaults_http_client_to_none() -> None:
+    orch = _make_orchestrator(settings=_settings_with_search())
+    tool = orch._build_kb_tool(bearer_token="tok")
+    assert tool is not None
+    assert tool._httpx_client is None
+
+
 # ---------------------------------------------------------------------------
 # run() KB tool wiring -- token acquisition + tool forwarding
 # ---------------------------------------------------------------------------
@@ -611,6 +629,110 @@ async def test_run_raises_when_token_acquisition_fails() -> None:
     # The token is acquired before the agent transport, so a failure must
     # surface without constructing (and leaking) an agent.
     assert created == []
+
+
+class _FakeHttpClient:
+    """Stand-in for httpx.AsyncClient that records construction kwargs and
+    whether it was closed, without opening any sockets."""
+
+    def __init__(self, **kwargs: Any) -> None:
+        self.kwargs = kwargs
+        self.aclose = AsyncMock(return_value=None)
+
+
+def _patch_http_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[_FakeHttpClient]:
+    """Replace httpx.AsyncClient with a recording fake; return the list of
+    instances the orchestrator constructs."""
+    created_clients: list[_FakeHttpClient] = []
+
+    def _client_factory(**kwargs: Any) -> _FakeHttpClient:
+        client = _FakeHttpClient(**kwargs)
+        created_clients.append(client)
+        return client
+
+    monkeypatch.setattr(httpx, "AsyncClient", _client_factory)
+    return created_clients
+
+
+@pytest.mark.asyncio
+async def test_run_authenticates_kb_connect_via_default_header_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The KB MCP connect (context-manager entry) is authenticated by a
+    default Authorization header on the transport's httpx client -- the
+    SDK's per-call header hook does not cover the connect handshake."""
+    created_clients = _patch_http_client(monkeypatch)
+    cred = _async_credential(token="fake-token")
+    factory, created = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        settings=_settings_with_search(), credential=cred, factory=factory
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert len(created_clients) == 1
+    client = created_clients[0]
+    assert client.kwargs["headers"]["Authorization"] == "Bearer fake-token"
+    # The same client instance is handed to the KB tool for the connect.
+    tools = created[0].run_calls[0]["tools"]
+    assert tools[0]._httpx_client is client
+
+
+@pytest.mark.asyncio
+async def test_run_closes_kb_http_client_after_streaming(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created_clients = _patch_http_client(monkeypatch)
+    factory, _ = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(settings=_settings_with_search(), factory=factory)
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert len(created_clients) == 1
+    created_clients[0].aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_closes_kb_http_client_when_agent_construction_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created_clients = _patch_http_client(monkeypatch)
+    factory, _ = _make_factory(ctor_error=HttpResponseError("bad endpoint"))
+    orch = _make_orchestrator(settings=_settings_with_search(), factory=factory)
+
+    with pytest.raises(HttpResponseError):
+        _ = [
+            ev
+            async for ev in orch.run([ChatMessage(role="user", content="hi")])
+        ]
+
+    # The client was allocated before agent construction, so the failure
+    # path must still release it.
+    assert len(created_clients) == 1
+    created_clients[0].aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_creates_no_http_client_when_kb_unconfigured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created_clients = _patch_http_client(monkeypatch)
+    factory, _ = _make_factory(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        settings=_settings_with_search(endpoint=""), factory=factory
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert created_clients == []
 
 
 # ---------------------------------------------------------------------------

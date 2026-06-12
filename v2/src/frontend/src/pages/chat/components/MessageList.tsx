@@ -12,11 +12,16 @@
  *           through `<Toaster toasterId=TOASTER_ID>`.)
  *
  * Renders the chat transcript from ChatContext. Each message renders a
- * single <li> with a per-row layout: a 28x28 round avatar (Fluent
- * Person20Regular for user, Bot20Regular for assistant) + a content
- * region. The row direction flips per role (user-right / assistant-left)
- * via CSS Modules driven by the `data-role` attribute. Assistant
- * messages carrying SSE-derived metadata are decorated:
+ * single <li> holding one flex `.row`: a 28x28 round avatar (Fluent
+ * Person20Regular for user, Bot20Regular for assistant) at the row
+ * start, then the message content. The row direction flips per role
+ * (user-right / assistant-left) via CSS Modules driven by the
+ * `data-role` attribute. A user message places its right-aligned chip
+ * bubble directly in the row. An assistant message places a vertical
+ * content column beside the avatar — so the avatar lines up on the same
+ * horizontal line as the column's first item (the reasoning panel while
+ * streaming, else the answer) — and that column stacks the answer bubble
+ * plus the SSE-derived decorations:
  *   - `streaming === true` OR non-empty `reasoning?: string[]` → a
  *     <details> reasoning panel. While streaming the panel is forced
  *     open with summary "Thinking…" + animated dots so the boss-demo
@@ -146,53 +151,59 @@ export function MessageList() {
               {m.role === "user" ? <Person20Regular /> : <Bot20Regular />}
             </span>
             <span className={styles.srOnly}>{m.role}</span>
-            <div className={styles.bubble}>
-              {m.role === "assistant"
-                ? renderAnswerTokens(
+            {m.role === "assistant" ? (
+              <div className={styles.content}>
+                {(m.streaming === true ||
+                  (m.reasoning && m.reasoning.length > 0)) && (
+                  <details
+                    data-testid={`message-${m.id}-reasoning`}
+                    className={styles.reasoning}
+                    open={m.streaming === true}
+                  >
+                    <summary data-streaming={m.streaming ? "true" : "false"}>
+                      {m.streaming ? (
+                        <>
+                          Thinking
+                          <span
+                            className={styles.thinkingDots}
+                            aria-hidden="true"
+                          >
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        </>
+                      ) : (
+                        "\u25B8 Thought process"
+                      )}
+                    </summary>
+                    <div className={styles.reasoningBody}>
+                      {m.reasoning?.join("") ?? ""}
+                    </div>
+                  </details>
+                )}
+                <div className={styles.bubble}>
+                  {renderAnswerTokens(
                     m.content,
                     m.id,
                     m.citations,
                     handleCitationFocus,
-                  )
-                : m.content}
-            </div>
-          </div>
-          {(m.streaming === true ||
-            (m.reasoning && m.reasoning.length > 0)) && (
-            <details
-              data-testid={`message-${m.id}-reasoning`}
-              className={styles.reasoning}
-              open={m.streaming === true}
-            >
-              <summary data-streaming={m.streaming ? "true" : "false"}>
-                {m.streaming ? (
-                  <>
-                    Thinking
-                    <span className={styles.thinkingDots} aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                  </>
-                ) : (
-                  "\u25B8 Thought process"
-                )}
-              </summary>
-              <div className={styles.reasoningBody}>
-                {m.reasoning?.join("") ?? ""}
+                  )}
+                </div>
+                {m.streaming !== true &&
+                  m.citations &&
+                  m.citations.length > 0 && (
+                    <CitationPanel
+                      messageId={m.id}
+                      citations={m.citations}
+                      focusedCitationId={state.focusedCitationId}
+                    />
+                  )}
               </div>
-            </details>
-          )}
-          {m.role === "assistant" &&
-            m.streaming !== true &&
-            m.citations &&
-            m.citations.length > 0 && (
-              <CitationPanel
-                messageId={m.id}
-                citations={m.citations}
-                focusedCitationId={state.focusedCitationId}
-              />
+            ) : (
+              <div className={styles.bubble}>{m.content}</div>
             )}
+          </div>
         </li>
       ))}
       </ol>

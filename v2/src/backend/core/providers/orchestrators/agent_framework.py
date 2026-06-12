@@ -36,6 +36,7 @@ import logging
 from collections.abc import AsyncIterator, Sequence
 from typing import Any
 
+import httpx
 from agent_framework import (
     AgentResponseUpdate,
     ChatOptions,
@@ -70,6 +71,15 @@ KB_RETRIEVE_TOOL_NAME = "knowledge_base_retrieve"
 # endpoint is hosted by the search service, so retrieval requests carry a
 # bearer minted for this scope.
 SEARCH_DATA_PLANE_SCOPE = "https://search.azure.com/.default"
+
+# Timeouts for the Knowledge Base MCP transport's HTTP client. The SDK's
+# header hook only injects the bearer during `call_tool`, so it does not
+# authenticate the MCP session-initialize connect; the orchestrator supplies
+# its own client (carrying the bearer as a default header) for that. These
+# values match the Agent Framework streamable-HTTP defaults (overall/connect
+# 30s, SSE read 300s).
+_MCP_CONNECT_TIMEOUT_SECONDS = 30.0
+_MCP_READ_TIMEOUT_SECONDS = 300.0
 
 
 @registry.register("agent_framework")
@@ -139,6 +149,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # cleanly without leaking one; the token feeds the tool's
         # synchronous header hook, which cannot await the credential.
         kb_tool: MCPStreamableHTTPTool | None = None
+        kb_http_client: httpx.AsyncClient | None = None
         if self._search_endpoint and self._kb_name:
             try:
                 token = await self._credential.get_token(SEARCH_DATA_PLANE_SCOPE)
@@ -152,26 +163,46 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                     },
                 )
                 raise
-            kb_tool = self._build_kb_tool(bearer_token=token.token)
-
-        try:
-            agent = self._agent_factory(
-                project_endpoint=self._project_endpoint,
-                agent_name=self._agent_name,
-                credential=self._credential,
+            # The SDK's `header_provider` hook only injects the bearer
+            # during `call_tool`, leaving the MCP session-initialize
+            # connect unauthenticated (the connect runs when the tool's
+            # context manager is entered, before any tool call). httpx
+            # applies a client's default headers to every request, so
+            # carrying the bearer here authenticates that connect too.
+            # The MCP streamable-HTTP transport never closes a
+            # caller-supplied client, so `run()` owns its lifecycle and
+            # releases it in the `finally` below.
+            kb_http_client = httpx.AsyncClient(
+                headers={"Authorization": f"Bearer {token.token}"},
+                follow_redirects=True,
+                timeout=httpx.Timeout(
+                    _MCP_CONNECT_TIMEOUT_SECONDS,
+                    read=_MCP_READ_TIMEOUT_SECONDS,
+                ),
             )
-        except AzureError:
-            logger.exception(
-                "FoundryAgent construction failed",
-                extra={
-                    "operation": "foundry_agent_init",
-                    "provider": "agent_framework",
-                    "agent_name": self._agent_name,
-                },
+            kb_tool = self._build_kb_tool(
+                bearer_token=token.token, http_client=kb_http_client
             )
-            raise
 
+        agent: Any = None
         try:
+            try:
+                agent = self._agent_factory(
+                    project_endpoint=self._project_endpoint,
+                    agent_name=self._agent_name,
+                    credential=self._credential,
+                )
+            except AzureError:
+                logger.exception(
+                    "FoundryAgent construction failed",
+                    extra={
+                        "operation": "foundry_agent_init",
+                        "provider": "agent_framework",
+                        "agent_name": self._agent_name,
+                    },
+                )
+                raise
+
             answer_parts: list[str] = []
             saw_any_content = False
 
@@ -215,15 +246,28 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                     content="Agent produced no assistant reply.",
                 )
         finally:
-            close = getattr(agent, "close", None)
-            if close is not None:
+            if agent is not None:
+                close = getattr(agent, "close", None)
+                if close is not None:
+                    try:
+                        await close()
+                    except (AzureError, OSError):
+                        logger.warning(
+                            "FoundryAgent.close failed",
+                            extra={
+                                "operation": "foundry_agent_close",
+                                "provider": "agent_framework",
+                                "agent_name": self._agent_name,
+                            },
+                        )
+            if kb_http_client is not None:
                 try:
-                    await close()
-                except (AzureError, OSError):
+                    await kb_http_client.aclose()
+                except (httpx.HTTPError, OSError):
                     logger.warning(
-                        "FoundryAgent.close failed",
+                        "KB MCP HTTP client close failed",
                         extra={
-                            "operation": "foundry_agent_close",
+                            "operation": "kb_http_client_close",
                             "provider": "agent_framework",
                             "agent_name": self._agent_name,
                         },
@@ -241,7 +285,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
     # ------------------------------------------------------------------
 
     def _build_kb_tool(
-        self, *, bearer_token: str
+        self, *, bearer_token: str, http_client: httpx.AsyncClient | None = None
     ) -> MCPStreamableHTTPTool | None:
         """Build the Foundry IQ Knowledge Base retrieval tool.
 
@@ -250,9 +294,13 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         (empty Search endpoint or knowledge-base name -- e.g. a pgvector
         deployment, where `agent_framework` is rejected upstream rather
         than reaching this path). `bearer_token` is a Search data-plane
-        access token injected on every MCP request through the SDK's
+        access token injected on every MCP *tool call* through the SDK's
         synchronous `header_provider` hook; the async caller in `run()`
         fetches it because that hook cannot await the credential.
+        `http_client`, when supplied, carries the same bearer as a
+        default header so the MCP session-initialize connect (which the
+        `header_provider` hook does not cover) is authenticated too; the
+        SDK does not own a caller-supplied client, so `run()` closes it.
         """
         endpoint = self._search_endpoint.rstrip("/")
         kb_name = self._kb_name
@@ -268,6 +316,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             url,
             approval_mode="never_require",
             allowed_tools=[KB_RETRIEVE_TOOL_NAME],
+            http_client=http_client,
             header_provider=lambda headers: {
                 **headers,
                 "Authorization": authorization,

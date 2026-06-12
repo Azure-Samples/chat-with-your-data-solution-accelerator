@@ -75,6 +75,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0017 | 2026-06-11 | — | backend | high | open | Starting a conversation does not persist it to chat history, so new conversations never appear in the left history column. |
 | BUG-0018 | 2026-06-11 | — | frontend | low | open | The chat history left column shows the backend database name (`backend: <db_type>`); it should not. |
 | BUG-0019 | 2026-06-11 | — | frontend | low | open | Remove the New chat section and functionality from the chat history left column. |
+| BUG-0020 | 2026-06-11 | 2026-06-11 | backend | high | fixed | Chat fails with `401 Unauthorized` on the Foundry IQ Knowledge Base MCP endpoint: the `agent_framework` orchestrator authenticated only MCP tool calls (SDK `header_provider` hook), leaving the MCP session-initialize connect unauthenticated, so the agent run raised `ToolExecutionException("Failed to enter context manager.")`. |
 
 ## Details
 
@@ -224,13 +225,13 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0006, BU
 
 ### BUG-0012 — Robot avatar and Thinking panel are not aligned
 
-Area: frontend. Severity: low. Status: open (found 2026-06-11).
+Area: frontend. Severity: low. Status: fixed (found 2026-06-11; fixed 2026-06-11).
 
 Symptom: in the chat transcript the assistant robot avatar icon and the Thinking (reasoning) panel do not line up.
 
-Root cause: in `frontend/src/pages/chat/components/MessageList.tsx` the assistant avatar (`Bot20Regular`) sits inside the `.row` flex container next to the message bubble, but the reasoning `<details>` panel is rendered as a sibling block at the `<li>` level — outside `.row` — so it starts at the list-item left edge instead of aligning with the avatar/bubble column.
+Root cause: in `frontend/src/pages/chat/components/MessageList.module.css` the reasoning `<details>` panel (`.reasoning`) carried `margin: 0 0 0 36px`, indenting it into the bubble column (28px avatar + 8px gap = 36px gutter). The assistant avatar (`Bot20Regular`, inside `.row`) and the `<CitationPanel>` `<section>` rendered below it (`.section`, `margin-left: 0`) both sit at the list-item left edge, so the Thinking panel was the odd one out — offset right from the avatar and from the citation panel. (The originally recorded hypothesis was inverted: the panel was already offset to the bubble column, not starting at the list-item edge, so the original "align with the bubble column" proposal would have been a no-op.)
 
-Proposed fix: align the reasoning panel with the bubble column (for example move it inside the bubble column or apply the same left offset as the avatar gutter). Settle the exact layout in the fix turn.
+Fix: set `.reasoning { margin: 0 }` so the panel's left edge is flush with the list-item edge, lining up with the avatar and with the citation panel below it. CSS-only — no JSX change; `.row`, the reasoning `<details>`, and `<CitationPanel>` were already direct `<li>` children, so zeroing the offset gives all three a shared left origin. Added a structural regression test (`renders the reasoning panel and citation panel as list-item siblings of the message row`) asserting both decorations render as direct children of the message `<li>`. Vitest runs with `css: false`, so the margin value itself is not observable in jsdom; the test pins the DOM sibling contract the alignment depends on (re-nesting the panel inside `.row` would fail it).
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
 
@@ -317,3 +318,17 @@ Root cause: `frontend/src/pages/chat/components/HistoryPanel.tsx` renders a New 
 Proposed fix: remove the New chat button and `handleNew` from the history panel; decide in the fix turn whether the header New-chat affordance and the `newChatNonce` wiring are also in scope.
 
 References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0017.
+
+### BUG-0020 — KB MCP connect is unauthenticated (401 on chat)
+
+Area: backend. Severity: high. Status: fixed (found and fixed 2026-06-11).
+
+Symptom: sending a chat message on a Foundry IQ deployment failed with `Message failed ('Failed to enter context manager.', ExceptionGroup('unhandled errors in a TaskGroup', [HTTPStatusError("Client error '401 Unauthorized' for url 'https://srch-<SUFFIX>.search.windows.net/knowledgebases/cwyd-kb/mcp?api-version=2025-11-01-preview'")]))`.
+
+Root cause: the `agent_framework` orchestrator (`backend/core/providers/orchestrators/agent_framework.py`) attached the Search data-plane bearer to the Knowledge Base MCP tool through the SDK's `header_provider` hook only. The Agent Framework SDK applies that hook exclusively inside `MCPStreamableHTTPTool.call_tool()` (it sets a `contextvars.ContextVar` that an httpx request event hook reads). The MCP session-initialize connect handshake runs earlier — when the tool's async context manager is entered (`MCPTool.__aenter__` → `connect()`), before any tool call — so the connect request carried no `Authorization` header. Azure AI Search rejected the unauthenticated connect with `401`, and the SDK re-raised it as `ToolExecutionException("Failed to enter context manager.")`. The `/health/ready` search probe stayed green because it exercises the normal data-plane index credential, a different surface from the KB MCP connect.
+
+Fix: `run()` now constructs an `httpx.AsyncClient` carrying the same bearer as a default `Authorization` header and passes it to `_build_kb_tool(..., http_client=...)`, which forwards it to `MCPStreamableHTTPTool(http_client=...)`. httpx applies default headers to every request, so the connect handshake is authenticated as well as tool calls. The `header_provider` hook is retained (belt-and-suspenders for tool calls; the same bearer merges idempotently). Because the MCP streamable-HTTP transport never closes a caller-supplied client (`mcp.client.streamable_http.streamable_http_client` only manages clients it creates), `run()` owns the client lifecycle and closes it in a `finally` that covers both the streaming path and an agent-construction failure. Cross-checked against MACAE, whose one bearer-attached MCP client path sets `headers["Authorization"]` as a default header on the httpx client (`src/backend/v4/common/services/mcp_service.py`), confirming the connection-level default-header approach.
+
+Why it was not caught earlier: this was the first live end-to-end exercise of the agent path against a real Search service; orchestrator unit tests fully fake the FoundryAgent and never enter the MCP tool's context manager, so the connect handshake was never exercised. New tests assert the KB tool is built with a default-`Authorization`-header client and that the client is closed after a normal run and after an agent-construction failure.
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md).

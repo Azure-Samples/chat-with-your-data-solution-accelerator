@@ -21,6 +21,11 @@
  *    PATCHes only the changed fields (RFC 7396 absent-key
  *    semantics: untouched fields stay untouched server-side).
  *
+ * A "Reset to default" control sits alongside Save / Discard.
+ * Behind a destructive-confirm dialog it clears every override at
+ * once (an all-null merge patch) and re-syncs the form to the
+ * resolved environment + built-in defaults.
+ *
  * Per-field client-side validation (number bounds, non-empty
  * strings on fields that disallow it) keeps invalid edits out of
  * the wire; the typed client already enforces a server-side 422
@@ -55,6 +60,7 @@ import {
   AdminApiError,
   getAdminConfig,
   patchAdminConfig,
+  resetAdminConfig,
 } from "@/api/admin";
 import { LogLevel, OrchestratorName } from "@/models/admin";
 import type {
@@ -256,6 +262,7 @@ interface ConfigurationState {
   saveError: string | null;
   raiRejection: { field: ConfigFieldKey; message: string } | null;
   lastRuntime: RuntimeConfig | null;
+  resetConfirmOpen: boolean;
 }
 
 export const ConfigActionType = {
@@ -267,6 +274,8 @@ export const ConfigActionType = {
   SaveStarted: "save_started",
   SaveSucceeded: "save_succeeded",
   SaveFailed: "save_failed",
+  ResetRequested: "reset_requested",
+  ResetCancelled: "reset_cancelled",
 } as const;
 export type ConfigActionType =
   (typeof ConfigActionType)[keyof typeof ConfigActionType];
@@ -291,7 +300,9 @@ type ConfigurationAction =
       type: typeof ConfigActionType.SaveFailed;
       error: string;
       raiRejection: { field: ConfigFieldKey; message: string } | null;
-    };
+    }
+  | { type: typeof ConfigActionType.ResetRequested }
+  | { type: typeof ConfigActionType.ResetCancelled };
 
 const initialState: ConfigurationState = {
   loadStatus: LoadStatus.Loading,
@@ -302,6 +313,7 @@ const initialState: ConfigurationState = {
   saveError: null,
   raiRejection: null,
   lastRuntime: null,
+  resetConfirmOpen: false,
 };
 
 function configToForm(config: AdminConfig): FormValues {
@@ -333,6 +345,7 @@ export function configurationReducer(
         saveStatus: SaveStatus.Idle,
         saveError: null,
         raiRejection: null,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.LoadSucceeded:
       return {
@@ -344,6 +357,7 @@ export function configurationReducer(
         saveError: null,
         raiRejection: null,
         lastRuntime: state.lastRuntime,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.LoadFailed:
       return {
@@ -352,6 +366,7 @@ export function configurationReducer(
         loadError: action.error,
         serverConfig: null,
         formValues: null,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.FieldChanged:
       if (state.formValues === null) {
@@ -386,6 +401,7 @@ export function configurationReducer(
         saveStatus: SaveStatus.Saving,
         saveError: null,
         raiRejection: null,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.SaveSucceeded:
       return {
@@ -397,6 +413,7 @@ export function configurationReducer(
         saveError: null,
         raiRejection: null,
         lastRuntime: action.runtime,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.SaveFailed:
       return {
@@ -405,6 +422,10 @@ export function configurationReducer(
         saveError: action.raiRejection === null ? action.error : null,
         raiRejection: action.raiRejection,
       };
+    case ConfigActionType.ResetRequested:
+      return { ...state, resetConfirmOpen: true };
+    case ConfigActionType.ResetCancelled:
+      return { ...state, resetConfirmOpen: false };
   }
 }
 
@@ -665,6 +686,33 @@ export function Configuration(): JSX.Element {
     }
   }, [anyFieldInvalid, state.formValues, state.serverConfig]);
 
+  const handleResetRequest = useCallback((): void => {
+    dispatch({ type: ConfigActionType.ResetRequested });
+  }, []);
+
+  const handleResetCancel = useCallback((): void => {
+    dispatch({ type: ConfigActionType.ResetCancelled });
+  }, []);
+
+  const handleResetConfirm = useCallback(async (): Promise<void> => {
+    dispatch({ type: ConfigActionType.SaveStarted });
+    try {
+      const runtime = await resetAdminConfig();
+      const refreshed = await getAdminConfig();
+      dispatch({
+        type: ConfigActionType.SaveSucceeded,
+        runtime,
+        refreshed,
+      });
+    } catch (err) {
+      dispatch({
+        type: ConfigActionType.SaveFailed,
+        error: errorMessage(err),
+        raiRejection: extractRaiRejection(err),
+      });
+    }
+  }, []);
+
   return (
     <section
       aria-label="configuration"
@@ -893,6 +941,16 @@ export function Configuration(): JSX.Element {
                     <Button
                       type="button"
                       appearance="secondary"
+                      className={styles.resetButton}
+                      onClick={handleResetRequest}
+                      disabled={state.saveStatus === SaveStatus.Saving}
+                      data-testid="config-reset-button"
+                    >
+                      Reset to default
+                    </Button>
+                    <Button
+                      type="button"
+                      appearance="secondary"
                       onClick={handleDiscard}
                       disabled={!dirty || state.saveStatus === SaveStatus.Saving}
                       data-testid="config-discard-button"
@@ -918,6 +976,46 @@ export function Configuration(): JSX.Element {
               );
             })()
           : null}
+
+        {state.resetConfirmOpen ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm reset"
+            data-testid="config-reset-dialog"
+            className={styles.dialogBackdrop}
+          >
+            <div className={styles.dialog}>
+              <h3 className={styles.dialogTitle}>Reset to default?</h3>
+              <p className={styles.dialogBody}>
+                This clears every saved configuration override and restores
+                the environment and built-in defaults (including the default
+                orchestrator and system prompt). Any unsaved edits are also
+                discarded. This action cannot be undone.
+              </p>
+              <div className={styles.dialogActions}>
+                <Button
+                  type="button"
+                  appearance="secondary"
+                  onClick={handleResetCancel}
+                  data-testid="config-reset-cancel-button"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  appearance="primary"
+                  onClick={() => {
+                    void handleResetConfirm();
+                  }}
+                  data-testid="config-reset-confirm-button"
+                >
+                  Reset to default
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     </section>
   );

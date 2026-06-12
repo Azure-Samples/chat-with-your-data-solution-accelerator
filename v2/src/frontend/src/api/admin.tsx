@@ -301,3 +301,43 @@ export async function patchAdminConfig(
   const body = (await response.json()) as RuntimeConfig;
   return body;
 }
+
+/**
+ * The all-null `AdminConfigPatch` that clears every persisted runtime
+ * override in one RFC 7396 JSON Merge Patch. Typed `Required<...>` so
+ * the compiler rejects this literal the moment a new writable field is
+ * added to `AdminConfigPatch` without a matching `null` entry here --
+ * the lockstep guard the wire-model docstring calls for, enforced at
+ * build time instead of by review.
+ */
+const RESET_ALL_OVERRIDES: Required<AdminConfigPatch> = {
+  orchestrator_name: null,
+  openai_temperature: null,
+  openai_max_tokens: null,
+  search_use_semantic_search: null,
+  search_top_k: null,
+  log_level: null,
+  content_safety_enabled: null,
+  cwyd_agent_instructions: null,
+  post_answering_prompt: null,
+  post_answering_enabled: null,
+  post_answering_filter_message: null,
+};
+
+/**
+ * Clear every persisted runtime override in one request, reverting the
+ * effective config to the env / built-in defaults (e.g. the
+ * orchestrator falls back to the `agent_framework` default). Sends an
+ * RFC 7396 JSON Merge Patch that sets every writable field to `null` --
+ * the "clear override" operation -- so the next effective-config load
+ * resolves entirely from the env baseline. Delegates to
+ * `patchAdminConfig`, inheriting its header shape, RBAC / 422 error
+ * ladder, and typed `RuntimeConfig` return. Prompt fields cleared with
+ * `null` skip the backend RAI classifier, so the reset costs no Foundry
+ * round-trip.
+ *
+ * @throws AdminApiError on non-2xx (same ladder as `patchAdminConfig`).
+ */
+export async function resetAdminConfig(): Promise<RuntimeConfig> {
+  return patchAdminConfig(RESET_ALL_OVERRIDES);
+}

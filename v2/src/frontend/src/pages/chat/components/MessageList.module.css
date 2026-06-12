@@ -76,6 +76,17 @@
   width: 100%;
 }
 
+/* Assistant content column: the reasoning panel, the answer bubble, and
+   the citation panel stack vertically to the right of the avatar so the
+   avatar lines up with the column's first item. */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .avatar {
   flex: 0 0 auto;
   display: inline-flex;
@@ -113,8 +124,6 @@
 }
 
 .item[data-role="assistant"] .bubble {
-  flex: 1 1 auto;
-  min-width: 0;
   padding-top: 4px; /* Optical alignment with avatar */
   background: transparent;
   color: var(--colorNeutralForeground1);
@@ -133,7 +142,10 @@
 }
 
 .reasoning {
-  margin: 0 0 0 36px;
+  /* Left edge sits flush with the list-item edge so it lines up with the
+     assistant avatar and the citation panel below it (both at margin 0),
+     rather than indenting into the bubble column. */
+  margin: 0;
   padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
   background: var(--colorNeutralBackground2);
   border: 1px solid var(--colorNeutralStroke2);

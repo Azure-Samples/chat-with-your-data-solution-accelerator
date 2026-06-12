@@ -16,6 +16,7 @@ import {
   AdminApiError,
   getAdminConfig,
   patchAdminConfig,
+  resetAdminConfig,
 } from "@/api/admin";
 import type {
   AdminConfig,
@@ -28,11 +29,13 @@ vi.mock("@/api/admin", async (importOriginal) => {
     ...actual,
     getAdminConfig: vi.fn(),
     patchAdminConfig: vi.fn(),
+    resetAdminConfig: vi.fn(),
   };
 });
 
 const getMock = vi.mocked(getAdminConfig);
 const patchMock = vi.mocked(patchAdminConfig);
+const resetMock = vi.mocked(resetAdminConfig);
 
 const CONFIG_FIXTURE: AdminConfig = {
   orchestrator_name: "langgraph",
@@ -73,6 +76,7 @@ const RUNTIME_FIXTURE: RuntimeConfig = {
 beforeEach(() => {
   getMock.mockReset();
   patchMock.mockReset();
+  resetMock.mockReset();
 });
 
 afterEach(() => {
@@ -872,5 +876,142 @@ describe("Configuration -- system prompt (folded from PromptEditor)", () => {
     expect(
       screen.queryByTestId("config-field-rai-cwyd_agent_instructions"),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("Configuration -- reset to default", () => {
+  const DEFAULTS_RUNTIME: RuntimeConfig = {
+    orchestrator_name: null,
+    openai_temperature: null,
+    openai_max_tokens: null,
+    search_use_semantic_search: null,
+    search_top_k: null,
+    log_level: null,
+    content_safety_enabled: null,
+    cwyd_agent_instructions: null,
+    post_answering_prompt: null,
+    post_answering_enabled: null,
+    post_answering_filter_message: null,
+    updated_at: "2026-06-11T09:00:00Z",
+    updated_by: "admin-user-id",
+  };
+
+  // With every override cleared, the effective orchestrator falls back
+  // to the built-in default (agent_framework).
+  const DEFAULTS_CONFIG: AdminConfig = {
+    ...CONFIG_FIXTURE,
+    orchestrator_name: "agent_framework",
+  };
+
+  it("renders the Reset to default button and keeps the confirm dialog closed until clicked", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("config-reset-button")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("config-reset-dialog"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the destructive-confirm dialog without calling resetAdminConfig", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("config-reset-button"));
+
+    expect(screen.getByTestId("config-reset-dialog")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("config-reset-confirm-button"),
+    ).toBeInTheDocument();
+    expect(resetMock).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the confirm dialog closes it and never calls resetAdminConfig", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("config-reset-button"));
+    fireEvent.click(screen.getByTestId("config-reset-cancel-button"));
+
+    expect(
+      screen.queryByTestId("config-reset-dialog"),
+    ).not.toBeInTheDocument();
+    expect(resetMock).not.toHaveBeenCalled();
+  });
+
+  it("confirming clears every override and re-syncs the form to the resolved defaults", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    resetMock.mockResolvedValueOnce(DEFAULTS_RUNTIME);
+    getMock.mockResolvedValueOnce(DEFAULTS_CONFIG);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    expect(
+      (
+        screen.getByTestId(
+          "config-input-orchestrator_name",
+        ) as HTMLInputElement
+      ).value,
+    ).toBe("langgraph");
+
+    fireEvent.click(screen.getByTestId("config-reset-button"));
+    fireEvent.click(screen.getByTestId("config-reset-confirm-button"));
+
+    await waitFor(() => {
+      expect(resetMock).toHaveBeenCalledTimes(1);
+    });
+    expect(resetMock).toHaveBeenCalledWith();
+    await waitFor(() => {
+      expect(
+        (
+          screen.getByTestId(
+            "config-input-orchestrator_name",
+          ) as HTMLInputElement
+        ).value,
+      ).toBe("agent_framework");
+    });
+    // mount + post-reset refresh
+    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(
+      screen.queryByTestId("config-reset-dialog"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("config-save-status")).toHaveTextContent(
+      /saved/i,
+    );
+  });
+
+  it("surfaces the failure message when resetAdminConfig rejects", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    resetMock.mockRejectedValueOnce(new Error("resetAdminConfig: 403"));
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("config-reset-button"));
+    fireEvent.click(screen.getByTestId("config-reset-confirm-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-save-error")).toHaveTextContent(
+        /403/,
+      );
+    });
+    expect(getMock).toHaveBeenCalledTimes(1);
   });
 });

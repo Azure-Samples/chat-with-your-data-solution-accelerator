@@ -238,6 +238,61 @@ describe("MessageList", () => {
     expect(screen.queryByTestId("message-5-reasoning")).toBeNull();
   });
 
+  it("renders the reasoning panel and citation panel inside the same row as the avatar", () => {
+    // Avatar-beside-Thinking layout (BUG-0012 refinement). For an
+    // assistant message the avatar and the content column — the reasoning
+    // <details>, the answer bubble, and the <CitationPanel> — share one
+    // .row, so the avatar sits on the SAME horizontal line as the
+    // "Thinking" panel instead of stacked above it. jsdom does not
+    // evaluate the stylesheet (vitest css:false), so the executable
+    // contract is the shared .row ancestor: the reasoning and citation
+    // panels are no longer direct <li> children, and both live under the
+    // row that also holds the avatar.
+    const mReasoningAndCitations: ChatMessage = {
+      id: "align",
+      role: "assistant",
+      content: "answer body",
+      reasoning: ["why"],
+      citations: [
+        {
+          id: "doc-z",
+          title: "Doc Z",
+          url: "https://example.com/z",
+          snippet: "snippet",
+          score: 0.5,
+          metadata: {},
+        },
+      ],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mReasoningAndCitations });
+    });
+
+    const li = screen.getByTestId("message-align");
+    const reasoning = screen.getByTestId("message-align-reasoning");
+    const citationPanel = screen.getByTestId("citation-panel-align");
+    const avatar = li.querySelector<HTMLElement>('span[data-role="assistant"]');
+    expect(avatar).not.toBeNull();
+    const row = avatar?.parentElement ?? null;
+    expect(row).not.toBeNull();
+    // The row is a direct child of the <li>, and holds the avatar plus
+    // the reasoning + citation panels (one horizontal line).
+    expect(row?.parentElement).toBe(li);
+    expect(row?.contains(reasoning)).toBe(true);
+    expect(row?.contains(citationPanel)).toBe(true);
+    // The panels are no longer hung directly off the <li>.
+    expect(reasoning.parentElement).not.toBe(li);
+    expect(citationPanel.parentElement).not.toBe(li);
+  });
+
   it("dispatches a Fluent error toast when message.error is set, and renders no inline alert", () => {
     render(
       <ChatProvider>
