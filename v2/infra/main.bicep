@@ -973,6 +973,46 @@ resource existingSearchProjectIndexReader 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Foundry IQ knowledge bases call their query-planning chat model with
+// the Search service's system-assigned managed identity (the knowledge
+// base model `authIdentity` is null, which defaults to the Search MI).
+// That identity therefore needs Cognitive Services OpenAI User on the
+// account hosting the chat deployment, or the model call 401s and
+// knowledge-base retrieval returns nothing. The chat model lives on the
+// new Foundry account (default) or a reused v1 OpenAI account
+// (`useExistingOpenAi`); the principal is the new Search service's
+// system MI. Reusing an existing Search service (`useExistingSearch`)
+// is not covered here because v2 does not own that service's identity
+// configuration — grant Cognitive Services OpenAI User to the reused
+// Search service's identity on the chat-model account manually.
+resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
+  name: aiServicesName
+}
+
+resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
+  name: guid(aiServicesName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: aiServicesAccount
+  properties: {
+    // Cognitive Services OpenAI User — lets the Search MI call the KB
+    // query-planning chat deployment on the Foundry account.
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource searchOpenAiUserOnReusedOpenAi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && useExistingOpenAi) {
+  name: guid(existingOpenAiName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: existingOpenAi
+  properties: {
+    // Cognitive Services OpenAI User — lets the Search MI call the KB
+    // query-planning chat deployment on the reused v1 OpenAI account.
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
 var effectiveSearchName = useExistingSearch ? existingSearchName : (databaseType == 'cosmosdb' ? aiSearch!.outputs.name : '')
 var effectiveSearchEndpoint = useExistingSearch ? 'https://${existingSearchName}.search.windows.net' : (databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '')
 

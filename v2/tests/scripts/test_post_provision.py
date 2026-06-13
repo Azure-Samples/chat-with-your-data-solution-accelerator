@@ -148,8 +148,8 @@ def test_build_knowledge_base_seed_shape():
         index_name="cwyd-index",
         semantic_configuration_name="default",
         openai_resource_uri="https://ai.example/",
-        reasoning_deployment="reasoning",
-        reasoning_model_name="gpt-5",
+        query_planning_deployment="chat",
+        query_planning_model_name="gpt-4.1",
     )
 
     # Knowledge source: a searchIndex kind wrapping the existing chat index,
@@ -162,7 +162,8 @@ def test_build_knowledge_base_seed_shape():
     }
 
     # Knowledge base: references the knowledge source by name and lists the
-    # Azure OpenAI reasoning model used for query planning.
+    # Azure OpenAI chat model used for query planning (Foundry IQ rejects
+    # o-series reasoning models here, so this is the chat deployment).
     assert knowledge_base["name"] == "cwyd-kb"
     assert knowledge_base["knowledgeSources"] == [{"name": "cwyd-index-ks"}]
     models = knowledge_base["models"]
@@ -172,8 +173,8 @@ def test_build_knowledge_base_seed_shape():
     assert model["kind"] == "azureOpenAI"
     assert model["azureOpenAIParameters"] == {
         "resourceUri": "https://ai.example/",
-        "deploymentId": "reasoning",
-        "modelName": "gpt-5",
+        "deploymentId": "chat",
+        "modelName": "gpt-4.1",
     }
 
 
@@ -203,7 +204,11 @@ class _FakeHttpClient:
 def _set_kb_env(monkeypatch):
     monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
     monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://aoai.example/")
-    monkeypatch.setenv("AZURE_OPENAI_REASONING_DEPLOYMENT", "gpt-5")
+    # The KB query-planning model must be a chat model; the reasoning
+    # deployment is set too, to prove the KB seed ignores it (regression
+    # guard for the o-series-rejected-by-Foundry-IQ bug).
+    monkeypatch.setenv("AZURE_OPENAI_GPT_DEPLOYMENT", "gpt-5.1")
+    monkeypatch.setenv("AZURE_OPENAI_REASONING_DEPLOYMENT", "o4-mini")
 
 
 def test_ensure_knowledge_base_skips_when_endpoint_missing(capsys):
@@ -240,7 +245,7 @@ def test_ensure_knowledge_base_dry_run_makes_no_calls(monkeypatch, capsys):
 
 
 def test_ensure_knowledge_base_requires_openai_config(monkeypatch):
-    # Search endpoint set, but no OpenAI endpoint / reasoning deployment.
+    # Search endpoint set, but no OpenAI endpoint / chat (GPT) deployment.
     monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
     with pytest.raises(SystemExit) as excinfo:
         post_provision._ensure_knowledge_base(
@@ -275,9 +280,11 @@ def test_ensure_knowledge_base_puts_source_then_base(monkeypatch):
     assert kb_put["json"]["knowledgeSources"] == [{"name": "cwyd-index-ks"}]
     aoai = kb_put["json"]["models"][0]["azureOpenAIParameters"]
     assert aoai["resourceUri"] == "https://aoai.example/"
-    assert aoai["deploymentId"] == "gpt-5"
+    # KB query planning uses the chat deployment (gpt-5.1), never the
+    # o-series reasoning deployment (o4-mini) that Foundry IQ rejects.
+    assert aoai["deploymentId"] == "gpt-5.1"
     # Deployment doubles as the model name when no explicit override is set.
-    assert aoai["modelName"] == "gpt-5"
+    assert aoai["modelName"] == "gpt-5.1"
 
 
 def test_ensure_knowledge_base_is_idempotent(monkeypatch):

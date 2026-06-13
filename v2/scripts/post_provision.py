@@ -318,8 +318,8 @@ def _build_knowledge_base_seed(
     index_name: str,
     semantic_configuration_name: str,
     openai_resource_uri: str,
-    reasoning_deployment: str,
-    reasoning_model_name: str,
+    query_planning_deployment: str,
+    query_planning_model_name: str,
 ) -> tuple[dict[str, object], dict[str, object]]:
     """Build the ``(knowledge_source, knowledge_base)`` REST request bodies.
 
@@ -329,7 +329,10 @@ def _build_knowledge_base_seed(
        existing chat index) and pins ``semantic_configuration_name`` so
        agentic retrieval uses the index's semantic configuration.
     2. A knowledge base that references the knowledge source by name and
-       lists the Azure OpenAI reasoning model used for query planning.
+       lists the Azure OpenAI chat model used for query planning. The
+       Foundry IQ knowledge base API only accepts chat models here (for
+       example gpt-4o-mini, gpt-4.1, gpt-5.1); o-series reasoning models
+       are rejected, so this is the chat deployment, not the reasoning one.
 
     The shapes match the Azure AI Search ``knowledgesources`` /
     ``knowledgebases`` REST contract; the caller pins the api-version from
@@ -353,8 +356,8 @@ def _build_knowledge_base_seed(
                 "kind": KNOWLEDGE_BASE_MODEL_KIND_AZURE_OPENAI,
                 "azureOpenAIParameters": {
                     "resourceUri": openai_resource_uri,
-                    "deploymentId": reasoning_deployment,
-                    "modelName": reasoning_model_name,
+                    "deploymentId": query_planning_deployment,
+                    "modelName": query_planning_model_name,
                 },
             }
         ],
@@ -367,7 +370,8 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
 
     Grounds the agent_framework orchestrator: a ``searchIndex`` knowledge
     source wraps the chat index, and the knowledge base references that
-    source plus the Azure OpenAI reasoning model used for query planning.
+    source plus the Azure OpenAI chat model used for query planning (Foundry
+    IQ rejects o-series reasoning models for the knowledge base model).
 
     Idempotent: the Search REST ``knowledgesources`` / ``knowledgebases``
     PUT endpoints are create-or-update, so re-running overwrites the seed
@@ -404,27 +408,30 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
         or DEFAULT_KNOWLEDGE_BASE_API_VERSION
     )
 
-    # The KB reasoning model lives on the Azure OpenAI account. In this repo
-    # the reasoning deployment is named after its model (Bicep wires both
-    # AZURE_OPENAI_REASONING_DEPLOYMENT and the model from the same
-    # `reasoningModelName` param), so the deployment id doubles as the model
-    # name unless an operator overrides it via AZURE_OPENAI_REASONING_MODEL_NAME.
+    # The KB query-planning model lives on the Azure OpenAI account. Foundry
+    # IQ knowledge bases only accept a chat model here (gpt-4o-mini, gpt-4.1,
+    # gpt-5.1, ...); o-series reasoning models are rejected with a 400, so the
+    # KB uses the chat deployment (AZURE_OPENAI_GPT_DEPLOYMENT), not the
+    # reasoning one. In this repo the deployment is named after its model
+    # (Bicep wires the deployment and the model from the same `gptModelName`
+    # param), so the deployment id doubles as the model name unless an operator
+    # overrides it via AZURE_OPENAI_GPT_MODEL_NAME.
     openai_resource_uri = (
         os.environ.get("AZURE_OPENAI_ENDPOINT", "").strip()
         or os.environ.get("AZURE_AI_SERVICES_ENDPOINT", "").strip()
     )
-    reasoning_deployment = os.environ.get(
-        "AZURE_OPENAI_REASONING_DEPLOYMENT", ""
+    query_planning_deployment = os.environ.get(
+        "AZURE_OPENAI_GPT_DEPLOYMENT", ""
     ).strip()
-    reasoning_model_name = (
-        os.environ.get("AZURE_OPENAI_REASONING_MODEL_NAME", "").strip()
-        or reasoning_deployment
+    query_planning_model_name = (
+        os.environ.get("AZURE_OPENAI_GPT_MODEL_NAME", "").strip()
+        or query_planning_deployment
     )
-    if not openai_resource_uri or not reasoning_deployment:
+    if not openai_resource_uri or not query_planning_deployment:
         sys.stderr.write(
             "post-provision: knowledge base seed needs AZURE_OPENAI_ENDPOINT "
             "(or AZURE_AI_SERVICES_ENDPOINT) and "
-            "AZURE_OPENAI_REASONING_DEPLOYMENT.\n"
+            "AZURE_OPENAI_GPT_DEPLOYMENT.\n"
         )
         sys.exit(9)
 
@@ -442,8 +449,8 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
         index_name=index_name,
         semantic_configuration_name=SEMANTIC_CONFIG_NAME,
         openai_resource_uri=openai_resource_uri,
-        reasoning_deployment=reasoning_deployment,
-        reasoning_model_name=reasoning_model_name,
+        query_planning_deployment=query_planning_deployment,
+        query_planning_model_name=query_planning_model_name,
     )
 
     if client_factory is None:
