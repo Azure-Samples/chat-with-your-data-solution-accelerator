@@ -27,8 +27,8 @@ normalised to one trailing slash. Auth is UAMI bearer for
 Chunking strategy -- one ``Chunk`` per Document Intelligence page, joining
 ``page.lines[*].content`` with ``\\n``. Pages with no lines (or
 whitespace-only content) are skipped and ``index`` stays dense across
-emitted chunks so re-ingesting the same document produces stable Search
-document keys via ``Chunk.id = f"{source}__{index}"``.
+emitted chunks so re-ingesting the same document produces stable,
+Search-safe document keys via ``BaseParser.make_chunk_id(source, index)``.
 """
 
 import logging
@@ -109,7 +109,7 @@ class DocumentIntelligenceParser(BaseParser):
                 continue
             chunks.append(
                 Chunk(
-                    id=f"{source}__{index}",
+                    id=self.make_chunk_id(source, index),
                     content=page_text,
                     source=source,
                     index=index,

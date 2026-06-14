@@ -5,12 +5,24 @@ Phase: 7 (router cleanup -- conversation buffered-response helpers)
 """
 
 from collections.abc import AsyncIterator
+from typing import cast
+from unittest.mock import MagicMock
 
 import pytest
 
-from backend.core.types import Citation, OrchestratorChannel, OrchestratorEvent
+from backend.core.providers.llm.base import BaseLLMProvider
+from backend.core.tools.post_prompt import DEFAULT_FILTER_MESSAGE, PostPromptValidator
+from backend.core.types import (
+    Citation,
+    OrchestratorChannel,
+    OrchestratorEvent,
+    RuntimeConfig,
+)
 from backend.models.conversation import ConversationResponse
-from backend.services.conversation import collect_response
+from backend.services.conversation import (
+    build_post_prompt_validator,
+    collect_response,
+)
 
 
 async def _gen(events: list[OrchestratorEvent]) -> AsyncIterator[OrchestratorEvent]:
@@ -117,3 +129,100 @@ async def test_collect_response_ignores_unknown_channels() -> None:
 
     assert result.content == "answer"
     assert result.citations == []
+
+
+# ---------------------------------------------------------------------------
+# build_post_prompt_validator -- runtime-overrides -> PostPromptValidator | None
+# ---------------------------------------------------------------------------
+
+
+def _stub_llm() -> BaseLLMProvider:
+    """A ``BaseLLMProvider``-shaped MagicMock.
+
+    ``build_post_prompt_validator`` only forwards the instance into
+    the ``PostPromptValidator`` constructor; ``.validate()`` is never
+    invoked here, so a spec'd MagicMock satisfies the type without
+    pulling in real Azure SDK dependencies.
+    """
+    return cast(BaseLLMProvider, MagicMock(spec=BaseLLMProvider))
+
+
+def _make_overrides(**kwargs: object) -> RuntimeConfig:
+    return RuntimeConfig.model_validate(kwargs)
+
+
+def test_build_post_prompt_validator_returns_none_when_overrides_missing() -> None:
+    assert build_post_prompt_validator(_stub_llm(), None) is None
+
+
+def test_build_post_prompt_validator_returns_none_when_enabled_is_none() -> None:
+    overrides = _make_overrides(post_answering_prompt="Validate {answer}.")
+
+    assert build_post_prompt_validator(_stub_llm(), overrides) is None
+
+
+def test_build_post_prompt_validator_returns_none_when_enabled_is_false() -> None:
+    overrides = _make_overrides(
+        post_answering_enabled=False,
+        post_answering_prompt="Validate {answer}.",
+    )
+
+    assert build_post_prompt_validator(_stub_llm(), overrides) is None
+
+
+def test_build_post_prompt_validator_returns_none_when_prompt_missing() -> None:
+    overrides = _make_overrides(post_answering_enabled=True)
+
+    assert build_post_prompt_validator(_stub_llm(), overrides) is None
+
+
+def test_build_post_prompt_validator_returns_none_when_prompt_whitespace() -> None:
+    overrides = _make_overrides(
+        post_answering_enabled=True,
+        post_answering_prompt="   \n\t  ",
+    )
+
+    assert build_post_prompt_validator(_stub_llm(), overrides) is None
+
+
+def test_build_post_prompt_validator_uses_default_filter_when_override_blank() -> None:
+    llm = _stub_llm()
+    overrides = _make_overrides(
+        post_answering_enabled=True,
+        post_answering_prompt="Check: {question} / {answer} / {sources}",
+    )
+
+    validator = build_post_prompt_validator(llm, overrides)
+
+    assert isinstance(validator, PostPromptValidator)
+    assert validator._llm is llm
+    assert validator._validation_prompt == "Check: {question} / {answer} / {sources}"
+    assert validator._filter_message == DEFAULT_FILTER_MESSAGE
+
+
+def test_build_post_prompt_validator_honors_custom_filter_message() -> None:
+    llm = _stub_llm()
+    overrides = _make_overrides(
+        post_answering_enabled=True,
+        post_answering_prompt="Check: {answer}",
+        post_answering_filter_message="Refusing per policy.",
+    )
+
+    validator = build_post_prompt_validator(llm, overrides)
+
+    assert isinstance(validator, PostPromptValidator)
+    assert validator._filter_message == "Refusing per policy."
+
+
+def test_build_post_prompt_validator_treats_empty_filter_as_default() -> None:
+    llm = _stub_llm()
+    overrides = _make_overrides(
+        post_answering_enabled=True,
+        post_answering_prompt="Check: {answer}",
+        post_answering_filter_message="",
+    )
+
+    validator = build_post_prompt_validator(llm, overrides)
+
+    assert isinstance(validator, PostPromptValidator)
+    assert validator._filter_message == DEFAULT_FILTER_MESSAGE

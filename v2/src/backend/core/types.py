@@ -123,10 +123,12 @@ class Chunk(BaseModel):
     section heading, source URL) goes inside the `metadata` dict
     where consumers can opt in.
 
-    `id` is a deterministic chunk identifier (typically
-    `f"{source}__{index}"`) so re-indexing the same source produces
-    stable Search document keys. `source` is the originating filename
-    or URL. `index` is the chunk's position within `source` (0-based).
+    `id` is a deterministic chunk identifier built via
+    `BaseParser.make_chunk_id(source, index)` (a SHA-256 hash of the
+    readable `f"{source}__{index}"`) so re-indexing the same source
+    produces stable, Search-safe document keys. `source` is the
+    originating filename or URL. `index` is the chunk's position
+    within `source` (0-based).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -277,6 +279,22 @@ class RuntimeConfig(BaseModel):
     distinction: an absent JSON key leaves the override alone, an
     explicit `null` clears the override, an explicit value sets it.
 
+    `cwyd_agent_instructions` is the operator-editable system prompt
+    for the primary `CWYD_AGENT`. When `None`, the agents provider
+    falls through to the built-in instructions on the
+    `AgentDefinition` singleton; when set, the provider applies the
+    override at agent-creation time.
+
+    `post_answering_prompt`, `post_answering_enabled`, and
+    `post_answering_filter_message` configure the optional
+    `PostPromptValidator` wired into the chat pipeline. When
+    `post_answering_enabled` is `True` and `post_answering_prompt` is
+    non-empty, the chat pipeline runs the validator after the answer
+    is composed; on a FALSE verdict, the user receives
+    `post_answering_filter_message` (or a built-in default when the
+    override is empty). All three default to `None` so the validator
+    stays off until an operator explicitly enables it.
+
     `updated_at` is an ISO-8601 string for the same reason
     `Conversation.updated_at` is -- the wire shape stays uniform
     across providers (Cosmos JSON, Postgres). `updated_by` carries
@@ -293,6 +311,10 @@ class RuntimeConfig(BaseModel):
     search_top_k: int | None = None
     log_level: str | None = None
     content_safety_enabled: bool | None = None
+    cwyd_agent_instructions: str | None = None
+    post_answering_prompt: str | None = None
+    post_answering_enabled: bool | None = None
+    post_answering_filter_message: str | None = None
     updated_at: str = ""
     updated_by: str = ""
 

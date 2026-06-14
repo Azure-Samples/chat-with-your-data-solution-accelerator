@@ -2,9 +2,10 @@
  * Pillar: Stable Core
  * Phase: 7 (Testing + Documentation)
  *
- * Admin "Configuration" page. Surfaces the seven-field
- * runtime-toggle subset of `AppSettings` and lets the operator
- * patch any subset of those fields via RFC 7396 JSON Merge Patch.
+ * Admin "Configuration" page. Surfaces the runtime-toggle subset
+ * of `AppSettings` plus `RuntimeConfig`-only fields (e.g. the
+ * post-answering validator trio) and lets the operator patch any
+ * subset of those fields via RFC 7396 JSON Merge Patch.
  *
  * One section, four first-class states (no thrown exception ever
  * reaches the user):
@@ -13,17 +14,25 @@
  *    fired and the form is replaced with a status message.
  * 2. **Failed** -- the wire call rejected; the error message is
  *    surfaced and a Retry button re-fires the GET.
- * 3. **Loaded (clean)** -- the seven inputs render the effective
- *    server values; Save / Discard are disabled until the operator
- *    edits a field.
+ * 3. **Loaded (clean)** -- the inputs render the effective server
+ *    values; Save / Discard are disabled until the operator edits
+ *    a field.
  * 4. **Loaded (dirty)** -- Save and Discard become active. Save
  *    PATCHes only the changed fields (RFC 7396 absent-key
  *    semantics: untouched fields stay untouched server-side).
  *
+ * A "Reset to default" control sits alongside Save / Discard.
+ * Behind a destructive-confirm dialog it clears every override at
+ * once (an all-null merge patch) and re-syncs the form to the
+ * resolved environment + built-in defaults.
+ *
  * Per-field client-side validation (number bounds, non-empty
- * strings) keeps invalid edits out of the wire; the typed client
- * already enforces a server-side 422 ladder for anything that
- * slips past.
+ * strings on fields that disallow it) keeps invalid edits out of
+ * the wire; the typed client already enforces a server-side 422
+ * ladder for anything that slips past. A 422 carrying a structured
+ * `detail.field` payload for a RAI-guarded field is surfaced
+ * inline beside the offending row instead of in the generic
+ * save-error banner.
  *
  * All wire interactions route through `src/api/admin.tsx`, never
  * `fetch` directly -- the page is wire-shape-agnostic.
@@ -36,9 +45,24 @@ import {
   type ChangeEvent,
   type JSX,
 } from "react";
-import { Button, Input, Switch } from "@fluentui/react-components";
-import type { SwitchOnChangeData } from "@fluentui/react-components";
-import { getAdminConfig, patchAdminConfig } from "@/api/admin";
+import {
+  Button,
+  Input,
+  Select,
+  Switch,
+  Textarea,
+} from "@fluentui/react-components";
+import type {
+  SwitchOnChangeData,
+  TextareaOnChangeData,
+} from "@fluentui/react-components";
+import {
+  AdminApiError,
+  getAdminConfig,
+  patchAdminConfig,
+  resetAdminConfig,
+} from "@/api/admin";
+import { LogLevel, OrchestratorName } from "@/models/admin";
 import type {
   AdminConfig,
   AdminConfigPatch,
@@ -51,26 +75,113 @@ import {
 import styles from "./Configuration.module.css";
 
 /**
- * One row in the seven-field form. `key` is the wire-shape field
- * name (must match `AdminConfig` + the backend `WRITABLE_FIELDS`
- * allow-list verbatim).
+ * The subset of `AdminConfig` keys that render as inline knob rows
+ * on the configuration page. The closed list is kept explicit so it
+ * never silently drifts when `AdminConfig` grows -- any new writable
+ * field must be added here in lockstep with the wire model and the
+ * backend `WRITABLE_FIELDS` allow-list.
+ */
+type ConfigFieldKey =
+  | "orchestrator_name"
+  | "openai_temperature"
+  | "openai_max_tokens"
+  | "search_use_semantic_search"
+  | "search_top_k"
+  | "log_level"
+  | "content_safety_enabled"
+  | "cwyd_agent_instructions"
+  | "post_answering_prompt"
+  | "post_answering_enabled"
+  | "post_answering_filter_message";
+
+/**
+ * One row in the inline configuration form. `key` is the wire-shape
+ * field name and must match `AdminConfig` + the backend
+ * `WRITABLE_FIELDS` allow-list verbatim.
+ *
+ * `multiline` upgrades the renderer for `text` fields from `<Input>`
+ * to `<Textarea>` so a prompt template gets line-wrapped editing.
+ * `allowEmpty` opts a `text` field out of the non-empty validation
+ * guard -- needed for fields whose empty value carries semantic
+ * meaning at the server (e.g. "validator disabled" or "fall back to
+ * the built-in default").
+ *
+ * `options` supplies the closed set of choices for a `select` field,
+ * rendered as a dropdown instead of a free-text input.
  */
 interface FieldSpec {
-  key: keyof AdminConfig;
+  key: ConfigFieldKey;
   label: string;
   hint: string;
-  kind: "text" | "number" | "boolean";
+  kind: "text" | "number" | "boolean" | "select";
+  multiline?: boolean;
+  allowEmpty?: boolean;
   numberStep?: string;
   numberMin?: number;
   numberMax?: number;
+  options?: readonly string[];
+}
+
+/**
+ * Wire-field keys whose 422 rejections may carry a structured
+ * `detail.field` payload from the backend RAI gate. Used by
+ * `extractRaiRejection` to render the rejection inline next to the
+ * offending row instead of as a generic save error banner.
+ */
+const RAI_GUARDED_FIELDS: ReadonlySet<ConfigFieldKey> = new Set<ConfigFieldKey>([
+  "cwyd_agent_instructions",
+  "post_answering_prompt",
+]);
+
+/**
+ * Parse an `AdminApiError` into a `(field, message)` pair when the
+ * 422 body carries a structured RAI rejection for one of the
+ * RAI-guarded fields above. Returns `null` for anything else --
+ * non-`AdminApiError`, non-422, string-shaped detail, or a field
+ * key the page doesn't render -- so the caller falls back to the
+ * generic save-error banner.
+ */
+function extractRaiRejection(
+  err: unknown,
+): { field: ConfigFieldKey; message: string } | null {
+  if (!(err instanceof AdminApiError) || err.status !== 422) {
+    return null;
+  }
+  const detail = err.body?.detail;
+  if (detail === undefined || typeof detail === "string") {
+    return null;
+  }
+  const field = detail.field;
+  if (
+    field === undefined ||
+    !RAI_GUARDED_FIELDS.has(field as ConfigFieldKey)
+  ) {
+    return null;
+  }
+  return {
+    field: field as ConfigFieldKey,
+    message:
+      detail.reason ??
+      detail.msg ??
+      "Safety check rejected the submitted value.",
+  };
 }
 
 const FIELD_SPECS: readonly FieldSpec[] = [
   {
+    key: "cwyd_agent_instructions",
+    label: "System prompt",
+    hint: "System prompt for the primary assistant. Leave empty to fall back to the built-in default prompt.",
+    kind: "text",
+    multiline: true,
+    allowEmpty: true,
+  },
+  {
     key: "orchestrator_name",
     label: "Orchestrator",
     hint: "Registry key of the active orchestrator (e.g. langgraph, agent_framework).",
-    kind: "text",
+    kind: "select",
+    options: [OrchestratorName.LangGraph, OrchestratorName.AgentFramework],
   },
   {
     key: "openai_temperature",
@@ -107,7 +218,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "log_level",
     label: "Log level",
     hint: "Python logging level for the backend process (DEBUG, INFO, WARNING, ERROR).",
-    kind: "text",
+    kind: "select",
+    options: [LogLevel.Debug, LogLevel.Info, LogLevel.Warning, LogLevel.Error],
   },
   {
     key: "content_safety_enabled",
@@ -115,10 +227,31 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     hint: "Enable the Azure AI Content Safety pre-filter on user input.",
     kind: "boolean",
   },
+  {
+    key: "post_answering_enabled",
+    label: "Post-answering validator",
+    hint: "Run the post-answering groundedness check on every assistant response. Requires a non-empty prompt below to take effect.",
+    kind: "boolean",
+  },
+  {
+    key: "post_answering_prompt",
+    label: "Post-answering prompt",
+    hint: "Prompt template the validator sends back to the LLM. Use {question}, {answer}, and {sources} placeholders. Leave empty to disable the validator regardless of the toggle above.",
+    kind: "text",
+    multiline: true,
+    allowEmpty: true,
+  },
+  {
+    key: "post_answering_filter_message",
+    label: "Post-answering filter message",
+    hint: "Reply returned to the user when the validator rejects an answer as ungrounded. Leave empty to fall back to the built-in default message.",
+    kind: "text",
+    allowEmpty: true,
+  },
 ] as const;
 
 type FieldValue = string | number | boolean;
-type FormValues = Record<keyof AdminConfig, FieldValue>;
+type FormValues = Record<ConfigFieldKey, FieldValue>;
 
 interface ConfigurationState {
   loadStatus: LoadStatus;
@@ -127,7 +260,9 @@ interface ConfigurationState {
   formValues: FormValues | null;
   saveStatus: SaveStatus;
   saveError: string | null;
+  raiRejection: { field: ConfigFieldKey; message: string } | null;
   lastRuntime: RuntimeConfig | null;
+  resetConfirmOpen: boolean;
 }
 
 export const ConfigActionType = {
@@ -139,6 +274,8 @@ export const ConfigActionType = {
   SaveStarted: "save_started",
   SaveSucceeded: "save_succeeded",
   SaveFailed: "save_failed",
+  ResetRequested: "reset_requested",
+  ResetCancelled: "reset_cancelled",
 } as const;
 export type ConfigActionType =
   (typeof ConfigActionType)[keyof typeof ConfigActionType];
@@ -149,7 +286,7 @@ type ConfigurationAction =
   | { type: typeof ConfigActionType.LoadFailed; error: string }
   | {
       type: typeof ConfigActionType.FieldChanged;
-      key: keyof AdminConfig;
+      key: ConfigFieldKey;
       value: FieldValue;
     }
   | { type: typeof ConfigActionType.Discard }
@@ -159,7 +296,13 @@ type ConfigurationAction =
       runtime: RuntimeConfig;
       refreshed: AdminConfig;
     }
-  | { type: typeof ConfigActionType.SaveFailed; error: string };
+  | {
+      type: typeof ConfigActionType.SaveFailed;
+      error: string;
+      raiRejection: { field: ConfigFieldKey; message: string } | null;
+    }
+  | { type: typeof ConfigActionType.ResetRequested }
+  | { type: typeof ConfigActionType.ResetCancelled };
 
 const initialState: ConfigurationState = {
   loadStatus: LoadStatus.Loading,
@@ -168,7 +311,9 @@ const initialState: ConfigurationState = {
   formValues: null,
   saveStatus: SaveStatus.Idle,
   saveError: null,
+  raiRejection: null,
   lastRuntime: null,
+  resetConfirmOpen: false,
 };
 
 function configToForm(config: AdminConfig): FormValues {
@@ -180,6 +325,10 @@ function configToForm(config: AdminConfig): FormValues {
     search_top_k: config.search_top_k,
     log_level: config.log_level,
     content_safety_enabled: config.content_safety_enabled,
+    cwyd_agent_instructions: config.cwyd_agent_instructions,
+    post_answering_prompt: config.post_answering_prompt,
+    post_answering_enabled: config.post_answering_enabled,
+    post_answering_filter_message: config.post_answering_filter_message,
   };
 }
 
@@ -195,6 +344,8 @@ export function configurationReducer(
         loadError: null,
         saveStatus: SaveStatus.Idle,
         saveError: null,
+        raiRejection: null,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.LoadSucceeded:
       return {
@@ -204,7 +355,9 @@ export function configurationReducer(
         formValues: configToForm(action.config),
         saveStatus: SaveStatus.Idle,
         saveError: null,
+        raiRejection: null,
         lastRuntime: state.lastRuntime,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.LoadFailed:
       return {
@@ -213,6 +366,7 @@ export function configurationReducer(
         loadError: action.error,
         serverConfig: null,
         formValues: null,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.FieldChanged:
       if (state.formValues === null) {
@@ -225,6 +379,10 @@ export function configurationReducer(
           state.saveStatus === SaveStatus.Success
             ? SaveStatus.Idle
             : state.saveStatus,
+        raiRejection:
+          state.raiRejection !== null && state.raiRejection.field === action.key
+            ? null
+            : state.raiRejection,
       };
     case ConfigActionType.Discard:
       if (state.serverConfig === null) {
@@ -235,12 +393,15 @@ export function configurationReducer(
         formValues: configToForm(state.serverConfig),
         saveStatus: SaveStatus.Idle,
         saveError: null,
+        raiRejection: null,
       };
     case ConfigActionType.SaveStarted:
       return {
         ...state,
         saveStatus: SaveStatus.Saving,
         saveError: null,
+        raiRejection: null,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.SaveSucceeded:
       return {
@@ -250,14 +411,21 @@ export function configurationReducer(
         formValues: configToForm(action.refreshed),
         saveStatus: SaveStatus.Success,
         saveError: null,
+        raiRejection: null,
         lastRuntime: action.runtime,
+        resetConfirmOpen: false,
       };
     case ConfigActionType.SaveFailed:
       return {
         ...state,
         saveStatus: SaveStatus.Failed,
-        saveError: action.error,
+        saveError: action.raiRejection === null ? action.error : null,
+        raiRejection: action.raiRejection,
       };
+    case ConfigActionType.ResetRequested:
+      return { ...state, resetConfirmOpen: true };
+    case ConfigActionType.ResetCancelled:
+      return { ...state, resetConfirmOpen: false };
   }
 }
 
@@ -306,6 +474,18 @@ function computePatch(
       case "content_safety_enabled":
         patch.content_safety_enabled = after as boolean;
         break;
+      case "cwyd_agent_instructions":
+        patch.cwyd_agent_instructions = after as string;
+        break;
+      case "post_answering_prompt":
+        patch.post_answering_prompt = after as string;
+        break;
+      case "post_answering_enabled":
+        patch.post_answering_enabled = after as boolean;
+        break;
+      case "post_answering_filter_message":
+        patch.post_answering_filter_message = after as string;
+        break;
     }
   }
   return patch;
@@ -335,8 +515,17 @@ function isDirty(
  */
 function validateField(spec: FieldSpec, value: FieldValue): string | null {
   if (spec.kind === "text") {
-    if (typeof value !== "string" || value.trim().length === 0) {
+    if (typeof value !== "string") {
       return `${spec.label} cannot be empty.`;
+    }
+    if (spec.allowEmpty !== true && value.trim().length === 0) {
+      return `${spec.label} cannot be empty.`;
+    }
+    return null;
+  }
+  if (spec.kind === "select") {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      return `${spec.label} must be selected.`;
     }
     return null;
   }
@@ -404,7 +593,7 @@ export function Configuration(): JSX.Element {
   const dirty = isDirty(state.serverConfig, state.formValues);
 
   const handleTextChange = useCallback(
-    (key: keyof AdminConfig) =>
+    (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
         dispatch({
           type: ConfigActionType.FieldChanged,
@@ -415,8 +604,35 @@ export function Configuration(): JSX.Element {
     [],
   );
 
+  const handleSelectChange = useCallback(
+    (key: ConfigFieldKey) =>
+      (_ev: ChangeEvent<HTMLSelectElement>, data: { value: string }): void => {
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key,
+          value: data.value,
+        });
+      },
+    [],
+  );
+
+  const handleTextareaChange = useCallback(
+    (key: ConfigFieldKey) =>
+      (
+        _ev: ChangeEvent<HTMLTextAreaElement>,
+        data: TextareaOnChangeData,
+      ): void => {
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key,
+          value: data.value,
+        });
+      },
+    [],
+  );
+
   const handleNumberChange = useCallback(
-    (key: keyof AdminConfig) =>
+    (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: { value: string }): void => {
         const parsed = data.value === "" ? Number.NaN : Number(data.value);
         dispatch({
@@ -429,7 +645,7 @@ export function Configuration(): JSX.Element {
   );
 
   const handleSwitchChange = useCallback(
-    (key: keyof AdminConfig) =>
+    (key: ConfigFieldKey) =>
       (_ev: ChangeEvent<HTMLInputElement>, data: SwitchOnChangeData): void => {
         dispatch({
           type: ConfigActionType.FieldChanged,
@@ -462,9 +678,40 @@ export function Configuration(): JSX.Element {
         refreshed,
       });
     } catch (err) {
-      dispatch({ type: ConfigActionType.SaveFailed, error: errorMessage(err) });
+      dispatch({
+        type: ConfigActionType.SaveFailed,
+        error: errorMessage(err),
+        raiRejection: extractRaiRejection(err),
+      });
     }
   }, [anyFieldInvalid, state.formValues, state.serverConfig]);
+
+  const handleResetRequest = useCallback((): void => {
+    dispatch({ type: ConfigActionType.ResetRequested });
+  }, []);
+
+  const handleResetCancel = useCallback((): void => {
+    dispatch({ type: ConfigActionType.ResetCancelled });
+  }, []);
+
+  const handleResetConfirm = useCallback(async (): Promise<void> => {
+    dispatch({ type: ConfigActionType.SaveStarted });
+    try {
+      const runtime = await resetAdminConfig();
+      const refreshed = await getAdminConfig();
+      dispatch({
+        type: ConfigActionType.SaveSucceeded,
+        runtime,
+        refreshed,
+      });
+    } catch (err) {
+      dispatch({
+        type: ConfigActionType.SaveFailed,
+        error: errorMessage(err),
+        raiRejection: extractRaiRejection(err),
+      });
+    }
+  }, []);
 
   return (
     <section
@@ -544,6 +791,12 @@ export function Configuration(): JSX.Element {
                       const value = formValues[spec.key];
                       const fieldError = fieldErrors[spec.key];
                       const inputId = `config-input-${spec.key}`;
+                      const selectOptions: readonly string[] =
+                        spec.kind === "select"
+                          ? (spec.options ?? []).includes(value as string)
+                            ? (spec.options ?? [])
+                            : [value as string, ...(spec.options ?? [])]
+                          : [];
                       return (
                         <div
                           key={spec.key}
@@ -555,11 +808,19 @@ export function Configuration(): JSX.Element {
                             className={styles.fieldLabel}
                           >
                             {spec.label}
-                            <span className={styles.fieldName}>
-                              ({spec.key})
-                            </span>
                           </label>
-                          {spec.kind === "text" ? (
+                          {spec.kind === "text" && spec.multiline === true ? (
+                            <Textarea
+                              id={inputId}
+                              value={value as string}
+                              onChange={handleTextareaChange(spec.key)}
+                              disabled={state.saveStatus === SaveStatus.Saving}
+                              data-testid={inputId}
+                              rows={6}
+                              resize="vertical"
+                            />
+                          ) : null}
+                          {spec.kind === "text" && spec.multiline !== true ? (
                             <Input
                               id={inputId}
                               value={value as string}
@@ -600,6 +861,21 @@ export function Configuration(): JSX.Element {
                               </span>
                             </div>
                           ) : null}
+                          {spec.kind === "select" ? (
+                            <Select
+                              id={inputId}
+                              value={value as string}
+                              onChange={handleSelectChange(spec.key)}
+                              disabled={state.saveStatus === SaveStatus.Saving}
+                              data-testid={inputId}
+                            >
+                              {selectOptions.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </Select>
+                          ) : null}
                           <p className={styles.fieldHint}>{spec.hint}</p>
                           {fieldError !== null ? (
                             <p
@@ -607,6 +883,15 @@ export function Configuration(): JSX.Element {
                               data-testid={`config-field-error-${spec.key}`}
                             >
                               {fieldError}
+                            </p>
+                          ) : null}
+                          {state.raiRejection !== null &&
+                          state.raiRejection.field === spec.key ? (
+                            <p
+                              className={styles.fieldError}
+                              data-testid={`config-field-rai-${spec.key}`}
+                            >
+                              {state.raiRejection.message}
                             </p>
                           ) : null}
                         </div>
@@ -622,7 +907,8 @@ export function Configuration(): JSX.Element {
                       Configuration saved.
                     </p>
                   ) : null}
-                  {state.saveStatus === SaveStatus.Failed ? (
+                  {state.saveStatus === SaveStatus.Failed &&
+                  state.raiRejection === null ? (
                     <p
                       className={styles.errorMessage}
                       data-testid="config-save-error"
@@ -655,6 +941,16 @@ export function Configuration(): JSX.Element {
                     <Button
                       type="button"
                       appearance="secondary"
+                      className={styles.resetButton}
+                      onClick={handleResetRequest}
+                      disabled={state.saveStatus === SaveStatus.Saving}
+                      data-testid="config-reset-button"
+                    >
+                      Reset to default
+                    </Button>
+                    <Button
+                      type="button"
+                      appearance="secondary"
                       onClick={handleDiscard}
                       disabled={!dirty || state.saveStatus === SaveStatus.Saving}
                       data-testid="config-discard-button"
@@ -680,6 +976,46 @@ export function Configuration(): JSX.Element {
               );
             })()
           : null}
+
+        {state.resetConfirmOpen ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm reset"
+            data-testid="config-reset-dialog"
+            className={styles.dialogBackdrop}
+          >
+            <div className={styles.dialog}>
+              <h3 className={styles.dialogTitle}>Reset to default?</h3>
+              <p className={styles.dialogBody}>
+                This clears every saved configuration override and restores
+                the environment and built-in defaults (including the default
+                orchestrator and system prompt). Any unsaved edits are also
+                discarded. This action cannot be undone.
+              </p>
+              <div className={styles.dialogActions}>
+                <Button
+                  type="button"
+                  appearance="secondary"
+                  onClick={handleResetCancel}
+                  data-testid="config-reset-cancel-button"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  appearance="primary"
+                  onClick={() => {
+                    void handleResetConfirm();
+                  }}
+                  data-testid="config-reset-confirm-button"
+                >
+                  Reset to default
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     </section>
   );

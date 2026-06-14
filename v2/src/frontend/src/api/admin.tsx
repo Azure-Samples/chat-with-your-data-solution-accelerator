@@ -14,6 +14,7 @@ import type {
   AdminConfigPatch,
   AdminStatus,
   DeleteDocumentResponse,
+  EffectiveAdminConfig,
   IngestUrlRequest,
   IngestUrlResponse,
   ListDocumentsResponse,
@@ -24,9 +25,64 @@ import type {
 
 const ADMIN_STATUS_URL = "/api/admin/status";
 const ADMIN_CONFIG_URL = "/api/admin/config";
+const ADMIN_CONFIG_EFFECTIVE_URL = "/api/admin/config/effective";
 const ADMIN_DOCUMENTS_URL = "/api/admin/documents";
 const ADMIN_DOCUMENTS_INGEST_URL = "/api/admin/documents/url";
 const ADMIN_DOCUMENTS_REPROCESS_URL = "/api/admin/documents/reprocess";
+
+/**
+ * Structured object form of FastAPI's `detail` field. The backend
+ * 422 RAI gate (`backend.routers.admin.patch_config_endpoint`)
+ * stamps `{msg, field, reason}` so callers can render a per-field
+ * inline rejection without resorting to regex on the message.
+ */
+export interface AdminApiErrorDetailObject {
+  msg?: string;
+  field?: string;
+  reason?: string;
+}
+
+export type AdminApiErrorDetail = string | AdminApiErrorDetailObject;
+
+export interface AdminApiErrorBody {
+  detail?: AdminApiErrorDetail;
+}
+
+/**
+ * Typed Error thrown by `patchAdminConfig` on a non-2xx response.
+ * Exposes the raw HTTP status and the parsed JSON body so callers
+ * can branch on 422 RAI rejections vs. 401/403 RBAC vs. 5xx.
+ *
+ * `body` is `null` when the response body was empty or unparseable.
+ */
+export class AdminApiError extends Error {
+  readonly status: number;
+  readonly body: AdminApiErrorBody | null;
+  constructor(
+    operation: string,
+    status: number,
+    body: AdminApiErrorBody | null,
+  ) {
+    super(`${operation}: request failed with status ${status}`);
+    this.name = "AdminApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+async function parseErrorBody(
+  response: Response,
+): Promise<AdminApiErrorBody | null> {
+  const text = await response.text().catch(() => "");
+  if (text === "") {
+    return null;
+  }
+  try {
+    return JSON.parse(text) as AdminApiErrorBody;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Fetch the sanitized backend status snapshot.
@@ -181,14 +237,18 @@ export async function deleteDocument(
 }
 
 /**
- * Fetch the runtime-toggle subset of `AppSettings` (seven canonical
- * fields). The response reflects the live-reloaded effective view
- * -- env defaults overlaid with any persisted runtime overrides.
+ * Fetch the override-resolved runtime-toggle config the admin UI loads
+ * on mount. Hits `GET /api/admin/config/effective`, which overlays any
+ * persisted runtime overrides on top of the env default snapshot, then
+ * unwraps the `values` payload. Loading the effective view (rather than
+ * the plain env snapshot at `GET /api/admin/config`) is what lets a
+ * saved override -- e.g. the orchestrator choice -- show up after a
+ * reload instead of reverting to the env default.
  *
  * @throws Error on non-2xx (401/403 RBAC, 5xx backend down).
  */
 export async function getAdminConfig(): Promise<AdminConfig> {
-  const response = await fetch(ADMIN_CONFIG_URL, {
+  const response = await fetch(ADMIN_CONFIG_EFFECTIVE_URL, {
     method: "GET",
     headers: { Accept: "application/json" },
   });
@@ -197,8 +257,8 @@ export async function getAdminConfig(): Promise<AdminConfig> {
       `getAdminConfig: request failed with status ${response.status}`,
     );
   }
-  const body = (await response.json()) as AdminConfig;
-  return body;
+  const body = (await response.json()) as EffectiveAdminConfig;
+  return body.values;
 }
 
 /**
@@ -231,10 +291,53 @@ export async function patchAdminConfig(
     body: JSON.stringify(patch),
   });
   if (!response.ok) {
-    throw new Error(
-      `patchAdminConfig: request failed with status ${response.status}`,
+    const errorBody = await parseErrorBody(response);
+    throw new AdminApiError(
+      "patchAdminConfig",
+      response.status,
+      errorBody,
     );
   }
   const body = (await response.json()) as RuntimeConfig;
   return body;
+}
+
+/**
+ * The all-null `AdminConfigPatch` that clears every persisted runtime
+ * override in one RFC 7396 JSON Merge Patch. Typed `Required<...>` so
+ * the compiler rejects this literal the moment a new writable field is
+ * added to `AdminConfigPatch` without a matching `null` entry here --
+ * the lockstep guard the wire-model docstring calls for, enforced at
+ * build time instead of by review.
+ */
+const RESET_ALL_OVERRIDES: Required<AdminConfigPatch> = {
+  orchestrator_name: null,
+  openai_temperature: null,
+  openai_max_tokens: null,
+  search_use_semantic_search: null,
+  search_top_k: null,
+  log_level: null,
+  content_safety_enabled: null,
+  cwyd_agent_instructions: null,
+  post_answering_prompt: null,
+  post_answering_enabled: null,
+  post_answering_filter_message: null,
+};
+
+/**
+ * Clear every persisted runtime override in one request, reverting the
+ * effective config to the env / built-in defaults (e.g. the
+ * orchestrator falls back to the `agent_framework` default). Sends an
+ * RFC 7396 JSON Merge Patch that sets every writable field to `null` --
+ * the "clear override" operation -- so the next effective-config load
+ * resolves entirely from the env baseline. Delegates to
+ * `patchAdminConfig`, inheriting its header shape, RBAC / 422 error
+ * ladder, and typed `RuntimeConfig` return. Prompt fields cleared with
+ * `null` skip the backend RAI classifier, so the reset costs no Foundry
+ * round-trip.
+ *
+ * @throws AdminApiError on non-2xx (same ladder as `patchAdminConfig`).
+ */
+export async function resetAdminConfig(): Promise<RuntimeConfig> {
+  return patchAdminConfig(RESET_ALL_OVERRIDES);
 }

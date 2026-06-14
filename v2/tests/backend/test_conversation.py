@@ -3,6 +3,7 @@
 import ast
 import inspect
 import json
+from types import SimpleNamespace
 from typing import Any, AsyncIterator, Sequence
 
 import httpx
@@ -16,13 +17,18 @@ from backend.dependencies import (
     get_credential,
     get_database_client,
     get_llm_provider,
+    get_post_prompt_validator,
     get_search_provider,
 )
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import (
+    CWYD_AGENT,
+    CWYD_GUARDRAIL,
+    resolve_cwyd_instructions,
+)
 from backend.core.pipelines import chat as chat_pipeline
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.orchestrators.base import OrchestratorBase
-from backend.core.types import ChatMessage, OrchestratorEvent
+from backend.core.types import ChatMessage, OrchestratorEvent, RuntimeConfig
 from backend.routers import conversation as conv_module
 
 # ---------------------------------------------------------------------------
@@ -71,27 +77,42 @@ class _BoomOrchestrator(OrchestratorBase):
 # ---------------------------------------------------------------------------
 
 
-class _FakeSettings:
-    class _O:
-        name = "fake"
-        agent_id = ""
+def _fake_settings(orchestrator_name: str = "fake") -> SimpleNamespace:
+    """Complete-enough ``AppSettings`` stand-in for the conversation route.
 
-    orchestrator = _O()
+    The route resolves the effective admin config
+    (``resolve_effective_config``), which reads the orchestrator,
+    OpenAI, search, observability, content-safety, and database
+    sub-settings -- a stand-in exposing only ``orchestrator.name``
+    would ``AttributeError`` inside the resolver. This mirrors the
+    real nested shape with safe defaults (``AzureSearch`` keeps the
+    cross-setting guard satisfied for every orchestrator); tests vary
+    only ``orchestrator_name``.
+    """
+    return SimpleNamespace(
+        orchestrator=SimpleNamespace(name=orchestrator_name, agent_id=""),
+        openai=SimpleNamespace(temperature=0.0, max_tokens=1000),
+        search=SimpleNamespace(use_semantic_search=True, top_k=5),
+        observability=SimpleNamespace(log_level="INFO"),
+        content_safety=SimpleNamespace(enabled=False),
+        database=SimpleNamespace(index_store="AzureSearch"),
+    )
 
 
 class _FakeAgentsProvider:
     """Stand-in for `FoundryAgentsProvider` in router tests.
 
-    `get_client()` returns a sentinel object so we can assert the
-    router forwards the *exact* client instance into the
-    ``orchestrators_registry.registry.get(...)(...)`` dispatch call
-    (CU-001d).
+    `get_client()` returns a sentinel object so tests can assert the
+    router forwards the *exact* provider instance into the
+    ``orchestrators_registry.registry.get(...)(...)`` dispatch call.
 
-    `get_or_create_agent()` is the CU-010c lazy resolver seam --
-    CU-010d wires the router to call it on the `agent_framework`
-    branch only. Tests configure `agent_id_to_return` to control the
-    resolved id and inspect `resolver_calls` to assert the resolver
-    was invoked with `(CWYD_AGENT, db_sentinel)`.
+    `get_or_create_agent()` records calls in `resolver_calls`. The
+    router no longer bootstraps the agent itself -- create-if-missing
+    moved into the provider's `build_agent`, invoked by the
+    `agent_framework` orchestrator -- so the router tests assert
+    `resolver_calls` stays empty (the router never calls it) and that
+    the provider + DB client are forwarded into orchestrator
+    construction instead.
     """
 
     def __init__(
@@ -128,7 +149,7 @@ def app_with_fakes(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setitem(orchestrators_registry.registry._items, "boom", _BoomOrchestrator)
 
     app = create_app()
-    app.dependency_overrides[get_app_settings] = lambda: _FakeSettings()
+    app.dependency_overrides[get_app_settings] = lambda: _fake_settings()
     app.dependency_overrides[get_llm_provider] = lambda: object()
     # Always override the agents provider: ASGITransport doesn't run
     # lifespan, so `app.state.agents_provider` is never set. Without
@@ -154,6 +175,26 @@ def app_with_fakes(monkeypatch: pytest.MonkeyPatch):
 
 def _client(app) -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+
+
+def _spy_orchestrator_dispatch(
+    monkeypatch: pytest.MonkeyPatch, recorded: list[str]
+) -> None:
+    """Record the registry key each orchestrator dispatch resolves.
+
+    The bootstrap resolver call used to be the signal for which branch
+    the router took; with create-if-missing moved into the provider's
+    `build_agent`, the router no longer calls the resolver, so
+    selection tests observe the single
+    ``orchestrators_registry.registry.get(...)`` key directly.
+    """
+    real_get = orchestrators_registry.registry.get
+
+    def _spy(key: str) -> Any:
+        recorded.append(key)
+        return real_get(key)
+
+    monkeypatch.setattr(orchestrators_registry.registry, "get", _spy)
 
 
 # ---------------------------------------------------------------------------
@@ -222,16 +263,13 @@ async def test_sse_mode_emits_one_frame_per_event(app_with_fakes) -> None:
 
 
 async def test_sse_mode_surfaces_orchestrator_exception_as_error_event(app_with_fakes) -> None:
-    # Use the boom orchestrator instead of the scripted fake. The ad-hoc
-    # settings type only needs `orchestrator.name` -- after CU-009b the
-    # router forwards `agent_id=""` literally (CU-010d will replace
-    # with a lazy DB-backed resolver), so the fake settings no longer
-    # need to expose an `agent_id` attribute.
-    app_with_fakes.dependency_overrides[get_app_settings] = lambda: type(
-        "S",
-        (),
-        {"orchestrator": type("O", (), {"name": "boom"})()},
-    )()
+    # Use the boom orchestrator instead of the scripted fake. The
+    # effective-config resolver reads the full settings shape, so the
+    # stand-in is built via `_fake_settings(...)`; only the
+    # orchestrator name ("boom") matters for this path.
+    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _fake_settings(
+        "boom"
+    )
 
     async with _client(app_with_fakes) as client:
         resp = await client.post(
@@ -275,17 +313,62 @@ async def test_router_forwards_search_provider_to_orchestrator(
     assert _FakeOrchestrator.last_kwargs.get("search") is sentinel_search
 
 
+async def test_sse_emits_leading_retrieval_narration_when_search_wired(
+    app_with_fakes,
+) -> None:
+    """When a search backend is wired the stream opens with the
+    orchestrator-agnostic retrieval narration so the thinking panel
+    shows activity for the whole wait, not a flash at the end."""
+    app_with_fakes.dependency_overrides[get_search_provider] = lambda: object()
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+            headers={"Accept": "text/event-stream"},
+        )
+
+    assert resp.status_code == 200
+    frames = [f for f in resp.text.split("\n\n") if f]
+    assert frames[0].startswith("event: reasoning\n")
+    data_line = [ln for ln in frames[0].splitlines() if ln.startswith("data: ")][0]
+    assert json.loads(data_line[len("data: ") :]) == {
+        "content": chat_pipeline.KB_SEARCH_NARRATION,
+        "metadata": {},
+    }
+    assert frames[1].startswith("event: answer\n")
+
+
+async def test_sse_omits_retrieval_narration_when_search_disabled(
+    app_with_fakes,
+) -> None:
+    """Pass-through mode (no search provider) must not claim to search:
+    the stream carries only the orchestrator's own events."""
+    # `app_with_fakes` leaves `get_search_provider` at its default --
+    # ASGITransport skips lifespan, so `app.state.search_provider` is
+    # unset and the dependency returns None.
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+            headers={"Accept": "text/event-stream"},
+        )
+
+    assert resp.status_code == 200
+    frames = [f for f in resp.text.split("\n\n") if f]
+    assert len(frames) == 1
+    assert frames[0].startswith("event: answer\n")
+
+
 async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> None:
     """Greppable gate: orchestrator construction goes through the
     registry exactly once -- no parallel `if/elif` chain that
     *constructs* different orchestrator instances per name.
 
-    CU-010d nuance: the router *does* contain a single
-    ``if settings.orchestrator.name == "agent_framework"`` check, but
-    that's *kwarg preparation* for the lazy agent-id resolver, not
-    dispatch (the resolved id is then passed into the same single
-    ``orchestrators_registry.registry.get(...)(...)`` call). The Hard
-    Rule #4 invariant is that orchestrator *construction* is
+    The Hard Rule #4 invariant is that orchestrator *construction* is
     registry-keyed -- so the test asserts there is exactly one
     ``orchestrators_registry.registry.get(...)`` *call site*
     (AST-counted, ignoring docstrings + comments).
@@ -373,14 +456,8 @@ async def test_router_forwards_credential_and_agent_name_to_orchestrator(
     fake_provider = _FakeAgentsProvider()
     app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
 
-    class _SettingsForFakeOrchestrator:
-        class _O:
-            name = "fake"
-
-        orchestrator = _O()
-
-    app_with_fakes.dependency_overrides[get_app_settings] = (
-        lambda: _SettingsForFakeOrchestrator()
+    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _fake_settings(
+        "fake"
     )
 
     _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
@@ -398,6 +475,101 @@ async def test_router_forwards_credential_and_agent_name_to_orchestrator(
         is app_with_fakes.state.test_credential_sentinel
     )
     assert _FakeOrchestrator.last_kwargs.get("agent_name") == CWYD_AGENT.name
+
+
+async def test_router_forwards_effective_system_prompt_to_orchestrator(
+    app_with_fakes,
+) -> None:
+    """Router threads the effective `cwyd_agent_instructions` into
+    orchestrator construction as `system_prompt=`. With no saved
+    override it resolves to the `CWYD_AGENT.instructions` default."""
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert (
+        _FakeOrchestrator.last_kwargs.get("system_prompt")
+        == CWYD_AGENT.instructions
+    )
+
+
+async def test_router_saved_system_prompt_override_wins(
+    app_with_fakes,
+) -> None:
+    """A persisted `cwyd_agent_instructions` override is forwarded as
+    `system_prompt=`, guardrail-wrapped through the shared composition
+    seam: the operator body leads and the fixed `CWYD_GUARDRAIL` is
+    appended exactly once, last. The orchestrator never receives a raw,
+    un-wrapped override, so the non-negotiable safety / out-of-domain /
+    citation rules bookend an operator-authored persona."""
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+    app_with_fakes.state.runtime_overrides = RuntimeConfig(
+        cwyd_agent_instructions="CUSTOM SYSTEM PROMPT"
+    )
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    system_prompt = _FakeOrchestrator.last_kwargs.get("system_prompt")
+    assert system_prompt == resolve_cwyd_instructions("CUSTOM SYSTEM PROMPT")
+    assert system_prompt.startswith("CUSTOM SYSTEM PROMPT")
+    assert system_prompt.endswith(CWYD_GUARDRAIL)
+    assert system_prompt.count(CWYD_GUARDRAIL) == 1
+
+
+async def test_router_forwards_effective_search_knobs_to_orchestrator(
+    app_with_fakes,
+) -> None:
+    """Router threads the effective `search_top_k` /
+    `search_use_semantic_search` into orchestrator construction. With no
+    saved overrides they resolve to the `settings.search` defaults
+    (`top_k=5`, `use_semantic_search=True`)."""
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert _FakeOrchestrator.last_kwargs.get("search_top_k") == 5
+    assert _FakeOrchestrator.last_kwargs.get("search_use_semantic_search") is True
+
+
+async def test_router_saved_search_knob_overrides_win(
+    app_with_fakes,
+) -> None:
+    """Persisted `search_top_k` / `search_use_semantic_search` overrides
+    are forwarded as the orchestrator ctor kwargs, beating the defaults."""
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+    app_with_fakes.state.runtime_overrides = RuntimeConfig(
+        search_top_k=11,
+        search_use_semantic_search=False,
+    )
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert _FakeOrchestrator.last_kwargs.get("search_top_k") == 11
+    assert _FakeOrchestrator.last_kwargs.get("search_use_semantic_search") is False
 
 
 async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
@@ -419,15 +591,9 @@ async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
     app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
 
     for name in monkeypatched_keys:
-
-        class _S:
-            class _O:
-                pass
-
-            orchestrator = _O()
-
-        _S.orchestrator.name = name  # type: ignore[attr-defined]
-        app_with_fakes.dependency_overrides[get_app_settings] = lambda s=_S: s()
+        app_with_fakes.dependency_overrides[get_app_settings] = (
+            lambda n=name: _fake_settings(n)
+        )
 
         _FakeOrchestrator.scripted = [
             OrchestratorEvent(channel="answer", content=name)
@@ -452,89 +618,22 @@ async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
 
 
 # ---------------------------------------------------------------------------
-# CU-010d: lazy DB-backed agent-id resolution on the agent_framework branch
+# agents provider + db forwarded into orchestrator construction
+# (the agent_framework orchestrator owns create-if-missing via build_agent;
+#  the router performs no get_or_create_agent bootstrap)
 # ---------------------------------------------------------------------------
 
 
-async def test_agent_framework_branch_resolves_agent_id_via_provider(
+async def test_agent_framework_branch_forwards_agents_and_db_to_orchestrator(
     app_with_fakes,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """When the configured orchestrator is `agent_framework`, the
-    router must call `agents.get_or_create_agent(CWYD_AGENT, db)`
-    exactly once (bootstrap path: create-if-missing). The orchestrator
-    itself looks the agent up by name through the OSS
-    `agent_framework_foundry.FoundryAgent` client, so the resolver's
-    return value is intentionally discarded.
-    """
-    monkeypatch.setitem(
-        orchestrators_registry.registry._items, "agent_framework", _FakeOrchestrator
-    )
-
-    fake_provider = _FakeAgentsProvider(agent_id_to_return="asst_resolved_123")
-    app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
-
-    class _S:
-        class _O:
-            name = "agent_framework"
-
-        orchestrator = _O()
-
-    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _S()
-
-    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
-    _FakeOrchestrator.last_kwargs = {}
-
-    async with _client(app_with_fakes) as client:
-        resp = await client.post(
-            "/api/conversation",
-            json={"messages": [{"role": "user", "content": "hi"}]},
-        )
-
-    assert resp.status_code == 200
-    assert len(fake_provider.resolver_calls) == 1, (
-        "agent_framework branch must call get_or_create_agent exactly once"
-    )
-    # The router does not pass the resolved id to the orchestrator
-    # (the OSS FoundryAgent looks the agent up by name). It does pass
-    # the agent name + credential uniformly.
-    assert _FakeOrchestrator.last_kwargs.get("agent_name") == CWYD_AGENT.name
-
-
-async def test_non_agent_framework_branch_does_not_call_resolver(
-    app_with_fakes,
-) -> None:
-    """When the orchestrator is anything other than `agent_framework`,
-    the router must skip the resolver entirely (zero DB / Foundry
-    round-trips).
-
-    `_FakeSettings.orchestrator.name == "fake"` (set in the fixture).
-    """
-    fake_provider = _FakeAgentsProvider()
-    app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
-
-    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
-    _FakeOrchestrator.last_kwargs = {}
-
-    async with _client(app_with_fakes) as client:
-        resp = await client.post(
-            "/api/conversation",
-            json={"messages": [{"role": "user", "content": "hi"}]},
-        )
-
-    assert resp.status_code == 200
-    assert fake_provider.resolver_calls == [], (
-        "non-agent_framework orchestrators must not trigger the resolver"
-    )
-
-
-async def test_resolver_receives_cwyd_definition_and_database_client(
-    app_with_fakes,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The resolver must be called with (a) the `CWYD_AGENT` built-in
-    definition (not `RAI_AGENT`, not a fresh instance), and (b) the
-    DI'd database client *instance* (identity check).
+    """On the `agent_framework` branch the router forwards the DI'd
+    agents provider (`agents=`) and database client (`db=`) into
+    orchestrator construction. Create-if-missing now lives in the
+    provider's `build_agent` (invoked by the orchestrator), so the
+    router performs no bootstrap round-trip itself -- it never calls
+    `get_or_create_agent`.
     """
     monkeypatch.setitem(
         orchestrators_registry.registry._items, "agent_framework", _FakeOrchestrator
@@ -545,13 +644,87 @@ async def test_resolver_receives_cwyd_definition_and_database_client(
     app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
     app_with_fakes.dependency_overrides[get_database_client] = lambda: db_sentinel
 
-    class _S:
-        class _O:
-            name = "agent_framework"
+    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _fake_settings(
+        "agent_framework"
+    )
 
-        orchestrator = _O()
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
 
-    app_with_fakes.dependency_overrides[get_app_settings] = lambda: _S()
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    assert resp.status_code == 200
+    assert _FakeOrchestrator.last_kwargs.get("agents") is fake_provider
+    assert _FakeOrchestrator.last_kwargs.get("db") is db_sentinel
+    assert fake_provider.resolver_calls == [], (
+        "router must not bootstrap the agent via get_or_create_agent; "
+        "the orchestrator owns create-if-missing through build_agent"
+    )
+
+
+async def test_router_forwards_agents_and_db_uniformly_and_never_bootstraps(
+    app_with_fakes,
+) -> None:
+    """Every orchestrator receives `agents=` + `db=` uniformly (Hard
+    Rule #4: no name dispatch), and the router never calls
+    `get_or_create_agent` -- create-if-missing lives in the provider's
+    `build_agent`, invoked by the orchestrator, not the router.
+
+    `_fake_settings()` default orchestrator name is "fake".
+    """
+    fake_provider = _FakeAgentsProvider()
+    db_sentinel = _FakeDatabaseClient()
+    app_with_fakes.dependency_overrides[get_agents_provider] = lambda: fake_provider
+    app_with_fakes.dependency_overrides[get_database_client] = lambda: db_sentinel
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    assert resp.status_code == 200
+    assert _FakeOrchestrator.last_kwargs.get("agents") is fake_provider
+    assert _FakeOrchestrator.last_kwargs.get("db") is db_sentinel
+    assert fake_provider.resolver_calls == [], (
+        "router must never call get_or_create_agent (bootstrap removed)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Admin-saved orchestrator override drives dispatch over the env default
+# ---------------------------------------------------------------------------
+
+
+async def test_orchestrator_override_takes_precedence_over_env(
+    app_with_fakes,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A persisted ``RuntimeConfig.orchestrator_name`` override must
+    drive orchestrator selection over the ``CWYD_ORCHESTRATOR_NAME``
+    env default. With env name "fake" but a saved override of
+    "agent_framework", the registry must be keyed with
+    "agent_framework" -- proving the saved override (not the env
+    "fake") drove dispatch.
+    """
+    monkeypatch.setitem(
+        orchestrators_registry.registry._items, "agent_framework", _FakeOrchestrator
+    )
+
+    dispatched: list[str] = []
+    _spy_orchestrator_dispatch(monkeypatch, dispatched)
+
+    # Fixture env default is "fake"; the saved override flips it.
+    app_with_fakes.state.runtime_overrides = RuntimeConfig(
+        orchestrator_name="agent_framework"
+    )
 
     _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
 
@@ -562,13 +735,39 @@ async def test_resolver_receives_cwyd_definition_and_database_client(
         )
 
     assert resp.status_code == 200
-    assert len(fake_provider.resolver_calls) == 1
-    call = fake_provider.resolver_calls[0]
-    assert call["definition"] is CWYD_AGENT, (
-        "router must pass the CWYD_AGENT singleton, not a fresh definition"
+    assert dispatched == ["agent_framework"], (
+        "saved orchestrator override must drive registry dispatch to "
+        "agent_framework even when the env default is 'fake'"
     )
-    assert call["db"] is db_sentinel, (
-        "router must forward the DI'd database client by identity"
+
+
+async def test_none_orchestrator_override_falls_through_to_env(
+    app_with_fakes,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A ``RuntimeConfig`` whose ``orchestrator_name`` is ``None`` must
+    fall through to the env default. With env name "fake" and an
+    override that leaves ``orchestrator_name`` unset, the registry must
+    be keyed with "fake".
+    """
+    dispatched: list[str] = []
+    _spy_orchestrator_dispatch(monkeypatch, dispatched)
+
+    # Override present but orchestrator_name unset -> env "fake" wins.
+    app_with_fakes.state.runtime_overrides = RuntimeConfig(openai_temperature=0.7)
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+        )
+
+    assert resp.status_code == 200
+    assert dispatched == ["fake"], (
+        "a None orchestrator_name override must fall through to the env "
+        "default 'fake'"
     )
 
 
@@ -654,3 +853,62 @@ async def test_router_forwards_content_safety_guard_when_dep_returns_guard(
 
     assert resp.status_code == 200
     assert calls[0]["kwargs"]["content_safety"] is sentinel_guard
+
+
+# ---------------------------------------------------------------------------
+# post-prompt validator forwarded into pipelines.chat.run_chat
+# ---------------------------------------------------------------------------
+
+
+async def test_router_forwards_none_post_prompt_when_dep_returns_none(
+    app_with_fakes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Default DI path: ASGITransport skips lifespan so no
+    ``app.state.runtime_overrides`` is set ->
+    ``get_post_prompt_validator`` returns ``None`` -> router must
+    forward ``post_prompt=None`` to ``run_chat``.
+    """
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert len(calls) == 1
+    assert "post_prompt" in calls[0]["kwargs"], (
+        "router must pass `post_prompt` kwarg explicitly to run_chat"
+    )
+    assert calls[0]["kwargs"]["post_prompt"] is None
+
+
+async def test_router_forwards_post_prompt_validator_when_dep_returns_validator(
+    app_with_fakes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When ``get_post_prompt_validator`` returns a validator instance
+    (DI-overridden here with a sentinel object), the router must
+    forward that exact instance into ``run_chat(post_prompt=...)``.
+    """
+    sentinel_validator = object()
+    app_with_fakes.dependency_overrides[get_post_prompt_validator] = (
+        lambda: sentinel_validator
+    )
+
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(conv_module, "run_chat", _spy_run_chat_no_op(calls))
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert calls[0]["kwargs"]["post_prompt"] is sentinel_validator

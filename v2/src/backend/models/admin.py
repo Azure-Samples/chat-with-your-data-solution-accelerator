@@ -64,6 +64,10 @@ class AdminConfig(BaseModel):
     search_top_k: int
     log_level: str
     content_safety_enabled: bool
+    cwyd_agent_instructions: str
+    post_answering_prompt: str
+    post_answering_enabled: bool
+    post_answering_filter_message: str
 
 
 # Allow-list of writable `RuntimeConfig` fields (the mutable subset --
@@ -73,6 +77,16 @@ WRITABLE_FIELDS: frozenset[str] = frozenset(
     name
     for name in RuntimeConfig.model_fields
     if name not in {"updated_at", "updated_by"}
+)
+
+
+# Subset of `WRITABLE_FIELDS` whose values are operator-authored system
+# prompts. PATCH funnels each non-empty value at one of these keys
+# through the RAI safety classifier before persisting; the helper is
+# `backend.services.admin.validate_prompt_with_rai`. New prompt-shaped
+# fields auto-gate by adding their key here -- no router-layer edit.
+PROMPT_FIELDS: frozenset[str] = frozenset(
+    {"cwyd_agent_instructions", "post_answering_prompt"}
 )
 
 
@@ -282,6 +296,7 @@ __all__ = [
     "IngestUrlRequest",
     "IngestUrlResponse",
     "ListDocumentsResponse",
+    "PROMPT_FIELDS",
     "ReprocessResponse",
     "UploadResponse",
     "WRITABLE_FIELDS",

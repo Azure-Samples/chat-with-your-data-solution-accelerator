@@ -141,5 +141,23 @@ class BaseLLMProvider(ABC):
             channel=OrchestratorChannel.ANSWER, content=reply.content
         )
 
+    async def supports_reasoning(self, deployment: str | None = None) -> bool:
+        """Whether the model behind ``deployment`` can emit a reasoning summary.
+
+        Concrete on the ABC with a ``False`` default: a provider reports
+        reasoning capability only when it can actually stream a
+        chain-of-thought summary for the resolved deployment. Callers
+        (``complete()`` and the orchestrators) use the result to decide
+        whether to route the answer through the reasoning surface, so a
+        provider that cannot reason degrades to plain chat with no
+        caller-side branching and no configuration flag.
+
+        ``deployment is None`` means "the default answer deployment"
+        (``settings.openai.gpt_deployment``). A provider that determines
+        capability by probing the model resolves the concrete deployment
+        name before checking.
+        """
+        return False
+
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default implementation is a no-op."""

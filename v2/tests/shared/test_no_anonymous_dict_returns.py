@@ -29,11 +29,11 @@ spec):
 **Boundary allow-list** (each entry justified inline; growth requires a
 ``v2/docs/development_plan.md`` §0.1 debt-queue row):
 
-* ``backend.app._request_extras`` — Hard Rule #15(c): builds the
-  ``extra={...}`` payload for ``logger.exception``, which contractually
-  requires ``Mapping[str, object]``. Every caller spreads via ``**`` to add
-  ad-hoc per-call fields, so wrapping in a model just to immediately
-  ``model_dump`` would add noise without value.
+* ``backend.exception_handlers._request_extras`` -- Hard Rule #15(c):
+  builds the ``extra={...}`` payload for ``logger.exception``, which
+  contractually requires ``Mapping[str, object]``. Every caller spreads via
+  ``**`` to add ad-hoc per-call fields, so wrapping in a model just to
+  immediately ``model_dump`` would add noise without value.
 * ``backend.dependencies._decode_easy_auth_principal`` — Hard Rule #15(b):
   decodes the externally-defined Easy Auth ``x-ms-client-principal`` claims
   blob. The schema is owned by Entra; the claims list is dynamic.
@@ -65,7 +65,7 @@ _SRC_ROOT = _V2_ROOT / "src"
 # the module docstring above.
 _ALLOWED: frozenset[tuple[str, str]] = frozenset(
     {
-        ("backend.app", "_request_extras"),
+        ("backend.exception_handlers", "_request_extras"),
         ("backend.dependencies", "_decode_easy_auth_principal"),
         (
             "backend.core.providers.databases.cosmosdb",

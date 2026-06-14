@@ -144,13 +144,17 @@ jobs:
         run: |
           echo "RESOURCE_GROUP: ${{ env.RESOURCE_GROUP_NAME }}"
           set -e
-          echo "Checking if resource group exists..."
+          OWNER_TAG_VALUE="${{ github.actor }}"
+          echo "🔍 Checking if resource group '${{ env.RESOURCE_GROUP_NAME }}' exists..."
           rg_exists=$(az group exists --name ${{ env.RESOURCE_GROUP_NAME }})
           if [ "$rg_exists" = "false" ]; then
-            echo "Resource group does not exist. Creating..."
-            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags SecurityControl=Ignore CreatedBy="Pipeline" || { echo "Error creating resource group"; exit 1; }
+            echo "📦 Resource group does not exist. Creating..."
+            echo "🏷️  Adding Owner tag: Owner=${OWNER_TAG_VALUE}"
+            az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.AZURE_LOCATION }} --tags SecurityControl=Ignore CreatedBy="Pipeline" "Owner=${OWNER_TAG_VALUE}" || { echo "Error creating resource group"; exit 1; }
           else
-            echo "Resource group already exists."
+            echo "✅ Resource group already exists."
+            echo "🏷️  Adding Owner tag on existing resource group: Owner=${OWNER_TAG_VALUE}"
+            az group update --name "${{ env.RESOURCE_GROUP_NAME }}" --set tags.Owner="${OWNER_TAG_VALUE}" --output none || echo "⚠️  Warning: failed to update Owner tag on existing resource group '${{ env.RESOURCE_GROUP_NAME }}'."
           fi
           # Set output for other jobs
           echo "RESOURCE_GROUP_NAME=${{ env.RESOURCE_GROUP_NAME }}" >> $GITHUB_OUTPUT

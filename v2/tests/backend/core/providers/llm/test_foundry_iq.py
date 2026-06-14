@@ -34,6 +34,7 @@ COSMOS_ENV: dict[str, str] = {
     "AZURE_INDEX_STORE": "AzureSearch",
     "AZURE_COSMOS_ENDPOINT": "https://cosmos-cwyd001.documents.azure.com:443/",
     "AZURE_AI_PROJECT_ENDPOINT": "https://foundry-cwyd001.services.ai.azure.com/api/projects/p1",
+    "AZURE_AI_SERVICES_ENDPOINT": "https://foundry-cwyd001.cognitiveservices.azure.com/",
     "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-4o",
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-small",
     "AZURE_OPENAI_REASONING_DEPLOYMENT": "o4-mini",
@@ -228,9 +229,8 @@ async def test_embed_returns_vectors(
     openai.embeddings.create = AsyncMock(
         return_value=_build_openai_embedding_response([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
     )
-    provider = FoundryIQ(
-        settings, fake_credential, project_client=_build_fake_project_client(openai)
-    )
+    project = _build_fake_project_client(openai)
+    provider = FoundryIQ(settings, fake_credential, project_client=project)
     result = await provider.embed(["foo", "bar"])
     assert isinstance(result, EmbeddingResult)
     assert result.model == "text-embedding-3-small"
@@ -238,6 +238,16 @@ async def test_embed_returns_vectors(
     assert result.vectors == [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
     call = openai.embeddings.create.await_args
     assert call.kwargs["input"] == ["foo", "bar"]
+    # Embeddings must request the index's vector width, not the model's
+    # native default (3072 for text-embedding-3-large).
+    assert call.kwargs["dimensions"] == settings.openai.embedding_dimensions
+    # Embeddings are routed to the AI Services *account* endpoint via a
+    # base_url override -- the Foundry project route doesn't serve them.
+    embed_client_call = project.get_openai_client.call_args
+    assert (
+        embed_client_call.kwargs["base_url"]
+        == "https://foundry-cwyd001.cognitiveservices.azure.com/openai/v1"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -324,8 +334,12 @@ async def test_reason_routes_to_reasoning_deployment_and_streams(
     call = responses_create.await_args
     assert call.kwargs["model"] == "o4-mini"
     assert call.kwargs["stream"] is True
-    # Responses API uses `input`, not `messages`.
-    assert call.kwargs["input"] == [{"role": "user", "content": "hi"}]
+    # Responses API uses `input`, not `messages`, and each turn is an
+    # explicit `message`-typed item -- the Responses endpoint rejects a
+    # bare role/content dict with an empty-`type` error.
+    assert call.kwargs["input"] == [
+        {"type": "message", "role": "user", "content": "hi"}
+    ]
     # Reasoning summary requested -- this is what makes gpt-5 emit
     # ResponseReasoningSummaryTextDeltaEvent on the stream.
     assert call.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
@@ -340,6 +354,32 @@ async def test_reason_routes_to_reasoning_deployment_and_streams(
         ("answer", "Final "),
         ("answer", "answer."),
     ]
+
+
+def test_to_responses_input_emits_explicitly_typed_message_items() -> None:
+    """Each turn maps to an explicit `message`-typed Responses item with a
+    plain-string role, so the Responses endpoint classifies it instead of
+    rejecting a bare role/content dict with an empty-`type` error (the
+    shape Chat Completions `messages` would accept but Responses `input`
+    does not)."""
+    items = FoundryIQ._to_responses_input(
+        [
+            ChatMessage(role="system", content="be helpful"),
+            ChatMessage(role="user", content="hi"),
+            ChatMessage(role="assistant", content="hello"),
+        ]
+    )
+
+    # Each item is a typed model whose `model_dump()` is the explicit
+    # `message` wire shape `reason()` sends to the Responses API.
+    assert [item.model_dump() for item in items] == [
+        {"type": "message", "role": "system", "content": "be helpful"},
+        {"type": "message", "role": "user", "content": "hi"},
+        {"type": "message", "role": "assistant", "content": "hello"},
+    ]
+    # Roles serialize as plain `str`, not `ChatRole` enum members, so the
+    # openai SDK emits the bare wire value.
+    assert all(type(item.role) is str for item in items)
 
 
 @pytest.mark.asyncio
@@ -455,6 +495,7 @@ async def test_complete_routes_to_chat_for_default_deployment(
     provider = FoundryIQ(
         settings, fake_credential, project_client=_build_fake_project_client(openai)
     )
+    provider.supports_reasoning = AsyncMock(return_value=False)  # type: ignore[method-assign]
 
     events = [
         ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
@@ -487,6 +528,7 @@ async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
         fake_credential,
         project_client=_build_fake_project_client(openai_client),
     )
+    provider.supports_reasoning = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
     events = [
         ev
@@ -524,6 +566,7 @@ async def test_complete_routes_to_reason_when_default_chat_equals_reasoning(
         fake_credential,
         project_client=_build_fake_project_client(openai_client),
     )
+    provider.supports_reasoning = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
     events = [
         ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
@@ -552,6 +595,7 @@ async def test_complete_routes_to_chat_when_no_reasoning_deployment_configured(
     provider = FoundryIQ(
         s, fake_credential, project_client=_build_fake_project_client(openai)
     )
+    provider.supports_reasoning = AsyncMock(return_value=False)  # type: ignore[method-assign]
 
     events = [
         ev
@@ -577,6 +621,7 @@ async def test_complete_emits_error_event_on_chat_failure(
     provider = FoundryIQ(
         settings, fake_credential, project_client=_build_fake_project_client(openai)
     )
+    provider.supports_reasoning = AsyncMock(return_value=False)  # type: ignore[method-assign]
 
     events = [
         ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
@@ -608,6 +653,7 @@ async def test_complete_propagates_reason_error_events(
         fake_credential,
         project_client=_build_fake_project_client(openai_client),
     )
+    provider.supports_reasoning = AsyncMock(return_value=True)  # type: ignore[method-assign]
 
     events = [
         ev
@@ -619,6 +665,74 @@ async def test_complete_propagates_reason_error_events(
     assert [e.channel for e in events] == ["reasoning", "error"]
     # error event came from reason(), not from complete()'s wrapper.
     assert events[-1].metadata["code"] == "reason_stream_failed"
+
+
+@pytest.mark.asyncio
+async def test_complete_streams_reasoning_when_model_supports_it(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """A reasoning-capable answer model -> the *answer* (gpt) deployment
+    streams through the Responses API with summary requested, emitting
+    reasoning + answer events (the substantive thinking-panel content)."""
+    responses_create = AsyncMock(
+        return_value=_build_reason_stream(
+            [
+                ("weighing the options ", ""),
+                ("", "Final answer."),
+            ]
+        )
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(
+            _wrap_responses_client(responses_create)
+        ),
+    )
+    provider.supports_reasoning = AsyncMock(return_value=True)  # type: ignore[method-assign]
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [
+        ("reasoning", "weighing the options "),
+        ("answer", "Final answer."),
+    ]
+    # Capability detected against the ANSWER deployment (gpt-4o); the
+    # answer streams through the Responses API with the summary
+    # requested -- this is what makes the answer model emit reasoning.
+    provider.supports_reasoning.assert_awaited_once_with("gpt-4o")
+    call = responses_create.await_args
+    assert call.kwargs["model"] == "gpt-4o"
+    assert call.kwargs["stream"] is True
+    assert call.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
+
+
+@pytest.mark.asyncio
+async def test_complete_uses_chat_when_model_lacks_reasoning(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """A non-reasoning answer model -> base behavior: chat()
+    non-streaming, single answer event, Responses API untouched."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("plain answer")
+    )
+    openai.responses.create = AsyncMock()
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    provider.supports_reasoning = AsyncMock(return_value=False)  # type: ignore[method-assign]
+
+    events = [
+        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert [(e.channel, e.content) for e in events] == [("answer", "plain answer")]
+    provider.supports_reasoning.assert_awaited_once_with("gpt-4o")
+    openai.responses.create.assert_not_awaited()
+    assert "stream" not in openai.chat.completions.create.await_args.kwargs
 
 
 # ---------------------------------------------------------------------------
@@ -951,3 +1065,121 @@ async def test_aclose_swallows_and_warns_on_close_failure(
     # lifecycle reset for the next aclose() / reuse cycle).
     assert provider._project_client is None  # type: ignore[attr-defined]
     assert provider._openai_client is None  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# supports_reasoning() -- per-deployment capability probe + cache
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_supports_reasoning_probes_once_and_caches_true(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """A 200 from the Responses-API probe -> capability True, cached so a
+    second call does not re-probe. The probe targets the resolved answer
+    deployment with a reasoning summary requested and a capped output."""
+    responses_create = AsyncMock(return_value=SimpleNamespace())
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(
+            _wrap_responses_client(responses_create)
+        ),
+    )
+
+    first = await provider.supports_reasoning()
+    second = await provider.supports_reasoning()
+
+    assert first is True
+    assert second is True
+    responses_create.assert_awaited_once()
+    call = responses_create.await_args
+    assert call.kwargs["model"] == "gpt-4o"
+    assert call.kwargs["reasoning"] == {"effort": "low", "summary": "auto"}
+    assert call.kwargs["stream"] is False
+    assert call.kwargs["max_output_tokens"] == 256
+
+
+@pytest.mark.asyncio
+async def test_supports_reasoning_caches_false_on_reasoning_rejection(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An explicit `reasoning`-parameter 400 -> capability False, cached
+    (the model definitively cannot reason), and surfaced at INFO."""
+    responses_create = AsyncMock(
+        side_effect=_api_error(
+            "Unsupported parameter: 'reasoning' is not supported with this model."
+        )
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(
+            _wrap_responses_client(responses_create)
+        ),
+    )
+
+    with caplog.at_level("INFO", logger=_FOUNDRY_LOGGER_NAME):
+        first = await provider.supports_reasoning()
+        second = await provider.supports_reasoning()
+
+    assert first is False
+    assert second is False
+    responses_create.assert_awaited_once()
+    record = _find_record(caplog, "supports_reasoning", level="INFO")
+    assert record.deployment == "gpt-4o"
+
+
+@pytest.mark.asyncio
+async def test_supports_reasoning_does_not_cache_transient_failure(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A transient / unrelated error (throttle, auth, 5xx) is NOT a
+    capability verdict: report False WITHOUT caching and re-probe on the
+    next call (which here succeeds -> True)."""
+    responses_create = AsyncMock(
+        side_effect=[_api_error("Rate limit reached. Please retry."), SimpleNamespace()]
+    )
+    provider = FoundryIQ(
+        settings,
+        fake_credential,
+        project_client=_build_fake_project_client(
+            _wrap_responses_client(responses_create)
+        ),
+    )
+
+    with caplog.at_level("WARNING", logger=_FOUNDRY_LOGGER_NAME):
+        first = await provider.supports_reasoning()
+    second = await provider.supports_reasoning()
+
+    assert first is False
+    assert second is True
+    assert responses_create.await_count == 2
+    record = _find_record(caplog, "supports_reasoning", level="WARNING")
+    assert record.deployment == "gpt-4o"
+
+
+def test_is_reasoning_unsupported_classifies_param_and_message() -> None:
+    """The classifier returns True ONLY for an explicit reasoning-param
+    rejection (via `.param` or a message naming it as unsupported), never
+    for transient / unrelated errors."""
+    param_err = openai.APIError(
+        "bad request",
+        httpx.Request("POST", "https://api.openai.com/v1/responses"),
+        body={"param": "reasoning"},
+    )
+    message_err = _api_error(
+        "Unsupported parameter: 'reasoning' is not supported with this model."
+    )
+    throttle_err = _api_error("Rate limit reached. Please retry.")
+    missing_err = _api_error("The model 'gpt-foo' does not exist.")
+
+    assert FoundryIQ._is_reasoning_unsupported(param_err) is True
+    assert FoundryIQ._is_reasoning_unsupported(message_err) is True
+    assert FoundryIQ._is_reasoning_unsupported(throttle_err) is False
+    assert FoundryIQ._is_reasoning_unsupported(missing_err) is False

@@ -1,6 +1,7 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — MACAE re-skin) +
+ *        7 (Testing + Documentation — error toast UX polish)
  *
  * Adapter that bridges our app-owned `<ThemeProvider>` (which persists
  * the active theme to `localStorage["cwyd.theme"]` and mirrors it to
@@ -14,14 +15,22 @@
  * scheme detection) means our toggle button + persistence keep
  * working unchanged; Fluent components just inherit the matching
  * design tokens.
+ *
+ * Also owns the app-wide `<Toaster>` mount keyed by the exported
+ * `TOASTER_ID`. The toaster lives inside `<FluentProvider>` so toast
+ * surfaces inherit the active design tokens; any component below the
+ * bridge can call `useToastController(TOASTER_ID)` to dispatch.
  */
 import {
   FluentProvider,
+  Toaster,
   teamsDarkTheme,
   teamsLightTheme,
 } from "@fluentui/react-components";
 import { type JSX, type ReactNode } from "react";
 import { Theme, useTheme } from "./themeContext";
+
+export const TOASTER_ID = "cwyd-toaster";
 
 export function FluentThemeBridge({
   children,
@@ -34,6 +43,7 @@ export function FluentThemeBridge({
       theme={theme === Theme.Dark ? teamsDarkTheme : teamsLightTheme}
     >
       {children}
+      <Toaster toasterId={TOASTER_ID} />
     </FluentProvider>
   );
 }

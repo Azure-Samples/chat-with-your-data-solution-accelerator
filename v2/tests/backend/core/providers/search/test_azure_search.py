@@ -213,6 +213,48 @@ async def test_search_skips_semantic_when_setting_false(
 
 
 @pytest.mark.asyncio
+async def test_search_semantic_override_true_wins_over_settings_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    settings.search.use_semantic_search = False
+    client = _make_client()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+    await handler.search("ping", use_semantic_search=True)
+    kwargs = client.search.await_args.kwargs
+    assert kwargs.get("query_type") is not None
+    assert kwargs.get("semantic_configuration_name") == "default"
+
+
+@pytest.mark.asyncio
+async def test_search_semantic_override_false_wins_over_settings_true(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    settings.search.use_semantic_search = True
+    client = _make_client()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+    await handler.search("ping", use_semantic_search=False)
+    kwargs = client.search.await_args.kwargs
+    assert "query_type" not in kwargs
+    assert "semantic_configuration_name" not in kwargs
+
+
+@pytest.mark.asyncio
+async def test_search_semantic_none_falls_back_to_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    settings.search.use_semantic_search = True
+    client = _make_client()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+    await handler.search("ping", use_semantic_search=None)
+    kwargs = client.search.await_args.kwargs
+    assert kwargs.get("query_type") is not None
+    assert kwargs.get("semantic_configuration_name") == "default"
+
+
+@pytest.mark.asyncio
 async def test_search_maps_documents_to_search_results(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -546,40 +588,25 @@ async def test_merge_or_upload_documents_logs_and_reraises_on_azure_error(
 # ---------------------------------------------------------------------------
 
 
-def _make_facet_client(
-    facets: dict[str, list[dict[str, Any]]] | None,
-) -> MagicMock:
-    """Build a fake SearchClient whose `search()` returns a paged
-    object exposing `get_facets()` -- the only paged-iterator method
-    `list_sources` uses.
-    """
-    paged = MagicMock()
-    paged.get_facets = AsyncMock(return_value=facets)
-    client = MagicMock()
-    client.search = AsyncMock(return_value=paged)
-    client.close = AsyncMock()
-    return client
-
-
 @pytest.mark.asyncio
-async def test_list_sources_returns_listings_from_title_facets(
+async def test_list_sources_aggregates_distinct_sources_from_paged_titles(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = _settings_for_search(monkeypatch)
-    client = _make_facet_client(
-        {
-            "title": [
-                {"value": "alpha.pdf", "count": 3},
-                {"value": "beta.pdf", "count": 7},
-            ]
-        }
+    # Interleaved chunks across two sources: 3 x alpha, 7 x beta.
+    docs = (
+        [{"title": "beta.pdf"}] * 4
+        + [{"title": "alpha.pdf"}] * 3
+        + [{"title": "beta.pdf"}] * 3
     )
+    client = _make_client(docs)
     handler = AzureSearch(
         settings=settings, credential=MagicMock(), client=client
     )
 
     listings = await handler.list_sources()
 
+    # Sorted alphabetically by source; chunk_count is the per-source tally.
     assert listings == [
         SourceListing(source="alpha.pdf", chunk_count=3, last_modified=None),
         SourceListing(source="beta.pdf", chunk_count=7, last_modified=None),
@@ -587,11 +614,11 @@ async def test_list_sources_returns_listings_from_title_facets(
 
 
 @pytest.mark.asyncio
-async def test_list_sources_passes_facet_expression_and_top_zero(
+async def test_list_sources_pages_titles_without_faceting(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     settings = _settings_for_search(monkeypatch)
-    client = _make_facet_client({"title": []})
+    client = _make_client([])
     handler = AzureSearch(
         settings=settings, credential=MagicMock(), client=client
     )
@@ -600,29 +627,33 @@ async def test_list_sources_passes_facet_expression_and_top_zero(
 
     search_kwargs = client.search.await_args.kwargs
     assert search_kwargs["search_text"] == "*"
-    assert search_kwargs["facets"] == ["title,count:10000,sort:value"]
-    assert search_kwargs["top"] == 0
+    assert search_kwargs["select"] == ["title"]
+    # No faceting -- the index schema may not mark `title` as facetable.
+    assert "facets" not in search_kwargs
 
 
 @pytest.mark.asyncio
-async def test_list_sources_returns_empty_when_no_facets(
+async def test_list_sources_skips_blank_titles_and_returns_empty_when_no_docs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # `get_facets()` can legitimately return None on an empty index or
-    # when the facet field has no values. Treat both as empty list.
     settings = _settings_for_search(monkeypatch)
-    client = _make_facet_client(None)
-    handler = AzureSearch(
-        settings=settings, credential=MagicMock(), client=client
-    )
-
-    assert await handler.list_sources() == []
-
-    client = _make_facet_client({})
+    # Empty index -> no sources.
+    client = _make_client([])
     handler = AzureSearch(
         settings=settings, credential=MagicMock(), client=client
     )
     assert await handler.list_sources() == []
+
+    # Docs with missing / blank titles are skipped; only real sources count.
+    client = _make_client(
+        [{"title": ""}, {}, {"title": "gamma.pdf"}, {"title": "gamma.pdf"}]
+    )
+    handler = AzureSearch(
+        settings=settings, credential=MagicMock(), client=client
+    )
+    assert await handler.list_sources() == [
+        SourceListing(source="gamma.pdf", chunk_count=2, last_modified=None),
+    ]
 
 
 @pytest.mark.asyncio

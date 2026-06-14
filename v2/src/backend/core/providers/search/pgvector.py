@@ -95,9 +95,15 @@ class PgVector(BaseSearch):
         query: str,
         *,
         top_k: int | None = None,
+        use_semantic_search: bool | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
     ) -> Sequence[SearchResult]:
+        # pgvector has no semantic re-ranking mode: retrieval is dense
+        # cosine (`vector` provided) or Postgres FTS (text fallback), so
+        # `use_semantic_search` is accepted for BaseSearch-seam parity
+        # and intentionally has no effect here.
+        _ = use_semantic_search
         cfg = self._settings.search
         effective_top_k = top_k if top_k is not None else cfg.top_k
         # Table name is allow-listed at construction (`self._table`),

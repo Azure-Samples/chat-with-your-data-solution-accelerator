@@ -28,14 +28,18 @@ NOT a registry domain. Tools are imported directly:
     from backend.core.tools.content_safety import ContentSafetyGuard, rai_check
 """
 
-from azure.ai.agents.models import ListSortOrder, MessageRole
+import logging
+
 from azure.ai.contentsafety.aio import ContentSafetyClient
 from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
+from azure.core.exceptions import AzureError
 from pydantic import BaseModel, Field
 
 from backend.core.agents.definitions import RAI_AGENT
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
+
+logger = logging.getLogger(__name__)
 
 
 # Severity threshold above which content is flagged. Azure Content
@@ -115,86 +119,54 @@ async def rai_check(
     Returns `True` when the input is safe to forward to the primary
     agent, `False` when it must be blocked.
 
-    Algorithm (single-turn, fresh thread per call):
+    Builds the dedicated RAI Foundry agent through the shared
+    `build_agent` seam -- the same construction path the chat
+    orchestrator uses for the primary agent -- then issues a single
+    non-streaming `agent.run` and reads the agent's reply text. The
+    named Prompt Agent is resolved / created server-side on first use
+    and addressed by its stable name thereafter; the client-side
+    `agent_framework.Agent` is an async context manager that owns its
+    chat-client transport for the duration of the call.
 
-    1. Resolve the RAI agent id via the lazy DB-backed resolver landed
-       in CU-010c (`agents.get_or_create_agent(RAI_AGENT, db)`). This
-       creates the agent in Foundry on first call, persists the id in
-       the chat-history database, and caches the result for every
-       subsequent process-local call.
-    2. Create a fresh thread, post `text` as a user message, process a
-       run against the resolved agent.
-    3. Read the first assistant message produced by *this* run (filtered
-       by `run_id` to ignore prior turns -- defensive, since wiring uses
-       a fresh thread per call today).
-    4. Parse the response: case-insensitive whitespace-stripped prefix
-       `TRUE` -> safe (return `True`). Anything else (`FALSE`, refusal,
-       empty content, unparseable, run failure) -> unsafe (return
-       `False`). This fail-closed default is the only safe behavior for
-       a guard whose output gates whether harmful input reaches the
-       primary agent.
+    Verdict parsing: a case-insensitive, whitespace-stripped reply
+    that starts with `TRUE` means safe (return `True`). Anything else
+    -- `FALSE`, a refusal, empty content, or unparseable prose --
+    means unsafe (return `False`). This fail-closed default is the
+    only safe behavior for a guard whose output gates whether harmful
+    input reaches the primary agent.
 
     Empty / whitespace-only input is treated as safe and skips the
     Foundry round-trip -- mirrors `ContentSafetyGuard.screen()` and
     avoids spending a round-trip on idle prompts.
 
+    A transport failure of the RAI agent (`AzureError`) is logged at
+    the SDK boundary and re-raised rather than degraded to a verdict,
+    so an outage surfaces as an error to the caller instead of
+    masquerading as a policy block.
+
     MACAE attribution: the TRUE/FALSE classifier prompt shape and the
-    "dedicated agent on its own deployment" pattern are adapted from
-    `common/utils/utils_af.py::create_RAI_agent`. v2 deviations:
-    (a) lazy DB-backed resolution instead of MACAE's env-var
-    `AZURE_OPENAI_RAI_DEPLOYMENT_NAME`; (b) `AgentDefinition` carries
-    the system prompt + deployment indirection so the resolver is
-    agent-agnostic.
+    dedicated-agent pattern are adapted from
+    `common/utils/utils_af.py::create_RAI_agent`. The RAI agent's
+    model deployment is selected via `AgentDefinition.deployment_attr`
+    instead of MACAE's per-RAI env var.
     """
     if not text or not text.strip():
         return True
 
-    agent_id = await agents.get_or_create_agent(RAI_AGENT, db)
-    client = agents.get_client()
+    agent = await agents.build_agent(RAI_AGENT, db)
+    async with agent:
+        try:
+            response = await agent.run(text)
+        except AzureError:
+            logger.exception(
+                "rai_check agent run failed",
+                extra={
+                    "operation": "rai_check",
+                    "provider": "agent_framework",
+                    "agent_name": RAI_AGENT.name,
+                },
+            )
+            raise
 
-    thread = await client.threads.create()
-    await client.messages.create(
-        thread_id=thread.id,
-        role=MessageRole.USER,
-        content=text,
-    )
-    run = await client.runs.create_and_process(
-        thread_id=thread.id,
-        agent_id=agent_id,
-    )
-    if getattr(run, "status", None) == "failed":
-        return False
-
-    async for thread_msg in client.messages.list(
-        thread_id=thread.id,
-        run_id=run.id,
-        order=ListSortOrder.ASCENDING,
-    ):
-        if thread_msg.role != MessageRole.AGENT:
-            continue
-        verdict = _extract_text(thread_msg).strip().upper()
-        if not verdict:
-            continue
-        return verdict.startswith(_RAI_SAFE_PREFIX)
-
-    # No assistant message produced -- treat as unsafe (fail-closed).
-    return False
-
-
-def _extract_text(thread_msg: object) -> str:
-    """Pull the text out of a Foundry `ThreadMessage`.
-
-    Agent message content is a list of typed blocks (text, image,
-    file). We concatenate all text blocks in order; non-text blocks
-    are ignored. Mirrors `AgentFrameworkOrchestrator._extract_text`
-    (orchestrators/agent_framework.py); duplicated rather than
-    cross-imported because tools and orchestrators live in independent
-    layers and a one-line helper isn't worth a shared dependency.
-    """
-    parts: list[str] = []
-    for block in getattr(thread_msg, "content", []) or []:
-        text_block = getattr(block, "text", None)
-        value = getattr(text_block, "value", None) if text_block is not None else None
-        if value:
-            parts.append(value)
-    return "".join(parts)
+    verdict = response.text.strip().upper()
+    return verdict.startswith(_RAI_SAFE_PREFIX)

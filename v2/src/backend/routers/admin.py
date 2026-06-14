@@ -58,12 +58,14 @@ from pydantic import ValidationError
 
 from backend.dependencies import (
     AdminUserIdDep,
+    AgentsProviderDep,
     CredentialDep,
     DatabaseClientDep,
     RuntimeOverridesDep,
     SearchProviderDep,
     SettingsDep,
 )
+from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.models.admin import (
     APP_VERSION,
@@ -75,11 +77,12 @@ from backend.models.admin import (
     IngestUrlRequest,
     IngestUrlResponse,
     ListDocumentsResponse,
+    PROMPT_FIELDS,
     ReprocessResponse,
     UploadResponse,
     WRITABLE_FIELDS,
 )
-from backend.services.admin import host_only, utcnow_iso
+from backend.services.admin import host_only, utcnow_iso, validate_prompt_with_rai
 from backend.services.ingestion import (
     MAX_UPLOAD_SIZE_BYTES,
     ingest_url,
@@ -141,6 +144,10 @@ async def config_endpoint(
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
         content_safety_enabled=settings.content_safety.enabled,
+        cwyd_agent_instructions=CWYD_AGENT.instructions,
+        post_answering_prompt="",
+        post_answering_enabled=False,
+        post_answering_filter_message="",
     )
 
 
@@ -168,6 +175,10 @@ async def config_effective_endpoint(
         "search_top_k": settings.search.top_k,
         "log_level": settings.observability.log_level,
         "content_safety_enabled": settings.content_safety.enabled,
+        "cwyd_agent_instructions": CWYD_AGENT.instructions,
+        "post_answering_prompt": "",
+        "post_answering_enabled": False,
+        "post_answering_filter_message": "",
     }
     merged: dict[str, Any] = dict(env_values)
     sources: dict[str, ConfigSource] = {
@@ -221,6 +232,7 @@ async def patch_config_endpoint(
     request: Request,
     db: DatabaseClientDep,
     user_id: AdminUserIdDep,
+    agents: AgentsProviderDep,
     payload: Annotated[dict[str, Any], Body(...)],
 ) -> RuntimeConfig:
     """Apply an RFC 7396 JSON Merge Patch to the persisted
@@ -253,6 +265,34 @@ async def patch_config_endpoint(
                 "allowed_fields": sorted(WRITABLE_FIELDS),
             },
         )
+
+    # --- RAI safety gate on operator-authored prompts. Runs BEFORE the
+    # merge / type validation / upsert / live-reload / audit chain so a
+    # rejected payload never lands in storage and never triggers an audit
+    # row (matches the 422-validation precedent below). Only fields keyed
+    # in `PROMPT_FIELDS` are screened; clearing a prompt (`null`) and
+    # empty / whitespace strings short-circuit the classifier so the
+    # operator can revert to the default without paying a Foundry
+    # round-trip.
+    for field_name in PROMPT_FIELDS:
+        if field_name not in payload:
+            continue
+        value = payload[field_name]
+        if not isinstance(value, str):
+            # Non-string values (`null`, numerics) are handled by the
+            # downstream Pydantic type check on the merged shape; the
+            # RAI gate only classifies actual prompt text.
+            continue
+        reason = await validate_prompt_with_rai(value, agents, db)
+        if reason is not None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "msg": "RAI safety check rejected the submitted prompt",
+                    "field": field_name,
+                    "reason": reason,
+                },
+            )
 
     # --- Read current overrides; default to a fresh RuntimeConfig on cold
     # start so the first-ever PATCH still goes through the merge path.

@@ -49,7 +49,12 @@ async def test_single_paragraph_yields_single_chunk() -> None:
     parser = TextParser()
     chunks = await parser.parse(b"hello world", source="greeting.txt")
     assert chunks == [
-        Chunk(id="greeting.txt__0", content="hello world", source="greeting.txt", index=0),
+        Chunk(
+            id=BaseParser.make_chunk_id("greeting.txt", 0),
+            content="hello world",
+            source="greeting.txt",
+            index=0,
+        ),
     ]
 
 @pytest.mark.asyncio
@@ -57,8 +62,18 @@ async def test_blank_line_splits_into_two_chunks_with_sequential_indices() -> No
     parser = TextParser()
     chunks = await parser.parse(b"first para\n\nsecond para", source="doc.txt")
     assert chunks == [
-        Chunk(id="doc.txt__0", content="first para", source="doc.txt", index=0),
-        Chunk(id="doc.txt__1", content="second para", source="doc.txt", index=1),
+        Chunk(
+            id=BaseParser.make_chunk_id("doc.txt", 0),
+            content="first para",
+            source="doc.txt",
+            index=0,
+        ),
+        Chunk(
+            id=BaseParser.make_chunk_id("doc.txt", 1),
+            content="second para",
+            source="doc.txt",
+            index=1,
+        ),
     ]
 
 @pytest.mark.asyncio
@@ -67,7 +82,22 @@ async def test_multiple_blank_lines_and_whitespace_collapse_to_one_split() -> No
     payload = b"one\n\n\n  \n\ntwo\r\n\r\nthree"
     chunks = await parser.parse(payload, source="x.txt")
     assert chunks == [
-        Chunk(id="x.txt__0", content="one", source="x.txt", index=0),
-        Chunk(id="x.txt__1", content="two", source="x.txt", index=1),
-        Chunk(id="x.txt__2", content="three", source="x.txt", index=2),
+        Chunk(
+            id=BaseParser.make_chunk_id("x.txt", 0),
+            content="one",
+            source="x.txt",
+            index=0,
+        ),
+        Chunk(
+            id=BaseParser.make_chunk_id("x.txt", 1),
+            content="two",
+            source="x.txt",
+            index=1,
+        ),
+        Chunk(
+            id=BaseParser.make_chunk_id("x.txt", 2),
+            content="three",
+            source="x.txt",
+            index=2,
+        ),
     ]

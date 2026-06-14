@@ -145,6 +145,61 @@ Builds [v2/docker/Dockerfile.frontend](../docker/Dockerfile.frontend) with the `
 # Expect 200.
 ```
 
+#### 3.3.1 Pinned-tag deploy (operator alternative to `azd deploy frontend`)
+
+Use this path when you need (a) traceable image tags for audit, (b) faster iteration than the full `azd` build, or (c) to recover from a stale `:latest` that masks which build is live. Tag scheme: `cwyd-<UTC_YYYYMMDDHHMM>-<GIT_SHA7>`.
+
+```powershell
+# Variables (operator runs from v2/)
+$ACR_NAME = "cr<SUFFIX>"
+$ACR_LOGIN = "$ACR_NAME.azurecr.io"
+$REPO = "chat-with-your-data-v2/frontend-<AZD_ENV_NAME>"
+$SHA7 = (git rev-parse --short=7 HEAD)
+$STAMP = (Get-Date -AsUTC -Format "yyyyMMddHHmm")
+$TAG = "cwyd-$STAMP-$SHA7"
+$IMAGE = "$ACR_LOGIN/${REPO}:$TAG"
+
+# Build (linux/amd64 for App Service Linux) and push
+az acr login -n $ACR_NAME
+docker build --platform linux/amd64 -f docker/Dockerfile.frontend --target prod `
+  --build-arg VITE_BACKEND_URL=<AZURE_BACKEND_URL> `
+  -t $IMAGE .
+docker push $IMAGE
+
+# Pin the new tag onto the site (linuxFxVersion + MI pull creds)
+$SITE_ID = "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.Web/sites/app-frontend-<SUFFIX>"
+az webapp config container set -g <RESOURCE_GROUP> -n app-frontend-<SUFFIX> --container-image-name $IMAGE
+az resource update --ids "$SITE_ID/config/web" `
+  --set "properties.acrUseManagedIdentityCreds=true" `
+        "properties.acrUserManagedIdentityID=<AZURE_UAMI_CLIENT_ID>"
+az webapp restart -g <RESOURCE_GROUP> -n app-frontend-<SUFFIX>
+```
+
+> **Footgun:** `az webapp config container set` does **not** persist `acrUserManagedIdentityID`. Always follow it with the `az resource update --ids "$SITE_ID/config/web"` form shown above — the `az webapp config container set --identity` shorthand silently drops the value on a subsequent revision.
+
+#### 3.3.2 Prerequisites for managed-identity ACR pull
+
+App Service pulls the image as the site identity. Both must be true:
+
+1. The UAMI (or SMI) holds **AcrPull** on the registry:
+
+   ```powershell
+   az role assignment create --assignee-object-id <AZURE_UAMI_PRINCIPAL_ID> `
+     --assignee-principal-type ServicePrincipal --role AcrPull `
+     --scope "/subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.ContainerRegistry/cr<SUFFIX>"
+   ```
+
+2. The registry has **Azure AD authentication as ARM** enabled (default on new ACRs is **disabled** for Basic SKU):
+
+   ```powershell
+   az acr config authentication-as-arm update -r cr<SUFFIX> --status enabled
+   # Verify:
+   az acr show -n cr<SUFFIX> --query "policies.azureAdAuthenticationAsArmPolicy.status" -o tsv
+   # Expect: enabled
+   ```
+
+   Without this, MI-based pulls fail with `ACRTokenRetrievalFailure -- Unauthorized` even when AcrPull is correctly assigned — App Service exchanges the MI's AAD token for an ACR refresh token via the ARM path, which the policy gates.
+
 ---
 
 ## 4. Foundry agent bootstrap
@@ -212,6 +267,7 @@ See [agents.md](agents.md) §4.1 for the full procedure.
 | First chat call returns 500 / no agent created | Cold start exceeded request timeout | Re-issue the request; the agent persists from the first partial run |
 | `/api/health/ready` returns `fail` for `foundry` check | Foundry data-plane RBAC missing on `id-<SUFFIX>` | Verify role `Azure AI Developer` on `aisa-<SUFFIX>` for the UAMI |
 | Indexing pipeline silent after blob upload | Event Grid subscription on `evgt-<DATA_SUFFIX>` not routed to the function queue | `az eventgrid event-subscription list --source-resource-id <evgt-id>` and verify the `doc-processing` queue is the endpoint |
+| Frontend container fails to start with `ACRTokenRetrievalFailure -- Unauthorized` in docker log | Any of: (a) `azureAdAuthenticationAsArmPolicy` disabled on ACR; (b) `acrUserManagedIdentityID` not persisted on site config; (c) AcrPull missing on the chosen identity; (d) legacy `DOCKER_REGISTRY_SERVER_URL/USERNAME/PASSWORD` app settings still present and colliding with MI mode | See §3.3.2 for (a) + (c). For (b) use `az resource update --ids "$SITE_ID/config/web" --set properties.acrUserManagedIdentityID=<AZURE_UAMI_CLIENT_ID>` (the `az webapp config container set` form does not persist it). For (d) `az webapp config appsettings delete -g <RESOURCE_GROUP> -n app-frontend-<SUFFIX> --setting-names DOCKER_REGISTRY_SERVER_URL DOCKER_REGISTRY_SERVER_USERNAME DOCKER_REGISTRY_SERVER_PASSWORD`. Always pin a discrete tag (§3.3.1) rather than `:latest` — `:latest` masks which build is live and blocks root-cause analysis. After multiple consecutive failures, App Service applies a ~2 min cold-start block (`Site is blocked due to multiple, consecutive cold start failures`); wait it out before retrying. |
 
 ---
 

@@ -5,6 +5,8 @@
  * Header toolbar slot for the right side of <Header>. Owns the icon
  * buttons that wrap into the header chrome:
  *   - new chat        (delegates to onNewChat)
+ *   - admin entry     (delegates to onOpenAdmin; only rendered when
+ *                      the caller reports adminAvailable === true)
  *   - history toggle  (delegates to onToggleHistory; aria-pressed
  *                      mirrors historyOpen)
  *   - theme toggle    (delegates to ThemeProvider via useTheme())
@@ -27,6 +29,7 @@ import {
 import {
   Add20Regular,
   History20Regular,
+  Settings20Regular,
   WeatherMoon20Regular,
   WeatherSunny20Regular,
 } from "@fluentui/react-icons";
@@ -38,12 +41,16 @@ export interface HeaderToolsProps {
   historyOpen: boolean;
   onToggleHistory: () => void;
   onNewChat: () => void;
+  adminAvailable?: boolean | null;
+  onOpenAdmin?: () => void;
 }
 
 export function HeaderTools({
   historyOpen,
   onToggleHistory,
   onNewChat,
+  adminAvailable,
+  onOpenAdmin,
 }: HeaderToolsProps): JSX.Element {
   const { theme, toggleTheme } = useTheme();
   const nextTheme =
@@ -69,6 +76,16 @@ export function HeaderTools({
         icon={<Add20Regular />}
         onClick={onNewChat}
       />
+      {adminAvailable === true && onOpenAdmin !== undefined && (
+        <ToolbarButton
+          appearance="subtle"
+          aria-label="Admin"
+          title="Admin"
+          data-testid="header-admin"
+          icon={<Settings20Regular />}
+          onClick={onOpenAdmin}
+        />
+      )}
       <ToolbarToggleButton
         appearance="subtle"
         aria-label="History"

@@ -178,6 +178,15 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
 // CU-009a (2026-05-05): a previous Bicep param + container-app env
 // binding for the Foundry agent identity were removed. Per ADR 0008
 // (lazy-foundry-agent-bootstrap), agent identity is no longer an
@@ -191,8 +200,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // WAF flags             //
 // ===================== //
 
-@description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.')
-param enableMonitoring bool = false
+@description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource. Defaults to `true` for any deployed env (ADR-0018): observability is Stable Core, not a WAF opt-in. The `false` branch stays only for `bicep build` self-checks and unit tests.')
+param enableMonitoring bool = true
 
 @description('Optional. Higher SKUs and autoscaling on App Service Plan, Container Apps, Search, and PostgreSQL.')
 param enableScalability bool = false
@@ -307,6 +316,16 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = if (en
     applicationType: 'web'
     kind: 'web'
     disableLocalAuth: true
+    // The UAMI ingests telemetry via Entra (local auth disabled above).
+    // Without `Monitoring Metrics Publisher` every workload write path
+    // silently 401s and telemetry vanishes. ADR-0018.
+    roleAssignments: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Monitoring Metrics Publisher'
+      }
+    ]
   }
 }
 
@@ -954,6 +973,46 @@ resource existingSearchProjectIndexReader 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Foundry IQ knowledge bases call their query-planning chat model with
+// the Search service's system-assigned managed identity (the knowledge
+// base model `authIdentity` is null, which defaults to the Search MI).
+// That identity therefore needs Cognitive Services OpenAI User on the
+// account hosting the chat deployment, or the model call 401s and
+// knowledge-base retrieval returns nothing. The chat model lives on the
+// new Foundry account (default) or a reused v1 OpenAI account
+// (`useExistingOpenAi`); the principal is the new Search service's
+// system MI. Reusing an existing Search service (`useExistingSearch`)
+// is not covered here because v2 does not own that service's identity
+// configuration — grant Cognitive Services OpenAI User to the reused
+// Search service's identity on the chat-model account manually.
+resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
+  name: aiServicesName
+}
+
+resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
+  name: guid(aiServicesName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: aiServicesAccount
+  properties: {
+    // Cognitive Services OpenAI User — lets the Search MI call the KB
+    // query-planning chat deployment on the Foundry account.
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource searchOpenAiUserOnReusedOpenAi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && useExistingOpenAi) {
+  name: guid(existingOpenAiName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: existingOpenAi
+  properties: {
+    // Cognitive Services OpenAI User — lets the Search MI call the KB
+    // query-planning chat deployment on the reused v1 OpenAI account.
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
 var effectiveSearchName = useExistingSearch ? existingSearchName : (databaseType == 'cosmosdb' ? aiSearch!.outputs.name : '')
 var effectiveSearchEndpoint = useExistingSearch ? 'https://${existingSearchName}.search.windows.net' : (databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '')
 
@@ -966,6 +1025,7 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
     aiServicesAccountName: aiServicesName
     projectName: aiProject.outputs.name
     searchServiceName: effectiveSearchName
+    knowledgeBaseName: searchKnowledgeBaseName
   }
 }
 
@@ -1231,6 +1291,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
       'EnableServerless'
     ]
     networkRestrictions: {
+      networkAclBypass: 'None'
       publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     }
     diagnosticSettings: enableMonitoring
@@ -1677,6 +1738,20 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
             { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
             { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
+            // Foundry IQ knowledge base config (agent_framework orchestrator).
+            // The agent grounds on the KB via the Search MCP endpoint
+            // ({search}/knowledgebases/{kb}/mcp?api-version=<ver>); the
+            // api-version is operator-tunable so the KB protocol can advance
+            // without a new image. Defaults match the names post_provision.py
+            // seeds; resolved through the Project-Search connection.
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
+            // Foundry Project ↔ Search connection name (category CognitiveSearch).
+            // The agent_framework orchestrator passes this as the KB MCP tool's
+            // project_connection_id so Foundry IQ executes retrieval server-side
+            // under the Project identity. Empty in postgresql mode (no connection).
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
@@ -2247,6 +2322,15 @@ output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveS
 
 @description('AI Search service name. Empty in postgresql mode.')
 output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? effectiveSearchName : ''
+
+@description('Foundry IQ knowledge base name. Backend grounds the agent_framework orchestrator on it; post_provision.py seeds it. Carries the configured name in both modes (post_provision skips seeding when the Search endpoint is empty).')
+output AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME string = searchKnowledgeBaseName
+
+@description('Foundry IQ knowledge source name backing the knowledge base. Seeded by post_provision.py before the knowledge base (the base references it).')
+output AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME string = searchKnowledgeSourceName
+
+@description('Foundry IQ knowledge base / knowledge source REST API version (operator-tunable). Used by post_provision.py to seed and by the backend to build the MCP retrieval URL.')
+output AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION string = searchKnowledgeBaseApiVersion
 
 // --- Conditional: Cosmos DB (cosmosdb mode only) ---
 

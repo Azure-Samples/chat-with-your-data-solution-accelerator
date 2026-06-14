@@ -25,7 +25,7 @@ Design rules (binding):
 
 from enum import StrEnum
 from functools import lru_cache
-from typing import Annotated, Any, Literal, cast
+from typing import Annotated, Any, cast
 
 import json
 
@@ -85,6 +85,25 @@ class IndexStore(StrEnum):
 
     AZURE_SEARCH = "AzureSearch"
     PGVECTOR = "pgvector"
+
+
+class OrchestratorName(StrEnum):
+    """Registry key for the chat orchestrator.
+
+    Values are the registry keys passed to
+    `orchestrators_registry.registry.get(...)`. `StrEnum` subclasses
+    `str` so dict lookups and JSON serialization round-trip unchanged;
+    the enum exists to satisfy Hard Rule #11 at the comparison sites.
+
+    Members:
+        LANGGRAPH: app-owned LangGraph RAG pipeline; works on either
+            index store.
+        AGENT_FRAMEWORK: Foundry agent delegation grounded by a Foundry
+            IQ Knowledge Base over the Azure AI Search index.
+    """
+
+    LANGGRAPH = "langgraph"
+    AGENT_FRAMEWORK = "agent_framework"
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +230,19 @@ class SearchSettings(BaseSettings):
     use_semantic_search: bool = True
     top_k: int = 5
 
+    # Foundry IQ Knowledge Base over `index`: a `searchIndex` knowledge source
+    # wraps the existing index, and the agent_framework orchestrator grounds on
+    # the KB. `knowledge_base_api_version` pins the KB REST API version so an
+    # operator can bump it via env var without a code change.
+    knowledge_base_name: str = "cwyd-kb"
+    knowledge_source_name: str = "cwyd-index-ks"
+    knowledge_base_api_version: str = "2025-11-01-preview"
+
+    # Foundry project connection (category CognitiveSearch) that the KB MCP
+    # tool references for server-side retrieval; surfaced from infra as
+    # `AZURE_AI_SEARCH_CONNECTION_NAME`. Empty in postgresql mode (no KB).
+    connection_name: str = ""
+
 
 class StorageSettings(BaseSettings):
     """Shared storage account (RAG documents + indexing queues)."""
@@ -316,13 +348,21 @@ class OrchestratorSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="CWYD_ORCHESTRATOR_", extra="ignore")
 
-    # `Literal[...] | str` widening per Hard Rule #11 registry-driven
-    # carve-out: the first-party closed set stays `"langgraph" |
-    # "agent_framework"`, but the `str` arm admits any third-party
-    # orchestrator key registered against `cwyd.providers.orchestrators`
-    # via `backend.core.discovery.load_entry_points`. Validation moves
-    # to the registry boundary (`orchestrators_registry.registry.get(...)`).
-    name: Literal["langgraph", "agent_framework"] | str = "langgraph"
+    # `OrchestratorName | str` widening per Hard Rule #11 registry-driven
+    # carve-out: the first-party closed set is the `OrchestratorName`
+    # StrEnum, but the `str` arm admits any third-party orchestrator key
+    # registered against `cwyd.providers.orchestrators` via
+    # `backend.core.discovery.load_entry_points`. Validation moves to the
+    # registry boundary (`orchestrators_registry.registry.get(...)`).
+    #
+    # Default is `AGENT_FRAMEWORK` (ADR 0021): Foundry agent delegation
+    # grounded by a Foundry IQ Knowledge Base over the Azure AI Search
+    # index. That pairing requires the `AzureSearch` index store, so
+    # pgvector deployments must override to `LANGGRAPH`; selecting
+    # `agent_framework` in pgvector mode is rejected at request time with
+    # a `ConfigResolutionError` (HTTP 409) per ADR 0022 -- never a silent
+    # fallback.
+    name: OrchestratorName | str = OrchestratorName.AGENT_FRAMEWORK
 
 
 class ContentSafetySettings(BaseSettings):
@@ -336,13 +376,15 @@ class ContentSafetySettings(BaseSettings):
     ``https://cs-cwyd001.cognitiveservices.azure.com/``). When empty
     the lifespan wiring leaves ``app.state.content_safety_client`` as
     ``None`` and `get_content_safety_guard` returns ``None`` so the
-    chat pipeline runs unguarded -- matching the v1
-    ``enable_content_safety: false`` default.
+    chat pipeline runs unguarded -- a missing endpoint disables the
+    guard even when `enabled` is True.
 
-    `enabled` is the operator opt-in. Both `enabled=True` AND a
-    non-empty `endpoint` are required to build the client at lifespan
-    start; either alone is a misconfiguration that the wiring layer
-    treats as "off" (no guard injected, no exception raised).
+    `enabled` is the operator switch and defaults to True
+    (secure-by-default). Both `enabled=True` AND a non-empty `endpoint`
+    are required to build the client at lifespan start; either alone is
+    treated as "off" by the wiring layer (no guard injected, no
+    exception raised), so the default is inert until an endpoint is
+    configured.
 
     `severity_threshold` is the inclusive lower bound at which Content
     Safety verdicts trip. Azure reports severity 0/2/4/6 (0 = safe,
@@ -362,7 +404,7 @@ class ContentSafetySettings(BaseSettings):
     )
 
     endpoint: str = ""
-    enabled: bool = False
+    enabled: bool = True
     severity_threshold: int = Field(default=4, ge=0, le=7)
 
 

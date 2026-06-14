@@ -300,6 +300,8 @@ You can also update the `principalId` value in `infra/main.bicep` with your Prin
 
 **Note**: RBAC permission changes can take 5-10 minutes to propagate. If you encounter "Forbidden" errors after assigning roles, wait a few minutes and try again.
 
+> **⚠️ Important**: If your deployment uses WAF or VNET-secured resources with private endpoints, you must enable public network access on all Azure services (Storage, OpenAI, Cognitive Services, Key Vault, PostgreSQL, etc.) to allow local development traffic.
+
 ### 4.4. Configure Authentication Type
 
 

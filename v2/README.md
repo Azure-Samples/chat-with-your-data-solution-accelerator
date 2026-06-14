@@ -37,6 +37,41 @@ docker compose -f v2/docker/docker-compose.dev.yml --profile backend-only up
 docker compose -f v2/docker/docker-compose.dev.yml --profile frontend-only up
 ```
 
+## Testing
+
+Run the default suite (unit tests + shared discipline gates) from the `v2/`
+directory. The `smoke` and `integration` markers are deselected by default,
+so this lane is fully hermetic — it never touches the network:
+
+```bash
+cd v2
+uv run pytest -q
+```
+
+### Integration lane (live Azure)
+
+An opt-in lane boots the **real** FastAPI app in-process and drives it
+against the **real** Azure data-plane services configured in `v2/.env`
+(LLM, Foundry IQ / Azure Search, chat-history database). It asserts on
+behavioral invariants — grounded answers, citation presence, the fixed
+out-of-domain fallback, the SSE channel set, the admin role gate, and a
+chat-history CRUD round-trip — never on environment-specific values.
+
+Prerequisites: a populated `v2/.env` (see [docs/env-vars.md](docs/env-vars.md))
+and `az login`. The lane self-skips when `v2/.env` is absent or missing the
+required keys, so it is safe to leave deselected in CI.
+
+```bash
+cd v2
+az login
+uv run --env-file .env pytest -m integration tests/integration -v
+```
+
+The `--env-file .env` flag injects the real configuration; the lane re-loads
+it past the unit-suite's env stripper. Tests that need a specific backend
+(e.g. cosmosdb mode, the `agent_framework` orchestrator) skip with a
+capability reason when the configured deployment does not match.
+
 ## Layout
 
 ```

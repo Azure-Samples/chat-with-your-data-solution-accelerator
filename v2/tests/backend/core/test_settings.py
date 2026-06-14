@@ -18,6 +18,7 @@ from backend.core.settings import (
     DbType,
     DocumentIntelligenceSettings,
     IndexStore,
+    OrchestratorName,
     OrchestratorSettings,
     SpeechSettings,
     get_settings,
@@ -126,6 +127,35 @@ def test_loads_from_env_postgresql_mode(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.search.endpoint == ""
 
 
+def test_search_knowledge_base_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set(monkeypatch, COSMOS_ENV)
+    settings = AppSettings()
+    assert settings.search.knowledge_base_name == "cwyd-kb"
+    assert settings.search.knowledge_source_name == "cwyd-index-ks"
+    assert settings.search.knowledge_base_api_version == "2025-11-01-preview"
+    assert settings.search.connection_name == ""
+
+
+def test_search_knowledge_base_env_override_beats_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _set(
+        monkeypatch,
+        {
+            **COSMOS_ENV,
+            "AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME": "kb-custom",
+            "AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME": "ks-custom",
+            "AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION": "2026-04-01",
+            "AZURE_AI_SEARCH_CONNECTION_NAME": "search-conn-custom",
+        },
+    )
+    settings = AppSettings()
+    assert settings.search.knowledge_base_name == "kb-custom"
+    assert settings.search.knowledge_source_name == "ks-custom"
+    assert settings.search.knowledge_base_api_version == "2026-04-01"
+    assert settings.search.connection_name == "search-conn-custom"
+
+
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
@@ -213,10 +243,35 @@ def test_index_store_validation_rejects_third_party_with_first_party_cosmos(
         AppSettings()
 
 
-def test_orchestrator_default_is_langgraph(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_orchestrator_default_is_agent_framework(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The cloud default orchestrator is `agent_framework` (ADR 0021),
+    grounded by a Foundry IQ Knowledge Base over the Azure AI Search
+    index. `COSMOS_ENV` is AzureSearch-backed, so the default pairing is
+    valid; pgvector deployments must override to `langgraph` (ADR 0022).
+    """
     _set(monkeypatch, COSMOS_ENV)
     settings = AppSettings()
-    assert settings.orchestrator.name == "langgraph"
+    assert settings.orchestrator.name == OrchestratorName.AGENT_FRAMEWORK
+
+
+def test_orchestrator_name_enum_pins_first_party_keys() -> None:
+    """`OrchestratorName` is the StrEnum canonical home for the
+    first-party orchestrator registry keys (Hard Rule #11 registry-
+    driven carve-out). The field default is the enum member -- not a
+    bare string -- so every internal comparison routes through it.
+    """
+    assert OrchestratorName.LANGGRAPH == "langgraph"
+    assert OrchestratorName.AGENT_FRAMEWORK == "agent_framework"
+    assert {member.value for member in OrchestratorName} == {
+        "langgraph",
+        "agent_framework",
+    }
+    assert (
+        OrchestratorSettings.model_fields["name"].default
+        is OrchestratorName.AGENT_FRAMEWORK
+    )
 
 
 @pytest.mark.parametrize(
@@ -228,9 +283,9 @@ def test_orchestrator_accepts_third_party_registry_key(
     third_party_key: str,
 ) -> None:
     """Hard Rule #11 registry-driven carve-out: `OrchestratorSettings.name`
-    is typed `Literal["langgraph", "agent_framework"] | str` so a
-    third-party-registered orchestrator key flows through Pydantic
-    unmodified. Settings-time rejection of unknown keys is gone; dispatch-
+    is typed `OrchestratorName | str` so a third-party-registered
+    orchestrator key flows through Pydantic unmodified via the `str`
+    arm. Settings-time rejection of unknown keys is gone; dispatch-
     time validation moves to the registry boundary
     (`orchestrators_registry.registry.get(name)` raises `KeyError`
     listing every registered key).
@@ -255,7 +310,7 @@ def test_orchestrator_can_be_set_to_agent_framework(
     monkeypatch.delenv("AZURE_AI_AGENT_ID", raising=False)
     monkeypatch.delenv("CWYD_ORCHESTRATOR_AGENT_ID", raising=False)
     settings = AppSettings()
-    assert settings.orchestrator.name == "agent_framework"
+    assert settings.orchestrator.name == OrchestratorName.AGENT_FRAMEWORK
 
 
 # ---------------------------------------------------------------------------
@@ -486,7 +541,10 @@ def test_content_safety_settings_defaults_when_unset(
         monkeypatch.delenv(key, raising=False)
     settings = AppSettings()
     assert settings.content_safety.endpoint == ""
-    assert settings.content_safety.enabled is False
+    # Secure-by-default: the guard opts IN by default. With no endpoint
+    # configured the lifespan still builds no client (the gate needs
+    # both), so this default is inert until an endpoint is set.
+    assert settings.content_safety.enabled is True
     # Azure Content Safety severity is 0/2/4/6; default trips on
     # `medium` (4) -- matches `ContentSafetyGuard.DEFAULT_SEVERITY_THRESHOLD`.
     assert settings.content_safety.severity_threshold == 4

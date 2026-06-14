@@ -394,6 +394,42 @@ def test_runtime_config_partial_override_preserves_content_safety_unset() -> Non
     assert rc.log_level is None
 
 
+def test_runtime_config_cwyd_agent_instructions_defaults_to_none() -> None:
+    """`cwyd_agent_instructions` joins the existing mutable fields with
+    the same `T | None = None` shape — None means 'no admin override,
+    fall through to `CWYD_AGENT.instructions` at agent-creation time
+    in the agents provider'."""
+    rc = RuntimeConfig()
+    assert rc.cwyd_agent_instructions is None
+
+
+def test_runtime_config_cwyd_agent_instructions_round_trips() -> None:
+    """The persisted shape (Cosmos JSON / Postgres JSONB) is the only
+    way a custom system prompt survives a process restart, so
+    `model_dump()` -> `model_validate()` must be lossless for the
+    string payload."""
+    rc = RuntimeConfig(cwyd_agent_instructions="You are a custom assistant.")
+    assert rc.cwyd_agent_instructions == "You are a custom assistant."
+    rebuilt = RuntimeConfig.model_validate(rc.model_dump())
+    assert rebuilt.cwyd_agent_instructions == "You are a custom assistant."
+    assert rebuilt == rc
+
+
+def test_runtime_config_partial_override_preserves_cwyd_agent_unset() -> None:
+    """A partial override carrying only `cwyd_agent_instructions` must
+    leave every other mutable field at None — mirrors the existing
+    partial-override tests for the other fields."""
+    rc = RuntimeConfig(cwyd_agent_instructions="custom prompt")
+    assert rc.cwyd_agent_instructions == "custom prompt"
+    assert rc.orchestrator_name is None
+    assert rc.openai_temperature is None
+    assert rc.openai_max_tokens is None
+    assert rc.search_use_semantic_search is None
+    assert rc.search_top_k is None
+    assert rc.log_level is None
+    assert rc.content_safety_enabled is None
+
+
 def test_runtime_config_is_in_module_exports() -> None:
     """Ensures `from backend.core.types import RuntimeConfig` works for
     every downstream consumer (DB clients in #35c-4/5/6, admin

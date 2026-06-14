@@ -38,6 +38,61 @@
 			"options": {
 				"cwd": "${workspaceFolder}/src/admin"
 			}
+		},
+		{
+			"label": "v2: uv sync",
+			"type": "shell",
+			"command": "uv sync",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/v2"
+			}
+		},
+		{
+			"type": "func",
+			"label": "v2: func host start",
+			"command": "host start",
+			"problemMatcher": "$func-python-watch",
+			"isBackground": true,
+			"dependsOn": "v2: uv sync",
+			"options": {
+				"cwd": "${workspaceFolder}/v2/src/functions",
+				"env": {
+					"VIRTUAL_ENV": "${workspaceFolder}/v2/.venv",
+					"PYTHONPATH": "${workspaceFolder}/v2/src",
+					"PATH": "${workspaceFolder}/v2/.venv/Scripts;${env:PATH}"
+				}
+			}
+		},
+		{
+			"label": "v2: npm install frontend",
+			"type": "shell",
+			"command": "npm install",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/v2/src/frontend"
+			}
+		},
+		{
+			"label": "v2: frontend dev",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"dependsOn": "v2: npm install frontend",
+			"problemMatcher": {
+				"owner": "vite",
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "VITE",
+					"endsPattern": "Local:"
+				}
+			},
+			"options": {
+				"cwd": "${workspaceFolder}/v2/src/frontend"
+			}
 		}
 	]
 }

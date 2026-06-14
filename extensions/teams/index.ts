@@ -1,3 +1,9 @@
+// Polyfill globalThis.crypto for Node 18 (required by @typespec/ts-http-runtime)
+import { webcrypto } from "crypto";
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
+
 // Import required packages
 import * as restify from "restify";
 

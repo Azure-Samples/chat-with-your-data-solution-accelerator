@@ -4,6 +4,7 @@ Pillar: Stable Core
 Phase: 6
 """
 
+import hashlib
 from abc import ABC, abstractmethod
 
 from azure.core.credentials_async import AsyncTokenCredential
@@ -53,7 +54,26 @@ class BaseParser(ABC):
         each returned `Chunk.source` so downstream embedders +
         search-writers retain provenance without an extra parameter
         threading through the pipeline. Returned chunks must carry
-        deterministic `id`s (typically `f"{source}__{index}"`) so
-        re-ingesting the same source produces stable Search document
-        keys.
+        deterministic `id`s built via `make_chunk_id(source, index)`
+        so re-ingesting the same source produces stable, Search-safe
+        document keys.
         """
+
+    @staticmethod
+    def make_chunk_id(source: str, index: int) -> str:
+        """Build a deterministic, Azure-Search-safe document key.
+
+        Azure AI Search document keys may contain only letters,
+        digits, `_`, `-`, and `=`, so a raw `f"{source}__{index}"` is
+        rejected with ``InvalidDocumentKey`` whenever `source` carries
+        a filename-extension dot or any other disallowed character.
+        Hashing the readable `f"{source}__{index}"` with SHA-256
+        yields a hex digest that is always key-safe, collision-free,
+        and deterministic -- re-ingesting the same `source` + `index`
+        merges onto the same Search document. The readable filename
+        survives on `Chunk.source` and the Search `title` field, and
+        the read-side mapping treats `id` as an opaque string, so the
+        hashed key costs nothing downstream.
+        """
+        raw = f"{source}__{index}"
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()

@@ -36,9 +36,11 @@ import {
 } from "react";
 import { Button, ToggleButton } from "@fluentui/react-components";
 import {
+  Broom24Regular,
   Mic24Regular,
   MicOff24Regular,
   Send24Regular,
+  Stop24Regular,
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
 import { streamChat } from "@/api/streamChat";
@@ -103,6 +105,11 @@ export function MessageInput() {
   // text they've already typed without losing it.
   const baseDraftRef = useRef("");
 
+  // Holds the AbortController for the in-flight stream so the Cancel
+  // button can abort it. Cleared in the submit `finally` so a stale
+  // controller can't fire a no-op abort against a closed stream.
+  const controllerRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
     if (!speech.isListening) return;
     const transcript = speech.transcript;
@@ -157,8 +164,13 @@ export function MessageInput() {
     setDraft("");
     setIsStreaming(true);
 
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
     try {
-      for await (const ev of streamChat(history)) {
+      for await (const ev of streamChat(history, {
+        signal: controller.signal,
+      })) {
         switch (ev.channel) {
           case "answer":
             dispatch({
@@ -198,12 +210,29 @@ export function MessageInput() {
       }
       dispatch({ type: "finish_stream", id: assistantId });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      dispatch({ type: "set_error", id: assistantId, error: message });
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User-initiated cancel — keep whatever content streamed in,
+        // mark the message done, do NOT surface an error toast.
+        dispatch({ type: "finish_stream", id: assistantId });
+      } else {
+        const message = err instanceof Error ? err.message : String(err);
+        dispatch({ type: "set_error", id: assistantId, error: message });
+      }
     } finally {
+      controllerRef.current = null;
       setIsStreaming(false);
     }
   }
+
+  function handleCancel() {
+    controllerRef.current?.abort();
+  }
+
+  function handleClear() {
+    dispatch({ type: "reset" });
+  }
+
+  const clearDisabled = isStreaming || state.messages.length === 0;
 
   const micLabel =
     speech.error !== null
@@ -237,6 +266,18 @@ export function MessageInput() {
         disabled={isStreaming || speech.isListening}
         className={styles.field}
       />
+      <Button
+        appearance="subtle"
+        shape="circular"
+        type="button"
+        onClick={handleClear}
+        disabled={clearDisabled}
+        aria-label="New conversation"
+        title="Clear conversation"
+        data-testid="message-input-clear"
+        icon={<Broom24Regular />}
+        className={styles.mic}
+      />
       <ToggleButton
         appearance="subtle"
         shape="circular"
@@ -253,16 +294,30 @@ export function MessageInput() {
         }
         className={styles.mic}
       />
-      <Button
-        appearance="primary"
-        shape="circular"
-        type="submit"
-        disabled={!canSend}
-        aria-label="Send"
-        title="Send"
-        icon={<Send24Regular />}
-        className={styles.send}
-      />
+      {isStreaming ? (
+        <Button
+          appearance="primary"
+          shape="circular"
+          type="button"
+          onClick={handleCancel}
+          aria-label="Cancel"
+          title="Stop generating"
+          data-testid="message-input-cancel"
+          icon={<Stop24Regular />}
+          className={styles.send}
+        />
+      ) : (
+        <Button
+          appearance="primary"
+          shape="circular"
+          type="submit"
+          disabled={!canSend}
+          aria-label="Send"
+          title="Send"
+          icon={<Send24Regular />}
+          className={styles.send}
+        />
+      )}
     </form>
   );
 }

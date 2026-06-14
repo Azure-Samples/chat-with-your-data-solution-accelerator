@@ -15,6 +15,7 @@ You are the **planner** for CWYD v2. You are read-only. You do not edit code. Yo
 4. `v2/docs/development_plan.md` — locate the phase + task #.
 5. `v2/docs/pillars_of_development.md` — pick the pillar.
 6. Repo memory `cwyd-tech-stack.md`.
+7. `v2/docs/bugs.md` (skim open defects) + today's `v2/docs/worklog/YYYY-MM-DD.md` if one exists.
 
 ## External references (consult when relevant)
 
@@ -102,6 +103,10 @@ If the request implies any of the following, do **not** emit a Work Order until 
 - New module layout (e.g., splitting an existing package).
 
 Ask one concise question, wait for the answer, then record it in the Work Order's `## References` block (e.g., `User-confirmed structure: add v2/src/backend/core/agents/ — 2026-04-23`).
+
+## Durable tracking (Hard Rule #19)
+
+A non-trivial plan must survive the session as a file, not only as a memory note. You are read-only and have no file-write tools, so emit the Work Order as your output and the orchestrating agent records it in the day's worklog `v2/docs/worklog/YYYY-MM-DD.md` (created with the real current date if absent). Save a brief memory note only as scratch — the worklog file is the canonical record.
 
 ## Stop condition
 

@@ -8,6 +8,35 @@
  */
 
 /**
+ * First-party orchestrator registry keys. Mirrors the backend
+ * `OrchestratorName` StrEnum in `backend/core/settings.py`. The wire
+ * field `orchestrator_name` stays a plain `string` because the backend
+ * type is widened to `OrchestratorName | str` for third-party registry
+ * keys; this closed set is the list of built-in choices the admin
+ * Orchestrator dropdown offers.
+ */
+export const OrchestratorName = {
+  LangGraph: "langgraph",
+  AgentFramework: "agent_framework",
+} as const;
+export type OrchestratorName =
+  (typeof OrchestratorName)[keyof typeof OrchestratorName];
+
+/**
+ * Standard Python logging levels offered by the admin Log level
+ * dropdown. The wire field `log_level` stays a plain `string` because
+ * the backend stores it as a free-form logging level name; this closed
+ * set is the list of built-in levels the dropdown presents.
+ */
+export const LogLevel = {
+  Debug: "DEBUG",
+  Info: "INFO",
+  Warning: "WARNING",
+  Error: "ERROR",
+} as const;
+export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
+
+/**
  * Sanitized snapshot of the running backend configuration.
  * Mirrors `backend.models.admin.AdminStatus`; non-secret fields only.
  */
@@ -115,10 +144,21 @@ export interface DeleteDocumentResponse {
  * Runtime-toggle subset of `AppSettings` returned by
  * `GET /api/admin/config`. Mirrors `backend.models.admin.AdminConfig`.
  *
- * Exactly seven v2-canonical fields. The selection is the closed set
- * the backend allow-list permits PATCHing -- any new field must be
- * added in lockstep across `AdminConfig`, `RuntimeConfig`, and the
- * `WRITABLE_FIELDS` allow-list (enforced server-side with a 422).
+ * The selection is the closed set the backend allow-list permits
+ * PATCHing -- any new field must be added in lockstep across
+ * `AdminConfig`, `RuntimeConfig`, and the `WRITABLE_FIELDS` allow-list
+ * (enforced server-side with a 422).
+ *
+ * `cwyd_agent_instructions` is the system prompt for the primary
+ * `CWYD_AGENT`; the GET surfaces the built-in default and the PATCH
+ * channel lets an operator persist an override.
+ *
+ * `post_answering_prompt`, `post_answering_enabled`, and
+ * `post_answering_filter_message` configure the optional
+ * `PostPromptValidator` wired into the chat pipeline. The GET surfaces
+ * the env baseline (empty / disabled by default) and the PATCH channel
+ * lets an operator turn the validator on, supply a prompt template, and
+ * override the rejection message shown to end users.
  */
 export interface AdminConfig {
   orchestrator_name: string;
@@ -128,6 +168,44 @@ export interface AdminConfig {
   search_top_k: number;
   log_level: string;
   content_safety_enabled: boolean;
+  cwyd_agent_instructions: string;
+  post_answering_prompt: string;
+  post_answering_enabled: boolean;
+  post_answering_filter_message: string;
+}
+
+/**
+ * Provenance of an `EffectiveAdminConfig.sources` entry. Mirrors the
+ * backend `ConfigSource` StrEnum in `backend/models/admin.py`.
+ *
+ * `Env` -- value comes from the env default snapshot.
+ * `Override` -- value comes from a persisted `RuntimeConfig` row.
+ */
+export const ConfigSource = {
+  Env: "env",
+  Override: "override",
+} as const;
+export type ConfigSource =
+  (typeof ConfigSource)[keyof typeof ConfigSource];
+
+/**
+ * Override-resolved config envelope returned by
+ * `GET /api/admin/config/effective`. Mirrors the backend
+ * `EffectiveAdminConfig` model.
+ *
+ * `values` is the env default snapshot with any persisted runtime
+ * overrides overlaid -- this is what the admin UI loads so a saved
+ * override (e.g. the orchestrator choice) is reflected after a reload.
+ * `sources` maps each field name to whether the effective value came
+ * from the env default or a persisted override. `updated_at` /
+ * `updated_by` surface the audit fields of the persisted override, or
+ * `null` when no override has been saved.
+ */
+export interface EffectiveAdminConfig {
+  values: AdminConfig;
+  sources: Record<string, ConfigSource>;
+  updated_at: string | null;
+  updated_by: string | null;
 }
 
 /**
@@ -147,13 +225,17 @@ export interface RuntimeConfig {
   search_top_k: number | null;
   log_level: string | null;
   content_safety_enabled: boolean | null;
+  cwyd_agent_instructions: string | null;
+  post_answering_prompt: string | null;
+  post_answering_enabled: boolean | null;
+  post_answering_filter_message: string | null;
   updated_at: string;
   updated_by: string;
 }
 
 /**
  * Request body for `PATCH /api/admin/config`. RFC 7396 JSON Merge
- * Patch over the same seven-field surface as `AdminConfig`.
+ * Patch over the same surface as `AdminConfig`.
  *
  * Semantics enforced by the backend:
  *   * Absent key      -> existing override unchanged.
@@ -172,4 +254,8 @@ export interface AdminConfigPatch {
   search_top_k?: number | null;
   log_level?: string | null;
   content_safety_enabled?: boolean | null;
+  cwyd_agent_instructions?: string | null;
+  post_answering_prompt?: string | null;
+  post_answering_enabled?: boolean | null;
+  post_answering_filter_message?: string | null;
 }

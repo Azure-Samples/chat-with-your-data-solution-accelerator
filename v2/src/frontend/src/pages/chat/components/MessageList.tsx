@@ -7,17 +7,21 @@
  *           bubble; user is a brand-tinted right-aligned chip; avatars
  *           use Fluent v9 icons; empty state uses Fluent Chat48 +
  *           Title2 "Start a conversation".) +
- *        7 (Testing + Documentation — wire <FeedbackButtons> per
- *           assistant message; optimistic set_feedback dispatch then
- *           POST /api/history/messages/{id}/feedback via setFeedback();
- *           rollback the dispatch on API failure.)
+ *        7 (Testing + Documentation — error surface hoisted from an
+ *           inline `<p role="alert">` to a Fluent v9 Toast dispatched
+ *           through `<Toaster toasterId=TOASTER_ID>`.)
  *
  * Renders the chat transcript from ChatContext. Each message renders a
- * single <li> with a per-row layout: a 28x28 round avatar (Fluent
- * Person20Regular for user, Bot20Regular for assistant) + a content
- * region. The row direction flips per role (user-right / assistant-left)
- * via CSS Modules driven by the `data-role` attribute. Assistant
- * messages carrying SSE-derived metadata are decorated:
+ * single <li> holding one flex `.row`: a 28x28 round avatar (Fluent
+ * Person20Regular for user, Bot20Regular for assistant) at the row
+ * start, then the message content. The row direction flips per role
+ * (user-right / assistant-left) via CSS Modules driven by the
+ * `data-role` attribute. A user message places its right-aligned chip
+ * bubble directly in the row. An assistant message places a vertical
+ * content column beside the avatar — so the avatar lines up on the same
+ * horizontal line as the column's first item (the reasoning panel while
+ * streaming, else the answer) — and that column stacks the answer bubble
+ * plus the SSE-derived decorations:
  *   - `streaming === true` OR non-empty `reasoning?: string[]` → a
  *     <details> reasoning panel. While streaming the panel is forced
  *     open with summary "Thinking…" + animated dots so the boss-demo
@@ -28,57 +32,80 @@
  *     read as one-character mush — we concatenate at render time and
  *     keep the array shape on the wire).
  *   - non-empty `citations?: Citation[]` (finished messages only) →
- *     a `<CitationPanel>` accordion under the answer. Sibling of the
- *     feedback row; hidden while the message is still streaming so
- *     the panel doesn't churn as new sources arrive.
- *   - `error?: string`                   → inline `role="alert"` notice.
+ *     a `<CitationPanel>` accordion under the answer, hidden while
+ *     the message is still streaming so the panel doesn't churn as
+ *     new sources arrive.
+ *   - `error?: string`                   → dispatched as a Fluent v9
+ *     error-intent Toast (the app-wide `<Toaster>` is mounted by
+ *     `<FluentThemeBridge>`). A per-component `Set<"<id>::<err>">`
+ *     ref dedupes so identical SSE error frames or React Strict
+ *     Mode double-invocation surface only one toast per failure.
  * Both decorations are skipped when neither field applies.
- *
- * Finished assistant messages (`streaming !== true`) additionally
- * render a <FeedbackButtons> row. Click flow is optimistic: dispatch
- * `set_feedback` first so the thumb visually "locks in" before the
- * fetch round-trip, then call `setFeedback()`. If the POST fails the
- * dispatch rolls back to the prior value so the UI matches reality.
- * The reasoning panel and error notice render unchanged when feedback
- * is present — feedback is a sibling, not a wrapper.
  *
  * All `data-testid` and `data-role` attributes are preserved verbatim
  * from the Phase-5 contract — visual changes only.
  */
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import {
+  Toast,
+  ToastBody,
+  ToastTitle,
+  useToastController,
+} from "@fluentui/react-components";
 import {
   Bot20Regular,
   Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
-import type { ChatMessage } from "@/models/chat";
-import { setFeedback } from "@/api/feedback";
+import { TOASTER_ID } from "@/theme/FluentThemeBridge";
 import { renderAnswerTokens } from "./answerTokens";
 import { CitationPanel } from "./CitationPanel/CitationPanel";
-import { FeedbackButtons } from "./FeedbackButtons";
 import styles from "./MessageList.module.css";
 
 export function MessageList() {
   const { state, dispatch } = useChat();
+  const { dispatchToast } = useToastController(TOASTER_ID);
+  // Bottom sentinel kept just below the last <li>. A useEffect keyed
+  // on transcript size + the last message's content length scrolls it
+  // into view so the freshest answer (and live streaming tokens) stay
+  // visible without manual scrolling. Plain <div> + scrollIntoView is
+  // the smallest contract jsdom can spy on.
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  // Track every (message id, error string) pair we have already
+  // toasted so identical error frames — or React Strict Mode's
+  // double-invoked effect in dev — do not stutter the toaster. A
+  // ref (not state) is right here: the dedupe set is internal
+  // bookkeeping that must not trigger a re-render when it grows.
+  const seenErrorsRef = useRef<Set<string>>(new Set());
 
-  const handleFeedback = useCallback(
-    async (m: ChatMessage, value: string): Promise<void> => {
-      const previous = m.feedback ?? null;
-      dispatch({ type: "set_feedback", id: m.id, feedback: value });
-      try {
-        await setFeedback(m.id, value);
-      } catch {
-        // Rollback: the backend rejected the feedback (404/422/5xx),
-        // so revert the optimistic dispatch and let the UI reflect
-        // reality. We intentionally swallow the error — there is no
-        // user-visible error surface for feedback failures today,
-        // and the rollback is the only visible-tier correction.
-        dispatch({ type: "set_feedback", id: m.id, feedback: previous });
-      }
-    },
-    [dispatch],
-  );
+  useEffect(() => {
+    for (const m of state.messages) {
+      if (typeof m.error !== "string" || m.error.length === 0) continue;
+      const key = `${m.id}::${m.error}`;
+      if (seenErrorsRef.current.has(key)) continue;
+      seenErrorsRef.current.add(key);
+      dispatchToast(
+        <Toast>
+          <ToastTitle>Message failed</ToastTitle>
+          <ToastBody>{m.error}</ToastBody>
+        </Toast>,
+        { intent: "error" },
+      );
+    }
+  }, [state.messages, dispatchToast]);
+
+  // Compute a content-aware dep so the effect fires on every streamed
+  // token, not just on add/finish. The last message's content length
+  // changes on every append_answer dispatch.
+  const lastContentLen =
+    state.messages.length > 0
+      ? (state.messages.at(-1)?.content.length ?? 0)
+      : 0;
+  useEffect(() => {
+    if (state.messages.length === 0) return;
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [state.messages.length, lastContentLen]);
 
   const handleCitationFocus = useCallback(
     (citationId: string) => {
@@ -106,7 +133,8 @@ export function MessageList() {
   }
 
   return (
-    <ol data-testid="message-list" className={styles.list}>
+    <>
+      <ol data-testid="message-list" className={styles.list}>
       {state.messages.map((m) => (
         <li
           key={m.id}
@@ -123,71 +151,68 @@ export function MessageList() {
               {m.role === "user" ? <Person20Regular /> : <Bot20Regular />}
             </span>
             <span className={styles.srOnly}>{m.role}</span>
-            <div className={styles.bubble}>
-              {m.role === "assistant"
-                ? renderAnswerTokens(
+            {m.role === "assistant" ? (
+              <div className={styles.content}>
+                {(m.streaming === true ||
+                  (m.reasoning && m.reasoning.length > 0)) && (
+                  <details
+                    data-testid={`message-${m.id}-reasoning`}
+                    className={styles.reasoning}
+                    open={m.streaming === true}
+                  >
+                    <summary data-streaming={m.streaming ? "true" : "false"}>
+                      {m.streaming ? (
+                        <>
+                          Thinking
+                          <span
+                            className={styles.thinkingDots}
+                            aria-hidden="true"
+                          >
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                        </>
+                      ) : (
+                        "\u25B8 Thought process"
+                      )}
+                    </summary>
+                    <div className={styles.reasoningBody}>
+                      {m.reasoning?.join("") ?? ""}
+                    </div>
+                  </details>
+                )}
+                <div className={styles.bubble}>
+                  {renderAnswerTokens(
                     m.content,
                     m.id,
                     m.citations,
                     handleCitationFocus,
-                  )
-                : m.content}
-            </div>
-          </div>
-          {(m.streaming === true ||
-            (m.reasoning && m.reasoning.length > 0)) && (
-            <details
-              data-testid={`message-${m.id}-reasoning`}
-              className={styles.reasoning}
-              open={m.streaming === true}
-            >
-              <summary data-streaming={m.streaming ? "true" : "false"}>
-                {m.streaming ? (
-                  <>
-                    Thinking
-                    <span className={styles.thinkingDots} aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                  </>
-                ) : (
-                  "\u25B8 Thought process"
-                )}
-              </summary>
-              <div className={styles.reasoningBody}>
-                {m.reasoning?.join("") ?? ""}
+                  )}
+                </div>
+                {m.streaming !== true &&
+                  m.citations &&
+                  m.citations.length > 0 && (
+                    <CitationPanel
+                      messageId={m.id}
+                      citations={m.citations}
+                      focusedCitationId={state.focusedCitationId}
+                    />
+                  )}
               </div>
-            </details>
-          )}
-          {m.error && (
-            <p
-              data-testid={`message-${m.id}-error`}
-              role="alert"
-              className={styles.error}
-            >
-              {m.error}
-            </p>
-          )}
-          {m.role === "assistant" &&
-            m.streaming !== true &&
-            m.citations &&
-            m.citations.length > 0 && (
-              <CitationPanel
-                messageId={m.id}
-                citations={m.citations}
-                focusedCitationId={state.focusedCitationId}
-              />
+            ) : (
+              <div className={styles.bubble}>{m.content}</div>
             )}
-          {m.role === "assistant" && m.streaming !== true && (
-            <FeedbackButtons
-              messageId={m.id}
-              feedback={m.feedback ?? null}
-              onSubmit={(value) => handleFeedback(m, value)}
-            />
-          )}
+          </div>
         </li>
       ))}
-    </ol>
+      </ol>
+      <div
+        ref={bottomRef}
+        data-testid="message-list-bottom"
+        aria-hidden="true"
+        className={styles.bottom ?? ""}
+      />
+    </>
   );
 }

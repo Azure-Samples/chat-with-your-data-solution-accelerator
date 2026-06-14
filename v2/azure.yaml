@@ -115,25 +115,58 @@ services:
       path: ../../docker/Dockerfile.frontend
       context: ../..
       target: prod
+      # Vite bakes the backend URL into the static bundle at build time.
+      # AZURE_BACKEND_URL is a Bicep output of the backend Container App
+      # (see v2/infra/main.bicep -> output azureBackendUrl). azd resolves
+      # ${AZURE_BACKEND_URL} from the active azd env before invoking
+      # `docker build`, so the bundle ships pointing at the right
+      # backend without a separate runtime config fetch.
+      buildArgs:
+        - VITE_BACKEND_URL=${AZURE_BACKEND_URL}
   function:
-    project: ./src/functions
+    project: ./build-functions
     language: py
     host: function
-    docker:
-      path: ../../docker/Dockerfile.functions
-      context: ../..
 
 # ----------------------------------------------------------------------
-# Post-provision hook (task #19). Runs after every successful `azd
-# provision` / `azd up`. Idempotent. In postgresql mode it creates the
-# pgvector extension on the freshly provisioned Flexible Server using
-# the deployer's Entra token. Always prints a compact summary of the
-# AZURE_* outputs an operator most commonly needs.
+# Hooks.
 #
-# Both wrappers shell out to v2/scripts/post_provision.py so the logic
-# stays in one place.
+#   prepackage  -- runs before every `azd package` / `azd deploy`.
+#                  Regenerates v2/build-functions/ from src/functions/
+#                  + src/backend/ so the Flex Consumption deploy artifact
+#                  contains: `function_app.py` + `host.json` at root, a
+#                  `functions/` subpackage carrying the blueprint tree
+#                  (so `from functions.<sub>...` imports resolve at
+#                  deploy root), a `backend/` subpackage, plus
+#                  generated `requirements.txt` + `.funcignore`. See
+#                  v2/scripts/prepackage_function.py for the layout
+#                  contract. Hook is project-scoped (top-level) so cwd
+#                  is v2/ regardless of which service triggered the
+#                  package step.
+#
+#   postprovision -- runs after every successful `azd provision` /
+#                    `azd up`. Idempotent. In postgresql mode it
+#                    creates the pgvector extension on the freshly
+#                    provisioned Flexible Server using the deployer's
+#                    Entra token. Always prints a compact summary of
+#                    the AZURE_* outputs an operator most commonly
+#                    needs.
+#
+# Both posix/windows wrappers shell out to a single Python script so
+# behaviour is identical across platforms.
 # ----------------------------------------------------------------------
 hooks:
+  prepackage:
+    posix:
+      shell: sh
+      run: ./scripts/prepackage-function.sh
+      continueOnError: false
+      interactive: false
+    windows:
+      shell: pwsh
+      run: ./scripts/prepackage-function.ps1
+      continueOnError: false
+      interactive: false
   postprovision:
     posix:
       shell: sh

@@ -116,13 +116,6 @@
   color: var(--colorNeutralForeground1);
 }
 
-.fieldName {
-  font-family: var(--fontFamilyMonospace);
-  font-size: var(--fontSizeBase200);
-  color: var(--colorNeutralForeground3);
-  font-weight: var(--fontWeightRegular);
-}
-
 .fieldHint {
   margin: 0;
   font-size: var(--fontSizeBase200);
@@ -168,4 +161,47 @@
 .auditValue {
   font-family: var(--fontFamilyMonospace);
   color: var(--colorNeutralForeground2);
+}
+
+.resetButton {
+  margin-right: auto;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: var(--colorNeutralBackground1);
+  border-radius: var(--borderRadiusLarge);
+  box-shadow: var(--shadow28);
+  padding: var(--spacingVerticalXL) var(--spacingHorizontalXL);
+  max-width: 520px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalM);
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.dialogBody {
+  margin: 0;
+  color: var(--colorNeutralForeground2);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacingHorizontalS);
 }

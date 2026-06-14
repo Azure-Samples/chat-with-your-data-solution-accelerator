@@ -1,6 +1,7 @@
 """Pillar: Stable Core
 Phase:  1 (Infrastructure + Project Skeleton, task #19)
 Phase:  3 (Conversation + RAG, task #26 — search-index bootstrap)
+Phase:  8 (agent_framework default + Foundry IQ Knowledge Base — KB seed)
 
 Post-provision hook executed by `azd up` / `azd provision` after every
 Bicep deployment. Idempotent and safe to re-run.
@@ -37,6 +38,7 @@ import os
 import sys
 from typing import Sequence
 
+import httpx
 import psycopg2  # type: ignore[import-not-found]
 from azure.identity import DefaultAzureCredential
 from azure.search.documents.indexes import SearchIndexClient
@@ -71,6 +73,24 @@ DEFAULT_EMBEDDING_DIMENSIONS = 1536  # text-embedding-3-small / -ada-002
 VECTOR_PROFILE_NAME = "cwyd-vector-profile"
 HNSW_ALGORITHM_NAME = "cwyd-hnsw"
 SEMANTIC_CONFIG_NAME = "default"
+
+# Foundry IQ Knowledge Base seed. A `searchIndex` knowledge source wraps
+# the existing chat index, and the knowledge base references that source
+# plus the Azure OpenAI reasoning model used for query planning. Created
+# once via the Search REST `knowledgesources` / `knowledgebases` endpoints
+# (api-version from SearchSettings) — never per-document. The two `kind`
+# discriminators below are the only values this script emits, so they are
+# pinned as single-value constants.
+KNOWLEDGE_SOURCE_KIND_SEARCH_INDEX = "searchIndex"
+KNOWLEDGE_BASE_MODEL_KIND_AZURE_OPENAI = "azureOpenAI"
+# Defaults mirror SearchSettings. The script reads env directly rather than
+# importing settings, matching `_ensure_search_index`'s DEFAULT_INDEX_NAME.
+DEFAULT_KNOWLEDGE_BASE_NAME = "cwyd-kb"
+DEFAULT_KNOWLEDGE_SOURCE_NAME = "cwyd-index-ks"
+DEFAULT_KNOWLEDGE_BASE_API_VERSION = "2025-11-01-preview"
+# OAuth scope for the Azure AI Search data plane (knowledgesources /
+# knowledgebases REST PUT). Distinct from the postgres AAD scope above.
+SEARCH_DATA_PLANE_SCOPE = "https://search.azure.com/.default"
 
 # Outputs surfaced in the summary block. Kept in display order; missing
 # entries are skipped silently (e.g. cosmos vars in postgresql mode).
@@ -291,6 +311,186 @@ def _ensure_search_index(*, dry_run: bool, client_factory=None) -> str:
             close()
 
 
+def _build_knowledge_base_seed(
+    *,
+    knowledge_source_name: str,
+    knowledge_base_name: str,
+    index_name: str,
+    semantic_configuration_name: str,
+    openai_resource_uri: str,
+    query_planning_deployment: str,
+    query_planning_model_name: str,
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Build the ``(knowledge_source, knowledge_base)`` REST request bodies.
+
+    Returns the two PUT bodies the Foundry IQ KB seed needs, in order:
+
+    1. A ``searchIndex`` knowledge source that wraps ``index_name`` (the
+       existing chat index) and pins ``semantic_configuration_name`` so
+       agentic retrieval uses the index's semantic configuration.
+    2. A knowledge base that references the knowledge source by name and
+       lists the Azure OpenAI chat model used for query planning. The
+       Foundry IQ knowledge base API only accepts chat models here (for
+       example gpt-4o-mini, gpt-4.1, gpt-5.1); o-series reasoning models
+       are rejected, so this is the chat deployment, not the reasoning one.
+
+    The shapes match the Azure AI Search ``knowledgesources`` /
+    ``knowledgebases`` REST contract; the caller pins the api-version from
+    ``SearchSettings.knowledge_base_api_version`` and PUTs each body. These
+    are externally-owned REST payloads, so plain dicts rather than typed
+    models.
+    """
+    knowledge_source_body: dict[str, object] = {
+        "name": knowledge_source_name,
+        "kind": KNOWLEDGE_SOURCE_KIND_SEARCH_INDEX,
+        "searchIndexParameters": {
+            "searchIndexName": index_name,
+            "semanticConfigurationName": semantic_configuration_name,
+        },
+    }
+    knowledge_base_body: dict[str, object] = {
+        "name": knowledge_base_name,
+        "knowledgeSources": [{"name": knowledge_source_name}],
+        "models": [
+            {
+                "kind": KNOWLEDGE_BASE_MODEL_KIND_AZURE_OPENAI,
+                "azureOpenAIParameters": {
+                    "resourceUri": openai_resource_uri,
+                    "deploymentId": query_planning_deployment,
+                    "modelName": query_planning_model_name,
+                },
+            }
+        ],
+    }
+    return knowledge_source_body, knowledge_base_body
+
+
+def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
+    """Create-or-update the Foundry IQ knowledge source + knowledge base.
+
+    Grounds the agent_framework orchestrator: a ``searchIndex`` knowledge
+    source wraps the chat index, and the knowledge base references that
+    source plus the Azure OpenAI chat model used for query planning (Foundry
+    IQ rejects o-series reasoning models for the knowledge base model).
+
+    Idempotent: the Search REST ``knowledgesources`` / ``knowledgebases``
+    PUT endpoints are create-or-update, so re-running overwrites the seed
+    in place (no per-document work). Returns one of: ``"skipped"`` (no
+    search endpoint -- postgresql mode), ``"dry-run"``, ``"ensured"``.
+
+    The api-version is read from ``AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION``
+    (``SearchSettings.knowledge_base_api_version``) so an operator can bump
+    it via env var without a code change. ``client_factory`` is a test seam
+    -- production passes ``None`` and the function builds an ``httpx.Client``
+    bearer-authed for the Search data plane.
+    """
+    endpoint = os.environ.get("AZURE_AI_SEARCH_ENDPOINT", "").strip()
+    if not endpoint:
+        print(
+            "post-provision: AZURE_AI_SEARCH_ENDPOINT not set; "
+            "skipping knowledge base"
+        )
+        return "skipped"
+
+    index_name = (
+        os.environ.get("AZURE_AI_SEARCH_INDEX", "").strip() or DEFAULT_INDEX_NAME
+    )
+    knowledge_source_name = (
+        os.environ.get("AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME", "").strip()
+        or DEFAULT_KNOWLEDGE_SOURCE_NAME
+    )
+    knowledge_base_name = (
+        os.environ.get("AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME", "").strip()
+        or DEFAULT_KNOWLEDGE_BASE_NAME
+    )
+    api_version = (
+        os.environ.get("AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION", "").strip()
+        or DEFAULT_KNOWLEDGE_BASE_API_VERSION
+    )
+
+    # The KB query-planning model lives on the Azure OpenAI account. Foundry
+    # IQ knowledge bases only accept a chat model here (gpt-4o-mini, gpt-4.1,
+    # gpt-5.1, ...); o-series reasoning models are rejected with a 400, so the
+    # KB uses the chat deployment (AZURE_OPENAI_GPT_DEPLOYMENT), not the
+    # reasoning one. In this repo the deployment is named after its model
+    # (Bicep wires the deployment and the model from the same `gptModelName`
+    # param), so the deployment id doubles as the model name unless an operator
+    # overrides it via AZURE_OPENAI_GPT_MODEL_NAME.
+    openai_resource_uri = (
+        os.environ.get("AZURE_OPENAI_ENDPOINT", "").strip()
+        or os.environ.get("AZURE_AI_SERVICES_ENDPOINT", "").strip()
+    )
+    query_planning_deployment = os.environ.get(
+        "AZURE_OPENAI_GPT_DEPLOYMENT", ""
+    ).strip()
+    query_planning_model_name = (
+        os.environ.get("AZURE_OPENAI_GPT_MODEL_NAME", "").strip()
+        or query_planning_deployment
+    )
+    if not openai_resource_uri or not query_planning_deployment:
+        sys.stderr.write(
+            "post-provision: knowledge base seed needs AZURE_OPENAI_ENDPOINT "
+            "(or AZURE_AI_SERVICES_ENDPOINT) and "
+            "AZURE_OPENAI_GPT_DEPLOYMENT.\n"
+        )
+        sys.exit(9)
+
+    if dry_run:
+        print(
+            f"post-provision: [dry-run] would ensure knowledge base "
+            f"{knowledge_base_name!r} (source {knowledge_source_name!r} over "
+            f"index {index_name!r}) on {endpoint} using api-version {api_version}"
+        )
+        return "dry-run"
+
+    knowledge_source_body, knowledge_base_body = _build_knowledge_base_seed(
+        knowledge_source_name=knowledge_source_name,
+        knowledge_base_name=knowledge_base_name,
+        index_name=index_name,
+        semantic_configuration_name=SEMANTIC_CONFIG_NAME,
+        openai_resource_uri=openai_resource_uri,
+        query_planning_deployment=query_planning_deployment,
+        query_planning_model_name=query_planning_model_name,
+    )
+
+    if client_factory is None:
+        def client_factory():  # type: ignore[no-redef]
+            token = (
+                DefaultAzureCredential()
+                .get_token(SEARCH_DATA_PLANE_SCOPE)
+                .token
+            )
+            return httpx.Client(
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                timeout=30.0,
+            )
+
+    base = endpoint.rstrip("/")
+    params = {"api-version": api_version}
+    client = client_factory()
+    try:
+        # Order matters: the knowledge base references the source by name,
+        # so the source PUT must land first. Both PUTs are create-or-update.
+        for url, body in (
+            (f"{base}/knowledgesources('{knowledge_source_name}')", knowledge_source_body),
+            (f"{base}/knowledgebases('{knowledge_base_name}')", knowledge_base_body),
+        ):
+            response = client.put(url, params=params, json=body)
+            response.raise_for_status()
+        print(
+            f"post-provision: knowledge base {knowledge_base_name!r} ready "
+            f"(source {knowledge_source_name!r} over index {index_name!r})"
+        )
+        return "ensured"
+    finally:
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="post-provision",
@@ -325,6 +525,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"post-provision: AZURE_DB_TYPE={db_type!r}; skipping postgres setup")
 
     _ensure_search_index(dry_run=args.dry_run)
+    _ensure_knowledge_base(dry_run=args.dry_run)
 
     _print_summary()
     return 0
