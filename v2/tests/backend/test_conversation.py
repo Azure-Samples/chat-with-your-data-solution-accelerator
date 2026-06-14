@@ -20,7 +20,11 @@ from backend.dependencies import (
     get_post_prompt_validator,
     get_search_provider,
 )
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import (
+    CWYD_AGENT,
+    CWYD_GUARDRAIL,
+    resolve_cwyd_instructions,
+)
 from backend.core.pipelines import chat as chat_pipeline
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.orchestrators.base import OrchestratorBase
@@ -499,7 +503,11 @@ async def test_router_saved_system_prompt_override_wins(
     app_with_fakes,
 ) -> None:
     """A persisted `cwyd_agent_instructions` override is forwarded as
-    `system_prompt=`, overriding the code default."""
+    `system_prompt=`, guardrail-wrapped through the shared composition
+    seam: the operator body leads and the fixed `CWYD_GUARDRAIL` is
+    appended exactly once, last. The orchestrator never receives a raw,
+    un-wrapped override, so the non-negotiable safety / out-of-domain /
+    citation rules bookend an operator-authored persona."""
     _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
     _FakeOrchestrator.last_kwargs = {}
     app_with_fakes.state.runtime_overrides = RuntimeConfig(
@@ -513,10 +521,11 @@ async def test_router_saved_system_prompt_override_wins(
         )
 
     assert resp.status_code == 200
-    assert (
-        _FakeOrchestrator.last_kwargs.get("system_prompt")
-        == "CUSTOM SYSTEM PROMPT"
-    )
+    system_prompt = _FakeOrchestrator.last_kwargs.get("system_prompt")
+    assert system_prompt == resolve_cwyd_instructions("CUSTOM SYSTEM PROMPT")
+    assert system_prompt.startswith("CUSTOM SYSTEM PROMPT")
+    assert system_prompt.endswith(CWYD_GUARDRAIL)
+    assert system_prompt.count(CWYD_GUARDRAIL) == 1
 
 
 async def test_router_forwards_effective_search_knobs_to_orchestrator(

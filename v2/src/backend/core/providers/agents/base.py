@@ -63,7 +63,7 @@ from azure.core.exceptions import (
 from backend.core.agents.definitions import (
     CWYD_AGENT,
     AgentDefinition,
-    compose_cwyd_instructions,
+    resolve_cwyd_instructions,
 )
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
@@ -183,9 +183,9 @@ class BaseAgentsProvider(ABC):
         the classifier prompt.
 
         The accepted override is wrapped by the fixed guardrail via
-        `compose_cwyd_instructions` so the authored text cannot
-        supersede the non-negotiable safety, out-of-domain, and
-        citation rules -- it customizes the persona between the
+        the shared `resolve_cwyd_instructions` seam so the authored
+        text cannot supersede the non-negotiable safety, out-of-domain,
+        and citation rules -- it customizes the persona between the
         guardrail bookends, it does not replace them.
         """
         if self._runtime_overrides_getter is None:
@@ -199,7 +199,7 @@ class BaseAgentsProvider(ABC):
         if text is None or not text.strip():
             return definition
         return definition.model_copy(
-            update={"instructions": compose_cwyd_instructions(text)}
+            update={"instructions": resolve_cwyd_instructions(text)}
         )
 
     async def get_or_create_agent(

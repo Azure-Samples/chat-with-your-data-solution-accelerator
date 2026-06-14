@@ -122,6 +122,33 @@ Examine the provided JSON documents diligently, extracting information relevant 
 - You **must not** respond if asked to List all documents in your repository."""
 
 
+def resolve_cwyd_instructions(override_text: str | None) -> str:
+    """Compose the effective CWYD instructions from an optional override.
+
+    The single composition seam both orchestrators resolve through: a
+    non-empty (after-strip) operator-authored prompt becomes the
+    persona body; otherwise the built-in `CWYD_DEFAULT_BODY` is used.
+    Either way the body is wrapped by the fixed `CWYD_GUARDRAIL` via
+    `compose_cwyd_instructions`, so the non-negotiable safety,
+    out-of-domain, and citation rules always have last-word precedence
+    -- an operator customizes the persona between the guardrail
+    bookends, never replaces them.
+
+    A blank / whitespace-only override is treated as 'clear -- fall
+    back to the default', matching the strip-check in
+    `_resolve_definition`. `resolve_cwyd_instructions(None)` is
+    byte-identical to the built-in `CWYD_AGENT.instructions` default,
+    so the default path is unchanged and only the override path is
+    affected.
+    """
+    body = (
+        override_text
+        if override_text and override_text.strip()
+        else CWYD_DEFAULT_BODY
+    )
+    return compose_cwyd_instructions(body)
+
+
 CWYD_AGENT = AgentDefinition(
     name="cwyd",
     description=(

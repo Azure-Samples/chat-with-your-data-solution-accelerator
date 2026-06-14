@@ -36,6 +36,7 @@ from backend.core.agents.definitions import (
     CWYD_GUARDRAIL,
     AgentDefinition,
     compose_cwyd_instructions,
+    resolve_cwyd_instructions,
 )
 from backend.core.providers.agents.base import (
     BaseAgentsProvider,
@@ -695,6 +696,23 @@ def test_resolve_definition_clones_cwyd_with_overridden_instructions() -> None:
     assert resolved.tools == definition.tools
     # Original is unmutated (frozen anyway, but assert the invariant).
     assert definition.instructions == "i"
+
+
+def test_resolve_definition_matches_shared_seam_for_override() -> None:
+    """The agent_framework override path resolves through the same
+    composition seam (`resolve_cwyd_instructions`) as the
+    effective-config (langgraph) path, so an identical override yields
+    byte-identical instructions on both -- the guardrail-wrapping is
+    defined exactly once, not duplicated per consumer."""
+    override = "Respond as a formal archivist."
+    provider = _StubAgentsProvider(
+        _make_settings(),
+        MagicMock(),
+        client=_make_client(),
+        runtime_overrides_getter=lambda: _runtime_config(override),
+    )
+    resolved = provider._resolve_definition(_definition())
+    assert resolved.instructions == resolve_cwyd_instructions(override)
 
 
 def test_resolve_definition_wraps_override_with_non_overridable_guardrail() -> None:

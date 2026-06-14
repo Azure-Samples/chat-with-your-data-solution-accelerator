@@ -11,7 +11,10 @@ from urllib.parse import urlparse
 
 from azure.core.exceptions import AzureError
 
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import (
+    CWYD_AGENT,
+    resolve_cwyd_instructions,
+)
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings, IndexStore, OrchestratorName
@@ -145,6 +148,23 @@ def resolve_effective_config(
             # only non-None values overlay the env / code default.
             if override_value is not None:
                 values[name] = override_value
+
+    # The persisted `cwyd_agent_instructions` override is stored raw
+    # (un-wrapped). Re-resolve it through the shared composition seam so
+    # the fixed `CWYD_GUARDRAIL` always bookends an operator-authored
+    # persona on the runtime path that consumes this value: the
+    # `langgraph` orchestrator injects `effective.cwyd_agent_instructions`
+    # directly as its system prompt, where an un-wrapped override would
+    # drop the non-negotiable safety / out-of-domain / citation rules.
+    # The `agent_framework` path wraps independently in
+    # `_resolve_definition`; both resolve through
+    # `resolve_cwyd_instructions`, and the no-override case is
+    # byte-identical to the `CWYD_AGENT.instructions` default. The admin
+    # `/config/effective` view does not use this helper -- it surfaces
+    # the raw authored override by design.
+    values["cwyd_agent_instructions"] = resolve_cwyd_instructions(
+        overrides.cwyd_agent_instructions if overrides is not None else None
+    )
 
     # Cross-setting guard (ADR 0022): the agent_framework orchestrator
     # grounds on a Foundry IQ Knowledge Base whose only knowledge source

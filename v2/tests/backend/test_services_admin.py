@@ -10,7 +10,12 @@ from typing import Any
 
 import pytest
 
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import (
+    CWYD_AGENT,
+    CWYD_GUARDRAIL,
+    compose_cwyd_instructions,
+    resolve_cwyd_instructions,
+)
 from backend.core.types import RuntimeConfig
 from backend.models.admin import AdminConfig
 from backend.services.admin import (
@@ -169,9 +174,14 @@ def test_resolve_effective_config_partial_overlay_keeps_env_for_unset() -> None:
         cwyd_agent_instructions="You are a pirate.",
     )
     effective = resolve_effective_config(settings, overrides)
-    # Overridden:
+    # Overridden -> the raw persona is guardrail-wrapped through the
+    # shared composition seam (this is the runtime value, not the raw
+    # author text), so it leads with the override body.
     assert effective.orchestrator_name == "agent_framework"
-    assert effective.cwyd_agent_instructions == "You are a pirate."
+    assert effective.cwyd_agent_instructions == compose_cwyd_instructions(
+        "You are a pirate."
+    )
+    assert effective.cwyd_agent_instructions.startswith("You are a pirate.")
     # Untouched -> env defaults:
     assert effective.search_top_k == 5
     assert effective.cwyd_agent_instructions != CWYD_AGENT.instructions
@@ -210,10 +220,42 @@ def test_resolve_effective_config_saved_override_wins_over_env() -> None:
     assert effective.search_top_k == 12
     assert effective.log_level == "DEBUG"
     assert effective.content_safety_enabled is True
-    assert effective.cwyd_agent_instructions == "Custom prompt."
+    assert effective.cwyd_agent_instructions == compose_cwyd_instructions(
+        "Custom prompt."
+    )
     assert effective.post_answering_prompt == "Is this grounded?"
     assert effective.post_answering_enabled is True
     assert effective.post_answering_filter_message == "Filtered."
+
+
+def test_resolve_effective_config_wraps_instruction_override_in_guardrail() -> None:
+    """The persisted persona override is surfaced guardrail-wrapped, not
+    raw: the effective value leads with the operator body and ends with
+    the fixed `CWYD_GUARDRAIL` exactly once. This is the runtime text the
+    langgraph orchestrator injects as its system prompt, so the
+    non-negotiable safety rules bookend an operator-authored persona on
+    both orchestrator paths."""
+    settings = _settings(orchestrator_name="langgraph")
+    overrides = RuntimeConfig(cwyd_agent_instructions="Answer only in haiku.")
+    effective = resolve_effective_config(settings, overrides)
+    assert effective.cwyd_agent_instructions.startswith("Answer only in haiku.")
+    assert effective.cwyd_agent_instructions.endswith(CWYD_GUARDRAIL)
+    assert effective.cwyd_agent_instructions.count(CWYD_GUARDRAIL) == 1
+    # Identical to the shared seam over the same body -- no divergent
+    # wrapping between this helper and `_resolve_definition`.
+    assert effective.cwyd_agent_instructions == resolve_cwyd_instructions(
+        "Answer only in haiku."
+    )
+
+
+def test_resolve_effective_config_blank_instruction_override_falls_back() -> None:
+    """A whitespace-only persona override is treated as 'cleared' and
+    resolves to the wrapped default, identical to the no-override
+    cold-start value."""
+    settings = _settings(orchestrator_name="langgraph")
+    overrides = RuntimeConfig(cwyd_agent_instructions="   ")
+    effective = resolve_effective_config(settings, overrides)
+    assert effective.cwyd_agent_instructions == CWYD_AGENT.instructions
 
 
 def test_resolve_effective_config_false_boolean_override_is_honored() -> None:

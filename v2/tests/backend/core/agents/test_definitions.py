@@ -27,6 +27,7 @@ from backend.core.agents.definitions import (
     RAI_AGENT,
     AgentDefinition,
     compose_cwyd_instructions,
+    resolve_cwyd_instructions,
 )
 from backend.core.settings import OpenAISettings
 
@@ -139,6 +140,45 @@ def test_compose_cwyd_instructions_appends_guardrail_once() -> None:
     assert "BODY" in composed
     # Guardrail appears exactly once (suffix only), never duplicated.
     assert composed.count(CWYD_GUARDRAIL) == 1
+
+
+def test_resolve_cwyd_instructions_none_matches_default() -> None:
+    """The shared composition seam returns the built-in default,
+    byte-identical to `CWYD_AGENT.instructions`, when no operator
+    override is supplied -- so the default path is unchanged and only
+    the override path is affected (BUG-0031)."""
+    assert resolve_cwyd_instructions(None) == CWYD_AGENT.instructions
+
+
+def test_resolve_cwyd_instructions_blank_override_falls_back_to_default() -> None:
+    """An empty or whitespace-only override is treated as 'clear --
+    use the default body', matching `_resolve_definition`'s
+    strip-check, so it resolves to the same wrapped default."""
+    for blank in ("", "   ", "\n\t  "):
+        assert resolve_cwyd_instructions(blank) == CWYD_AGENT.instructions
+
+
+def test_resolve_cwyd_instructions_override_is_guardrail_wrapped() -> None:
+    """A non-empty operator override becomes the persona body wrapped
+    by the fixed guardrail: the body leads, the guardrail is appended
+    exactly once and last. This is the invariant BUG-0031 restores on
+    the langgraph path (the override previously reached langgraph
+    un-wrapped)."""
+    composed = resolve_cwyd_instructions("You are the operator override.")
+    assert composed.startswith("You are the operator override.")
+    assert composed.endswith(CWYD_GUARDRAIL)
+    assert composed.count(CWYD_GUARDRAIL) == 1
+    # The override body is not itself the default body.
+    assert CWYD_DEFAULT_BODY not in composed
+
+
+def test_resolve_cwyd_instructions_matches_compose_for_override() -> None:
+    """The seam is exactly `compose_cwyd_instructions` over the chosen
+    body -- no divergent wrapping -- so the agent_framework
+    (`_resolve_definition`) and langgraph (effective-config) paths
+    produce identical text for the same override."""
+    override = "Persona body."
+    assert resolve_cwyd_instructions(override) == compose_cwyd_instructions(override)
 
 
 def test_cwyd_default_instructions_are_guardrail_wrapped() -> None:
