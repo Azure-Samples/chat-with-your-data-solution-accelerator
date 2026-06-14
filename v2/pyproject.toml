@@ -101,12 +101,12 @@ pythonpath = ["src"]
 # drop `tests/functions/<name>/test_blueprint.py` without renames or new
 # `__init__.py` markers. Note: pytest 9 only recognises the import-mode flag
 # via `addopts` (the bare `import_mode` ini key is rejected as unknown).
-addopts = "--import-mode=importlib -m 'not smoke'"
+addopts = "--import-mode=importlib -m 'not smoke and not integration'"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "unit: fast unit tests with all I/O mocked",
-    "integration: tests requiring a running dependency (azurite, postgres, etc.)",
+    "integration: opt-in live tests that boot the real app against real Azure data-plane services; deselected by default; require a populated v2/.env + az login (see tests/integration)",
     "smoke: CI-only live-container end-to-end checks; excluded from default pytest run by addopts",
 ]
 
