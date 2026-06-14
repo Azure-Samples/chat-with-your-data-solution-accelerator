@@ -280,6 +280,41 @@ describe("MessageInput SSE wiring", () => {
     act(() => def.end());
   });
 
+  it("routes a placeholder reasoning frame to reasoningPlaceholder, not reasoning", async () => {
+    const def = deferredIterable();
+    streamChatMock.mockReturnValue(def.iterable);
+    renderInput();
+    await submit("hi");
+
+    act(() =>
+      def.emit({
+        channel: "reasoning",
+        content: "Searching the knowledge base for relevant sources\u2026",
+        metadata: { placeholder: true },
+      }),
+    );
+    await waitFor(() => {
+      const m = probeMessages()[1];
+      expect(m.reasoningPlaceholder).toBe(
+        "Searching the knowledge base for relevant sources\u2026",
+      );
+      expect(m.reasoning).toEqual([]);
+    });
+
+    act(() =>
+      def.emit({ channel: "reasoning", content: "real thinking", metadata: {} }),
+    );
+    await waitFor(() => {
+      const m = probeMessages()[1];
+      expect(m.reasoning).toEqual(["real thinking"]);
+      expect(m.reasoningPlaceholder).toBe(
+        "Searching the knowledge base for relevant sources\u2026",
+      );
+    });
+
+    act(() => def.end());
+  });
+
   it("ignores tool frames (out of scope for the demo)", async () => {
     streamChatMock.mockReturnValue(
       iterableOf([

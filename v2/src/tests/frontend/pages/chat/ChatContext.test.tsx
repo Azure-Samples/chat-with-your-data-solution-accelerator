@@ -127,6 +127,40 @@ describe("chatReducer streaming actions", () => {
     expect(next.messages[0]!.reasoning).toEqual(["first"]);
   });
 
+  it("'set_reasoning_placeholder' sets the placeholder without touching reasoning", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: ChatActionType.Add,
+      message: streamingBot,
+    });
+    const next = chatReducer(seeded, {
+      type: ChatActionType.SetReasoningPlaceholder,
+      id: "s1",
+      text: "Searching the knowledge base for relevant sources\u2026",
+    });
+    expect(next.messages[0]!.reasoningPlaceholder).toBe(
+      "Searching the knowledge base for relevant sources\u2026",
+    );
+    expect(next.messages[0]!.reasoning).toEqual([]);
+  });
+
+  it("'set_reasoning_placeholder' replaces (does not append) on repeat dispatch", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: ChatActionType.Add,
+      message: streamingBot,
+    });
+    const a = chatReducer(seeded, {
+      type: ChatActionType.SetReasoningPlaceholder,
+      id: "s1",
+      text: "first hint",
+    });
+    const b = chatReducer(a, {
+      type: ChatActionType.SetReasoningPlaceholder,
+      id: "s1",
+      text: "second hint",
+    });
+    expect(b.messages[0]!.reasoningPlaceholder).toBe("second hint");
+  });
+
   it("'finish_stream' clears the streaming flag on the matching message", () => {
     const seeded = chatReducer(initialChatState, {
       type: ChatActionType.Add,

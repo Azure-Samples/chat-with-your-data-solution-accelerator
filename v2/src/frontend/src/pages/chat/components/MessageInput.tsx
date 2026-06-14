@@ -180,11 +180,24 @@ export function MessageInput() {
             });
             break;
           case "reasoning":
-            dispatch({
-              type: "append_reasoning",
-              id: assistantId,
-              chunk: ev.content,
-            });
+            // A `placeholder`-marked frame is the transient retrieval
+            // narration: route it to the placeholder slot (shown only
+            // until real reasoning lands) instead of the reasoning
+            // stream, so it is dropped the instant a native frame
+            // arrives.
+            if (ev.metadata.placeholder === true) {
+              dispatch({
+                type: "set_reasoning_placeholder",
+                id: assistantId,
+                text: ev.content,
+              });
+            } else {
+              dispatch({
+                type: "append_reasoning",
+                id: assistantId,
+                chunk: ev.content,
+              });
+            }
             break;
           case "error":
             dispatch({

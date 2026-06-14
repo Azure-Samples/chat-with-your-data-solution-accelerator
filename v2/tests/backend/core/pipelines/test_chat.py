@@ -240,6 +240,9 @@ async def test_retrieval_hint_emits_leading_reasoning_frame_before_orchestrator(
     assert orch.calls == 1
     assert [e.channel for e in out] == ["reasoning", "answer"]
     assert out[0].content == KB_SEARCH_NARRATION
+    # Marked `placeholder` so the client drops it once real reasoning
+    # streams (a non-reasoning model keeps it as the sole panel content).
+    assert out[0].metadata == {"placeholder": True}
 
 
 async def test_retrieval_hint_precedes_orchestrator_native_reasoning() -> None:
@@ -261,6 +264,11 @@ async def test_retrieval_hint_precedes_orchestrator_native_reasoning() -> None:
     assert [e.channel for e in out] == ["reasoning", "reasoning", "answer"]
     assert out[0].content == KB_SEARCH_NARRATION
     assert out[1].content == "native thinking"
+    # Only the leading narration frame carries the placeholder flag; the
+    # orchestrator's own reasoning frame is never marked, so the client
+    # swaps the placeholder out for it.
+    assert out[0].metadata == {"placeholder": True}
+    assert out[1].metadata.get("placeholder") is not True
 
 
 async def test_no_retrieval_hint_emits_no_leading_reasoning_frame() -> None:

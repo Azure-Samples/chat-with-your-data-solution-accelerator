@@ -27,10 +27,12 @@
  *     open with summary "Thinking…" + animated dots so the boss-demo
  *     viewer sees the model think live; once `finish_stream` clears
  *     `streaming`, the summary collapses to "▸ Thought process" and
- *     the user can re-expand on demand. Body joins all reasoning
- *     chunks (foundry_iq emits per-token deltas, so per-<li> would
- *     read as one-character mush — we concatenate at render time and
- *     keep the array shape on the wire).
+ *     the user can re-expand on demand. Body is formatted by
+ *     `formatReasoning`: foundry_iq emits per-token deltas, so per-<li>
+ *     would read as one-character mush — we concatenate at render time
+ *     (keeping the array shape on the wire), drop the model's bold
+ *     section titles, and break the remaining reasoning bodies apart so
+ *     both orchestrators render the same way.
  *   - non-empty `citations?: Citation[]` (finished messages only) →
  *     a `<CitationPanel>` accordion under the answer, hidden while
  *     the message is still streaming so the panel doesn't churn as
@@ -60,6 +62,7 @@ import {
 import { useChat } from "@/pages/chat/ChatContext";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
 import { renderAnswerTokens } from "./answerTokens";
+import { formatReasoning } from "./reasoningText";
 import { CitationPanel } from "./CitationPanel/CitationPanel";
 import styles from "./MessageList.module.css";
 
@@ -154,7 +157,9 @@ export function MessageList() {
             {m.role === "assistant" ? (
               <div className={styles.content}>
                 {(m.streaming === true ||
-                  (m.reasoning && m.reasoning.length > 0)) && (
+                  (m.reasoning && m.reasoning.length > 0) ||
+                  (m.reasoningPlaceholder !== undefined &&
+                    m.reasoningPlaceholder.length > 0)) && (
                   <details
                     data-testid={`message-${m.id}-reasoning`}
                     className={styles.reasoning}
@@ -178,7 +183,9 @@ export function MessageList() {
                       )}
                     </summary>
                     <div className={styles.reasoningBody}>
-                      {m.reasoning?.join("") ?? ""}
+                      {m.reasoning && m.reasoning.length > 0
+                        ? formatReasoning(m.reasoning)
+                        : (m.reasoningPlaceholder ?? "")}
                     </div>
                   </details>
                 )}

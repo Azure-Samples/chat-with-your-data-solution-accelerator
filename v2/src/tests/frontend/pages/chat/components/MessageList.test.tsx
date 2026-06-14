@@ -154,6 +154,38 @@ describe("MessageList", () => {
     expect(details.querySelectorAll("li")).toHaveLength(0);
   });
 
+  it("drops model section titles and breaks reasoning blocks apart in the panel", () => {
+    const mHeadered: ChatMessage = {
+      id: "8",
+      role: "assistant",
+      content: "answer body",
+      reasoning: [
+        "**Searching for employee benefits**\n\nI will look it up.",
+        "**Summarizing health benefits**\n\nHere is the summary.",
+      ],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mHeadered });
+    });
+
+    const details = screen.getByTestId("message-8-reasoning");
+    // The model's bold section titles are stripped from the panel...
+    expect(details.textContent).not.toContain("Searching for employee benefits");
+    expect(details.textContent).not.toContain("Summarizing health benefits");
+    // ...and the remaining bodies render separated by a blank-line break.
+    expect(details.textContent).toContain(
+      "I will look it up.\n\nHere is the summary.",
+    );
+  });
+
   it("opens the reasoning panel and shows 'Thinking' while the message is streaming", () => {
     const mStreamingNoChunks: ChatMessage = {
       id: "6",
@@ -236,6 +268,61 @@ describe("MessageList", () => {
     });
 
     expect(screen.queryByTestId("message-5-reasoning")).toBeNull();
+  });
+
+  it("shows the reasoning placeholder when there are no reasoning frames yet", () => {
+    const mPlaceholderOnly: ChatMessage = {
+      id: "ph",
+      role: "assistant",
+      content: "",
+      reasoning: [],
+      reasoningPlaceholder:
+        "Searching the knowledge base for relevant sources\u2026",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mPlaceholderOnly });
+    });
+
+    const details = screen.getByTestId("message-ph-reasoning");
+    expect(details.textContent).toContain(
+      "Searching the knowledge base for relevant sources\u2026",
+    );
+  });
+
+  it("drops the placeholder once real reasoning frames arrive", () => {
+    const mReasoningOverPlaceholder: ChatMessage = {
+      id: "both",
+      role: "assistant",
+      content: "answer body",
+      reasoning: ["real step"],
+      reasoningPlaceholder:
+        "Searching the knowledge base for relevant sources\u2026",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mReasoningOverPlaceholder });
+    });
+
+    const details = screen.getByTestId("message-both-reasoning");
+    expect(details.textContent).toContain("real step");
+    expect(details.textContent).not.toContain(
+      "Searching the knowledge base for relevant sources\u2026",
+    );
   });
 
   it("renders the reasoning panel and citation panel inside the same row as the avatar", () => {

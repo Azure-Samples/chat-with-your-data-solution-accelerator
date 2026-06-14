@@ -29,6 +29,7 @@ export const ChatActionType = {
   Add: "add",
   AppendAnswer: "append_answer",
   AppendReasoning: "append_reasoning",
+  SetReasoningPlaceholder: "set_reasoning_placeholder",
   AppendCitation: "append_citation",
   FinishStream: "finish_stream",
   SetError: "set_error",
@@ -42,6 +43,11 @@ export type ChatAction =
   | { type: typeof ChatActionType.Add; message: ChatMessage }
   | { type: typeof ChatActionType.AppendAnswer; id: string; chunk: string }
   | { type: typeof ChatActionType.AppendReasoning; id: string; chunk: string }
+  | {
+      type: typeof ChatActionType.SetReasoningPlaceholder;
+      id: string;
+      text: string;
+    }
   | { type: typeof ChatActionType.AppendCitation; id: string; citation: Citation }
   | { type: typeof ChatActionType.FinishStream; id: string }
   | { type: typeof ChatActionType.SetError; id: string; error: string }
@@ -77,6 +83,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return mapMessage(state, action.id, (m) => ({
         ...m,
         reasoning: [...(m.reasoning ?? []), action.chunk],
+      }));
+    case ChatActionType.SetReasoningPlaceholder:
+      // Replaces (never appends): the transient retrieval narration is a
+      // single line, and the renderer shows it only until real reasoning
+      // frames land in `reasoning`.
+      return mapMessage(state, action.id, (m) => ({
+        ...m,
+        reasoningPlaceholder: action.text,
       }));
     case ChatActionType.AppendCitation:
       return mapMessage(state, action.id, (m) => {
