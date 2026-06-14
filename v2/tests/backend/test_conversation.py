@@ -309,6 +309,56 @@ async def test_router_forwards_search_provider_to_orchestrator(
     assert _FakeOrchestrator.last_kwargs.get("search") is sentinel_search
 
 
+async def test_sse_emits_leading_retrieval_narration_when_search_wired(
+    app_with_fakes,
+) -> None:
+    """When a search backend is wired the stream opens with the
+    orchestrator-agnostic retrieval narration so the thinking panel
+    shows activity for the whole wait, not a flash at the end."""
+    app_with_fakes.dependency_overrides[get_search_provider] = lambda: object()
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+            headers={"Accept": "text/event-stream"},
+        )
+
+    assert resp.status_code == 200
+    frames = [f for f in resp.text.split("\n\n") if f]
+    assert frames[0].startswith("event: reasoning\n")
+    data_line = [ln for ln in frames[0].splitlines() if ln.startswith("data: ")][0]
+    assert json.loads(data_line[len("data: ") :]) == {
+        "content": chat_pipeline.KB_SEARCH_NARRATION,
+        "metadata": {},
+    }
+    assert frames[1].startswith("event: answer\n")
+
+
+async def test_sse_omits_retrieval_narration_when_search_disabled(
+    app_with_fakes,
+) -> None:
+    """Pass-through mode (no search provider) must not claim to search:
+    the stream carries only the orchestrator's own events."""
+    # `app_with_fakes` leaves `get_search_provider` at its default --
+    # ASGITransport skips lifespan, so `app.state.search_provider` is
+    # unset and the dependency returns None.
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hi"}]},
+            headers={"Accept": "text/event-stream"},
+        )
+
+    assert resp.status_code == 200
+    frames = [f for f in resp.text.split("\n\n") if f]
+    assert len(frames) == 1
+    assert frames[0].startswith("event: answer\n")
+
+
 async def test_router_uses_registry_dispatch_no_hardcoded_provider_names() -> None:
     """Greppable gate: orchestrator construction goes through the
     registry exactly once -- no parallel `if/elif` chain that

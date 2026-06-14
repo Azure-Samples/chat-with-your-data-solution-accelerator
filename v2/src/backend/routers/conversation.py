@@ -38,7 +38,7 @@ from backend.dependencies import (
 )
 from backend.models.conversation import ConversationRequest, ConversationResponse
 from backend.core.agents.definitions import CWYD_AGENT
-from backend.core.pipelines.chat import run_chat
+from backend.core.pipelines.chat import KB_SEARCH_NARRATION, run_chat
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.services.admin import resolve_effective_config
 from backend.services.conversation import collect_response
@@ -112,11 +112,22 @@ async def conversation(
         search_use_semantic_search=effective.search_use_semantic_search,
     )
 
+    # Retrieval narration is gated on a wired search backend: when
+    # `search` is None the deployment runs pass-through (no knowledge
+    # source) and the thinking panel must not claim it is searching.
+    # The orchestrator-agnostic emit lives in `run_chat`; the router
+    # owns the gate because it holds the resolved `search` provider --
+    # every orchestrator that grounds on the injected search backend
+    # (or the Foundry IQ KB derived from the same endpoint) inherits
+    # the during-the-wait narration with no per-orchestrator code.
+    retrieval_hint = KB_SEARCH_NARRATION if search is not None else None
+
     events = run_chat(
         body.messages,
         orchestrator=orchestrator,
         content_safety=content_safety,
         post_prompt=post_prompt,
+        retrieval_hint=retrieval_hint,
     )
 
     if wants_sse(accept):

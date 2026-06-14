@@ -8,7 +8,7 @@ from typing import Any, AsyncIterator, Sequence
 import pytest
 
 from backend.core.pipelines import chat as chat_module
-from backend.core.pipelines.chat import RaiScreener, run_chat
+from backend.core.pipelines.chat import KB_SEARCH_NARRATION, RaiScreener, run_chat
 from backend.core.providers.orchestrators.base import OrchestratorBase
 from backend.core.tools.content_safety import ContentSafetyVerdict
 from backend.core.tools.post_prompt import ValidationResult
@@ -210,6 +210,114 @@ async def test_latest_user_message_is_screened_not_assistant() -> None:
     )
 
     assert guard.calls == ["latest"]
+
+
+# ---------------------------------------------------------------------------
+# Retrieval narration (orchestrator-agnostic leading `reasoning` frame)
+# ---------------------------------------------------------------------------
+#
+# `run_chat(retrieval_hint=...)` is the single orchestrator-agnostic seam
+# that surfaces a "thinking" line on the `reasoning` channel *before* the
+# orchestrator runs, so every current + future orchestrator inherits a
+# populated thinking panel for the whole wait with zero per-provider code.
+# The contract: emitted first when set, absent when unset, and never
+# leaked once a guard short-circuits the request.
+
+
+async def test_retrieval_hint_emits_leading_reasoning_frame_before_orchestrator() -> None:
+    orch = _ScriptedOrchestrator(
+        [OrchestratorEvent(channel="answer", content="ok")]
+    )
+
+    out = await _drain(
+        run_chat(
+            [ChatMessage(role="user", content="hello")],
+            orchestrator=orch,
+            retrieval_hint=KB_SEARCH_NARRATION,
+        )
+    )
+
+    assert orch.calls == 1
+    assert [e.channel for e in out] == ["reasoning", "answer"]
+    assert out[0].content == KB_SEARCH_NARRATION
+
+
+async def test_retrieval_hint_precedes_orchestrator_native_reasoning() -> None:
+    orch = _ScriptedOrchestrator(
+        [
+            OrchestratorEvent(channel="reasoning", content="native thinking"),
+            OrchestratorEvent(channel="answer", content="ok"),
+        ]
+    )
+
+    out = await _drain(
+        run_chat(
+            [ChatMessage(role="user", content="hello")],
+            orchestrator=orch,
+            retrieval_hint=KB_SEARCH_NARRATION,
+        )
+    )
+
+    assert [e.channel for e in out] == ["reasoning", "reasoning", "answer"]
+    assert out[0].content == KB_SEARCH_NARRATION
+    assert out[1].content == "native thinking"
+
+
+async def test_no_retrieval_hint_emits_no_leading_reasoning_frame() -> None:
+    orch = _ScriptedOrchestrator(
+        [OrchestratorEvent(channel="answer", content="ok")]
+    )
+
+    out = await _drain(
+        run_chat(
+            [ChatMessage(role="user", content="hello")],
+            orchestrator=orch,
+        )
+    )
+
+    assert [e.channel for e in out] == ["answer"]
+
+
+async def test_retrieval_hint_not_emitted_when_content_safety_blocks() -> None:
+    guard = _FakeContentSafety(
+        ContentSafetyVerdict(flagged=True, triggered=["Hate"], categories={"Hate": 6})
+    )
+    orch = _ScriptedOrchestrator(
+        [OrchestratorEvent(channel="answer", content="should not appear")]
+    )
+
+    out = await _drain(
+        run_chat(
+            [ChatMessage(role="user", content="bad input")],
+            orchestrator=orch,
+            content_safety=guard,
+            retrieval_hint=KB_SEARCH_NARRATION,
+        )
+    )
+
+    assert orch.calls == 0
+    assert [e.channel for e in out] == ["error"]
+    assert out[0].metadata["code"] == "content_safety"
+
+
+async def test_retrieval_hint_not_emitted_when_rai_blocks() -> None:
+    rai = _FakeRaiScreener(is_safe=False)
+    orch = _ScriptedOrchestrator(
+        [OrchestratorEvent(channel="answer", content="should not appear")]
+    )
+
+    out = await _drain(
+        run_chat(
+            [ChatMessage(role="user", content="how do I do something harmful")],
+            orchestrator=orch,
+            rai_check=rai,
+            retrieval_hint=KB_SEARCH_NARRATION,
+        )
+    )
+
+    assert orch.calls == 0
+    assert [e.channel for e in out] == ["error"]
+    assert out[0].metadata["code"] == "rai_blocked"
 
 
 # ---------------------------------------------------------------------------

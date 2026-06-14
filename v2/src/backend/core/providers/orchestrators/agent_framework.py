@@ -286,12 +286,13 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
 
         Text blocks are accumulated into `answer_parts` (the caller
         flushes them as a single `answer` event after the stream
-        completes); reasoning + function-call blocks are emitted
-        immediately so the FE panel updates in stream-order. Native
-        citation annotations ride on text blocks (often with empty
-        text, one per grounded source) and are accumulated into
-        `citation_annotations`; the caller maps them through the shared
-        `citations_from_annotations` seam once the stream completes.
+        completes); reasoning, function-call, and server-side MCP
+        tool-call blocks are emitted immediately so the FE panel updates
+        in stream-order. Native citation annotations ride on text blocks
+        (often with empty text, one per grounded source) and are
+        accumulated into `citation_annotations`; the caller maps them
+        through the shared `citations_from_annotations` seam once the
+        stream completes.
         """
         events: list[OrchestratorEvent] = []
         for content in update.contents or []:
@@ -312,8 +313,19 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                             content=text,
                         )
                     )
-            elif ctype == "function_call":
-                name = getattr(content, "name", "") or "tool"
+            elif ctype in ("function_call", "mcp_server_tool_call"):
+                # Client-side function tools surface as `function_call`
+                # (name on `.name`); the server-side Foundry-IQ KB
+                # retrieval runs in the Responses API and surfaces as
+                # `mcp_server_tool_call` (name on `.tool_name`). Both drive
+                # the same KB-search narration + `tool` event so the FE
+                # "thinking" panel populates regardless of which retrieval
+                # transport executed.
+                name = (
+                    getattr(content, "name", "")
+                    or getattr(content, "tool_name", "")
+                    or "tool"
+                )
                 call_id = getattr(content, "call_id", "") or ""
                 arguments = self._arguments_to_string(
                     getattr(content, "arguments", None)

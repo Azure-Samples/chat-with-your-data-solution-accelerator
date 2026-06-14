@@ -69,6 +69,24 @@ def _function_call_block(
     )
 
 
+def _mcp_server_tool_call_block(
+    *, call_id: str, tool_name: str, arguments: Any
+) -> SimpleNamespace:
+    """A server-side hosted-MCP tool call.
+
+    Mirrors `agent_framework`'s `Content.from_mcp_server_tool_call(...)`:
+    the GA-FULL Foundry-IQ KB retrieval runs in the Responses API and
+    streams as a `mcp_server_tool_call` block whose tool name rides on
+    `.tool_name` (not `.name`, as a client-side `function_call` does).
+    """
+    return SimpleNamespace(
+        type="mcp_server_tool_call",
+        call_id=call_id,
+        tool_name=tool_name,
+        arguments=arguments,
+    )
+
+
 def _citation_block(
     *,
     file_id: str = "",
@@ -398,6 +416,77 @@ async def test_run_narrates_kb_search_before_tool_event_for_kb_retrieval() -> No
         "answer",
         "Here is the answer.",
     )
+
+
+@pytest.mark.asyncio
+async def test_run_narrates_kb_search_for_server_side_mcp_tool_call() -> None:
+    """Server-side Foundry-IQ KB retrieval (GA-FULL `MCPTool`) streams as a
+    `mcp_server_tool_call` block, not a client-side `function_call`. The
+    orchestrator must still emit the model-agnostic `reasoning` narration
+    (so the FE "thinking" panel populates) immediately before the raw
+    `tool` event for the same call -- regression guard for BUG-0026."""
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _mcp_server_tool_call_block(
+                    call_id="mcp_kb",
+                    tool_name=KB_RETRIEVE_TOOL_NAME,
+                    arguments={"query": "benefits"},
+                ),
+            ),
+            _update(_text_block("Grounded answer.")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    assert events[0].channel == "reasoning"
+    assert "knowledge base" in events[0].content.lower()
+    assert (events[1].channel, events[1].content) == (
+        "tool",
+        KB_RETRIEVE_TOOL_NAME,
+    )
+    assert events[1].metadata == {
+        "id": "mcp_kb",
+        "type": "function",
+        "arguments": '{"query": "benefits"}',
+    }
+    assert (events[2].channel, events[2].content) == (
+        "answer",
+        "Grounded answer.",
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_emits_tool_event_for_non_kb_mcp_server_tool_call() -> None:
+    """A non-KB `mcp_server_tool_call` yields a bare `tool` event with no
+    KB narration (the narration is reserved for the KB retrieve tool)."""
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _mcp_server_tool_call_block(
+                    call_id="mcp_1",
+                    tool_name="some_other_tool",
+                    arguments={"x": 1},
+                ),
+            ),
+            _update(_text_block("done")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    pairs = [(e.channel, e.content) for e in events]
+    assert pairs == [
+        ("tool", "some_other_tool"),
+        ("answer", "done"),
+    ]
 
 
 @pytest.mark.asyncio

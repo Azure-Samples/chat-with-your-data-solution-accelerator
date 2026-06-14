@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from backend.core.agents.definitions import (
     BUILTIN_AGENTS,
     CWYD_AGENT,
+    CWYD_DEFAULT_BODY,
     CWYD_GUARDRAIL,
     RAI_AGENT,
     AgentDefinition,
@@ -177,6 +178,42 @@ def test_cwyd_guardrail_states_non_negotiable_rules() -> None:
     )
     # Refuse-to-modify-rules clause is present.
     assert "fixed" in CWYD_GUARDRAIL.lower()
+
+
+def test_cwyd_guardrail_grounds_relevant_but_brief_documents() -> None:
+    """The grounding rule directs the model to answer from relevant
+    documents even when they are brief or partial (BUG-0028
+    over-refusal fix), and bases the refusal on relevance rather than a
+    strict "not enough information" reading that made gpt-5.1 refuse
+    in-domain queries on the raw chat-completion path."""
+    guardrail = CWYD_GUARDRAIL.lower()
+    # Positive grounding directive is present (answer when relevant).
+    assert "you **must** answer" in CWYD_GUARDRAIL
+    assert "do not refuse" in guardrail
+    # The refusal is relevance-based, not "enough information"-based.
+    assert "enough information" not in guardrail
+    assert "relevant" in guardrail
+
+
+def test_cwyd_guardrail_bans_ungrounded_creative_content() -> None:
+    """Softening the grounding rule must not regress the BUG-0011
+    grounding guarantee: the guardrail still bans ungrounded creative
+    content (a request such as "write me a poem" must not leak)."""
+    guardrail = CWYD_GUARDRAIL.lower()
+    assert "creative content" in guardrail
+    assert "poems" in guardrail
+    # The ban names more than one creative form.
+    assert "stories" in guardrail or "jokes" in guardrail
+
+
+def test_cwyd_default_body_drops_strict_in_domain_drag() -> None:
+    """The v1 prompt-flow in/out-of-domain section ("think twice",
+    "only when ... enough information", "you cannot decide") drove the
+    BUG-0028 over-refusal and is replaced by a relevance-based
+    answer/defer section."""
+    body = CWYD_DEFAULT_BODY.lower()
+    assert "think twice" not in body
+    assert "enough information" not in body
 
 
 def test_rai_agent_uses_macae_classifier_pattern() -> None:

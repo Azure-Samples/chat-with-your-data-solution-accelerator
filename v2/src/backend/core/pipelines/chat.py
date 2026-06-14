@@ -38,6 +38,14 @@ Behavior contracts
   free of DI plumbing -- the router binds ``rai_check`` as
   ``functools.partial(rai_check, agents=agents, db=db)`` (or a closure)
   before calling ``run_chat``.
+* **Retrieval narration**: when ``retrieval_hint`` is supplied (the
+  router passes it only when a knowledge source is wired), a single
+  ``reasoning`` event carrying that text is emitted *before* the
+  orchestrator runs -- and only after both guards pass -- so the
+  client's thinking panel shows retrieval activity for the whole wait
+  instead of a flash once retrieval has already completed. Orchestrator
+  reasoning frames stream after it. Every orchestrator inherits this
+  with zero per-provider code.
 * **Post-prompt validation**: when a validator is supplied, ``answer``
   events are *buffered* until the orchestrator stream finishes, then
   validated, then emitted as a single ``answer`` event whose content
@@ -64,6 +72,14 @@ from backend.core.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Canonical "thinking" narration surfaced on the `reasoning` channel
+# while a grounded request is answered. Retrieval (knowledge-base query
+# or search) dominates the wait, so narrating it keeps the client's
+# thinking panel populated for the whole turn. The string lives here so
+# every orchestrator surfaces identical wording; callers pass it via
+# `run_chat(retrieval_hint=...)` only when a knowledge source is wired.
+KB_SEARCH_NARRATION = "Searching the knowledge base for relevant sources\u2026"
 
 # Type alias for the RAI screener callable. Returns True when input
 # is safe, False when unsafe. The pipeline never inspects the
@@ -100,6 +116,7 @@ async def run_chat(
     content_safety: ContentSafetyGuard | None = None,
     rai_check: RaiScreener | None = None,
     post_prompt: PostPromptValidator | None = None,
+    retrieval_hint: str | None = None,
 ) -> AsyncIterator[OrchestratorEvent]:
     """Run the configured chat flow and yield typed SSE events."""
     user_text = _latest_user_text(messages)
@@ -128,6 +145,18 @@ async def run_chat(
                 metadata={"code": "rai_blocked"},
             )
             return
+
+    # Orchestrator-agnostic thinking narration: emitted only after both
+    # guards pass (a blocked request must not claim it is "searching")
+    # and before the orchestrator runs, so the client's thinking panel
+    # shows retrieval activity for the whole wait rather than a flash
+    # once retrieval has already completed. Native reasoning frames from
+    # the orchestrator simply stream after it.
+    if retrieval_hint is not None:
+        yield OrchestratorEvent(
+            channel=OrchestratorChannel.REASONING,
+            content=retrieval_hint,
+        )
 
     answer_buffer: list[str] = []
     citations: list[Citation] = []
@@ -183,4 +212,4 @@ async def run_chat(
     yield OrchestratorEvent(channel=OrchestratorChannel.ANSWER, content=result.answer)
 
 
-__all__ = ["RaiScreener", "run_chat"]
+__all__ = ["KB_SEARCH_NARRATION", "RaiScreener", "run_chat"]
