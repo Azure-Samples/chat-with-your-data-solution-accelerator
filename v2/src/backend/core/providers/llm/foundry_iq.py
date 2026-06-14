@@ -28,6 +28,7 @@ import openai
 from azure.ai.projects.aio import AIProjectClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
+from pydantic import BaseModel, ConfigDict
 
 from backend.core.settings import AppSettings
 from backend.core.types import (
@@ -169,6 +170,24 @@ class _ProjectClientView(Protocol):
     ) -> _OpenAIClient: ...
 
 
+class _ResponsesInputItem(BaseModel):
+    """One `message`-typed item in a Responses API `input` array.
+
+    The Responses `input` array is stricter than the Chat Completions
+    `messages` array: every item must declare an explicit `type`, so a
+    bare `{"role", "content"}` dict is rejected with an empty-`type`
+    error. This is the hand-authored model whose `model_dump()` is the
+    `input` wire shape (per Hard Rule #15) -- distinct from
+    `_to_openai_messages`, which dumps an already-typed `ChatMessage`.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    type: str = "message"
+    role: str
+    content: str
+
+
 @registry.register("foundry_iq")
 class FoundryIQ(BaseLLMProvider):
     def __init__(
@@ -191,6 +210,12 @@ class FoundryIQ(BaseLLMProvider):
         # use a separate client pointed at the AI Services account
         # endpoint. Cached independently; see `_get_embeddings_client`.
         self._embeddings_client: _OpenAIClient | None = None
+        # Per-deployment reasoning-capability cache, populated lazily by
+        # `supports_reasoning`: a one-shot Responses-API probe records
+        # whether the model behind a deployment accepts the `reasoning`
+        # parameter, so the answer path routes to the reasoning surface
+        # only for capable models -- no configuration flag.
+        self._reasoning_support: dict[str, bool] = {}
 
     # ------------------------------------------------------------------
     # Internals
@@ -299,6 +324,18 @@ class FoundryIQ(BaseLLMProvider):
         messages: Sequence[ChatMessage],
     ) -> list[dict[str, Any]]:
         return [m.model_dump(exclude_none=True) for m in messages]
+
+    @staticmethod
+    def _to_responses_input(
+        messages: Sequence[ChatMessage],
+    ) -> list[_ResponsesInputItem]:
+        # Each turn is emitted as an explicit `message` item with a
+        # plain-string role so the Responses endpoint classifies it
+        # unambiguously; `reason()` dumps these to the wire shape.
+        return [
+            _ResponsesInputItem(role=m.role.value, content=m.content)
+            for m in messages
+        ]
 
     # ------------------------------------------------------------------
     # BaseLLMProvider implementation
@@ -463,7 +500,10 @@ class FoundryIQ(BaseLLMProvider):
         oai = await self._get_openai_client()
         kwargs: dict[str, Any] = {
             "model": model,
-            "input": self._to_openai_messages(messages),
+            "input": [
+                item.model_dump()
+                for item in self._to_responses_input(messages)
+            ],
             "reasoning": {"effort": "medium", "summary": "auto"},
             "stream": True,
         }
@@ -537,6 +577,117 @@ class FoundryIQ(BaseLLMProvider):
                 content=str(exc),
                 metadata={"code": "reason_stream_failed"},
             )
+
+    async def supports_reasoning(self, deployment: str | None = None) -> bool:
+        """Probe-and-cache whether the answer model accepts reasoning.
+
+        Overrides the ABC default with a one-shot Responses-API probe:
+        the first time a deployment is seen, issue a minimal
+        ``responses.create(..., reasoning=...)`` call. A 200 means the
+        model emits a reasoning summary (cache ``True``); an explicit
+        ``reasoning``-parameter rejection means it cannot (cache
+        ``False``). Any other failure -- auth, throttle, budget, 5xx,
+        network -- is NOT a capability signal: it is logged and reported
+        as ``False`` for this call WITHOUT caching, so the answer still
+        streams via plain chat and the probe re-runs next time.
+
+        Keyed by the resolved deployment name, so a single probe predicts
+        both the ``complete()`` answer path and any orchestrator that
+        answers through the same deployment.
+        """
+        model = self._resolve_deployment(deployment, kind="chat")
+        cached = self._reasoning_support.get(model)
+        if cached is not None:
+            return cached
+        try:
+            oai = await self._get_openai_client()
+            await oai.responses.create(
+                model=model,
+                input=[
+                    item.model_dump()
+                    for item in self._to_responses_input(
+                        [ChatMessage(role=ChatRole.USER, content="ping")]
+                    )
+                ],
+                reasoning={"effort": "low", "summary": "auto"},
+                max_output_tokens=256,
+                stream=False,
+            )
+        except (openai.APIError, AzureError) as exc:
+            if isinstance(exc, openai.APIError) and self._is_reasoning_unsupported(
+                exc
+            ):
+                logger.info(
+                    "foundry_iq deployment does not support reasoning summaries",
+                    extra={
+                        "operation": "supports_reasoning",
+                        "provider": "foundry_iq",
+                        "deployment": model,
+                    },
+                )
+                self._reasoning_support[model] = False
+                return False
+            logger.warning(
+                "foundry_iq reasoning-capability probe failed; treating as "
+                "unsupported for this call only",
+                extra={
+                    "operation": "supports_reasoning",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            return False
+        self._reasoning_support[model] = True
+        return True
+
+    @staticmethod
+    def _is_reasoning_unsupported(exc: openai.APIError) -> bool:
+        """Whether ``exc`` is the model rejecting the ``reasoning`` param.
+
+        Azure OpenAI returns a 400 whose ``param`` is ``"reasoning"`` (or
+        whose message names the unsupported ``reasoning`` parameter) when
+        the deployment is a non-reasoning model (e.g. gpt-4o). Every
+        other failure -- auth, throttle, budget, 5xx, network -- is a
+        transient / unrelated error and must NOT be cached as a
+        capability verdict.
+        """
+        param = getattr(exc, "param", None)
+        if param == "reasoning":
+            return True
+        message = str(getattr(exc, "message", "") or exc).lower()
+        return "reasoning" in message and (
+            "unsupported" in message or "not supported" in message
+        )
+
+    async def complete(
+        self,
+        messages: Sequence[ChatMessage],
+        *,
+        deployment: str | None = None,
+    ) -> AsyncIterator[OrchestratorEvent]:
+        """Completion that streams reasoning when the answer model supports it.
+
+        Resolves the answer deployment and probes its reasoning capability
+        (:meth:`supports_reasoning`, cached per deployment). A
+        reasoning-capable answer model (gpt-5 / o-series) streams through
+        the Responses API summary path (the surface :meth:`reason` uses),
+        emitting a chain-of-thought summary on the ``reasoning`` channel
+        alongside the ``answer`` tokens. A non-reasoning model falls back
+        to the base routing: :meth:`reason` only for the dedicated
+        reasoning deployment, :meth:`chat` otherwise.
+
+        Capability is detected at this single model-invocation boundary,
+        so every orchestrator that answers through ``complete()`` (the
+        LangGraph path and any future provider-based orchestrator)
+        surfaces reasoning with no per-orchestrator logic.
+        """
+        chosen = self._resolve_deployment(deployment, kind="chat")
+        if await self.supports_reasoning(chosen):
+            async for event in self.reason(messages, deployment=chosen):
+                yield event
+            return
+        async for event in super().complete(messages, deployment=deployment):
+            yield event
 
     async def aclose(self) -> None:
         # We only own the client when we constructed it ourselves.

@@ -248,23 +248,28 @@ class AzureSearch(BaseSearch):
         return deleted_count
 
     async def list_sources(self) -> list[SourceListing]:
-        # `facets=["title,count:10000,sort:value"]` asks the service to
-        # bucket all chunks by their `title` field (the source filename
-        # / URL), cap at 10_000 distinct values, and return them sorted
-        # alphabetically -- saves a Python-side sort and keeps the
-        # admin UI ordering deterministic. `top=0` skips the document
-        # body of the response; we only consume the facet aggregate.
+        # Page every chunk selecting only its `title` (the source
+        # filename / URL) and aggregate distinct sources client-side.
+        # Faceting on `title` is avoided: it fails on index schemas that
+        # do not mark `title` as facetable (Code: FieldNotFacetable), so
+        # paging keeps this robust to the deployed index schema. Sources
+        # are returned sorted alphabetically for a deterministic admin
+        # UI ordering.
         client = self._get_client()
+        counts: dict[str, int] = {}
         try:
-            paged = await client.search(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-                search_text="*",
-                facets=["title,count:10000,sort:value"],
-                top=0,
+            paged = cast(
+                AsyncIterable[dict[str, Any]],
+                await client.search(  # pyright: ignore[reportUnknownMemberType]
+                    search_text="*",
+                    select=["title"],
+                ),
             )
-            facets = cast(
-                dict[str, list[dict[str, Any]]] | None,
-                await paged.get_facets(),  # pyright: ignore[reportUnknownMemberType]
-            )
+            async for doc in paged:
+                title = doc.get("title")
+                if title:
+                    key = str(title)
+                    counts[key] = counts.get(key, 0) + 1
         except AzureError:
             logger.exception(
                 "azure_search list_sources failed",
@@ -275,15 +280,9 @@ class AzureSearch(BaseSearch):
                 },
             )
             raise
-        title_facets = (facets or {}).get("title", [])
         return [
-            SourceListing(
-                source=str(entry.get("value", "")),
-                chunk_count=int(entry.get("count", 0) or 0),
-                last_modified=None,
-            )
-            for entry in title_facets
-            if entry.get("value")
+            SourceListing(source=source, chunk_count=count, last_modified=None)
+            for source, count in sorted(counts.items())
         ]
 
     async def merge_or_upload_documents(

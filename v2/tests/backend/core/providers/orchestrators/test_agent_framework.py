@@ -6,7 +6,7 @@ Phase: 3
 
 from types import SimpleNamespace
 from typing import Any, Self
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from azure.core.exceptions import HttpResponseError
@@ -212,10 +212,13 @@ def _make_orchestrator(
     settings: AppSettings | None = None,
     agents: Any = None,
     db: Any = None,
+    supports_reasoning: bool = False,
 ) -> AgentFrameworkOrchestrator:
+    llm = MagicMock(spec=BaseLLMProvider)
+    llm.supports_reasoning = AsyncMock(return_value=supports_reasoning)
     return AgentFrameworkOrchestrator(
         settings=settings if settings is not None else _settings(),
-        llm=MagicMock(spec=BaseLLMProvider),
+        llm=llm,
         agents=agents if agents is not None else _FakeAgentsProvider(),
         db=db if db is not None else object(),
     )
@@ -383,11 +386,13 @@ async def test_run_emits_tool_events_for_function_call_blocks() -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_narrates_kb_search_before_tool_event_for_kb_retrieval() -> None:
-    """A `knowledge_base_retrieve` function-call yields a model-agnostic
-    `reasoning` narration (so the FE "thinking" panel is populated for any
-    model, regardless of native reasoning summaries) immediately before the
-    raw `tool` event for the same call."""
+async def test_run_emits_tool_event_without_narration_for_kb_function_call() -> None:
+    """A `knowledge_base_retrieve` client-side function-call yields only the
+    raw `tool` event (id / arguments) and no `reasoning` narration. The
+    during-the-wait KB-search narration is emitted upstream by the shared
+    `run_chat` pipeline, so the orchestrator no longer narrates per call --
+    regression guard for BUG-0027 (the per-call narration fired only after
+    server-side retrieval had completed, so it never showed during the wait)."""
     agent = _FakeAgent(
         updates=[
             _update(
@@ -406,25 +411,23 @@ async def test_run_narrates_kb_search_before_tool_event_for_kb_retrieval() -> No
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    assert events[0].channel == "reasoning"
-    assert "knowledge base" in events[0].content.lower()
-    assert (events[1].channel, events[1].content) == (
-        "tool",
-        KB_RETRIEVE_TOOL_NAME,
-    )
-    assert (events[2].channel, events[2].content) == (
-        "answer",
-        "Here is the answer.",
-    )
+    pairs = [(e.channel, e.content) for e in events]
+    assert pairs == [
+        ("tool", KB_RETRIEVE_TOOL_NAME),
+        ("answer", "Here is the answer."),
+    ]
+    assert all(e.channel != "reasoning" for e in events)
 
 
 @pytest.mark.asyncio
-async def test_run_narrates_kb_search_for_server_side_mcp_tool_call() -> None:
+async def test_run_emits_tool_event_without_narration_for_kb_mcp_server_tool_call() -> None:
     """Server-side Foundry-IQ KB retrieval (GA-FULL `MCPTool`) streams as a
     `mcp_server_tool_call` block, not a client-side `function_call`. The
-    orchestrator must still emit the model-agnostic `reasoning` narration
-    (so the FE "thinking" panel populates) immediately before the raw
-    `tool` event for the same call -- regression guard for BUG-0026."""
+    orchestrator emits only the raw `tool` event for it (with id / arguments)
+    and no `reasoning` narration -- the during-the-wait narration is emitted
+    upstream by the shared `run_chat` pipeline (BUG-0027). Tool-event mapping
+    on this `mcp_server_tool_call` content shape stays a regression guard for
+    BUG-0026."""
     agent = _FakeAgent(
         updates=[
             _update(
@@ -443,21 +446,17 @@ async def test_run_narrates_kb_search_for_server_side_mcp_tool_call() -> None:
         ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
     ]
 
-    assert events[0].channel == "reasoning"
-    assert "knowledge base" in events[0].content.lower()
-    assert (events[1].channel, events[1].content) == (
-        "tool",
-        KB_RETRIEVE_TOOL_NAME,
-    )
-    assert events[1].metadata == {
+    pairs = [(e.channel, e.content) for e in events]
+    assert pairs == [
+        ("tool", KB_RETRIEVE_TOOL_NAME),
+        ("answer", "Grounded answer."),
+    ]
+    assert events[0].metadata == {
         "id": "mcp_kb",
         "type": "function",
         "arguments": '{"query": "benefits"}',
     }
-    assert (events[2].channel, events[2].content) == (
-        "answer",
-        "Grounded answer.",
-    )
+    assert all(e.channel != "reasoning" for e in events)
 
 
 @pytest.mark.asyncio
@@ -761,6 +760,50 @@ async def test_run_passes_default_sampling_knobs_via_options() -> None:
     assert options is not None
     assert options["temperature"] == 0.0
     assert options["max_tokens"] == 1000
+
+
+@pytest.mark.asyncio
+async def test_run_requests_reasoning_summary_when_model_supports_it() -> None:
+    """A reasoning-capable answer model -> the agent run carries a
+    Responses-API `reasoning` option so the model emits a reasoning
+    summary, detected via `llm.supports_reasoning()` (the same capability
+    the `langgraph` path consults)."""
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        agents=_FakeAgentsProvider(agent=agent), supports_reasoning=True
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    options = agent.run_calls[0]["options"]
+    assert options is not None
+    assert options["reasoning"] == {"effort": "medium", "summary": "auto"}
+    # Reasoning models reject `temperature` and prefer `max_output_tokens`,
+    # so the orchestrator omits both sampling knobs in reasoning mode --
+    # symmetric with the langgraph path's `reason()`, which passes neither.
+    assert "temperature" not in options
+    assert "max_tokens" not in options
+
+
+@pytest.mark.asyncio
+async def test_run_omits_reasoning_option_when_model_lacks_reasoning() -> None:
+    """A non-reasoning answer model -> the agent run carries no
+    `reasoning` option -- the Responses API rejects it for non-reasoning
+    deployments, so the orchestrator must not send it unasked."""
+    agent = _FakeAgent(updates=[_update(_text_block("ok"))])
+    orch = _make_orchestrator(
+        agents=_FakeAgentsProvider(agent=agent), supports_reasoning=False
+    )
+
+    _ = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    options = agent.run_calls[0]["options"]
+    assert options is not None
+    assert "reasoning" not in options
 
 
 # ---------------------------------------------------------------------------

@@ -26,10 +26,7 @@ Run loop:
        to an `OrchestratorEvent` on the locked channel set:
          * `text`           -> buffered, flushed as a single `answer`
          * `text_reasoning` -> `reasoning` event
-         * `function_call`  -> `tool` event with id / arguments (a
-           Knowledge Base retrieval call also emits a leading `reasoning`
-           activity narration, so the FE "thinking" panel is populated
-           even when the model emits no native `text_reasoning` summary)
+         * `function_call`  -> `tool` event with id / arguments
          * citation annots  -> buffered (see step 5)
          * everything else  -> ignored
     5. Map the buffered native citation annotations through the shared
@@ -39,9 +36,10 @@ Run loop:
 
 The agent's instructions (including any admin override) are applied by
 `build_agent` via `_resolve_definition`, so this orchestrator does not
-thread a system prompt. The `llm` dependency is unused -- the Agent
-owns its own model deployment in Foundry. We still take it via the ABC
-contract so swapping orchestrators is configuration-only.
+thread a system prompt. The Agent owns its own model deployment in
+Foundry, so `run()` consults the injected `llm` only to detect whether
+that model emits reasoning summaries (`llm.supports_reasoning()`),
+gating the Responses-API `reasoning` option accordingly.
 """
 
 import json
@@ -76,13 +74,6 @@ logger = logging.getLogger(__name__)
 # MCP endpoint. Pinned via `allowed_tools` so the agent may call only KB
 # retrieval, never arbitrary server-side tools.
 KB_RETRIEVE_TOOL_NAME = "knowledge_base_retrieve"
-
-# Human-readable activity narration surfaced on the `reasoning` channel when
-# the agent invokes Knowledge Base retrieval. Foundry IQ runs the retrieval
-# (query planning, ranking) server-side, so the call itself is the only
-# observable signal of that work; narrating it keeps the FE "thinking" panel
-# populated even when the chat model emits no `text_reasoning` summary blocks.
-_KB_SEARCH_NARRATION = "Searching the knowledge base for relevant sources\u2026"
 
 
 @registry.register("agent_framework")
@@ -176,13 +167,34 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # both the success path and the error `return` below.
         async with agent:
             try:
+                if await self.llm.supports_reasoning():
+                    # Reasoning models reject `temperature` and prefer
+                    # `max_output_tokens`, so omit both sampling knobs and
+                    # ask only for the reasoning summary -- symmetric with
+                    # the `langgraph` path's `reason()`, which passes
+                    # neither. `FoundryChatClient` honors a Responses-API
+                    # `reasoning` option (`agent_framework_foundry`
+                    # translates it to `Reasoning(effort=..., summary=...)`)
+                    # so the model emits reasoning-summary deltas the run
+                    # surfaces as `text_reasoning` content, which
+                    # `_update_to_events` already forwards on the reasoning
+                    # channel. `reasoning` lives on the OpenAI-specific
+                    # options subclass, not the base `ChatOptions`
+                    # TypedDict, so it is set past that SDK boundary.
+                    options = ChatOptions()
+                    options["reasoning"] = {  # pyright: ignore[reportGeneralTypeIssues]
+                        "effort": "medium",
+                        "summary": "auto",
+                    }
+                else:
+                    options = ChatOptions(
+                        temperature=self._temperature,
+                        max_tokens=self._max_tokens,
+                    )
                 stream = agent.run(
                     oss_messages,
                     stream=True,
-                    options=ChatOptions(
-                        temperature=self._temperature,
-                        max_tokens=self._max_tokens,
-                    ),
+                    options=options,
                 )
                 async for update in stream:
                     for event in self._update_to_events(
@@ -317,10 +329,10 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 # Client-side function tools surface as `function_call`
                 # (name on `.name`); the server-side Foundry-IQ KB
                 # retrieval runs in the Responses API and surfaces as
-                # `mcp_server_tool_call` (name on `.tool_name`). Both drive
-                # the same KB-search narration + `tool` event so the FE
-                # "thinking" panel populates regardless of which retrieval
-                # transport executed.
+                # `mcp_server_tool_call` (name on `.tool_name`). Both map
+                # to a raw `tool` event; the during-the-wait KB-search
+                # narration is emitted upstream by the shared `run_chat`
+                # pipeline, so no per-call narration is produced here.
                 name = (
                     getattr(content, "name", "")
                     or getattr(content, "tool_name", "")
@@ -330,13 +342,6 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 arguments = self._arguments_to_string(
                     getattr(content, "arguments", None)
                 )
-                if str(name) == KB_RETRIEVE_TOOL_NAME:
-                    events.append(
-                        OrchestratorEvent(
-                            channel=OrchestratorChannel.REASONING,
-                            content=_KB_SEARCH_NARRATION,
-                        )
-                    )
                 metadata: dict[str, Any] = {
                     "id": call_id,
                     "type": "function",
