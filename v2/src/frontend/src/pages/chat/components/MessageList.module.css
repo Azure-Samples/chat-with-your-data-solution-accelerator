@@ -127,6 +127,10 @@
   padding-top: 4px; /* Optical alignment with avatar */
   background: transparent;
   color: var(--colorNeutralForeground1);
+  /* The answer renders through MarkdownContent, which emits its own
+     block-level breaks (and <br> for the model's hard breaks); collapse
+     soft source newlines so pre-wrap doesn't double the line spacing. */
+  white-space: normal;
 }
 
 .srOnly {
