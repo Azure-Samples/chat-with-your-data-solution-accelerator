@@ -32,7 +32,7 @@ Caller pattern (Phase 3 wiring)::
 """
 
 import re
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Sequence, cast
 
 from agent_framework import Annotation, TextSpanRegion
@@ -236,6 +236,83 @@ def normalize_kb_citations(
     return normalized, renumbered
 
 
+# Native Foundry IQ Knowledge Base source scheme. The agent_framework KB
+# annotation keys a citation by ``mcp://searchindex/<key>``, where ``<key>`` is
+# the Azure AI Search document id. Stripping the scheme yields the bare key a
+# by-id document lookup resolves.
+_KB_SOURCE_SCHEME = "mcp://searchindex/"
+
+
+def _kb_document_key(citation: Citation) -> str | None:
+    """Return the bare Search document key behind a KB citation, or ``None``.
+
+    The ``agent_framework`` Knowledge Base path keys citations by a raw
+    ``mcp://searchindex/<key>`` id, carried on ``metadata["source_id"]`` and
+    mirrored onto ``url`` / ``title`` until enrichment runs; ``<key>`` is the
+    Search document id. A citation without that scheme (the ``langgraph``
+    path, or an already-enriched citation) yields ``None`` so it passes
+    through untouched.
+    """
+    candidates = (
+        citation.metadata.get("source_id"),
+        citation.url,
+        citation.title,
+    )
+    for candidate in candidates:
+        if isinstance(candidate, str) and candidate.startswith(_KB_SOURCE_SCHEME):
+            return candidate[len(_KB_SOURCE_SCHEME) :]
+    return None
+
+
+async def enrich_kb_citations(
+    citations: Sequence[Citation],
+    fetch_document: Callable[[str], Awaitable[SearchResult | None]],
+) -> list[Citation]:
+    """Backfill friendly ``title`` / ``snippet`` / ``url`` on KB citations.
+
+    The ``agent_framework`` Knowledge Base annotation carries only a raw
+    ``mcp://searchindex/<key>`` id -- no filename, no snippet -- so a
+    KB-grounded citation renders with an internal scheme where the
+    ``langgraph`` path shows the document name. This resolves each KB-keyed
+    citation's ``<key>`` (the Search document id) through the injected
+    ``fetch_document`` lookup and replaces ``title`` / ``snippet`` / ``url``
+    with the document's friendly fields.
+
+    ``fetch_document`` is injected (key -> ``SearchResult`` | ``None``) so
+    this stays a pure citation-shaping step with no Search-provider import --
+    the single response-format point (ADR 0026 / Hard Rule #20 R2). The caller
+    (the ``agent_framework`` orchestrator) owns the lookup's SDK boundary and
+    resilience (Hard Rule #14).
+
+    A citation with no ``mcp://searchindex/`` key (the ``langgraph`` path, or
+    an already-enriched citation) passes through unchanged. A key that
+    ``fetch_document`` resolves to ``None`` (document not in the index) also
+    passes through unchanged, so a missing lookup degrades to the raw id
+    rather than dropping the citation. ``id``, ``score``, and ``metadata``
+    (including the original ``source_id``) are preserved.
+    """
+    enriched: list[Citation] = []
+    for citation in citations:
+        key = _kb_document_key(citation)
+        if key is None:
+            enriched.append(citation)
+            continue
+        document = await fetch_document(key)
+        if document is None:
+            enriched.append(citation)
+            continue
+        enriched.append(
+            citation.model_copy(
+                update={
+                    "title": document.title,
+                    "snippet": document.content,
+                    "url": document.url,
+                }
+            )
+        )
+    return enriched
+
+
 def format_sources_block(sources: Sequence[SearchResult]) -> str:
     """Render hits as ``[docN]: <content>`` lines for prompt injection.
 
@@ -278,6 +355,7 @@ __all__ = [
     "build_citations",
     "citations_from_annotations",
     "doc_marker",
+    "enrich_kb_citations",
     "filter_to_referenced",
     "format_sources_block",
     "normalize_kb_citations",

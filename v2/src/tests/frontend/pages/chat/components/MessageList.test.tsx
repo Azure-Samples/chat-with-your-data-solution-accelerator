@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import {
   ChatProvider,
   useChat,
@@ -619,7 +619,7 @@ describe("MessageList answer-token rendering", () => {
     )._dispatch;
   }
 
-  it("renders inline [docN] markers as literal text, not clickable tokens", () => {
+  it("renders inline [docN] markers as superscripts, not literal text or clickable tokens", () => {
     const mWithTokens: ChatMessage = {
       id: "tok-1",
       role: "assistant",
@@ -636,14 +636,19 @@ describe("MessageList answer-token rendering", () => {
       getDispatch()({ type: "add", message: mWithTokens });
     });
 
-    // The answer renders through the markdown panel, so citation
-    // markers pass through as literal text rather than inline token
-    // buttons.
+    // Superscripts are visual-only: no clickable inline token buttons.
     expect(screen.queryByTestId("answer-token-tok-1-1")).toBeNull();
     expect(screen.queryByTestId("answer-token-tok-1-2")).toBeNull();
     const bubble = screen.getByTestId("message-tok-1");
-    expect(bubble.textContent).toContain("[doc1]");
-    expect(bubble.textContent).toContain("[doc2]");
+    // The markers are rewritten, so the literal [docN] text is gone.
+    expect(bubble.textContent).not.toContain("[doc1]");
+    expect(bubble.textContent).not.toContain("[doc2]");
+    // …and render as <sup> superscript numbers instead.
+    const supText = Array.from(bubble.querySelectorAll("sup")).map(
+      (s) => s.textContent,
+    );
+    expect(supText).toContain("1");
+    expect(supText).toContain("2");
   });
 
   it("does NOT tokenize user message content", () => {
@@ -688,6 +693,49 @@ describe("MessageList answer-token rendering", () => {
     expect(screen.getByTestId("message-tok-bare").textContent).toContain(
       "[doc1]",
     );
+  });
+
+  it("numbers the reference chips to match the renumbered answer superscripts", () => {
+    const mOutOfOrder: ChatMessage = {
+      id: "c-order",
+      role: "assistant",
+      content: "first [doc2] then [doc1]",
+      citations: [cit1, cit2],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    act(() => {
+      getDispatch()({ type: "add", message: mOutOfOrder });
+    });
+
+    // Open the reference block so the chip headers are easy to read.
+    fireEvent.click(screen.getByTestId("citations-toggle-c-order"));
+
+    // [doc2] is cited first, so doc-beta becomes reference 1 and
+    // doc-alpha (cited via [doc1] second) becomes reference 2 — the
+    // chip numbers follow first-appearance order, not the original
+    // [docN] index.
+    const headerBeta = screen.getByTestId("citation-c-order-doc-beta-header");
+    expect(headerBeta).toHaveTextContent("1");
+    expect(headerBeta).toHaveTextContent("Beta");
+    const headerAlpha = screen.getByTestId(
+      "citation-c-order-doc-alpha-header",
+    );
+    expect(headerAlpha).toHaveTextContent("2");
+    expect(headerAlpha).toHaveTextContent("Alpha");
+
+    // The answer bubble's superscripts run 1,2 in document order, so
+    // the first-cited source (doc-beta = reference 1) lines up with the
+    // first superscript.
+    const bubble = screen.getByTestId("message-c-order");
+    const supText = Array.from(bubble.querySelectorAll("sup")).map(
+      (s) => s.textContent,
+    );
+    expect(supText).toEqual(["1", "2"]);
   });
 });
 

@@ -2,9 +2,10 @@
  * Pillar: Stable Core
  * Phase: 7 (Testing + Documentation)
  *
- * CitationPanel styling. Low-contrast container so the panel reads as
- * secondary content under the answer body. All colors and spacing
- * come from Fluent v9 design tokens served by `<FluentProvider>`.
+ * CitationPanel styling. A lightweight collapsible reference block that
+ * sits under the answer body and reads as secondary content. All colors
+ * and spacing come from Fluent v9 design tokens served by
+ * `<FluentProvider>`.
  */
 
 .section {
@@ -12,19 +13,32 @@
   flex-direction: column;
   gap: var(--spacingVerticalXS);
   margin-top: var(--spacingVerticalS);
-  padding: var(--spacingVerticalS) var(--spacingHorizontalS);
-  border: 1px solid var(--colorNeutralStroke2);
-  border-radius: var(--borderRadiusMedium);
-  background: var(--colorNeutralBackground2);
 }
 
-.heading {
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  align-self: flex-start;
   margin: 0;
+  padding: var(--spacingVerticalXXS) var(--spacingHorizontalXS);
+  border: none;
+  border-radius: var(--borderRadiusSmall);
+  background: transparent;
+  color: var(--colorBrandForegroundLink);
+  font-family: inherit;
   font-size: var(--fontSizeBase200);
   font-weight: var(--fontWeightSemibold);
-  color: var(--colorNeutralForeground2);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--colorBrandForegroundLinkHover);
+  background: var(--colorSubtleBackgroundHover);
+}
+
+.toggleLabel {
+  line-height: var(--lineHeightBase200);
 }
 
 .headerRow {
@@ -43,14 +57,19 @@
   max-width: 32ch;
 }
 
-.score {
+.number {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: var(--borderRadiusCircular);
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
   font-size: var(--fontSizeBase200);
   font-weight: var(--fontWeightSemibold);
-  color: var(--colorBrandForeground1);
-  background: var(--colorBrandBackground2);
-  padding: 0 var(--spacingHorizontalXS);
-  border-radius: var(--borderRadiusSmall);
+  line-height: 1;
 }
 
 .snippet {

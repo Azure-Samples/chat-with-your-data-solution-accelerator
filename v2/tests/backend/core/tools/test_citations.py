@@ -1,11 +1,14 @@
 """Pillar: Stable Core / Phase: 3 (#23) — tests for backend/core/tools/citations.py."""
 
+from collections.abc import Awaitable, Callable
+
 import pytest
 
 from backend.core.tools.citations import (
     build_citations,
     citations_from_annotations,
     doc_marker,
+    enrich_kb_citations,
     filter_to_referenced,
     format_sources_block,
     normalize_kb_citations,
@@ -329,3 +332,82 @@ def test_normalize_kb_citations_preserves_title_url_snippet_and_score() -> None:
     assert c.url == "https://x/benefits"
     assert c.snippet == "PTO accrues monthly."
     assert c.score == 0.87
+
+
+# ---------------------------------------------------------------------------
+# enrich_kb_citations -- backfill friendly title/snippet/url on KB-keyed citations
+# ---------------------------------------------------------------------------
+
+_KB_SCHEME = "mcp://searchindex/"
+
+
+def _kb_keyed_citation(key: str, *, doc_id: str = "[doc1]") -> Citation:
+    """A normalized agent_framework KB citation before friendly-field recovery."""
+    raw = f"{_KB_SCHEME}{key}"
+    return Citation(id=doc_id, title=raw, url=raw, snippet="", metadata={"source_id": raw})
+
+
+def _doc_fetcher(
+    documents: dict[str, SearchResult], *, calls: list[str] | None = None
+) -> Callable[[str], Awaitable[SearchResult | None]]:
+    async def fetch(key: str) -> SearchResult | None:
+        if calls is not None:
+            calls.append(key)
+        return documents.get(key)
+
+    return fetch
+
+
+async def test_enrich_kb_citations_backfills_friendly_fields() -> None:
+    citation = _kb_keyed_citation("KEY1")
+    doc = SearchResult(
+        id="KEY1",
+        content="Welcome to Contoso Electronics.",
+        title="Benefit_Options.pdf",
+        url="https://blob/benefit_options.pdf",
+    )
+    (out,) = await enrich_kb_citations([citation], _doc_fetcher({"KEY1": doc}))
+    assert out.id == "[doc1]"  # the [docN] id is preserved
+    assert out.title == "Benefit_Options.pdf"
+    assert out.snippet == "Welcome to Contoso Electronics."
+    assert out.url == "https://blob/benefit_options.pdf"
+    assert out.metadata["source_id"] == f"{_KB_SCHEME}KEY1"  # original key kept
+
+
+async def test_enrich_kb_citations_strips_scheme_before_lookup() -> None:
+    calls: list[str] = []
+    await enrich_kb_citations([_kb_keyed_citation("abc123")], _doc_fetcher({}, calls=calls))
+    assert calls == ["abc123"]  # the bare key, not the mcp:// id
+
+
+async def test_enrich_kb_citations_passes_through_non_kb_citation() -> None:
+    calls: list[str] = []
+    citation = Citation(
+        id="[doc1]",
+        title="Plain",
+        url="https://x/1",
+        snippet="body",
+        metadata={"source_id": "src-1"},
+    )
+    (out,) = await enrich_kb_citations([citation], _doc_fetcher({}, calls=calls))
+    assert out == citation  # langgraph-shaped citation untouched
+    assert calls == []  # and no lookup attempted
+
+
+async def test_enrich_kb_citations_keeps_citation_when_document_not_found() -> None:
+    citation = _kb_keyed_citation("missing")
+    (out,) = await enrich_kb_citations([citation], _doc_fetcher({}))
+    assert out == citation  # unresolved key degrades to the raw id, not dropped
+
+
+async def test_enrich_kb_citations_detects_key_from_url_when_source_id_absent() -> None:
+    raw = f"{_KB_SCHEME}url-key"
+    citation = Citation(id="[doc1]", title="", url=raw, snippet="", metadata={})
+    doc = SearchResult(id="url-key", content="snippet text", title="Doc.pdf")
+    (out,) = await enrich_kb_citations([citation], _doc_fetcher({"url-key": doc}))
+    assert out.title == "Doc.pdf"
+    assert out.snippet == "snippet text"
+
+
+async def test_enrich_kb_citations_empty_input_returns_empty() -> None:
+    assert await enrich_kb_citations([], _doc_fetcher({})) == []

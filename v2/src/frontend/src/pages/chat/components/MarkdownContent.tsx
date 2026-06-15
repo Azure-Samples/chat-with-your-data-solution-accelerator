@@ -14,12 +14,20 @@
  * mounted as live nodes. Anchor links are forced to open in a new tab
  * with `rel="noreferrer"` so a cited destination cannot reach back into
  * the app through `window.opener`.
+ *
+ * When `enableSupersub` is set, `remark-supersub` is added to the remark
+ * pipeline so `^text^` renders as a `<sup>` (and `~text~` as a `<sub>`).
+ * The answer body uses this to display the `^K^` citation tokens emitted
+ * by `parseAnswer` as visual superscripts; the reasoning panel leaves it
+ * off so stray `^`/`~` in chain-of-thought stays literal.
  */
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import supersub from "remark-supersub";
 
 const REMARK_PLUGINS = [remarkGfm];
+const REMARK_PLUGINS_WITH_SUPERSUB = [remarkGfm, supersub];
 
 const COMPONENTS: Components = {
   a({ href, children }) {
@@ -34,13 +42,18 @@ const COMPONENTS: Components = {
 export function MarkdownContent({
   content,
   className,
+  enableSupersub = false,
 }: {
   content: string;
   className?: string | undefined;
+  enableSupersub?: boolean | undefined;
 }) {
+  const remarkPlugins = enableSupersub
+    ? REMARK_PLUGINS_WITH_SUPERSUB
+    : REMARK_PLUGINS;
   return (
     <div className={className}>
-      <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={COMPONENTS}>
+      <ReactMarkdown remarkPlugins={remarkPlugins} components={COMPONENTS}>
         {content}
       </ReactMarkdown>
     </div>

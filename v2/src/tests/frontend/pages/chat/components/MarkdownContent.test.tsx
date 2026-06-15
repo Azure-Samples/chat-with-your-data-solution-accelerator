@@ -88,4 +88,21 @@ describe("MarkdownContent", () => {
     expect(wrapper).not.toBeNull();
     expect(wrapper?.textContent).toContain("x");
   });
+
+  it("renders a ^K^ token as a <sup> element when enableSupersub is set", () => {
+    const { container } = render(
+      <MarkdownContent content="the plan ^1^ works" enableSupersub />,
+    );
+    const sup = container.querySelector("sup");
+    expect(sup).not.toBeNull();
+    expect(sup?.textContent).toBe("1");
+  });
+
+  it("leaves a ^K^ token as literal text when enableSupersub is not set", () => {
+    const { container } = render(
+      <MarkdownContent content="the plan ^1^ works" />,
+    );
+    expect(container.querySelector("sup")).toBeNull();
+    expect(container.textContent).toContain("^1^");
+  });
 });

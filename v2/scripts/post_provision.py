@@ -83,6 +83,13 @@ SEMANTIC_CONFIG_NAME = "default"
 # pinned as single-value constants.
 KNOWLEDGE_SOURCE_KIND_SEARCH_INDEX = "searchIndex"
 KNOWLEDGE_BASE_MODEL_KIND_AZURE_OPENAI = "azureOpenAI"
+# Index fields surfaced as citation "referenced source data" so Foundry IQ
+# knowledge-base citations carry the friendly filename (`title`), document
+# `url`, and chunk `content` snippet rather than only the raw document key.
+# These mirror the index schema in `_ensure_search_index` (title / url /
+# content) and the `title` / `content` semantic fields; the KB REST contract
+# takes `searchIndexParameters.sourceDataFields` as `{"name": <field>}` refs.
+KNOWLEDGE_SOURCE_SOURCE_DATA_FIELDS = ("title", "url", "content")
 # Defaults mirror SearchSettings. The script reads env directly rather than
 # importing settings, matching `_ensure_search_index`'s DEFAULT_INDEX_NAME.
 DEFAULT_KNOWLEDGE_BASE_NAME = "cwyd-kb"
@@ -327,7 +334,10 @@ def _build_knowledge_base_seed(
 
     1. A ``searchIndex`` knowledge source that wraps ``index_name`` (the
        existing chat index) and pins ``semantic_configuration_name`` so
-       agentic retrieval uses the index's semantic configuration.
+       agentic retrieval uses the index's semantic configuration. It also
+       requests ``title`` / ``url`` / ``content`` as citation
+       ``sourceDataFields`` so knowledge-base citations carry the friendly
+       filename and a content snippet, not only the raw document key.
     2. A knowledge base that references the knowledge source by name and
        lists the Azure OpenAI chat model used for query planning. The
        Foundry IQ knowledge base API only accepts chat models here (for
@@ -346,6 +356,9 @@ def _build_knowledge_base_seed(
         "searchIndexParameters": {
             "searchIndexName": index_name,
             "semanticConfigurationName": semantic_configuration_name,
+            "sourceDataFields": [
+                {"name": field} for field in KNOWLEDGE_SOURCE_SOURCE_DATA_FIELDS
+            ],
         },
     }
     knowledge_base_body: dict[str, object] = {

@@ -139,6 +139,35 @@ class BaseSearch(ABC):
             "override on the concrete provider class."
         )
 
+    async def get_document_by_key(self, key: str) -> SearchResult | None:
+        """Fetch a single indexed document by its primary key.
+
+        By-key read counterpart to :meth:`search` -- where ``search``
+        ranks hits for a query, this resolves one document whose key is
+        already known. Used by citation enrichment to recover a
+        friendly ``title`` / snippet for a source the orchestrator
+        holds only as an opaque document key (the ``agent_framework``
+        Knowledge Base path keys citations by the Search document id).
+
+        - ``key``: the provider's primary-key value (Azure Search
+          document key / pgvector ``id``).
+        - Returns the matching :class:`SearchResult`, or ``None`` when
+          no document with that key exists. ``None`` is a soft miss,
+          not an error: a citation can reference a key that was since
+          re-ingested or deleted, and enrichment must degrade to the
+          raw id rather than fail the answer.
+
+        Default implementation raises ``NotImplementedError`` so a
+        provider class that forgets to override fails at the call site
+        rather than silently skipping enrichment. Matches the same
+        fail-loud contract as :meth:`list_sources` /
+        :meth:`merge_or_upload_documents`.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement get_document_by_key; "
+            "override on the concrete provider class."
+        )
+
     async def merge_or_upload_documents(
         self,
         *,
