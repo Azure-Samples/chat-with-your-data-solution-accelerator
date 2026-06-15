@@ -68,6 +68,37 @@ describe("FluentThemeBridge — DOM mounting", () => {
     }
     expect(foundFluentProvider).toBe(true);
   });
+
+  it("tags the FluentProvider wrapper with the appFluentRoot height-chain class", async () => {
+    const { ThemeProvider } = await import("@/theme/themeContext");
+    const { FluentThemeBridge } = await import(
+      "@/theme/FluentThemeBridge"
+    );
+
+    render(
+      <ThemeProvider>
+        <FluentThemeBridge>
+          <span data-testid="fluent-child">child</span>
+        </FluentThemeBridge>
+      </ThemeProvider>,
+    );
+
+    // Walk up from the child to Fluent's wrapper div and assert it
+    // carries the `appFluentRoot` class. tokens.css uses that class to
+    // continue the height:100% chain through Fluent's wrapper; without
+    // it the shell falls back to 100vh and the page double-scrolls.
+    let node: HTMLElement | null = screen.getByTestId("fluent-child");
+    let providerClass = "";
+    while (node !== null) {
+      const cls = node.getAttribute("class") ?? "";
+      if (/\bfui-FluentProvider/.test(cls)) {
+        providerClass = cls;
+        break;
+      }
+      node = node.parentElement;
+    }
+    expect(providerClass).toMatch(/\bappFluentRoot\b/);
+  });
 });
 
 describe("FluentThemeBridge — theme flip", () => {
