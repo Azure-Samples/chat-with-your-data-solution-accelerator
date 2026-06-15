@@ -29,10 +29,14 @@ Run loop:
          * `function_call`  -> `tool` event with id / arguments
          * citation annots  -> buffered (see step 5)
          * everything else  -> ignored
-    5. Map the buffered native citation annotations through the shared
-       `citations_from_annotations` seam and emit one `citation` event
-       per source -- before the final `answer` -- so the agent path and
-       the `langgraph` path surface the same `Citation` wire shape.
+    5. Build the `Citation`s from the buffered annotations via the shared
+       `citations_from_annotations` seam, then run `normalize_kb_citations`
+       over the assembled answer + citation list so any native
+       `【6:1†source】`-style KB markers in the answer become the
+       grouping-ordered `[docN]` and the citation ids match. Emit one
+       `citation` event per source -- before the final `answer` -- so the
+       agent path and the `langgraph` path surface the same `Citation` wire
+       shape and the same inline `[docN]` markers.
 
 The agent's instructions (including any admin override) are applied by
 `build_agent` via `_resolve_definition`, so this orchestrator does not
@@ -62,7 +66,10 @@ from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.settings import AppSettings
-from backend.core.tools.citations import citations_from_annotations
+from backend.core.tools.citations import (
+    citations_from_annotations,
+    normalize_kb_citations,
+)
 from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
 from .registry import registry
@@ -217,13 +224,19 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 )
                 return
 
-        for citation in citations_from_annotations(citation_annotations):
+        answer = "".join(answer_parts)
+        citations = citations_from_annotations(citation_annotations)
+        # Converge on the langgraph path's wire shape: rewrite any native
+        # 【N:M†source】 KB markers in the answer to the grouping-ordered
+        # [docN] and renumber the citation ids to match.
+        answer, citations = normalize_kb_citations(answer, citations)
+
+        for citation in citations:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.CITATION,
                 metadata=citation.model_dump(),
             )
 
-        answer = "".join(answer_parts)
         if answer:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.ANSWER, content=answer

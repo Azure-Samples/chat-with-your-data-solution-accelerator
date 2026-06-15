@@ -103,31 +103,38 @@ async def test_in_domain_citation_ids_use_normalized_docn_shape(
     live_client: httpx.AsyncClient,
     require_agent_framework: None,
 ) -> None:
-    """Citations expose the normalized ``[docN]`` id, not native KB markers.
+    """Citation ids + answer text converge on the ``[docN]`` shape, not native
+    KB markers.
 
     Regression guard for BUG-0030: the ``agent_framework`` path grounds via
-    the server-side Foundry IQ Knowledge Base, and the live deployment now
-    surfaces annotations whose ``file_id`` is the ``[docN]`` marker and whose
-    ``title`` is the friendly filename, so ``citations_from_annotations``
-    passes the normalized shape straight through. If a future Foundry IQ /
-    SDK change regresses to native ``【N:M†source】`` markers or raw
-    ``mcp://searchindex/<doc-key>`` ids, this assertion fails and the message
-    captures the offending id/title pairs.
+    the server-side Foundry IQ Knowledge Base, whose model emits native
+    ``【N:M†source】`` markers inline in the answer and citation ids keyed by a
+    raw ``mcp://searchindex/<doc-key>``. ``normalize_kb_citations`` (wired into
+    the orchestrator) rewrites those inline markers to the grouping-ordered
+    ``[docN]`` and renumbers the citation ids to match, so every citation id is
+    ``[docN]`` and no native bracket survives into the answer text. The
+    friendly *title* / *snippet* are not carried in the KB annotation (only the
+    raw doc-key), so title/snippet recovery is tracked separately under
+    BUG-0030 and is deliberately not asserted here.
     """
     response = await live_client.post(
         "/api/conversation", json=_user_turn(_IN_DOMAIN_QUERY)
     )
 
     assert response.status_code == 200, response.text
-    citations = response.json().get("citations", [])
+    body = response.json()
+    citations = body.get("citations", [])
     assert citations, "expected the grounded answer to carry citations"
     unnormalized = [
-        (c.get("id"), c.get("title"))
-        for c in citations
-        if not _DOCN_PATTERN.match(c.get("id", ""))
-        or c.get("title", "").startswith("mcp://")
+        c.get("id") for c in citations if not _DOCN_PATTERN.match(c.get("id", ""))
     ]
-    assert not unnormalized, f"non-normalized citations observed: {unnormalized}"
+    assert not unnormalized, f"non-[docN] citation ids observed: {unnormalized}"
+    # No native KB marker (full-width brackets / dagger) survives into the
+    # answer text -- inline references render as [docN], same as langgraph.
+    content = body.get("content", "")
+    assert (
+        "【" not in content and "†" not in content and "】" not in content
+    ), content
 
 
 @pytest.mark.parametrize(

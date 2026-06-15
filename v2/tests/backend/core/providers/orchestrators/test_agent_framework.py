@@ -836,7 +836,9 @@ async def test_run_emits_citation_event_from_annotations() -> None:
     citation_events = [e for e in events if e.channel == "citation"]
     assert len(citation_events) == 1
     meta = citation_events[0].metadata
-    assert meta["id"] == "doc-1"
+    # The id is normalized to [docN]; the raw KB source key persists in
+    # metadata.source_id / metadata.file_id below.
+    assert meta["id"] == "[doc1]"
     assert meta["title"] == "Benefits Guide"
     assert meta["url"] == "benefits.pdf"
     assert meta["snippet"] == "PTO accrues."
@@ -880,7 +882,7 @@ async def test_run_dedupes_citations_across_updates() -> None:
 
     citation_events = [e for e in events if e.channel == "citation"]
     assert len(citation_events) == 1
-    assert citation_events[0].metadata["id"] == "doc-1"
+    assert citation_events[0].metadata["id"] == "[doc1]"  # normalized to [docN]
     assert citation_events[0].metadata["title"] == "First"  # first wins
 
 
@@ -920,6 +922,63 @@ async def test_run_merges_annotated_regions_across_updates() -> None:
         (0, 5),
         (9, 14),
     ]
+
+
+@pytest.mark.asyncio
+async def test_run_normalizes_native_kb_markers_in_answer_and_ids() -> None:
+    """The agent path emits the langgraph path's wire shape: native
+    `【N:M†source】` markers in the streamed answer are rewritten to the
+    grouping-ordered `[docN]` (never parsing the misleading `N:M`), and the
+    citation ids are renumbered to match. Wires `normalize_kb_citations` into
+    `run` -- a BUG-0030 parity guard at the orchestrator seam."""
+    marker_a = "【6:1†source】"  # attributed to the first-grouped source
+    marker_b = "【6:0†source】"  # attributed to the second-grouped source
+    answer = f"Alpha {marker_a} and beta {marker_b}."
+    start_a = answer.index(marker_a)
+    start_b = answer.index(marker_b)
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _text_block(answer),
+                _citation_block(
+                    file_id="src-A",
+                    title="Alpha.pdf",
+                    annotated_regions=[
+                        {
+                            "type": "text_span",
+                            "start_index": start_a,
+                            "end_index": start_a + len(marker_a),
+                        }
+                    ],
+                ),
+                _citation_block(
+                    file_id="src-B",
+                    title="Beta.pdf",
+                    annotated_regions=[
+                        {
+                            "type": "text_span",
+                            "start_index": start_b,
+                            "end_index": start_b + len(marker_b),
+                        }
+                    ],
+                ),
+            ),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    answer_events = [e for e in events if e.channel == "answer"]
+    assert len(answer_events) == 1
+    # Markers map by grouping order, not N:M: src-A (marker 6:1) -> [doc1],
+    # src-B (marker 6:0) -> [doc2]. No native bracket survives.
+    assert answer_events[0].content == "Alpha [doc1] and beta [doc2]."
+
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert [e.metadata["id"] for e in citation_events] == ["[doc1]", "[doc2]"]
 
 
 @pytest.mark.asyncio
