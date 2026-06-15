@@ -69,7 +69,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0011 | 2026-06-11 | 2026-06-11 | backend | high | fixed | An authored agent prompt fully replaced the system instructions, so it could supersede the system guardrail ("uber") prompt. Fixed by wrapping both the default and any authored override between a fixed, non-overridable `CWYD_GUARDRAIL` (safety / out-of-domain / citation rules); RAI validation of the authored instructions was already in place via `PROMPT_FIELDS`. |
 | BUG-0012 | 2026-06-11 | 2026-06-11 | frontend | low | fixed | The assistant robot avatar and the Thinking (reasoning) panel were misaligned in the chat layout. Fixed by rendering the reasoning panel / answer / citations in a column inside the same `.row` as the avatar, so the avatar lines up with the panel; operator-confirmed live 2026-06-14. (Registry row was stale at `open`; the Details section already recorded the 2026-06-11 fix.) |
 | BUG-0013 | 2026-06-11 | 2026-06-14 | backend | medium | fixed | The Thinking/reasoning feed never shows **substantive** model reasoning: the backend emitted no model-`reasoning` SSE frames (only the canned KB-search narration), so the correctly-wired FE panel showed no thinking content. Fixed by auto-detecting whether the answer deployment emits reasoning (`llm.supports_reasoning()`, a cached one-shot Responses-API probe) and routing both orchestrators to a Responses-API reasoning summary on the existing `reasoning` channel when it does; `langgraph` via `FoundryIQ.reason()` (whose Responses `input` shape was also fixed) and `agent_framework` via a `reasoning` run option. Live-verified on **both** orchestrators with a parametrized `tests/integration` test that forces each past the persisted cosmos `langgraph` override; that live run also caught BUG-0035. |
-| BUG-0014 | 2026-06-11 | — | frontend | medium | open | Assistant responses render as raw markdown; the markdown is not converted to HTML as it is in v1. |
+| BUG-0014 | 2026-06-11 | 2026-06-14 | frontend | medium | fixed | Assistant answers rendered as raw markdown instead of HTML. Fixed by rendering the answer + reasoning bodies through a new `MarkdownContent` component (`react-markdown` + `remark-gfm`, no `rehype-raw` so raw HTML stays escaped), matching v1's renderer. Inline `[docN]` markers now render as literal text; their clickable-citation behavior is deferred to BUG-0016. |
 | BUG-0015 | 2026-06-11 | — | frontend | low | open | The citation/reference block styling under an answer does not match v1. |
 | BUG-0016 | 2026-06-11 | — | frontend | medium | open | Inline `[docN]` references render as literal-text buttons; they should render like v1 (superscript citation links). |
 | BUG-0017 | 2026-06-11 | — | backend | high | open | Starting a conversation does not persist it to chat history, so new conversations never appear in the left history column. |
@@ -277,15 +277,15 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md), [worklog/2026-06-14.
 
 ### BUG-0014 — Assistant response markdown is not converted to HTML
 
-Area: frontend. Severity: medium. Status: open (found 2026-06-11).
+Area: frontend. Severity: medium. Status: fixed (2026-06-14, found 2026-06-11).
 
 Symptom: assistant answers display as raw markdown (literal `**bold**`, list markers, headings, fenced code, tables) instead of rendered HTML.
 
 Root cause: `frontend/src/pages/chat/components/answerTokens.tsx` (`renderAnswerTokens`) only tokenizes `[docN]` citation markers and otherwise pushes raw text slices as plain strings; it performs no markdown-to-HTML conversion, and the v2 frontend has no markdown renderer dependency. v1 renders answers through `react-markdown` (`code/frontend/src/components/Answer/Answer.tsx`).
 
-Proposed fix (direction): render the answer text through a markdown renderer (matching v1's `react-markdown` behavior) while preserving the inline `[docN]` citation tokenization. Adding a dependency is a structural change — raise it for confirmation in the fix turn (Hard Rule #10).
+Resolution (2026-06-14): added `frontend/src/pages/chat/components/MarkdownContent.tsx` — a reusable `{ content, className }` renderer wrapping `react-markdown` + `remark-gfm` (GFM tables/strikethrough) with a link override (`target=_blank` + `rel=noreferrer`) and **no** `rehype-raw`, so embedded raw HTML is escaped rather than mounted (XSS-safe). `MessageList` now renders both the assistant answer and the reasoning-panel body through `MarkdownContent` (the reasoning body still flows through `formatReasoning` first); user messages stay plain text. Scope decision (operator-approved Option A): the answer renders as pure markdown, so inline `[docN]` markers now appear as literal text — the clickable-citation behavior previously wired via `renderAnswerTokens` is intentionally deferred to BUG-0016 (which reworks inline references into v1-style superscript links). `renderAnswerTokens` and its tests are retained for that rework, and the panel stays manually expandable in the interim. Covered by `MarkdownContent.test.tsx` (9 cases incl. the raw-`<script>`-not-mounted XSS guard) and the updated `MessageList` answer-rendering tests; full FE suite 402/402, both FE workspaces typecheck clean.
 
-References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0016.
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); [worklog/2026-06-14.md](worklog/2026-06-14.md); related BUG-0016.
 
 ### BUG-0015 — Citation/reference block should look like v1
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import {
   ChatProvider,
   useChat,
@@ -180,10 +180,12 @@ describe("MessageList", () => {
     // The model's bold section titles are stripped from the panel...
     expect(details.textContent).not.toContain("Searching for employee benefits");
     expect(details.textContent).not.toContain("Summarizing health benefits");
-    // ...and the remaining bodies render separated by a blank-line break.
-    expect(details.textContent).toContain(
-      "I will look it up.\n\nHere is the summary.",
-    );
+    // ...and the remaining bodies render through the markdown panel as
+    // separate paragraphs (the blank-line break becomes two <p> blocks).
+    const paragraphs = details.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(2);
+    expect(paragraphs[0]?.textContent).toBe("I will look it up.");
+    expect(paragraphs[1]?.textContent).toBe("Here is the summary.");
   });
 
   it("opens the reasoning panel and shows 'Thinking' while the message is streaming", () => {
@@ -617,7 +619,7 @@ describe("MessageList answer-token rendering", () => {
     )._dispatch;
   }
 
-  it("renders inline [docN] tokens as clickable buttons in the assistant bubble", () => {
+  it("renders inline [docN] markers as literal text, not clickable tokens", () => {
     const mWithTokens: ChatMessage = {
       id: "tok-1",
       role: "assistant",
@@ -634,8 +636,14 @@ describe("MessageList answer-token rendering", () => {
       getDispatch()({ type: "add", message: mWithTokens });
     });
 
-    expect(screen.getByTestId("answer-token-tok-1-1")).toBeInTheDocument();
-    expect(screen.getByTestId("answer-token-tok-1-2")).toBeInTheDocument();
+    // The answer renders through the markdown panel, so citation
+    // markers pass through as literal text rather than inline token
+    // buttons.
+    expect(screen.queryByTestId("answer-token-tok-1-1")).toBeNull();
+    expect(screen.queryByTestId("answer-token-tok-1-2")).toBeNull();
+    const bubble = screen.getByTestId("message-tok-1");
+    expect(bubble.textContent).toContain("[doc1]");
+    expect(bubble.textContent).toContain("[doc2]");
   });
 
   it("does NOT tokenize user message content", () => {
@@ -680,33 +688,6 @@ describe("MessageList answer-token rendering", () => {
     expect(screen.getByTestId("message-tok-bare").textContent).toContain(
       "[doc1]",
     );
-  });
-
-  it("clicking a [docN] token auto-expands the matching CitationPanel item", () => {
-    const mLive: ChatMessage = {
-      id: "tok-live",
-      role: "assistant",
-      content: "see [doc2] for details",
-      citations: [cit1, cit2],
-    };
-    render(
-      <ChatProvider>
-        <Seed messages={[]} />
-        <MessageList />
-      </ChatProvider>,
-    );
-    act(() => {
-      getDispatch()({ type: "add", message: mLive });
-    });
-
-    const headerB = screen
-      .getByTestId("citation-tok-live-doc-beta-header")
-      .querySelector("button")!;
-    expect(headerB.getAttribute("aria-expanded")).toBe("false");
-
-    fireEvent.click(screen.getByTestId("answer-token-tok-live-2"));
-
-    expect(headerB.getAttribute("aria-expanded")).toBe("true");
   });
 });
 

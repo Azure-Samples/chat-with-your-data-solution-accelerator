@@ -47,7 +47,7 @@
  * All `data-testid` and `data-role` attributes are preserved verbatim
  * from the Phase-5 contract — visual changes only.
  */
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   Toast,
   ToastBody,
@@ -61,13 +61,13 @@ import {
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
-import { renderAnswerTokens } from "./answerTokens";
+import { MarkdownContent } from "./MarkdownContent";
 import { formatReasoning } from "./reasoningText";
 import { CitationPanel } from "./CitationPanel/CitationPanel";
 import styles from "./MessageList.module.css";
 
 export function MessageList() {
-  const { state, dispatch } = useChat();
+  const { state } = useChat();
   const { dispatchToast } = useToastController(TOASTER_ID);
   // Bottom sentinel kept just below the last <li>. A useEffect keyed
   // on transcript size + the last message's content length scrolls it
@@ -109,17 +109,6 @@ export function MessageList() {
     if (state.messages.length === 0) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [state.messages.length, lastContentLen]);
-
-  const handleCitationFocus = useCallback(
-    (citationId: string) => {
-      // Inline `[docN]` token click — ask <CitationPanel> to auto-
-      // expand the matching item. The reducer is a no-op when the
-      // focus value did not change, so a repeated click on the same
-      // token does not churn downstream useEffect deps.
-      dispatch({ type: "focus_citation", citationId });
-    },
-    [dispatch],
-  );
 
   if (state.messages.length === 0) {
     return (
@@ -182,21 +171,20 @@ export function MessageList() {
                         "\u25B8 Thought process"
                       )}
                     </summary>
-                    <div className={styles.reasoningBody}>
-                      {m.reasoning && m.reasoning.length > 0
-                        ? formatReasoning(m.reasoning)
-                        : (m.reasoningPlaceholder ?? "")}
-                    </div>
+                    <MarkdownContent
+                      className={styles.reasoningBody}
+                      content={
+                        m.reasoning && m.reasoning.length > 0
+                          ? formatReasoning(m.reasoning)
+                          : (m.reasoningPlaceholder ?? "")
+                      }
+                    />
                   </details>
                 )}
-                <div className={styles.bubble}>
-                  {renderAnswerTokens(
-                    m.content,
-                    m.id,
-                    m.citations,
-                    handleCitationFocus,
-                  )}
-                </div>
+                <MarkdownContent
+                  className={styles.bubble}
+                  content={m.content}
+                />
                 {m.streaming !== true &&
                   m.citations &&
                   m.citations.length > 0 && (
