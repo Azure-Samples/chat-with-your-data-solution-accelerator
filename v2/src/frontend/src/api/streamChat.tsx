@@ -41,11 +41,41 @@ const KNOWN_CHANNELS: ReadonlySet<StreamChannel> = new Set(
   Object.values(StreamChannel),
 );
 
-const CONVERSATION_URL = "/api/conversation";
+const CONVERSATION_PATH = "/api/conversation";
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_BASE_DELAY_MS = 500;
 
+/**
+ * Event-type of the terminal transport-control frame the backend emits
+ * once a turn is persisted (see `backend/services/conversation.py`). It
+ * is deliberately NOT a member of `StreamChannel`: the resolved
+ * conversation id is surfaced out-of-band through
+ * `StreamChatOptions.onConversationId`, never as a `StreamEvent`
+ * (Hard Rule #6 / ADR 0007 channel lock).
+ */
+const CONVERSATION_EVENT = "conversation";
+
+/**
+ * Absolute URL of the conversation endpoint. `VITE_BACKEND_URL` is read
+ * at call time (empty string when unset) so the same build targets the
+ * same-origin dev proxy and the deployed separate-origin backend
+ * without a rebuild — matching the `documentHref` / `HistoryPanel` base
+ * convention.
+ */
+function conversationUrl(): string {
+  const base = (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
+  return `${base}${CONVERSATION_PATH}`;
+}
+
 export interface StreamChatOptions {
+  /**
+   * Existing conversation to continue. Sent to the backend as
+   * `conversation_id` in the request body; `null` / `undefined` /
+   * omitted starts a new conversation (the backend mints an id and
+   * returns it on the terminal `conversation` control frame, surfaced
+   * via `onConversationId`).
+   */
+  conversationId?: string | null;
   /**
    * Number of additional attempts after the first one when a retryable
    * failure surfaces before any event is yielded. `maxRetries: 0`
@@ -64,6 +94,15 @@ export interface StreamChatOptions {
    * an `AbortError`.
    */
   signal?: AbortSignal;
+  /**
+   * Called once with the backend-resolved conversation id when the
+   * terminal `conversation` control frame arrives at the end of a
+   * successfully persisted turn. The id is surfaced out-of-band here
+   * rather than as a `StreamEvent` because the `conversation` frame is
+   * a transport-level control event, not one of the locked SSE
+   * channels (Hard Rule #6 / ADR 0007).
+   */
+  onConversationId?: (conversationId: string) => void;
 }
 
 /** Connection-class failure: safe to retry if nothing has been yielded yet. */
@@ -90,13 +129,20 @@ export async function* streamChat(
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   const baseDelayMs = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
   const signal = options.signal;
+  const conversationId = options.conversationId ?? null;
+  const onConversationId = options.onConversationId;
 
   throwIfAborted(signal);
 
   for (let attempt = 0; ; attempt++) {
     let yieldedAny = false;
     try {
-      for await (const ev of streamChatOnce(messages, signal)) {
+      for await (const ev of streamChatOnce({
+        messages,
+        conversationId,
+        signal,
+        onConversationId,
+      })) {
         yieldedAny = true;
         yield ev;
       }
@@ -116,19 +162,30 @@ export async function* streamChat(
   }
 }
 
+interface StreamChatOnceParams {
+  messages: StreamMessage[];
+  conversationId: string | null;
+  signal: AbortSignal | undefined;
+  onConversationId: ((conversationId: string) => void) | undefined;
+}
+
 async function* streamChatOnce(
-  messages: StreamMessage[],
-  signal: AbortSignal | undefined,
+  params: StreamChatOnceParams,
 ): AsyncIterable<StreamEvent> {
+  const { messages, conversationId, signal, onConversationId } = params;
+  const payload =
+    conversationId !== null
+      ? { messages, conversation_id: conversationId }
+      : { messages };
   let response: Response;
   try {
-    response = await fetch(CONVERSATION_URL, {
+    response = await fetch(conversationUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify(payload),
       ...(signal ? { signal } : {}),
     });
   } catch (cause) {
@@ -172,7 +229,11 @@ async function* streamChatOnce(
         if (buffer.length > 0) {
           const trailing = parseFrame(buffer);
           if (trailing !== null) {
-            yield trailing;
+            if (trailing.kind === "conversation") {
+              onConversationId?.(trailing.conversationId);
+            } else {
+              yield trailing.event;
+            }
           }
         }
         return;
@@ -186,9 +247,13 @@ async function* streamChatOnce(
       while (separator !== -1) {
         const frame = buffer.slice(0, separator);
         buffer = buffer.slice(separator + 2);
-        const event = parseFrame(frame);
-        if (event !== null) {
-          yield event;
+        const parsed = parseFrame(frame);
+        if (parsed !== null) {
+          if (parsed.kind === "conversation") {
+            onConversationId?.(parsed.conversationId);
+          } else {
+            yield parsed.event;
+          }
         }
         separator = buffer.indexOf("\n\n");
       }
@@ -276,7 +341,16 @@ interface ParsedPayload {
   metadata?: unknown;
 }
 
-function parseFrame(frame: string): StreamEvent | null {
+/**
+ * A successfully parsed SSE frame: either a typed channel event for the
+ * caller's stream, or the terminal `conversation` transport-control
+ * frame carrying the resolved conversation id (Hard Rule #6 / ADR 0007).
+ */
+type ParsedFrame =
+  | { kind: "event"; event: StreamEvent }
+  | { kind: "conversation"; conversationId: string };
+
+function parseFrame(frame: string): ParsedFrame | null {
   let channel: string | null = null;
   const dataLines: string[] = [];
 
@@ -292,14 +366,19 @@ function parseFrame(frame: string): StreamEvent | null {
     }
   }
 
-  if (channel === null || !KNOWN_CHANNELS.has(channel as StreamChannel)) {
-    return null;
-  }
-  if (dataLines.length === 0) {
+  if (channel === null || dataLines.length === 0) {
     return null;
   }
 
   const dataText = dataLines.join("\n");
+
+  if (channel === CONVERSATION_EVENT) {
+    return parseConversationFrame(dataText);
+  }
+  if (!KNOWN_CHANNELS.has(channel as StreamChannel)) {
+    return null;
+  }
+
   let payload: ParsedPayload;
   try {
     payload = JSON.parse(dataText) as ParsedPayload;
@@ -316,8 +395,30 @@ function parseFrame(frame: string): StreamEvent | null {
       : {};
 
   return {
-    channel: channel as StreamChannel,
-    content,
-    metadata,
+    kind: "event",
+    event: {
+      channel: channel as StreamChannel,
+      content,
+      metadata,
+    },
   };
+}
+
+/**
+ * Parse the data payload of a terminal `conversation` control frame
+ * (`{"conversation_id": "..."}`). Returns `null` when the id is missing
+ * or empty so a malformed control frame is dropped rather than surfaced.
+ */
+function parseConversationFrame(dataText: string): ParsedFrame | null {
+  let payload: { conversation_id?: unknown };
+  try {
+    payload = JSON.parse(dataText) as { conversation_id?: unknown };
+  } catch {
+    return null;
+  }
+  const id = payload.conversation_id;
+  if (typeof id !== "string" || id.length === 0) {
+    return null;
+  }
+  return { kind: "conversation", conversationId: id };
 }

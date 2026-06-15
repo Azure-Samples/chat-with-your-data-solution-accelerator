@@ -72,9 +72,9 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0014 | 2026-06-11 | 2026-06-14 | frontend | medium | fixed | Assistant answers rendered as raw markdown instead of HTML. Fixed by rendering the answer + reasoning bodies through a new `MarkdownContent` component (`react-markdown` + `remark-gfm`, no `rehype-raw` so raw HTML stays escaped), matching v1's renderer. Inline `[docN]` markers now render as literal text; their clickable-citation behavior is deferred to BUG-0016. |
 | BUG-0015 | 2026-06-11 | 2026-06-15 | frontend | low | fixed | The citation/reference block under an answer did not match v1. Fixed by reworking `CitationPanel` into a v1-style collapsible "N references" / "1 reference" toggle (chevron, collapsed by default) over a numbered citation list (circular brand chip + title; no score badge), and wiring `MessageList` to pass the renumbered referenced-citation subset so the chip numbers match the BUG-0016 answer superscripts. The v1 right-side citation detail column stays out of scope. |
 | BUG-0016 | 2026-06-11 | 2026-06-15 | frontend | medium | fixed | Inline `[docN]` references rendered as literal text; v1 shows them as compact superscript links. Fixed with a `parseAnswer` helper that rewrites `[docN]` markers into `^K^` superscript tokens (deduped + renumbered in first-appearance order) and a `MarkdownContent` `enableSupersub` prop that runs `remark-supersub` so the answer body renders visual-only `<sup>` citation numbers. |
-| BUG-0017 | 2026-06-11 | — | backend | high | open | Starting a conversation does not persist it to chat history, so new conversations never appear in the left history column. |
-| BUG-0018 | 2026-06-11 | — | frontend | low | open | The chat history left column shows the backend database name (`backend: <db_type>`); it should not. |
-| BUG-0019 | 2026-06-11 | — | frontend | low | open | Remove the New chat section and functionality from the chat history left column. |
+| BUG-0017 | 2026-06-11 | 2026-06-15 | backend | high | fixed | Starting a conversation does not persist it to chat history, so new conversations never appear in the left history column. |
+| BUG-0018 | 2026-06-11 | 2026-06-15 | frontend | low | fixed | The chat history left column shows the backend database name (`backend: <db_type>`); it should not. |
+| BUG-0019 | 2026-06-11 | 2026-06-15 | frontend | low | fixed | Remove the New chat section and functionality from the chat history left column. |
 | BUG-0020 | 2026-06-11 | 2026-06-11 | backend | high | fixed | Chat fails with `401 Unauthorized` on the Foundry IQ Knowledge Base MCP endpoint: the `agent_framework` orchestrator authenticated only MCP tool calls (SDK `header_provider` hook), leaving the MCP session-initialize connect unauthenticated, so the agent run raised `ToolExecutionException("Failed to enter context manager.")`. |
 | BUG-0021 | 2026-06-11 | 2026-06-12 | backend | blocker | fixed | The `agent_framework` chat path fails with `404 Agent 'cwyd' not found`: `get_or_create_agent` provisions an Assistants-API **persistent agent** (`asst_` id) via `azure.ai.agents.AgentsClient.create_agent`, but the orchestrator's `agent_framework_foundry.FoundryAgent(allow_preview=True)` invokes through the **Responses-API `agent_reference` by name**, which resolves a different Foundry named-agent resource type — so the existing `asst_`-typed `cwyd` agent is not found by name. Surfaces downstream of (and distinct from) the BUG-0020 MCP 401. |
 | BUG-0022 | 2026-06-11 | 2026-06-12 | backend | medium | fixed | On the default `agent_framework` path an operator-authored instruction override (`cwyd_agent_instructions` in `RuntimeConfig`) was dropped: the orchestrator invoked the agent by name and used the server-side baked instructions (cached by identity, ADR 0008), so a saved prompt silently had no effect (it applied only on `langgraph`). Surfaced by audit during the BUG-0021 fix (GAP-2); fixed by the GA pattern (ADR 0025) resolving instructions per request via `build_agent` → `_resolve_definition`. |
@@ -99,6 +99,7 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0041 | 2026-06-15 | 2026-06-15 | frontend | low | fixed | The expanded reference chips render side by side on one wrapping row (`.chipList { display: flex; flex-wrap: wrap }`) instead of stacked one per line as in v1, which lays the reference list out as a column. Fixed by changing `.chipList` to `flex-direction: column` with `align-items: flex-start` so references stack one per line; verified live. |
 | BUG-0042 | 2026-06-15 | 2026-06-15 | frontend | medium | fixed | Expanding a reference shows no link to open the document. v2 ingestion intentionally omits a `url` field from the search index (only `id`/`content`/`title`/`content_vector` are written; the blob filename survives in `title`), so `Citation.url` is always empty and the detail panel's open-document link is never rendered. The backend also exposes no file-serving endpoint, so a recovered filename had nowhere to resolve. Fixed by adding a backend `GET /api/files/{filename}` route that streams the blob inline (content type from filename, `Content-Disposition: inline`, path-traversal guards), registering it on the app, and rendering an absolute `${VITE_BACKEND_URL}/api/files/<filename>` open-document link derived from `Citation.title`; verified with backend pytest + live (`200`, `application/pdf`, inline). |
 | BUG-0043 | 2026-06-15 | — | backend | low | open | Raw native Foundry IQ Knowledge Base citation markers (`【N:M†source】`, e.g. `【6:1†source】`) leak into the reasoning-panel text. The `agent_framework` orchestrator runs `normalize_kb_citations` only over the answer string, but `_update_to_events` forwards `text_reasoning` blocks verbatim to the `reasoning` channel; when a reasoning-capable model references KB sources in its summary it emits these answer-only markers inline, and the FE reasoning panel (which has no `[docN]` rendering) shows them as garbage. They should be stripped before the `reasoning` event is emitted. |
+| BUG-0044 | 2026-06-15 | 2026-06-15 | backend | low | fixed | The conversation-route test `test_sse_emits_leading_retrieval_narration_when_search_wired` asserts the leading retrieval-narration reasoning frame carries `metadata: {}`, but `run_chat` intentionally marks that hint event `metadata={"placeholder": True}` so the frontend can replace the placeholder bubble once retrieval completes. The stale assertion fails at `HEAD`; it was unmasked when the suite was re-run during the BUG-0017 conversation-persistence wiring (the source is correct; the test expectation was never updated when the placeholder metadata was added). Fixed by updating the expected metadata to `{"placeholder": True}`. |
 
 ## Details
 
@@ -320,7 +321,7 @@ References: [worklog/2026-06-11.md](worklog/2026-06-11.md); [worklog/2026-06-15.
 
 ### BUG-0017 — New conversation is not saved to history
 
-Area: backend. Severity: high. Status: open (found 2026-06-11).
+Area: backend. Severity: high. Status: fixed (found 2026-06-11, fixed 2026-06-15).
 
 Symptom: when a user starts a conversation by sending a message, the conversation does not appear in the left-hand chat history column.
 
@@ -328,31 +329,35 @@ Root cause: `POST /api/conversation` in `backend/routers/conversation.py` runs t
 
 Proposed fix (direction): persist the conversation and its turns as part of the conversation flow — either server-side in the conversation router or by having the chat flow create and persist a conversation on the first message. Settle the exact persistence trigger and ownership in the fix turn.
 
-References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0019.
+Progress (2026-06-15): Phase 1 (backend persistence) complete and green. `POST /api/conversation` now persists every completed turn server-side via `services.conversation.persist_turn` — the user message, the assistant answer, and the answer's grounding citations (stored in the assistant message's `metadata["citations"]`) — keyed by the Easy Auth principal id, in both buffered and streaming modes. A new thread is titled with the first question; the streaming path returns the resolved id on a terminal `conversation` SSE control frame. Units U1 / U2a / U2b / U3a–U3d landed test-first with an end-to-end live integration test (`test_conversation_persists_citations_to_history_live`, green against the live env). **Stays open**: the user-visible fix needs Phase 2 (frontend) — `ChatContext` conversation-id tracking, parsing the terminal `conversation` frame, load-on-click rehydration in `HistoryPanel`, and the new-chat / hidden-db-name UX (folds BUG-0018 / BUG-0019). BUG-0017 flips to fixed when Phase 1 + 2 both land.
+
+Resolution (2026-06-15): Phase 2 (frontend bridge) is now complete and green, so BUG-0017 is fixed. The frontend half landed test-first: `ChatContext` tracks the `conversationId` (U4); `streamChat` parses the terminal `conversation` SSE control frame and surfaces the resolved id (U5); `MessageInput` sends the tracked id and folds the resolved id back into context on the next turn (U6); selecting a history row fetches the stored conversation detail and rehydrates the full transcript plus persisted citations (U7a / U7b); the New chat button was removed from the history column in favor of the existing header affordance (U9, BUG-0019); and the raw backend db-name display was removed from the history header (U10, BUG-0018). With Phase 1 (backend persistence, validated by the live integration test) and Phase 2 both landed, a conversation begun by simply sending a first message is persisted server-side and appears in the left history column. Follow-on work tracked separately and **not** part of this bug's symptom: Phase 3 (rename validation + RAI screening, U11–U12) and Phase 4 (cloud identity / per-user history isolation, U13–U15).
+
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md), [worklog/2026-06-15.md](worklog/2026-06-15.md); related BUG-0018, BUG-0019.
 
 ### BUG-0018 — Chat history column shows the backend database name
 
-Area: frontend. Severity: low. Status: open (found 2026-06-11).
+Area: frontend. Severity: low. Status: fixed (found 2026-06-11, fixed 2026-06-15).
 
 Symptom: the chat history left column header shows `backend: <db_type>` — the configured chat-history database discriminator.
 
 Root cause: `frontend/src/pages/chat/components/HistoryPanel.tsx` renders `<p data-testid="history-db-type">backend: {status.db_type}</p>` from the `/api/history/status` response in the panel header.
 
-Proposed fix: remove the `history-db-type` display from the panel header.
+Fix (2026-06-15): removed the `history-db-type` display from the panel header. Since the panel fetched `/api/history/status` solely to surface that discriminator (it never branched on it — Hard Rule #4), the now-orphaned status fetch, the `status` React state, and the `HistoryStatus` interface were removed too; the panel now mounts by loading only `/api/history/conversations`. Test-first: the mount test was updated to assert the panel loads the conversations list *without* calling `/api/history/status`, plus a negative test that `history-db-type` is never rendered.
 
-References: [worklog/2026-06-11.md](worklog/2026-06-11.md).
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md), [worklog/2026-06-15.md](worklog/2026-06-15.md); related BUG-0017.
 
 ### BUG-0019 — Remove the New chat section from the history column
 
-Area: frontend. Severity: low. Status: open (found 2026-06-11).
+Area: frontend. Severity: low. Status: fixed (found 2026-06-11, fixed 2026-06-15).
 
 Symptom: the chat history left column contains a New chat section that should be removed.
 
 Root cause: `frontend/src/pages/chat/components/HistoryPanel.tsx` renders a New chat button (`data-testid="history-new"`) wired to `handleNew` (`POST /api/history/conversations`). Related New-chat wiring exists outside the panel — the header `HeaderTools` `onNewChat` control and the `newChatNonce` flow in `App.tsx`.
 
-Proposed fix: remove the New chat button and `handleNew` from the history panel; decide in the fix turn whether the header New-chat affordance and the `newChatNonce` wiring are also in scope.
+Fix (2026-06-15): removed the `history-new` button and the `handleNew` callback from `HistoryPanel`, along with the now-unused `Add16Regular` icon import. Scope decision: the header New-chat affordance (`HeaderTools` `data-testid="header-new-chat"` → `App.tsx` `newChatNonce` → `<ChatPage key={newChatNonce} />` remount) is the working way to start a fresh chat — it remounts `ChatPage`, re-initializing `ChatContext` to `initialChatState` (empty transcript, `conversationId: null`). Because the bug is scoped to the history left column and removing the header control too would leave no way to start a new chat, the header affordance and `newChatNonce` wiring are intentionally kept. Test-first: the obsolete "creates a new conversation" `HistoryPanel` test was replaced with a negative assertion that the `history-new` button is not rendered.
 
-References: [worklog/2026-06-11.md](worklog/2026-06-11.md); related BUG-0017.
+References: [worklog/2026-06-11.md](worklog/2026-06-11.md); [worklog/2026-06-15.md](worklog/2026-06-15.md); related BUG-0017.
 
 ### BUG-0020 — KB MCP connect is unauthenticated (401 on chat)
 
@@ -756,3 +761,15 @@ Root cause: the `agent_framework` orchestrator grounds through the server-side F
 Planned fix: strip native KB markers from reasoning text before the `reasoning` event is emitted on the `agent_framework` path. Expose a small `strip_kb_markers(text) -> str` helper in `tools/citations.py` that removes `_KB_MARKER_RE` matches (and collapses the resulting whitespace), reuse the existing regex, and apply it to the `text_reasoning` text in `_update_to_events` so only the answer-side `normalize_kb_citations` owns marker rewriting while the reasoning channel simply drops them. Cover with an orchestrator/unit test that asserts a reasoning frame containing `【6:1†source】` is emitted clean.
 
 References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0044 — stale conversation-route test asserts narration metadata `{}` (source emits `{"placeholder": True}`)
+
+Area: backend. Severity: low. Status: fixed (found and fixed 2026-06-15 while wiring conversation persistence for BUG-0017).
+
+Symptom: `tests/backend/test_conversation.py::test_sse_emits_leading_retrieval_narration_when_search_wired` fails at `HEAD`: `{'content': '…', 'metadata': {'placeholder': True}} != {'content': '…', 'metadata': {}}`. The failure was latent because the conversation-route suite was not re-run between the source change and the BUG-0017 wiring.
+
+Root cause: BUG-0036 added `metadata={"placeholder": True}` to the leading retrieval-narration `reasoning` event that `run_chat` emits (so the frontend can replace the transient placeholder bubble once real reasoning streams). The narration test's expected frame was never updated to match — it still asserts `metadata: {}`. The source is correct (the placeholder marker is required by BUG-0036's FE replace-not-append behavior); the test expectation is stale.
+
+Fix: updated the expected metadata in `test_sse_emits_leading_retrieval_narration_when_search_wired` to `{"placeholder": True}` so the test matches the shipped `run_chat` behavior; added a one-line comment noting the placeholder is the BUG-0036 frontend-replacement marker. No source change. Full conversation-route + services suites and the four shared AST gates pass (509 passed, 1 skipped).
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md); related BUG-0036 (the source change that introduced the placeholder metadata), BUG-0017 (the persistence wiring whose suite run unmasked the stale assertion).

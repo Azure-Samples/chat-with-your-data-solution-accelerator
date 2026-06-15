@@ -4,7 +4,7 @@ Pillar: Stable Core
 Phase: 4
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from backend.core.types import Conversation, MessageRecord
 
@@ -40,6 +40,18 @@ class RenameConversationRequest(BaseModel):
     """PATCH /api/history/conversations/{id} request body."""
 
     title: str = Field(min_length=1, max_length=512)
+
+    @field_validator("title")
+    @classmethod
+    def _strip_and_require_nonblank(cls, value: str) -> str:
+        # A whitespace-only title (e.g. "   ") clears the displayed
+        # name in the history list, so it is rejected. The accepted
+        # value is normalized to its stripped form so a renamed
+        # conversation never persists surrounding whitespace.
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("title must not be blank")
+        return stripped
 
 
 class SetFeedbackRequest(BaseModel):

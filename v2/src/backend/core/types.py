@@ -84,11 +84,21 @@ class OrchestratorChannel(StrEnum):
 
 
 class ChatMessage(BaseModel):
-    """One turn in a chat conversation."""
+    """One turn in a chat conversation.
+
+    `metadata` carries provider-agnostic extras that travel with the
+    turn into storage -- e.g. the citations surfaced alongside an
+    assistant answer, so a reloaded conversation rehydrates them
+    without re-running retrieval. Mirrors `MessageRecord.metadata`
+    (the persisted read-side shape) and defaults to an empty dict so
+    every existing producer that builds `ChatMessage(role=...,
+    content=...)` is unaffected.
+    """
 
     role: ChatRole
     content: str
     name: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ChatChunk(BaseModel):

@@ -28,7 +28,14 @@ from backend.core.agents.definitions import (
 from backend.core.pipelines import chat as chat_pipeline
 from backend.core.providers.orchestrators import registry as orchestrators_registry
 from backend.core.providers.orchestrators.base import OrchestratorBase
-from backend.core.types import ChatMessage, OrchestratorEvent, RuntimeConfig
+from backend.core.settings import Environment
+from backend.core.types import (
+    ChatMessage,
+    Conversation,
+    MessageRecord,
+    OrchestratorEvent,
+    RuntimeConfig,
+)
 from backend.routers import conversation as conv_module
 
 # ---------------------------------------------------------------------------
@@ -88,8 +95,13 @@ def _fake_settings(orchestrator_name: str = "fake") -> SimpleNamespace:
     real nested shape with safe defaults (``AzureSearch`` keeps the
     cross-setting guard satisfied for every orchestrator); tests vary
     only ``orchestrator_name``.
+
+    ``environment`` is ``LOCAL`` so the route's ``user_id`` dependency
+    (``get_user_id``) falls back to ``"local-dev"`` when a test sends no
+    ``x-ms-client-principal-id`` header, instead of raising 401.
     """
     return SimpleNamespace(
+        environment=Environment.LOCAL,
         orchestrator=SimpleNamespace(name=orchestrator_name, agent_id=""),
         openai=SimpleNamespace(temperature=0.0, max_tokens=1000),
         search=SimpleNamespace(use_semantic_search=True, top_k=5),
@@ -140,6 +152,50 @@ class _FakeDatabaseClient:
     *identity* (``is db_sentinel``), never behavior, because the
     resolver itself is faked at the agents-provider seam.
     """
+
+
+class _RecordingDatabaseClient:
+    """Recorder implementing the three methods ``persist_turn`` touches.
+
+    Unlike the bare ``_FakeDatabaseClient`` sentinel (used only for
+    identity assertions in the orchestrator-forwarding tests), this
+    fake records the create / append calls so the persistence tests can
+    assert a turn was titled with the question and written
+    user-then-assistant, and echoes a fixed ``conv-new`` id back through
+    the route. Mirrors the ``_FakeDB`` in ``test_services_conversation``.
+    """
+
+    def __init__(self, *, existing: Conversation | None = None) -> None:
+        self._existing = existing
+        self.created: list[tuple[str, str]] = []
+        self.added: list[tuple[str, str, ChatMessage]] = []
+
+    async def get_conversation(
+        self, conversation_id: str, user_id: str
+    ) -> Conversation | None:
+        existing = self._existing
+        if (
+            existing is not None
+            and existing.id == conversation_id
+            and existing.user_id == user_id
+        ):
+            return existing
+        return None
+
+    async def create_conversation(self, user_id: str, title: str) -> Conversation:
+        self.created.append((user_id, title))
+        return Conversation(id="conv-new", user_id=user_id, title=title)
+
+    async def add_message(
+        self, conversation_id: str, user_id: str, message: ChatMessage
+    ) -> MessageRecord:
+        self.added.append((conversation_id, user_id, message))
+        return MessageRecord(
+            id=f"msg-{len(self.added)}",
+            conversation_id=conversation_id,
+            role=message.role,
+            content=message.content,
+        )
 
 
 @pytest.fixture
@@ -333,9 +389,12 @@ async def test_sse_emits_leading_retrieval_narration_when_search_wired(
     frames = [f for f in resp.text.split("\n\n") if f]
     assert frames[0].startswith("event: reasoning\n")
     data_line = [ln for ln in frames[0].splitlines() if ln.startswith("data: ")][0]
+    # The narration reasoning event is marked `placeholder` so the
+    # frontend can replace it once retrieval completes (run_chat sets
+    # `metadata={"placeholder": True}` on the leading hint event).
     assert json.loads(data_line[len("data: ") :]) == {
         "content": chat_pipeline.KB_SEARCH_NARRATION,
-        "metadata": {},
+        "metadata": {"placeholder": True},
     }
     assert frames[1].startswith("event: answer\n")
 
@@ -912,3 +971,129 @@ async def test_router_forwards_post_prompt_validator_when_dep_returns_validator(
 
     assert resp.status_code == 200
     assert calls[0]["kwargs"]["post_prompt"] is sentinel_validator
+
+
+# ---------------------------------------------------------------------------
+# Conversation persistence: each completed turn is written keyed by user_id
+# ---------------------------------------------------------------------------
+
+
+async def test_json_mode_persists_turn_and_echoes_conversation_id(
+    app_with_fakes,
+) -> None:
+    """Buffered mode writes the completed turn and echoes the resolved
+    conversation id. With no ``conversation_id`` in the request the DB
+    creates a fresh thread (``conv-new``) titled with the user's
+    question, appending the user message before the assistant answer."""
+    recorder = _RecordingDatabaseClient()
+    app_with_fakes.dependency_overrides[get_database_client] = lambda: recorder
+    _FakeOrchestrator.scripted = [
+        OrchestratorEvent(channel="answer", content="Hello, world!"),
+    ]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "What is CWYD?"}]},
+        )
+
+    assert resp.status_code == 200
+    assert resp.json()["conversation_id"] == "conv-new"
+    # New thread titled with the question (no existing id supplied), keyed
+    # by the local-dev fallback (no Easy Auth header on this request).
+    assert recorder.created == [("local-dev", "What is CWYD?")]
+    # User message persisted before the assistant answer.
+    assert [(m.role, m.content) for (_cid, _uid, m) in recorder.added] == [
+        ("user", "What is CWYD?"),
+        ("assistant", "Hello, world!"),
+    ]
+
+
+async def test_json_mode_persists_citations_in_assistant_message_metadata(
+    app_with_fakes,
+) -> None:
+    """Buffered mode threads the answer's deduplicated citations into the
+    persisted assistant message metadata under the ``citations`` key, so a
+    reloaded conversation rehydrates its reference block without re-running
+    retrieval. The user message stays metadata-free."""
+    recorder = _RecordingDatabaseClient()
+    app_with_fakes.dependency_overrides[get_database_client] = lambda: recorder
+    _FakeOrchestrator.scripted = [
+        OrchestratorEvent(channel="answer", content="Grounded answer."),
+        OrchestratorEvent(
+            channel="citation",
+            metadata={"id": "doc1", "title": "Doc 1", "url": "https://x/1"},
+        ),
+        OrchestratorEvent(
+            channel="citation",
+            metadata={"id": "doc1", "title": "Doc 1 dup", "url": "https://x/1"},
+        ),
+        OrchestratorEvent(
+            channel="citation",
+            metadata={"id": "doc2", "title": "Doc 2", "url": "https://x/2"},
+        ),
+    ]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "What is covered?"}]},
+        )
+
+    assert resp.status_code == 200
+    _user_cid, _user_uid, user_msg = recorder.added[0]
+    _asst_cid, _asst_uid, assistant_msg = recorder.added[1]
+    assert user_msg.metadata == {}
+    assert [c["id"] for c in assistant_msg.metadata["citations"]] == ["doc1", "doc2"]
+
+
+async def test_sse_mode_emits_terminal_conversation_frame_and_persists(
+    app_with_fakes,
+) -> None:
+    """Streaming mode persists the turn after the answer is fully sent
+    and closes with a terminal ``conversation`` control frame carrying
+    the resolved id (a transport event, not a locked channel)."""
+    recorder = _RecordingDatabaseClient()
+    app_with_fakes.dependency_overrides[get_database_client] = lambda: recorder
+    _FakeOrchestrator.scripted = [
+        OrchestratorEvent(channel="answer", content="hi there"),
+    ]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "hello"}]},
+            headers={"Accept": "text/event-stream"},
+        )
+
+    assert resp.status_code == 200
+    frames = [f for f in resp.text.split("\n\n") if f]
+    assert frames[0].startswith("event: answer\n")
+    assert frames[-1].startswith("event: conversation\n")
+    data_line = [ln for ln in frames[-1].splitlines() if ln.startswith("data: ")][0]
+    assert json.loads(data_line[len("data: ") :]) == {"conversation_id": "conv-new"}
+    assert recorder.created == [("local-dev", "hello")]
+
+
+async def test_persisted_turn_is_keyed_by_easy_auth_principal_header(
+    app_with_fakes,
+) -> None:
+    """The persisted turn is keyed by the ``x-ms-client-principal-id``
+    Easy Auth header (the signed-in user), proving per-user history
+    isolation rather than the ``local-dev`` fallback."""
+    recorder = _RecordingDatabaseClient()
+    app_with_fakes.dependency_overrides[get_database_client] = lambda: recorder
+    _FakeOrchestrator.scripted = [
+        OrchestratorEvent(channel="answer", content="answer"),
+    ]
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "q"}]},
+            headers={"x-ms-client-principal-id": "user-42"},
+        )
+
+    assert resp.status_code == 200
+    assert recorder.created == [("user-42", "q")]
+    assert all(uid == "user-42" for (_cid, uid, _m) in recorder.added)

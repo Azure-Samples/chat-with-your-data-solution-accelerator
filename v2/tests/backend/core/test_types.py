@@ -164,6 +164,41 @@ def test_chat_message_round_trips_via_model_dump_json() -> None:
     assert rehydrated.role is ChatRole.ASSISTANT
 
 
+def test_chat_message_metadata_defaults_to_empty_dict() -> None:
+    """Every existing producer builds `ChatMessage(role=..., content=...)`
+    with no metadata; the field must default to an empty dict so those
+    call sites are unaffected."""
+    message = ChatMessage(role="user", content="hi")  # type: ignore[arg-type]
+    assert message.metadata == {}
+
+
+def test_chat_message_carries_metadata_and_round_trips() -> None:
+    """An assistant turn carries its citations in `metadata` so a
+    reloaded conversation can rehydrate them; the JSON round-trip (the
+    persisted wire shape) must preserve the nested structure."""
+    citations = [{"id": "doc1", "title": "Benefit_Options.pdf", "url": ""}]
+    original = ChatMessage(
+        role="assistant",  # type: ignore[arg-type]
+        content="hello",
+        metadata={"citations": citations},
+    )
+    payload = original.model_dump_json()
+    rehydrated = ChatMessage.model_validate_json(payload)
+    assert rehydrated == original
+    assert rehydrated.metadata["citations"] == citations
+
+
+def test_chat_message_rejects_non_dict_metadata() -> None:
+    """`metadata` is a dict field; a scalar must raise rather than
+    silently coerce, keeping the persisted shape well-formed."""
+    with pytest.raises(ValidationError):
+        ChatMessage(
+            role="user",  # type: ignore[arg-type]
+            content="hi",
+            metadata="oops",  # type: ignore[arg-type]
+        )
+
+
 def test_message_record_coerces_string_role_to_enum_member() -> None:
     """Persistence read-path: `cosmosdb._read_item` constructs
     `MessageRecord(role=item.get("role", "user"))` from a plain dict;

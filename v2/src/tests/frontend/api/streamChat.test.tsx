@@ -48,6 +48,7 @@ describe("streamChat", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -326,5 +327,112 @@ describe("streamChat", () => {
     expect(events).toEqual([
       { channel: "answer", content: "ok", metadata: {} },
     ]);
+  });
+
+  it("sends conversation_id in the POST body when conversationId is provided", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    await collect(
+      streamChat([{ role: "user", content: "hi" }], {
+        conversationId: "conv-42",
+      }),
+    );
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      messages: [{ role: "user", content: "hi" }],
+      conversation_id: "conv-42",
+    });
+  });
+
+  it("omits conversation_id from the body when conversationId is null", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    await collect(
+      streamChat([{ role: "user", content: "hi" }], { conversationId: null }),
+    );
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body).toEqual({ messages: [{ role: "user", content: "hi" }] });
+    expect("conversation_id" in body).toBe(false);
+  });
+
+  it("invokes onConversationId with the id from the terminal conversation frame", async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        'event: answer\ndata: {"content":"hello","metadata":{}}\n\n',
+        'event: conversation\ndata: {"conversation_id":"conv-new"}\n\n',
+      ]),
+    );
+    const ids: string[] = [];
+    const events = await collect(
+      streamChat([], {
+        onConversationId: (id) => {
+          ids.push(id);
+        },
+      }),
+    );
+    // The conversation frame is a transport-control event, never yielded
+    // as a StreamEvent (Hard Rule #6 channel lock).
+    expect(events).toEqual([
+      { channel: "answer", content: "hello", metadata: {} },
+    ]);
+    expect(ids).toEqual(["conv-new"]);
+  });
+
+  it("drops the terminal conversation frame from the event stream", async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        'event: answer\ndata: {"content":"done","metadata":{}}\n\n',
+        'event: conversation\ndata: {"conversation_id":"conv-x"}\n\n',
+      ]),
+    );
+    // No onConversationId callback supplied — the frame is still dropped.
+    const events = await collect(streamChat([]));
+    expect(events).toEqual([
+      { channel: "answer", content: "done", metadata: {} },
+    ]);
+  });
+
+  it("ignores a conversation frame with a missing or empty id", async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        'event: conversation\ndata: {"conversation_id":""}\n\n' +
+          "event: conversation\ndata: {}\n\n",
+      ]),
+    );
+    const ids: string[] = [];
+    const events = await collect(
+      streamChat([], {
+        onConversationId: (id) => {
+          ids.push(id);
+        },
+      }),
+    );
+    expect(events).toEqual([]);
+    expect(ids).toEqual([]);
+  });
+
+  it("buffers a conversation frame split across chunk boundaries", async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        'event: conversation\ndata: {"conversa',
+        'tion_id":"conv-split"}\n\n',
+      ]),
+    );
+    const ids: string[] = [];
+    await collect(
+      streamChat([], {
+        onConversationId: (id) => {
+          ids.push(id);
+        },
+      }),
+    );
+    expect(ids).toEqual(["conv-split"]);
+  });
+
+  it("prepends VITE_BACKEND_URL to the conversation request URL", async () => {
+    vi.stubEnv("VITE_BACKEND_URL", "https://backend.example.com");
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    await collect(streamChat([]));
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://backend.example.com/api/conversation");
   });
 });

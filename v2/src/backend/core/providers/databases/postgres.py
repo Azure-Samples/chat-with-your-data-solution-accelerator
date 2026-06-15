@@ -22,6 +22,7 @@ no parallel connection management.
 """
 
 import asyncio
+import json
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -90,10 +91,18 @@ CREATE TABLE IF NOT EXISTS messages (
     role            TEXT NOT NULL,
     content         TEXT NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    feedback        TEXT
+    feedback        TEXT,
+    metadata        JSONB NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conv_created
     ON messages (conversation_id, created_at);
+-- `metadata` carries provider-agnostic per-message extras (an assistant
+-- turn stores its citations here so a reloaded conversation rehydrates
+-- them). `CREATE TABLE IF NOT EXISTS` no-ops on a `messages` table that
+-- predates the column, so the additive `ADD COLUMN IF NOT EXISTS`
+-- back-fills an existing table idempotently -- preserving the
+-- lazy-bootstrap contract (no separate migration step).
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}';
 
 -- Agent registry (CU-010b). `name` is the AgentDefinition.name
 -- ("cwyd", "rai"). Used by the lazy resolver in CU-010c so agent
@@ -214,6 +223,11 @@ def _row_to_conversation(row: _Record) -> Conversation:
 
 def _row_to_message(row: _Record) -> MessageRecord:
     feedback = row["feedback"]
+    # asyncpg returns a JSONB column as a JSON-shaped `str` (no codec
+    # registered, matching the runtime_config / admin_audit read paths);
+    # parse it back into the dict `MessageRecord.metadata` expects. A
+    # legacy NULL (column added but never written) falls back to `{}`.
+    raw_metadata = row["metadata"]
     return MessageRecord(
         id=str(row["id"]),
         conversation_id=str(row["conversation_id"]),
@@ -221,6 +235,7 @@ def _row_to_message(row: _Record) -> MessageRecord:
         content=str(row["content"]),
         created_at=_to_iso(row["created_at"]),
         feedback=str(feedback) if feedback is not None else None,
+        metadata=json.loads(raw_metadata) if raw_metadata else {},
     )
 
 
@@ -475,7 +490,7 @@ class PostgresClient(BaseDatabaseClient):
         pool = await self._ensure_pool()
         rows = await pool.fetch(
             "SELECT id, conversation_id, user_id, role, content, "
-            "created_at, feedback FROM messages "
+            "created_at, feedback, metadata FROM messages "
             "WHERE conversation_id = $1 AND user_id = $2 "
             "ORDER BY created_at ASC",
             uuid.UUID(conversation_id),
@@ -502,17 +517,22 @@ class PostgresClient(BaseDatabaseClient):
             async with pool.acquire() as conn:
                 async with conn.transaction():
                     try:
+                        # `metadata` binds as a JSON-shaped `str`; asyncpg
+                        # accepts that for a JSONB column out of the box
+                        # (same contract as runtime_config / admin_audit).
                         row = await conn.fetchrow(
                             "INSERT INTO messages "
-                            "(id, conversation_id, user_id, role, content) "
-                            "VALUES ($1, $2, $3, $4, $5) "
+                            "(id, conversation_id, user_id, role, content, "
+                            "metadata) "
+                            "VALUES ($1, $2, $3, $4, $5, $6) "
                             "RETURNING id, conversation_id, user_id, role, "
-                            "content, created_at, feedback",
+                            "content, created_at, feedback, metadata",
                             uuid.uuid4(),
                             uuid.UUID(conversation_id),
                             user_id,
                             message.role,
                             message.content,
+                            json.dumps(message.metadata),
                         )
                     except asyncpg.ForeignKeyViolationError as exc:
                         raise KeyError(conversation_id) from exc
