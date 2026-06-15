@@ -92,6 +92,13 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0034 | 2026-06-14 |  | functions | high | open | A document uploaded via the admin Add-data UI reports success (`200` + `UploadResponse`) but never appears in the documents list. The backend upload path stores the blob in the documents container and enqueues a doc-processing message, then returns success; a file only surfaces in the list once the ingestion pipeline parses → chunks → embeds → pushes it into Azure AI Search (which `list_sources` reads). The uploaded document is never indexed, so it does not appear. Not yet diagnosed — the gap sits between enqueue (backend) and index (functions ingestion pipeline); first confirm the blob landed, the queue message was enqueued, the Functions host consumed it, and the Search push ran (or whether a Functions host is even running locally). |
 | BUG-0035 | 2026-06-14 | 2026-06-14 | backend | high | fixed | The `agent_framework` orchestrator set the OpenAI sampling parameter `temperature` (and `max_tokens`) on every agent run via `ChatOptions`; when the BUG-0013 reasoning path is active the same run also requests a Responses-API `reasoning` option, and the gpt-5 / o-series answer deployment (`gpt-5.1`) then rejects `temperature` with `400 Unsupported parameter: 'temperature' is not supported with this model.`, so the BUG-0013 reasoning path errors before any frame streams. Latent because the live deployment runs `langgraph` via a persisted cosmos orchestrator override, so the `agent_framework` reasoning path is never exercised by default — the new both-orchestrator live integration test caught it by forcing `agent_framework` past the override. Fixed by omitting `temperature`/`max_tokens` from `ChatOptions` when the reasoning knob is on — symmetric with the `langgraph` `reason()` path, which sends neither. The non-reasoning `agent_framework` path is unaffected (it sends `temperature=0.0` and was live-verified grounding an answer under BUG-0025). Live-verified: forcing `agent_framework` + reasoning on now streams substantive reasoning with no 400. |
 | BUG-0036 | 2026-06-14 | 2026-06-14 | frontend | low | fixed | After BUG-0013 lit up substantive model reasoning, the canned "Searching the knowledge base for relevant sources…" narration (emitted upfront by `run_chat` as the during-the-wait hint per BUG-0027) stayed visible in the thinking panel *alongside* the real reasoning, because the FE concatenated every `reasoning`-channel frame into one `reasoning[]` list — so the placeholder sentence and the model's reasoning rendered together. The narration should vanish the instant real reasoning starts streaming. Fixed by marking the upfront narration frame `metadata.placeholder=true` in `run_chat`, routing placeholder-marked `reasoning` frames into a separate `reasoningPlaceholder` slot on the FE message (new `set_reasoning_placeholder` reducer action) instead of appending them to `reasoning[]`, and rendering `reasoning` when non-empty else the placeholder — so a reasoning-capable model drops the narration the moment its first native frame arrives, while a non-reasoning model keeps the narration as the sole panel content (no regression). Wire contract: the `metadata.placeholder` boolean, forwarded generically by `format_sse` for every channel. |
+| BUG-0037 | 2026-06-15 | 2026-06-15 | frontend | low | fixed | The finished assistant answer has no "AI-generated content may be incorrect" disclaimer between the answer and the reference block; v1 shows one in the answer footer. Fixed by rendering a static muted disclaimer line in `MessageList` under any finished assistant answer with non-empty content, above the `CitationPanel` reference block. |
+| BUG-0038 | 2026-06-15 | 2026-06-15 | frontend | low | fixed | The reasoning/thinking panel inserts an extra blank line between reasoning sections: `formatReasoning` replaces each model section title with a `\n\n` paragraph break, so consecutive reasoning bodies render as separate paragraphs with a blank line between them. Fixed by replacing each section title with a single `\n` line break and collapsing `\n{2,}` to `\n`, so bodies render as adjacent lines within one `<p>` (no blank line). |
+| BUG-0039 | 2026-06-15 | 2026-06-15 | frontend | medium | fixed | Clicking a reference does not open a source-detail view. v1 renders references as bordered, clickable chips that open a right-side column showing the document title, an open-document link, and the markdown-rendered reference text. v2's `CitationPanel` only expanded each item inline to a snippet + link, with no detail column. Fixed by adding `activeCitation` + `ShowCitation`/`CloseCitation` to chat state, restyling references as clickable v1-style chips that dispatch `ShowCitation`, adding a `CitationDetailPanel` (title + open-document link + markdown-rendered snippet), and adding a third push-content grid column to `ChatPage` (driven by an inner `ChatShell` reading `activeCitation`) that the panel occupies. |
+| BUG-0040 | 2026-06-15 | 2026-06-15 | frontend | medium | fixed | The reference block's "N references" toggle does not collapse the chip list. `CitationPanel.tsx` sets `hidden={!expanded}` on the chip container, but `CitationPanel.module.css` styles it `.chipList { display: flex }`; an explicit `display` overrides the user-agent `[hidden] { display: none }` rule, so the references stay visible regardless of the toggle state. The existing test asserts only the `hidden` attribute (set correctly), so jsdom could not catch the visual regression. Fixed by adding a `.chipList[hidden] { display: none }` rule so the `hidden` attribute hides the container; verified live. |
+| BUG-0041 | 2026-06-15 | 2026-06-15 | frontend | low | fixed | The expanded reference chips render side by side on one wrapping row (`.chipList { display: flex; flex-wrap: wrap }`) instead of stacked one per line as in v1, which lays the reference list out as a column. Fixed by changing `.chipList` to `flex-direction: column` with `align-items: flex-start` so references stack one per line; verified live. |
+| BUG-0042 | 2026-06-15 | 2026-06-15 | frontend | medium | fixed | Expanding a reference shows no link to open the document. v2 ingestion intentionally omits a `url` field from the search index (only `id`/`content`/`title`/`content_vector` are written; the blob filename survives in `title`), so `Citation.url` is always empty and the detail panel's open-document link is never rendered. The backend also exposes no file-serving endpoint, so a recovered filename had nowhere to resolve. Fixed by adding a backend `GET /api/files/{filename}` route that streams the blob inline (content type from filename, `Content-Disposition: inline`, path-traversal guards), registering it on the app, and rendering an absolute `${VITE_BACKEND_URL}/api/files/<filename>` open-document link derived from `Citation.title`; verified with backend pytest + live (`200`, `application/pdf`, inline). |
+| BUG-0043 | 2026-06-15 | — | backend | low | open | Raw native Foundry IQ Knowledge Base citation markers (`【N:M†source】`, e.g. `【6:1†source】`) leak into the reasoning-panel text. The `agent_framework` orchestrator runs `normalize_kb_citations` only over the answer string, but `_update_to_events` forwards `text_reasoning` blocks verbatim to the `reasoning` channel; when a reasoning-capable model references KB sources in its summary it emits these answer-only markers inline, and the FE reasoning panel (which has no `[docN]` rendering) shows them as garbage. They should be stripped before the `reasoning` event is emitted. |
 
 ## Details
 
@@ -661,3 +668,91 @@ Fix: mark the transient narration so the client can drop it. (1) Backend — `ru
 Verification: `tests/backend/core/pipelines/test_chat.py` asserts the narration frame carries `metadata == {"placeholder": True}` and the orchestrator's native reasoning frame does not (18/18). FE Vitest: `ChatContext.test.tsx` (placeholder set without touching `reasoning`, replace-not-append), `MessageInput.test.tsx` (placeholder frame → `reasoningPlaceholder`, subsequent real frame → `reasoning[]`), `MessageList.test.tsx` (placeholder shown when no reasoning yet; real reasoning drops the placeholder) — 87/87 across the three suites. `tsc --noEmit` clean on the frontend source + test workspaces; `pyright` 0/0/0 on `chat.py`.
 
 References: [worklog/2026-06-14.md](worklog/2026-06-14.md); related BUG-0013 (the reasoning content this polishes), BUG-0027 (the upfront narration whose lifecycle this completes).
+
+### BUG-0037 — finished answer missing the "AI-generated content may be incorrect" disclaimer
+
+Area: frontend. Severity: low. Status: fixed (found 2026-06-15, fixed 2026-06-15).
+
+Symptom: a finished assistant answer renders the answer body and then the reference block with nothing between them; v1 shows a small muted "AI-generated content may be incorrect" disclaimer in the answer footer.
+
+Root cause: `MessageList` never rendered a disclaimer element; the assistant content column stacked only the answer `MarkdownContent` and the `CitationPanel`.
+
+Fix: `MessageList` now renders a static `<p>` (`AI-generated content may be incorrect`, `data-testid="answer-disclaimer-<id>"`) between the answer body and the `CitationPanel`, gated on `m.streaming !== true && m.content.length > 0` so it appears only under a finished, non-empty answer — not while streaming, not on user messages, not on empty error-only messages. The `.disclaimer` style is small and muted (`fontSizeBase200` / `colorNeutralForeground3`) to mirror the v1 answer footer.
+
+Verification: `MessageList.test.tsx` — disclaimer present under a finished assistant answer; absent on a user message; absent while streaming; absent on an empty error-only message (33/33).
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0038 — extra blank line between reasoning sections in the thinking panel
+
+Area: frontend. Severity: low. Status: fixed (found 2026-06-15, fixed 2026-06-15).
+
+Symptom: the thinking/reasoning panel renders consecutive reasoning sections separated by a blank line (an extra paragraph break), making the panel taller and looser than intended.
+
+Root cause: `formatReasoning` (reasoningText.tsx) replaces each model bold section title (`SECTION_TITLE`) with a `"\n\n"` paragraph break and then collapses `\n{3,}` to `\n\n`. Rendered through the markdown panel, each `\n\n` becomes a separate `<p>`, so sequential reasoning bodies show a blank line between them.
+
+Fix: changed the section-title replacement to a single `"\n"` line break and the run-collapse to `\n{2,}` → `"\n"`, so adjacent reasoning bodies render on consecutive lines within one `<p>` (a soft break shown via the panel's `white-space: pre-wrap`) with no empty paragraph between them. Updated `reasoningText.test.tsx` (multi-section expectations now `\n`) and the `MessageList.test.tsx` reasoning assertion (one `<p>` with a softbreak instead of two paragraphs).
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0039 — references do not open a source-detail column on click
+
+Area: frontend. Severity: medium. Status: fixed (found 2026-06-15, fixed 2026-06-15).
+
+Symptom: in v1, references render as bordered, clickable chips (a number box + the document filename); clicking a chip opens a right-side column showing the document title, a link to open the document, and the reference text (with markdown handled). In v2, the `CitationPanel` renders a "N references" toggle over a numbered list whose items expand inline to a snippet + an "Open source" link — there is no right-side detail column, and the chat layout has no place for one.
+
+Root cause: the v2 `CitationPanel` was scoped (BUG-0015) to the reference-block restyle only; the right-side citation detail column was explicitly deferred as a separate structural change. There is no `activeCitation` state, no `CitationDetailPanel` component, and `ChatPage` is a two-column grid.
+
+Fix (multi-unit): added `activeCitation` + `ShowCitation` / `CloseCitation` to chat state (models/chat.tsx, ChatContext.tsx); added a pure `formatCitationLabel` middle-truncation helper; restyled the references as clickable v1-style chips (number box + truncated filename) that dispatch `ShowCitation` (CitationPanel.tsx + .module.css; MessageList.tsx wires `onSelectCitation`); added a `CitationDetailPanel` that renders the active citation's title, an open-document link, and the markdown-rendered reference text (XSS-safe `MarkdownContent`, no rehype-raw), with a dismiss control dispatching `CloseCitation`; and added a third push-content grid column to `ChatPage` driven by an inner `ChatShell` component that reads `activeCitation` and toggles `data-citation-open` (chat `.main` is `1fr`, so it narrows when the column opens). Structural sign-off for the third column obtained from the operator (push-content column, v1 parity).
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0040 — reference toggle does not collapse the chip list
+
+Area: frontend. Severity: medium. Status: fixed (found 2026-06-15, fixed 2026-06-15).
+
+Symptom: the "N references" toggle under an answer never hides the reference chips. The list stays visible whether the toggle reads as expanded or collapsed, so the collapse affordance appears broken and the references always show.
+
+Root cause: `CitationPanel.tsx` correctly sets the `hidden` attribute on the chip-list container (`hidden={!expanded}`), but `CitationPanel.module.css` styles that container with `.chipList { display: flex }`. An explicit `display` declaration overrides the user-agent `[hidden] { display: none }` rule (lowest possible priority), so the element stays laid out even when `hidden` is present. The existing `CitationPanel.test.tsx` asserts only the `hidden` attribute (set correctly), and jsdom does not apply CSS-module styles, so the visual regression was invisible to the test.
+
+Planned fix: add a `.chipList[hidden] { display: none }` rule so the `hidden` attribute actually hides the container. Verified live (CSS-only change; jsdom cannot assert computed layout).
+
+Fix: added a `.chipList[hidden] { display: none }` rule so the `hidden` attribute actually hides the container. Verified live (CSS-only change; jsdom cannot assert computed layout).
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0041 — reference chips render side by side instead of stacked
+
+Area: frontend. Severity: low. Status: fixed (found 2026-06-15, fixed 2026-06-15).
+
+Symptom: the expanded references render as chips laid out side by side on the same line, wrapping to the next line only when they run out of horizontal room. v1 lists each reference on its own line (a vertical stack).
+
+Root cause: `CitationPanel.module.css` styles the chip container as a wrapping row (`.chipList { display: flex; flex-wrap: wrap }`); v1's reference list is a column.
+
+Fix: changed `.chipList` to a column layout (`flex-direction: column`, `align-items: flex-start`) and let each chip size to its content, so references stack one per line. Verified live.
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0042 — expanded reference has no link to open the document
+
+Area: frontend (with a backend dependency). Severity: medium. Status: fixed (found 2026-06-15, fixed 2026-06-15).
+
+Symptom: opening a reference in the citation detail column shows the title and the reference text but no "Open document" link, so there is no way to view the underlying file (for example a sample PDF).
+
+Root cause: the v2 ingestion pipeline intentionally omits a `url` field from the search index — `SearchDocument` writes only `id`, `content`, `title`, and `content_vector`, and the blob filename survives only in `title` (`title = chunk.source`). The index `url` column is therefore never populated, so `SearchResult.url` and in turn `Citation.url` are always the empty string, and `CitationDetailPanel` gates the open-document link on a non-empty `url`. The backend also exposes no file-serving endpoint (routers: health, conversation, history, speech, admin), so even a recovered filename had nowhere to resolve. v1 served documents through a Flask `/api/files/<filename>` proxy that streamed the blob from the documents container with path-traversal and content-type guards.
+
+Fix (multi-unit): recover the filename from `Citation.title`; add a backend `GET /api/files/{filename}` route that streams the blob from the documents container via the existing storage helpers, sets the content type from the filename and `Content-Disposition: inline` (so the browser renders the PDF or native format in a new tab), and rejects path traversal / double-encoding; register the router on the app; and render an absolute `${VITE_BACKEND_URL}/api/files/<filename>` open-document link in `CitationDetailPanel` (the cloud frontend is a static-only app on a separate origin, so the new-tab navigation needs the absolute backend URL). Verified with backend pytest + a live probe (`200`, `Content-Type: application/pdf`, `Content-Disposition: inline`, 544 KB body) plus browser confirmation of the toggle-collapse, vertical-stack, and open-document-in-new-tab behaviors.
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).
+
+### BUG-0043 — raw KB citation markers leak into the reasoning panel
+
+Area: backend. Severity: low. Status: open (found 2026-06-15).
+
+Symptom: the reasoning/thinking panel renders raw native citation markers of the form `【message_idx:search_idx†source_name】` (for example `【6:1†source】`) inline in the reasoning text. These full-width-bracket markers are an internal citation encoding, not human-readable content, so they appear as garbage in the panel and need to be removed.
+
+Root cause: the `agent_framework` orchestrator grounds through the server-side Foundry IQ Knowledge Base, whose model emits native `【N:M†source】` markers. Those markers are normalized away from the **answer** string by `normalize_kb_citations` (which rewrites attributed markers to the shared `[docN]` shape and strips any residual marker via `_KB_MARKER_RE`), but that normalization runs only over the answer. In `_update_to_events`, `text_reasoning` content blocks are forwarded **verbatim** to the `reasoning` channel with no marker stripping. When a reasoning-capable model (gpt-5 / o-series) produces a reasoning summary that references KB sources, it emits the same `【N:M†source】` markers inline in that summary, and they reach the frontend reasoning panel unmodified. The panel has no `[docN]` citation rendering, so the markers show as raw text. The `langgraph` path is unaffected (it emits `[docN]` markers, not native ones, and its reasoning summaries carry no KB markers).
+
+Planned fix: strip native KB markers from reasoning text before the `reasoning` event is emitted on the `agent_framework` path. Expose a small `strip_kb_markers(text) -> str` helper in `tools/citations.py` that removes `_KB_MARKER_RE` matches (and collapses the resulting whitespace), reuse the existing regex, and apply it to the `text_reasoning` text in `_update_to_events` so only the answer-side `normalize_kb_citations` owns marker rewriting while the reasoning channel simply drops them. Cover with an orchestrator/unit test that asserts a reasoning frame containing `【6:1†source】` is emitted clean.
+
+References: [worklog/2026-06-15.md](worklog/2026-06-15.md).

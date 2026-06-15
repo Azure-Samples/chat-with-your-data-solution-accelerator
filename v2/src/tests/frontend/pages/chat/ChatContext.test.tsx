@@ -41,6 +41,7 @@ describe("chatReducer", () => {
     const populated: ChatState = {
       messages: [userMsg, botMsg],
       focusedCitationId: null,
+      activeCitation: null,
     };
     expect(chatReducer(populated, { type: ChatActionType.Reset })).toEqual(
       initialChatState,
@@ -437,5 +438,78 @@ describe("chatReducer 'focus_citation'", () => {
     });
     const cleared = chatReducer(focused, { type: ChatActionType.Reset });
     expect(cleared.focusedCitationId).toBeNull();
+  });
+});
+
+describe("chatReducer citation detail panel", () => {
+  const citation: Citation = {
+    id: "[doc1]",
+    title: "Benefit_Options.pdf",
+    url: "https://example.test/benefit-options.pdf",
+    snippet: "**Health** coverage details.",
+    score: null,
+    metadata: {},
+  };
+
+  it("initializes activeCitation to null", () => {
+    expect(initialChatState.activeCitation).toBeNull();
+  });
+
+  it("sets activeCitation on 'show_citation'", () => {
+    const next = chatReducer(initialChatState, {
+      type: ChatActionType.ShowCitation,
+      citation,
+    });
+    expect(next.activeCitation).toEqual(citation);
+  });
+
+  it("replaces an already-shown citation on a second 'show_citation'", () => {
+    const other: Citation = { ...citation, id: "[doc2]", title: "Other.pdf" };
+    const a = chatReducer(initialChatState, {
+      type: ChatActionType.ShowCitation,
+      citation,
+    });
+    const b = chatReducer(a, {
+      type: ChatActionType.ShowCitation,
+      citation: other,
+    });
+    expect(b.activeCitation).toEqual(other);
+  });
+
+  it("clears activeCitation on 'close_citation'", () => {
+    const shown = chatReducer(initialChatState, {
+      type: ChatActionType.ShowCitation,
+      citation,
+    });
+    const closed = chatReducer(shown, { type: ChatActionType.CloseCitation });
+    expect(closed.activeCitation).toBeNull();
+  });
+
+  it("returns the same state reference when closing an already-closed panel", () => {
+    const closed = chatReducer(initialChatState, {
+      type: ChatActionType.CloseCitation,
+    });
+    expect(closed).toBe(initialChatState);
+  });
+
+  it("does not touch the messages array on 'show_citation'", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: ChatActionType.Add,
+      message: botMsg,
+    });
+    const next = chatReducer(seeded, {
+      type: ChatActionType.ShowCitation,
+      citation,
+    });
+    expect(next.messages).toBe(seeded.messages);
+  });
+
+  it("'reset' clears activeCitation back to null", () => {
+    const shown = chatReducer(initialChatState, {
+      type: ChatActionType.ShowCitation,
+      citation,
+    });
+    const cleared = chatReducer(shown, { type: ChatActionType.Reset });
+    expect(cleared.activeCitation).toBeNull();
   });
 });

@@ -29,7 +29,7 @@ describe("formatReasoning", () => {
       "**Summarizing health benefits**\n\nHere is the summary.",
     ];
     expect(formatReasoning(parts)).toBe(
-      "I will look it up.\n\nHere is the summary.",
+      "I will look it up.\nHere is the summary.",
     );
   });
 
@@ -38,7 +38,7 @@ describe("formatReasoning", () => {
       "**Searching**\n\nfirst body, focus on that!**Summarizing**\n\nsecond body.",
     ];
     expect(formatReasoning(parts)).toBe(
-      "first body, focus on that!\n\nsecond body.",
+      "first body, focus on that!\nsecond body.",
     );
   });
 

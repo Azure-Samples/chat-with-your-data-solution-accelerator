@@ -93,6 +93,79 @@ describe("MessageList", () => {
     expect(items[1]!.textContent).toContain("hi back");
   });
 
+  it("renders the AI-generated disclaimer under a finished assistant answer", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: m2 });
+    });
+
+    const disclaimer = screen.getByTestId("answer-disclaimer-2");
+    expect(disclaimer.textContent).toBe(
+      "AI-generated content may be incorrect",
+    );
+  });
+
+  it("does not render the disclaimer on a user message", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: m1 });
+    });
+
+    expect(screen.queryByTestId("answer-disclaimer-1")).toBeNull();
+  });
+
+  it("does not render the disclaimer while the assistant message is still streaming", () => {
+    const mStreamingAnswer: ChatMessage = {
+      id: "stream-disc",
+      role: "assistant",
+      content: "partial answer",
+      streaming: true,
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mStreamingAnswer });
+    });
+
+    expect(screen.queryByTestId("answer-disclaimer-stream-disc")).toBeNull();
+  });
+
+  it("does not render the disclaimer on an empty (error-only) assistant message", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mWithError });
+    });
+
+    expect(screen.queryByTestId("answer-disclaimer-4")).toBeNull();
+  });
+
   it("tags each <li> with its role for styling hooks", () => {
     render(
       <ChatProvider>
@@ -180,12 +253,14 @@ describe("MessageList", () => {
     // The model's bold section titles are stripped from the panel...
     expect(details.textContent).not.toContain("Searching for employee benefits");
     expect(details.textContent).not.toContain("Summarizing health benefits");
-    // ...and the remaining bodies render through the markdown panel as
-    // separate paragraphs (the blank-line break becomes two <p> blocks).
+    // ...and the remaining bodies render through the markdown panel as a
+    // single paragraph: the section break is one soft line break (no
+    // blank line), so the bodies sit on adjacent lines within one <p>.
     const paragraphs = details.querySelectorAll("p");
-    expect(paragraphs).toHaveLength(2);
-    expect(paragraphs[0]?.textContent).toBe("I will look it up.");
-    expect(paragraphs[1]?.textContent).toBe("Here is the summary.");
+    expect(paragraphs).toHaveLength(1);
+    expect(paragraphs[0]?.textContent).toBe(
+      "I will look it up.\nHere is the summary.",
+    );
   });
 
   it("opens the reasoning panel and shows 'Thinking' while the message is streaming", () => {
@@ -712,21 +787,19 @@ describe("MessageList answer-token rendering", () => {
       getDispatch()({ type: "add", message: mOutOfOrder });
     });
 
-    // Open the reference block so the chip headers are easy to read.
+    // Open the reference block so the chips are easy to read.
     fireEvent.click(screen.getByTestId("citations-toggle-c-order"));
 
     // [doc2] is cited first, so doc-beta becomes reference 1 and
     // doc-alpha (cited via [doc1] second) becomes reference 2 — the
     // chip numbers follow first-appearance order, not the original
     // [docN] index.
-    const headerBeta = screen.getByTestId("citation-c-order-doc-beta-header");
-    expect(headerBeta).toHaveTextContent("1");
-    expect(headerBeta).toHaveTextContent("Beta");
-    const headerAlpha = screen.getByTestId(
-      "citation-c-order-doc-alpha-header",
-    );
-    expect(headerAlpha).toHaveTextContent("2");
-    expect(headerAlpha).toHaveTextContent("Alpha");
+    const chipBeta = screen.getByTestId("citation-c-order-doc-beta");
+    expect(chipBeta).toHaveTextContent("1");
+    expect(chipBeta).toHaveTextContent("Beta");
+    const chipAlpha = screen.getByTestId("citation-c-order-doc-alpha");
+    expect(chipAlpha).toHaveTextContent("2");
+    expect(chipAlpha).toHaveTextContent("Alpha");
 
     // The answer bubble's superscripts run 1,2 in document order, so
     // the first-cited source (doc-beta = reference 1) lines up with the

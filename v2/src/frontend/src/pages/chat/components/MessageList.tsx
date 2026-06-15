@@ -20,8 +20,9 @@
  * bubble directly in the row. An assistant message places a vertical
  * content column beside the avatar — so the avatar lines up on the same
  * horizontal line as the column's first item (the reasoning panel while
- * streaming, else the answer) — and that column stacks the answer bubble
- * plus the SSE-derived decorations:
+ * streaming, else the answer) — and that column stacks the answer bubble,
+ * a static "AI-generated content may be incorrect" disclaimer under any
+ * finished answer, plus the SSE-derived decorations:
  *   - `streaming === true` OR non-empty `reasoning?: string[]` → a
  *     <details> reasoning panel. While streaming the panel is forced
  *     open with summary "Thinking…" + animated dots so the boss-demo
@@ -62,7 +63,7 @@ import {
   Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
-import { useChat } from "@/pages/chat/ChatContext";
+import { ChatActionType, useChat } from "@/pages/chat/ChatContext";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
 import { MarkdownContent } from "./MarkdownContent";
 import { parseAnswer } from "./parseAnswer";
@@ -71,7 +72,7 @@ import { CitationPanel } from "./CitationPanel/CitationPanel";
 import styles from "./MessageList.module.css";
 
 export function MessageList() {
-  const { state } = useChat();
+  const { state, dispatch } = useChat();
   const { dispatchToast } = useToastController(TOASTER_ID);
   // Bottom sentinel kept just below the last <li>. A useEffect keyed
   // on transcript size + the last message's content length scrolls it
@@ -200,11 +201,24 @@ export function MessageList() {
                     content={parsed.markdownText}
                     enableSupersub
                   />
+                  {m.streaming !== true && m.content.length > 0 && (
+                    <p
+                      data-testid={`answer-disclaimer-${m.id}`}
+                      className={styles.disclaimer}
+                    >
+                      AI-generated content may be incorrect
+                    </p>
+                  )}
                   {m.streaming !== true && referencedCitations.length > 0 && (
                     <CitationPanel
                       messageId={m.id}
                       citations={referencedCitations}
-                      focusedCitationId={state.focusedCitationId}
+                      onSelectCitation={(citation) =>
+                        dispatch({
+                          type: ChatActionType.ShowCitation,
+                          citation,
+                        })
+                      }
                     />
                   )}
                 </div>

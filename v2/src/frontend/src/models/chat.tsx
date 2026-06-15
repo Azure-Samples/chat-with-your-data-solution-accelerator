@@ -100,6 +100,14 @@ export interface ChatState {
    * an explicit user-driven panel close.
    */
   focusedCitationId: string | null;
+  /**
+   * The citation whose source detail is shown in the right-side
+   * detail column. Set when the user clicks a reference chip
+   * (`show_citation`) and cleared when the column is dismissed
+   * (`close_citation`) or the conversation resets. `null` means the
+   * detail column is closed and the chat occupies the full width.
+   */
+  activeCitation: Citation | null;
 }
 
 export interface HistoryConversation {

@@ -3,9 +3,10 @@
  * Phase: 7 (Testing + Documentation)
  *
  * Vitest coverage for `<CitationPanel>` — the v1-style reference block:
- * a collapsible "N references / 1 reference" toggle that reveals a
- * numbered list of source items, each expanding to its snippet and a
- * safe new-tab deep-link.
+ * a collapsible "N references / 1 reference" toggle that reveals a row
+ * of numbered reference chips. Clicking a chip calls `onSelectCitation`
+ * with the full citation (the parent opens the source detail column);
+ * the panel itself never expands inline.
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -37,15 +38,29 @@ const docBare: Citation = {
   score: null,
   metadata: {},
 };
+const docLong: Citation = {
+  id: "doc-long",
+  title:
+    "Woodgrove_Insurance_Benefits_Overview_For_All_Employees.pdf - Part 1",
+  url: "https://example.com/long",
+  snippet: "Long snippet.",
+  score: null,
+  metadata: {},
+};
 
 function renderPanel(props: {
   messageId: string;
   citations: Citation[];
-  focusedCitationId?: string | null;
+  onSelectCitation?: (citation: Citation) => void;
 }) {
+  const onSelectCitation = props.onSelectCitation ?? (() => {});
   return render(
     <FluentProvider theme={webLightTheme}>
-      <CitationPanel {...props} />
+      <CitationPanel
+        messageId={props.messageId}
+        citations={props.citations}
+        onSelectCitation={onSelectCitation}
+      />
     </FluentProvider>,
   );
 }
@@ -56,17 +71,10 @@ function toggleButton(messageId: string): HTMLButtonElement {
   ) as HTMLButtonElement;
 }
 
-function itemHeaderButton(
-  messageId: string,
-  citationId: string,
-): HTMLButtonElement {
-  const button = screen
-    .getByTestId(`citation-${messageId}-${citationId}-header`)
-    .querySelector("button");
-  if (button === null) {
-    throw new Error(`no accordion header button for ${citationId}`);
-  }
-  return button as HTMLButtonElement;
+function chipButton(messageId: string, citationId: string): HTMLButtonElement {
+  return screen.getByTestId(
+    `citation-${messageId}-${citationId}`,
+  ) as HTMLButtonElement;
 }
 
 describe("CitationPanel", () => {
@@ -96,7 +104,19 @@ describe("CitationPanel", () => {
     expect(toggleButton("m1")).toHaveTextContent("1 reference");
   });
 
-  it("expands and collapses the reference list when the toggle is clicked", () => {
+  it("hides the chip list until the toggle is expanded", () => {
+    renderPanel({ messageId: "m1", citations: [docA] });
+    const body = screen.getByTestId("citations-body-m1");
+    expect(body.hasAttribute("hidden")).toBe(true);
+
+    fireEvent.click(toggleButton("m1"));
+    expect(body.hasAttribute("hidden")).toBe(false);
+
+    fireEvent.click(toggleButton("m1"));
+    expect(body.hasAttribute("hidden")).toBe(true);
+  });
+
+  it("toggles aria-expanded when the reference toggle is clicked", () => {
     renderPanel({ messageId: "m1", citations: [docA] });
 
     const toggle = toggleButton("m1");
@@ -109,26 +129,52 @@ describe("CitationPanel", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("numbers each citation by its 1-based position", () => {
+  it("renders one chip per citation, numbered by 1-based position", () => {
     renderPanel({ messageId: "m1", citations: [docA, docB] });
     fireEvent.click(toggleButton("m1"));
 
-    const headerA = screen.getByTestId("citation-m1-doc-a-header");
-    expect(headerA).toHaveTextContent("1");
-    expect(headerA).toHaveTextContent("Source A");
+    const chipA = chipButton("m1", "doc-a");
+    expect(chipA.tagName.toLowerCase()).toBe("button");
+    expect(chipA).toHaveTextContent("1");
+    expect(chipA).toHaveTextContent("Source A");
 
-    const headerB = screen.getByTestId("citation-m1-doc-b-header");
-    expect(headerB).toHaveTextContent("2");
-    expect(headerB).toHaveTextContent("Source B");
+    const chipB = chipButton("m1", "doc-b");
+    expect(chipB).toHaveTextContent("2");
+    expect(chipB).toHaveTextContent("Source B");
   });
 
   it("falls back to 'Citation N' when the title is missing", () => {
     renderPanel({ messageId: "m1", citations: [docBare] });
     fireEvent.click(toggleButton("m1"));
+    expect(chipButton("m1", "doc-bare")).toHaveTextContent("Citation 1");
+  });
 
-    expect(
-      screen.getByTestId("citation-m1-doc-bare-header"),
-    ).toHaveTextContent("Citation 1");
+  it("middle-truncates a long chip label but keeps its tail", () => {
+    renderPanel({ messageId: "m1", citations: [docLong] });
+    fireEvent.click(toggleButton("m1"));
+
+    const chip = chipButton("m1", "doc-long");
+    expect(chip.textContent).toContain("...");
+    // The disambiguating part suffix stays visible after truncation.
+    expect(chip.textContent?.endsWith("- Part 1")).toBe(true);
+    // The full untruncated filename must not be rendered verbatim.
+    expect(chip.textContent).not.toContain(
+      "Woodgrove_Insurance_Benefits_Overview_For_All_Employees.pdf",
+    );
+  });
+
+  it("calls onSelectCitation with the full citation when a chip is clicked", () => {
+    const onSelect = vi.fn();
+    renderPanel({
+      messageId: "m1",
+      citations: [docA, docB],
+      onSelectCitation: onSelect,
+    });
+    fireEvent.click(toggleButton("m1"));
+    fireEvent.click(chipButton("m1", "doc-b"));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(docB);
   });
 
   it("does not render a relevance score badge", () => {
@@ -139,164 +185,12 @@ describe("CitationPanel", () => {
     expect(screen.queryByTestId("citation-m1-doc-b-score")).toBeNull();
   });
 
-  it("renders item snippet + deep-link when both are present", () => {
-    renderPanel({ messageId: "m1", citations: [docA] });
-    fireEvent.click(toggleButton("m1"));
-    // Expand the item so its panel body mounts into the DOM.
-    fireEvent.click(itemHeaderButton("m1", "doc-a"));
-
-    expect(screen.getByText(/Snippet body for source A\./)).toBeInTheDocument();
-    const link = screen.getByTestId(
-      "citation-m1-doc-a-link",
-    ) as HTMLAnchorElement;
-    expect(link.getAttribute("href")).toBe("https://example.com/a");
-    expect(link.getAttribute("target")).toBe("_blank");
-    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
-  });
-
-  it("omits the snippet paragraph and link when those fields are empty", () => {
-    renderPanel({ messageId: "m1", citations: [docBare] });
-    fireEvent.click(toggleButton("m1"));
-    fireEvent.click(itemHeaderButton("m1", "doc-bare"));
-
-    expect(screen.queryByTestId("citation-m1-doc-bare-link")).toBeNull();
-    expect(
-      screen.getByTestId("citation-m1-doc-bare-panel"),
-    ).toBeInTheDocument();
-  });
-
-  it("expands an item on its header click and collapses on a second click", () => {
+  it("no longer renders inline accordion header/panel/link nodes", () => {
     renderPanel({ messageId: "m1", citations: [docA] });
     fireEvent.click(toggleButton("m1"));
 
-    const header = itemHeaderButton("m1", "doc-a");
-    expect(header.getAttribute("aria-expanded")).toBe("false");
-
-    fireEvent.click(header);
-    expect(header.getAttribute("aria-expanded")).toBe("true");
-
-    fireEvent.click(header);
-    expect(header.getAttribute("aria-expanded")).toBe("false");
-  });
-
-  it("supports expanding multiple items simultaneously", () => {
-    renderPanel({ messageId: "m1", citations: [docA, docB] });
-    fireEvent.click(toggleButton("m1"));
-
-    const headerA = itemHeaderButton("m1", "doc-a");
-    const headerB = itemHeaderButton("m1", "doc-b");
-    fireEvent.click(headerA);
-    fireEvent.click(headerB);
-    expect(headerA.getAttribute("aria-expanded")).toBe("true");
-    expect(headerB.getAttribute("aria-expanded")).toBe("true");
-  });
-
-  it("links use safe target+rel so opening a source does not leak the opener window", () => {
-    // Spy on window.open to confirm the anchor uses native navigation
-    // rather than a JS handler that would skip the rel guard.
-    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
-    try {
-      renderPanel({ messageId: "m1", citations: [docA] });
-      fireEvent.click(toggleButton("m1"));
-      fireEvent.click(itemHeaderButton("m1", "doc-a"));
-      const link = screen.getByTestId("citation-m1-doc-a-link");
-      expect(link.getAttribute("target")).toBe("_blank");
-      expect(link.getAttribute("rel")).toBe("noopener noreferrer");
-      // jsdom does not navigate on click, so we just confirm no JS
-      // handler hijacks the anchor — window.open should NOT fire.
-      fireEvent.click(link);
-      expect(openSpy).not.toHaveBeenCalled();
-    } finally {
-      openSpy.mockRestore();
-    }
-  });
-});
-
-describe("CitationPanel focusedCitationId wiring", () => {
-  it("auto-opens the toggle and expands the matching item when focusedCitationId resolves", () => {
-    renderPanel({
-      messageId: "m1",
-      citations: [docA, docB],
-      focusedCitationId: "doc-b",
-    });
-    expect(toggleButton("m1").getAttribute("aria-expanded")).toBe("true");
-    expect(itemHeaderButton("m1", "doc-a").getAttribute("aria-expanded")).toBe(
-      "false",
-    );
-    expect(itemHeaderButton("m1", "doc-b").getAttribute("aria-expanded")).toBe(
-      "true",
-    );
-  });
-
-  it("leaves the list collapsed when focusedCitationId is null", () => {
-    renderPanel({
-      messageId: "m1",
-      citations: [docA, docB],
-      focusedCitationId: null,
-    });
-    expect(toggleButton("m1").getAttribute("aria-expanded")).toBe("false");
-    expect(itemHeaderButton("m1", "doc-a").getAttribute("aria-expanded")).toBe(
-      "false",
-    );
-    expect(itemHeaderButton("m1", "doc-b").getAttribute("aria-expanded")).toBe(
-      "false",
-    );
-  });
-
-  it("ignores focusedCitationId values that do not match any citation id", () => {
-    renderPanel({
-      messageId: "m1",
-      citations: [docA, docB],
-      focusedCitationId: "doc-nope",
-    });
-    expect(toggleButton("m1").getAttribute("aria-expanded")).toBe("false");
-    expect(itemHeaderButton("m1", "doc-a").getAttribute("aria-expanded")).toBe(
-      "false",
-    );
-  });
-
-  it("preserves a user-opened item when focus later targets a different item", () => {
-    const { rerender } = render(
-      <FluentProvider theme={webLightTheme}>
-        <CitationPanel
-          messageId="m1"
-          citations={[docA, docB]}
-          focusedCitationId={null}
-        />
-      </FluentProvider>,
-    );
-    // User opens the block, then item A.
-    fireEvent.click(toggleButton("m1"));
-    fireEvent.click(itemHeaderButton("m1", "doc-a"));
-    // Parent now flips focus to item B (e.g. an inline reference click).
-    rerender(
-      <FluentProvider theme={webLightTheme}>
-        <CitationPanel
-          messageId="m1"
-          citations={[docA, docB]}
-          focusedCitationId="doc-b"
-        />
-      </FluentProvider>,
-    );
-    // Both items are open — focus is additive, never destructive, so
-    // the user's manual A stays put.
-    expect(itemHeaderButton("m1", "doc-a").getAttribute("aria-expanded")).toBe(
-      "true",
-    );
-    expect(itemHeaderButton("m1", "doc-b").getAttribute("aria-expanded")).toBe(
-      "true",
-    );
-  });
-
-  it("user can still collapse a focus-expanded item by clicking its header", () => {
-    renderPanel({
-      messageId: "m1",
-      citations: [docA, docB],
-      focusedCitationId: "doc-a",
-    });
-    const headerA = itemHeaderButton("m1", "doc-a");
-    expect(headerA.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(headerA);
-    expect(headerA.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByTestId("citation-m1-doc-a-header")).toBeNull();
+    expect(screen.queryByTestId("citation-m1-doc-a-panel")).toBeNull();
+    expect(screen.queryByTestId("citation-m1-doc-a-link")).toBeNull();
   });
 });

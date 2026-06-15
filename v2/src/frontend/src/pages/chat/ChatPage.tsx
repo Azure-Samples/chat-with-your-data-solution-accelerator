@@ -15,47 +15,67 @@
  * 100% and lets its grid cells handle their own overflow.
  */
 import { useState } from "react";
-import { ChatProvider } from "./ChatContext";
+import { ChatProvider, useChat } from "./ChatContext";
 import { PanelLeft } from "@/components/CoralShell/PanelLeft";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { MessageList } from "./components/MessageList";
 import { MessageInput } from "./components/MessageInput";
+import { CitationDetailPanel } from "./components/CitationDetailPanel/CitationDetailPanel";
 import styles from "./ChatPage.module.css";
 
 export interface ChatPageProps {
   historyOpen?: boolean;
 }
 
-export function ChatPage({ historyOpen = false }: ChatPageProps = {}) {
+/**
+ * Context-reading body. Lives inside <ChatProvider> so it can read the
+ * active citation and drive the `data-citation-open` flag that widens
+ * the right-hand source detail column. The chat `.main` cell is `1fr`,
+ * so opening the column narrows the conversation (push layout) instead
+ * of overlaying it.
+ */
+function ChatShell({ historyOpen }: { historyOpen: boolean }) {
+  const { state } = useChat();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const citationOpen = state.activeCitation !== null;
   return (
-    <ChatProvider>
-      <section
-        aria-label="chat"
-        data-testid="chat-page"
-        className={styles.shell}
-        data-history-open={historyOpen ? "true" : "false"}
+    <section
+      aria-label="chat"
+      data-testid="chat-page"
+      className={styles.shell}
+      data-history-open={historyOpen ? "true" : "false"}
+      data-citation-open={citationOpen ? "true" : "false"}
+    >
+      <h2 className={styles.srOnly}>Chat</h2>
+      <PanelLeft
+        aria-label="conversation history"
+        className={styles.sidebar}
       >
-        <h2 className={styles.srOnly}>Chat</h2>
-        <PanelLeft
-          aria-label="conversation history"
-          className={styles.sidebar}
-        >
-          <HistoryPanel selectedId={selectedId} onSelect={setSelectedId} />
-        </PanelLeft>
-        <div className={styles.main}>
-          <div className={styles.scroll}>
-            <div className={styles.column}>
-              <MessageList />
-            </div>
-          </div>
-          <div className={styles.composer}>
-            <div className={styles.composerColumn}>
-              <MessageInput />
-            </div>
+        <HistoryPanel selectedId={selectedId} onSelect={setSelectedId} />
+      </PanelLeft>
+      <div className={styles.main}>
+        <div className={styles.scroll}>
+          <div className={styles.column}>
+            <MessageList />
           </div>
         </div>
-      </section>
+        <div className={styles.composer}>
+          <div className={styles.composerColumn}>
+            <MessageInput />
+          </div>
+        </div>
+      </div>
+      <div className={styles.citationColumn}>
+        <CitationDetailPanel />
+      </div>
+    </section>
+  );
+}
+
+export function ChatPage({ historyOpen = false }: ChatPageProps = {}) {
+  return (
+    <ChatProvider>
+      <ChatShell historyOpen={historyOpen} />
     </ChatProvider>
   );
 }

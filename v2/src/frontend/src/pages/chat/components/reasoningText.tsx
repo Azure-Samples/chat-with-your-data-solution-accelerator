@@ -11,8 +11,9 @@
  * the single place both feeds converge, so the rendered panel reads
  * identically regardless of orchestrator: the model's bold section
  * titles are dropped and the remaining bodies are separated by a
- * blank-line break. Text that carries no such titles (the langgraph
- * delta stream) is returned as the verbatim join.
+ * single line break (no blank line between sections). Text that
+ * carries no such titles (the langgraph delta stream) is returned as
+ * the verbatim join.
  */
 
 // A model-emitted section title: a bold span on its own line — `**Title**`
@@ -24,7 +25,7 @@ const SECTION_TITLE = /\s*\*\*[^*\n]+\*\*[ \t]*\n+/g;
 export function formatReasoning(parts: string[]): string {
   const joined = parts.join("");
   return joined
-    .replace(SECTION_TITLE, "\n\n")
-    .replace(/\n{3,}/g, "\n\n")
+    .replace(SECTION_TITLE, "\n")
+    .replace(/\n{2,}/g, "\n")
     .trim();
 }

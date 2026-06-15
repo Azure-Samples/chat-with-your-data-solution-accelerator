@@ -133,6 +133,15 @@
   white-space: normal;
 }
 
+/* Static, small, muted disclaimer rendered under a finished assistant
+   answer (above the reference block) — mirrors the v1 answer footer. */
+.disclaimer {
+  margin: 2px 0 0;
+  font-size: var(--fontSizeBase200);
+  line-height: var(--lineHeightBase200);
+  color: var(--colorNeutralForeground3);
+}
+
 .srOnly {
   position: absolute;
   width: 1px;
