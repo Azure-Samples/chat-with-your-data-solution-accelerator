@@ -24,7 +24,9 @@ from backend.core.settings import (
     OpenAISettings,
     SearchSettings,
 )
-from backend.core.types import ChatMessage
+from backend.core.types import ChatMessage, SearchResult
+
+_AGENT_FW_LOGGER_NAME = "backend.core.providers.orchestrators.agent_framework"
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +214,7 @@ def _make_orchestrator(
     settings: AppSettings | None = None,
     agents: Any = None,
     db: Any = None,
+    search: Any = None,
     supports_reasoning: bool = False,
 ) -> AgentFrameworkOrchestrator:
     llm = MagicMock(spec=BaseLLMProvider)
@@ -221,6 +224,7 @@ def _make_orchestrator(
         llm=llm,
         agents=agents if agents is not None else _FakeAgentsProvider(),
         db=db if db is not None else object(),
+        search=search,
     )
 
 
@@ -248,10 +252,13 @@ def test_create_returns_agent_framework_instance() -> None:
 
 
 def test_constructor_swallows_uniform_extras() -> None:
-    """The router forwards a uniform kwarg set to every orchestrator
-    (langgraph-only `search` / `system_prompt` / `search_top_k` plus the
-    legacy `credential` / `agent_name` from the shared wiring contract);
-    `**_extras` must absorb them all without raising."""
+    """The router forwards a uniform kwarg set to every orchestrator;
+    `**_extras` must absorb the ones this orchestrator does not name
+    (langgraph-only `system_prompt` / `search_top_k` /
+    `search_use_semantic_search` plus the legacy `credential` / `agent_name`
+    from the shared wiring contract) without raising. `search` is now a
+    named parameter (it backs citation enrichment), so it is consumed, not
+    swallowed."""
     orch = AgentFrameworkOrchestrator(
         settings=_settings(),
         llm=MagicMock(spec=BaseLLMProvider),
@@ -836,7 +843,9 @@ async def test_run_emits_citation_event_from_annotations() -> None:
     citation_events = [e for e in events if e.channel == "citation"]
     assert len(citation_events) == 1
     meta = citation_events[0].metadata
-    assert meta["id"] == "doc-1"
+    # The id is normalized to [docN]; the raw KB source key persists in
+    # metadata.source_id / metadata.file_id below.
+    assert meta["id"] == "[doc1]"
     assert meta["title"] == "Benefits Guide"
     assert meta["url"] == "benefits.pdf"
     assert meta["snippet"] == "PTO accrues."
@@ -880,7 +889,7 @@ async def test_run_dedupes_citations_across_updates() -> None:
 
     citation_events = [e for e in events if e.channel == "citation"]
     assert len(citation_events) == 1
-    assert citation_events[0].metadata["id"] == "doc-1"
+    assert citation_events[0].metadata["id"] == "[doc1]"  # normalized to [docN]
     assert citation_events[0].metadata["title"] == "First"  # first wins
 
 
@@ -923,6 +932,63 @@ async def test_run_merges_annotated_regions_across_updates() -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_normalizes_native_kb_markers_in_answer_and_ids() -> None:
+    """The agent path emits the langgraph path's wire shape: native
+    `【N:M†source】` markers in the streamed answer are rewritten to the
+    grouping-ordered `[docN]` (never parsing the misleading `N:M`), and the
+    citation ids are renumbered to match. Wires `normalize_kb_citations` into
+    `run` -- a BUG-0030 parity guard at the orchestrator seam."""
+    marker_a = "【6:1†source】"  # attributed to the first-grouped source
+    marker_b = "【6:0†source】"  # attributed to the second-grouped source
+    answer = f"Alpha {marker_a} and beta {marker_b}."
+    start_a = answer.index(marker_a)
+    start_b = answer.index(marker_b)
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _text_block(answer),
+                _citation_block(
+                    file_id="src-A",
+                    title="Alpha.pdf",
+                    annotated_regions=[
+                        {
+                            "type": "text_span",
+                            "start_index": start_a,
+                            "end_index": start_a + len(marker_a),
+                        }
+                    ],
+                ),
+                _citation_block(
+                    file_id="src-B",
+                    title="Beta.pdf",
+                    annotated_regions=[
+                        {
+                            "type": "text_span",
+                            "start_index": start_b,
+                            "end_index": start_b + len(marker_b),
+                        }
+                    ],
+                ),
+            ),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    answer_events = [e for e in events if e.channel == "answer"]
+    assert len(answer_events) == 1
+    # Markers map by grouping order, not N:M: src-A (marker 6:1) -> [doc1],
+    # src-B (marker 6:0) -> [doc2]. No native bracket survives.
+    assert answer_events[0].content == "Alpha [doc1] and beta [doc2]."
+
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert [e.metadata["id"] for e in citation_events] == ["[doc1]", "[doc2]"]
+
+
+@pytest.mark.asyncio
 async def test_run_emits_no_citation_events_when_no_annotations() -> None:
     agent = _FakeAgent(updates=[_update(_text_block("Plain answer."))])
     orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
@@ -932,3 +998,100 @@ async def test_run_emits_no_citation_events_when_no_annotations() -> None:
     ]
 
     assert [e.channel for e in events] == ["answer"]
+
+
+@pytest.mark.asyncio
+async def test_run_enriches_kb_citations_via_search_lookup() -> None:
+    """A KB citation carries only a raw `mcp://searchindex/<key>` id; `run`
+    resolves the key through the injected search provider's by-key lookup
+    and backfills the friendly title / snippet / url (BUG-0030 fallback b).
+    The langgraph path already ships friendly fields, so both orchestrators
+    end at the same citation shape."""
+    key = "abc123"
+    raw_id = f"mcp://searchindex/{key}"
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _text_block("PTO accrues monthly."),
+                _citation_block(
+                    file_id=raw_id,
+                    url=raw_id,
+                    title=raw_id,
+                    tool_name="knowledge_base_retrieve",
+                ),
+            ),
+        ]
+    )
+    document = SearchResult(
+        id=key,
+        content="PTO accrues monthly for full-time employees.",
+        title="Benefit_Options.pdf",
+        url="https://blob/benefit_options.pdf",
+    )
+    search = MagicMock()
+    search.get_document_by_key = AsyncMock(return_value=document)
+    orch = _make_orchestrator(
+        agents=_FakeAgentsProvider(agent=agent), search=search
+    )
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    # The bare Search document key (scheme stripped) drives the lookup.
+    search.get_document_by_key.assert_awaited_once_with(key)
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert len(citation_events) == 1
+    meta = citation_events[0].metadata
+    # The id stays the normalized [docN] marker; the friendly fields are
+    # backfilled from the resolved document.
+    assert meta["id"] == "[doc1]"
+    assert meta["title"] == "Benefit_Options.pdf"
+    assert meta["snippet"] == "PTO accrues monthly for full-time employees."
+    assert meta["url"] == "https://blob/benefit_options.pdf"
+    # The raw KB key is preserved on metadata for traceability.
+    assert meta["metadata"]["source_id"] == raw_id
+
+
+@pytest.mark.asyncio
+async def test_run_keeps_raw_citations_when_enrichment_lookup_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Enrichment is best-effort: a transient by-key lookup failure degrades
+    to the normalized raw-id citation rather than failing an answer that is
+    already fully assembled. The SDK failure is logged, not swallowed."""
+    raw_id = "mcp://searchindex/abc123"
+    agent = _FakeAgent(
+        updates=[
+            _update(
+                _text_block("PTO accrues monthly."),
+                _citation_block(file_id=raw_id, url=raw_id, title=raw_id),
+            ),
+        ]
+    )
+    search = MagicMock()
+    search.get_document_by_key = AsyncMock(
+        side_effect=HttpResponseError(message="500 server error")
+    )
+    orch = _make_orchestrator(
+        agents=_FakeAgentsProvider(agent=agent), search=search
+    )
+
+    with caplog.at_level("WARNING", logger=_AGENT_FW_LOGGER_NAME):
+        events = [
+            ev
+            async for ev in orch.run(
+                [ChatMessage(role="user", content="hi")]
+            )
+        ]
+
+    # The answer + citation still stream; only the cosmetic backfill is lost.
+    assert [e.channel for e in events] == ["citation", "answer"]
+    meta = [e for e in events if e.channel == "citation"][0].metadata
+    assert meta["id"] == "[doc1]"
+    assert meta["title"] == raw_id  # raw id retained, no friendly backfill
+    # The degrade is logged (operation tag on the structured extra).
+    assert any(
+        getattr(record, "operation", None) == "enrich_citations"
+        for record in caplog.records
+    )

@@ -12,6 +12,7 @@ import pytest
 from azure.core.exceptions import (
     AzureError,
     HttpResponseError,
+    ResourceNotFoundError,
     ServiceRequestError,
 )
 
@@ -676,5 +677,135 @@ async def test_list_sources_logs_and_reraises_on_azure_error(
             await handler.list_sources()
 
     record = _find_record(caplog, "list_sources")
+    assert record.provider == "azure_search"
+    assert record.index_name == "cwyd-index"
+
+
+# ---------------------------------------------------------------------------
+# get_document_by_key
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_document_by_key_maps_document_to_search_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.get_document = AsyncMock(
+        return_value={
+            "id": "chunk-9",
+            "content": "Welcome to Contoso Electronics.",
+            "title": "Benefit_Options.pdf",
+            "url": "https://blob/benefit_options.pdf",
+        }
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+
+    result = await handler.get_document_by_key("chunk-9")
+
+    assert isinstance(result, SearchResult)
+    assert result.id == "chunk-9"
+    assert result.content == "Welcome to Contoso Electronics."
+    assert result.title == "Benefit_Options.pdf"
+    assert result.url == "https://blob/benefit_options.pdf"
+    # A by-key fetch carries no relevance score.
+    assert result.score is None
+
+
+@pytest.mark.asyncio
+async def test_get_document_by_key_maps_null_url_to_empty_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A null ``url`` field maps to ``""`` -- never the string ``"None"``.
+
+    A Search document can carry an explicit ``url: null``; ``dict.get("url",
+    "")`` returns that ``None`` (the key is present, so the default never
+    fires), so the mapper must coerce it to an empty string rather than
+    stringifying it to ``"None"``. The enrichment path backfills this ``url``
+    onto a KB citation, so a stray ``"None"`` would render as a broken link.
+    """
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.get_document = AsyncMock(
+        return_value={
+            "id": "chunk-9",
+            "content": "Welcome to Contoso Electronics.",
+            "title": "Benefit_Options.pdf",
+            "url": None,
+        }
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+
+    result = await handler.get_document_by_key("chunk-9")
+
+    assert result is not None
+    assert result.url == ""
+
+
+@pytest.mark.asyncio
+async def test_get_document_by_key_passes_key_and_selected_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.get_document = AsyncMock(return_value={"id": "k1", "content": ""})
+    client.close = AsyncMock()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+
+    await handler.get_document_by_key("k1")
+
+    call_kwargs = client.get_document.await_args.kwargs
+    assert call_kwargs["key"] == "k1"
+    assert call_kwargs["selected_fields"] == ["id", "content", "title", "url"]
+
+
+@pytest.mark.asyncio
+async def test_get_document_by_key_returns_none_when_not_found(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A missing key is a soft miss: return None, do not log or raise."""
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.get_document = AsyncMock(
+        side_effect=ResourceNotFoundError(message="404 not found")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        result = await handler.get_document_by_key("gone")
+
+    assert result is None
+    # Not-found is expected control flow, not an error -- nothing logged.
+    assert not [
+        r
+        for r in caplog.records
+        if getattr(r, "operation", None) == "get_document_by_key"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_document_by_key_logs_and_reraises_on_azure_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Any non-not-found SDK failure logs the canonical extras + re-raises."""
+    settings = _settings_for_search(monkeypatch)
+    client = MagicMock()
+    client.get_document = AsyncMock(
+        side_effect=HttpResponseError(message="500 server error")
+    )
+    client.close = AsyncMock()
+    handler = AzureSearch(settings=settings, credential=MagicMock(), client=client)
+
+    with caplog.at_level("ERROR", logger=_AZURE_SEARCH_LOGGER_NAME):
+        with pytest.raises(AzureError):
+            await handler.get_document_by_key("boom")
+
+    record = _find_record(caplog, "get_document_by_key")
     assert record.provider == "azure_search"
     assert record.index_name == "cwyd-index"

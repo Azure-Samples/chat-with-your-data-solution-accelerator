@@ -64,6 +64,16 @@ export interface ChatMessage {
   content: string;
   /** Reasoning frames collected from the SSE feed. Empty/absent for user msgs. */
   reasoning?: string[];
+  /**
+   * Transient retrieval narration from a `reasoning` SSE frame marked
+   * `metadata.placeholder`. Held apart from `reasoning` so the panel can
+   * show it only until real model reasoning arrives: the renderer
+   * prefers `reasoning` when non-empty and falls back to this otherwise,
+   * so a reasoning-capable model drops it the instant the first native
+   * frame streams, while a non-reasoning model keeps it as the sole
+   * panel content.
+   */
+  reasoningPlaceholder?: string;
   /** True while an SSE stream is actively appending to this message. */
   streaming?: boolean;
   /** Inline error notice from a `channel: "error"` SSE frame. */
@@ -90,6 +100,14 @@ export interface ChatState {
    * an explicit user-driven panel close.
    */
   focusedCitationId: string | null;
+  /**
+   * The citation whose source detail is shown in the right-side
+   * detail column. Set when the user clicks a reference chip
+   * (`show_citation`) and cleared when the column is dismissed
+   * (`close_citation`) or the conversation resets. `null` means the
+   * detail column is closed and the chat occupies the full width.
+   */
+  activeCitation: Citation | null;
 }
 
 export interface HistoryConversation {

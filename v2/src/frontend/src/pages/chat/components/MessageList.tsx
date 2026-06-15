@@ -20,20 +20,26 @@
  * bubble directly in the row. An assistant message places a vertical
  * content column beside the avatar — so the avatar lines up on the same
  * horizontal line as the column's first item (the reasoning panel while
- * streaming, else the answer) — and that column stacks the answer bubble
- * plus the SSE-derived decorations:
+ * streaming, else the answer) — and that column stacks the answer bubble,
+ * a static "AI-generated content may be incorrect" disclaimer under any
+ * finished answer, plus the SSE-derived decorations:
  *   - `streaming === true` OR non-empty `reasoning?: string[]` → a
  *     <details> reasoning panel. While streaming the panel is forced
  *     open with summary "Thinking…" + animated dots so the boss-demo
  *     viewer sees the model think live; once `finish_stream` clears
  *     `streaming`, the summary collapses to "▸ Thought process" and
- *     the user can re-expand on demand. Body joins all reasoning
- *     chunks (foundry_iq emits per-token deltas, so per-<li> would
- *     read as one-character mush — we concatenate at render time and
- *     keep the array shape on the wire).
- *   - non-empty `citations?: Citation[]` (finished messages only) →
- *     a `<CitationPanel>` accordion under the answer, hidden while
- *     the message is still streaming so the panel doesn't churn as
+ *     the user can re-expand on demand. Body is formatted by
+ *     `formatReasoning`: foundry_iq emits per-token deltas, so per-<li>
+ *     would read as one-character mush — we concatenate at render time
+ *     (keeping the array shape on the wire), drop the model's bold
+ *     section titles, and break the remaining reasoning bodies apart so
+ *     both orchestrators render the same way.
+ *   - referenced `Citation[]` (finished messages only) → a
+ *     `<CitationPanel>` reference block under the answer, showing the
+ *     renumbered subset that `parseAnswer` cited so the chip numbers
+ *     match the answer's `[docN]` superscripts (falling back to the
+ *     full list when the answer has no inline markers). Hidden while
+ *     the message is still streaming so the block doesn't churn as
  *     new sources arrive.
  *   - `error?: string`                   → dispatched as a Fluent v9
  *     error-intent Toast (the app-wide `<Toaster>` is mounted by
@@ -45,7 +51,7 @@
  * All `data-testid` and `data-role` attributes are preserved verbatim
  * from the Phase-5 contract — visual changes only.
  */
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   Toast,
   ToastBody,
@@ -57,9 +63,11 @@ import {
   Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
-import { useChat } from "@/pages/chat/ChatContext";
+import { ChatActionType, useChat } from "@/pages/chat/ChatContext";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
-import { renderAnswerTokens } from "./answerTokens";
+import { MarkdownContent } from "./MarkdownContent";
+import { parseAnswer } from "./parseAnswer";
+import { formatReasoning } from "./reasoningText";
 import { CitationPanel } from "./CitationPanel/CitationPanel";
 import styles from "./MessageList.module.css";
 
@@ -107,17 +115,6 @@ export function MessageList() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [state.messages.length, lastContentLen]);
 
-  const handleCitationFocus = useCallback(
-    (citationId: string) => {
-      // Inline `[docN]` token click — ask <CitationPanel> to auto-
-      // expand the matching item. The reducer is a no-op when the
-      // focus value did not change, so a repeated click on the same
-      // token does not churn downstream useEffect deps.
-      dispatch({ type: "focus_citation", citationId });
-    },
-    [dispatch],
-  );
-
   if (state.messages.length === 0) {
     return (
       <div className={styles.empty}>
@@ -135,77 +132,103 @@ export function MessageList() {
   return (
     <>
       <ol data-testid="message-list" className={styles.list}>
-      {state.messages.map((m) => (
-        <li
-          key={m.id}
-          data-testid={`message-${m.id}`}
-          data-role={m.role}
-          className={styles.item}
-        >
-          <div className={styles.row}>
-            <span
-              className={styles.avatar}
-              data-role={m.role}
-              aria-hidden="true"
-            >
-              {m.role === "user" ? <Person20Regular /> : <Bot20Regular />}
-            </span>
-            <span className={styles.srOnly}>{m.role}</span>
-            {m.role === "assistant" ? (
-              <div className={styles.content}>
-                {(m.streaming === true ||
-                  (m.reasoning && m.reasoning.length > 0)) && (
-                  <details
-                    data-testid={`message-${m.id}-reasoning`}
-                    className={styles.reasoning}
-                    open={m.streaming === true}
-                  >
-                    <summary data-streaming={m.streaming ? "true" : "false"}>
-                      {m.streaming ? (
-                        <>
-                          Thinking
-                          <span
-                            className={styles.thinkingDots}
-                            aria-hidden="true"
-                          >
-                            <span />
-                            <span />
-                            <span />
-                          </span>
-                        </>
-                      ) : (
-                        "\u25B8 Thought process"
-                      )}
-                    </summary>
-                    <div className={styles.reasoningBody}>
-                      {m.reasoning?.join("") ?? ""}
-                    </div>
-                  </details>
-                )}
-                <div className={styles.bubble}>
-                  {renderAnswerTokens(
-                    m.content,
-                    m.id,
-                    m.citations,
-                    handleCitationFocus,
+      {state.messages.map((m) => {
+        // The answer bubble renders the renumbered `[docN]` superscripts
+        // from parseAnswer, so the reference block must show the same
+        // referenced subset in the same order for the chip numbers to
+        // line up. When the answer carries no inline markers, fall back
+        // to the full citation list so sourced-but-unmarked answers
+        // still surface their references.
+        const parsed = parseAnswer(m.content, m.citations);
+        const referencedCitations =
+          parsed.citations.length > 0 ? parsed.citations : (m.citations ?? []);
+        return (
+          <li
+            key={m.id}
+            data-testid={`message-${m.id}`}
+            data-role={m.role}
+            className={styles.item}
+          >
+            <div className={styles.row}>
+              <span
+                className={styles.avatar}
+                data-role={m.role}
+                aria-hidden="true"
+              >
+                {m.role === "user" ? <Person20Regular /> : <Bot20Regular />}
+              </span>
+              <span className={styles.srOnly}>{m.role}</span>
+              {m.role === "assistant" ? (
+                <div className={styles.content}>
+                  {(m.streaming === true ||
+                    (m.reasoning && m.reasoning.length > 0) ||
+                    (m.reasoningPlaceholder !== undefined &&
+                      m.reasoningPlaceholder.length > 0)) && (
+                    <details
+                      data-testid={`message-${m.id}-reasoning`}
+                      className={styles.reasoning}
+                      open={m.streaming === true}
+                    >
+                      <summary data-streaming={m.streaming ? "true" : "false"}>
+                        {m.streaming ? (
+                          <>
+                            Thinking
+                            <span
+                              className={styles.thinkingDots}
+                              aria-hidden="true"
+                            >
+                              <span />
+                              <span />
+                              <span />
+                            </span>
+                          </>
+                        ) : (
+                          "\u25B8 Thought process"
+                        )}
+                      </summary>
+                      <MarkdownContent
+                        className={styles.reasoningBody}
+                        content={
+                          m.reasoning && m.reasoning.length > 0
+                            ? formatReasoning(m.reasoning)
+                            : (m.reasoningPlaceholder ?? "")
+                        }
+                      />
+                    </details>
                   )}
-                </div>
-                {m.streaming !== true &&
-                  m.citations &&
-                  m.citations.length > 0 && (
+                  <MarkdownContent
+                    className={styles.bubble}
+                    content={parsed.markdownText}
+                    enableSupersub
+                  />
+                  {m.streaming !== true && m.content.length > 0 && (
+                    <p
+                      data-testid={`answer-disclaimer-${m.id}`}
+                      className={styles.disclaimer}
+                    >
+                      AI-generated content may be incorrect
+                    </p>
+                  )}
+                  {m.streaming !== true && referencedCitations.length > 0 && (
                     <CitationPanel
                       messageId={m.id}
-                      citations={m.citations}
-                      focusedCitationId={state.focusedCitationId}
+                      citations={referencedCitations}
+                      onSelectCitation={(citation) =>
+                        dispatch({
+                          type: ChatActionType.ShowCitation,
+                          citation,
+                        })
+                      }
                     />
                   )}
-              </div>
-            ) : (
-              <div className={styles.bubble}>{m.content}</div>
-            )}
-          </div>
-        </li>
-      ))}
+                </div>
+              ) : (
+                <div className={styles.bubble}>{m.content}</div>
+              )}
+            </div>
+          </li>
+        );
+      })}
       </ol>
       <div
         ref={bottomRef}

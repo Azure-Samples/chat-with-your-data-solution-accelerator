@@ -33,7 +33,7 @@ from typing import Any, AsyncIterable, Sequence, cast
 import logging
 
 from azure.core.credentials_async import AsyncTokenCredential
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, ResourceNotFoundError
 from azure.search.documents.aio import SearchClient
 from azure.search.documents.models import (
     QueryType,
@@ -119,7 +119,10 @@ class AzureSearch(BaseSearch):
             id=str(doc.get("id", "")),
             content=str(doc.get("content", "")),
             title=str(doc.get("title", "")),
-            url=str(doc.get("url", "")),
+            # A present-but-null `url` field makes `.get("url", "")` return
+            # `None` (the default only fires when the key is absent), so coerce
+            # falsy values to "" rather than stringifying `None` to "None".
+            url=str(doc.get("url") or ""),
             score=float(score) if score is not None else None,
         )
 
@@ -284,6 +287,40 @@ class AzureSearch(BaseSearch):
             SourceListing(source=source, chunk_count=count, last_modified=None)
             for source, count in sorted(counts.items())
         ]
+
+    async def get_document_by_key(self, key: str) -> SearchResult | None:
+        client = self._get_client()
+        try:
+            # SDK boundary: SearchClient.get_document returns the raw
+            # document fields as a dict; `_to_result` maps them onto the
+            # provider-agnostic SearchResult (Hard Rule #15). A by-key
+            # fetch carries no relevance score, so SearchResult.score is
+            # None here.
+            doc = cast(
+                dict[str, Any],
+                await client.get_document(  # pyright: ignore[reportUnknownMemberType]
+                    key=key,
+                    selected_fields=list(_DEFAULT_SELECT_FIELDS),
+                ),
+            )
+        except ResourceNotFoundError:
+            # Soft miss: a citation can reference a key that was since
+            # re-ingested or deleted. Degrade to the raw id (the caller
+            # treats None as "leave the citation unenriched") rather than
+            # failing the answer. Narrow catch -- every other AzureError
+            # still logs + re-raises below.
+            return None
+        except AzureError:
+            logger.exception(
+                "azure_search get_document_by_key failed",
+                extra={
+                    "operation": "get_document_by_key",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                },
+            )
+            raise
+        return self._to_result(doc)
 
     async def merge_or_upload_documents(
         self,

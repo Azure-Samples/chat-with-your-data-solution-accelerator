@@ -29,10 +29,18 @@ Run loop:
          * `function_call`  -> `tool` event with id / arguments
          * citation annots  -> buffered (see step 5)
          * everything else  -> ignored
-    5. Map the buffered native citation annotations through the shared
-       `citations_from_annotations` seam and emit one `citation` event
-       per source -- before the final `answer` -- so the agent path and
-       the `langgraph` path surface the same `Citation` wire shape.
+    5. Build the `Citation`s from the buffered annotations via the shared
+       `citations_from_annotations` seam, then run `normalize_kb_citations`
+       over the assembled answer + citation list so any native
+       `【6:1†source】`-style KB markers in the answer become the
+       grouping-ordered `[docN]` and the citation ids match. When a search
+       provider is wired, run `enrich_kb_citations` to backfill the friendly
+       `title` / `snippet` a KB citation lacks (its annotation carries only
+       the raw `mcp://searchindex/<key>` id) by resolving each key through
+       `search.get_document_by_key`. Emit one `citation` event per source --
+       before the final `answer` -- so the agent path and the `langgraph`
+       path surface the same `Citation` wire shape and the same inline
+       `[docN]` markers.
 
 The agent's instructions (including any admin override) are applied by
 `build_agent` via `_resolve_definition`, so this orchestrator does not
@@ -61,8 +69,13 @@ from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
+from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings
-from backend.core.tools.citations import citations_from_annotations
+from backend.core.tools.citations import (
+    citations_from_annotations,
+    enrich_kb_citations,
+    normalize_kb_citations,
+)
 from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
 
 from .registry import registry
@@ -85,16 +98,25 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         *,
         agents: BaseAgentsProvider,
         db: BaseDatabaseClient,
+        search: BaseSearch | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
-        # orchestrator (e.g. `search` / `system_prompt` / `search_top_k`
-        # for `langgraph`, plus `credential` / `agent_name` from the
-        # shared wiring contract). Avoids name-based dispatch in the
-        # caller (Hard Rule #4).
+        # orchestrator (`system_prompt` / `search_top_k` /
+        # `search_use_semantic_search` for `langgraph`, plus `credential` /
+        # `agent_name` from the shared wiring contract). Avoids name-based
+        # dispatch in the caller (Hard Rule #4).
         super().__init__(settings, llm)
         self._agents = agents
         self._db = db
+        # The injected search provider backs citation enrichment: an
+        # agent_framework KB citation carries only a raw
+        # mcp://searchindex/<key> id, so run() resolves each key through
+        # search.get_document_by_key to backfill the friendly title /
+        # snippet the langgraph path already ships. In practice this is the
+        # AzureSearch handler -- the agent_framework + pgvector cell is
+        # rejected upstream, never reaching here.
+        self._search = search
         # The CWYD orchestrator always drives the `cwyd` agent; the
         # provider's `build_agent` resolves / creates it and applies any
         # admin instruction override via `_resolve_definition`.
@@ -105,11 +127,11 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # MCP endpoint is authenticated server-side via the project
         # search connection (`connection_name`), so no per-request bearer
         # is minted.
-        search = settings.search
-        self._search_endpoint = search.endpoint
-        self._kb_name = search.knowledge_base_name
-        self._kb_api_version = search.knowledge_base_api_version
-        self._connection_name = search.connection_name
+        search_settings = settings.search
+        self._search_endpoint = search_settings.endpoint
+        self._kb_name = search_settings.knowledge_base_name
+        self._kb_api_version = search_settings.knowledge_base_api_version
+        self._connection_name = search_settings.connection_name
         # Sampling knobs are infra/admin-configured (not per-request), so
         # capture them once here -- same rationale as the KB scalars
         # above. The Foundry agent owns its model deployment, so these are
@@ -217,13 +239,43 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 )
                 return
 
-        for citation in citations_from_annotations(citation_annotations):
+        answer = "".join(answer_parts)
+        citations = citations_from_annotations(citation_annotations)
+        # Converge on the langgraph path's wire shape: rewrite any native
+        # 【N:M†source】 KB markers in the answer to the grouping-ordered
+        # [docN] and renumber the citation ids to match.
+        answer, citations = normalize_kb_citations(answer, citations)
+        # Backfill the friendly title / snippet a KB citation lacks (its
+        # annotation carries only the raw mcp://searchindex/<key> id) by
+        # resolving each key through the search provider's by-key lookup;
+        # langgraph-shaped citations and unresolved keys pass through
+        # unchanged. Best-effort: a transient lookup failure degrades to
+        # the normalized raw-id citations rather than failing an answer
+        # already fully assembled (get_document_by_key has logged the SDK
+        # failure at its own boundary).
+        search = self._search
+        if search is not None:
+            try:
+                citations = await enrich_kb_citations(
+                    citations, search.get_document_by_key
+                )
+            except AzureError:
+                logger.warning(
+                    "agent_framework citation enrichment skipped "
+                    "after lookup failure",
+                    extra={
+                        "operation": "enrich_citations",
+                        "provider": "agent_framework",
+                        "agent_name": self._definition.name,
+                    },
+                )
+
+        for citation in citations:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.CITATION,
                 metadata=citation.model_dump(),
             )
 
-        answer = "".join(answer_parts)
         if answer:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.ANSWER, content=answer

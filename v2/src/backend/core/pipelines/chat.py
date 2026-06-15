@@ -150,12 +150,17 @@ async def run_chat(
     # guards pass (a blocked request must not claim it is "searching")
     # and before the orchestrator runs, so the client's thinking panel
     # shows retrieval activity for the whole wait rather than a flash
-    # once retrieval has already completed. Native reasoning frames from
-    # the orchestrator simply stream after it.
+    # once retrieval has already completed. Marked `placeholder` on the
+    # metadata so the client surfaces it only until the orchestrator's
+    # own reasoning frames begin: a reasoning-capable model replaces it
+    # with real thinking, while a non-reasoning model keeps it as the
+    # sole reasoning-panel content. The flag is the wire contract with
+    # the frontend SSE consumer.
     if retrieval_hint is not None:
         yield OrchestratorEvent(
             channel=OrchestratorChannel.REASONING,
             content=retrieval_hint,
+            metadata={"placeholder": True},
         )
 
     answer_buffer: list[str] = []

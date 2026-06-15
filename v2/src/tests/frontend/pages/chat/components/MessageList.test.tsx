@@ -93,6 +93,79 @@ describe("MessageList", () => {
     expect(items[1]!.textContent).toContain("hi back");
   });
 
+  it("renders the AI-generated disclaimer under a finished assistant answer", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: m2 });
+    });
+
+    const disclaimer = screen.getByTestId("answer-disclaimer-2");
+    expect(disclaimer.textContent).toBe(
+      "AI-generated content may be incorrect",
+    );
+  });
+
+  it("does not render the disclaimer on a user message", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: m1 });
+    });
+
+    expect(screen.queryByTestId("answer-disclaimer-1")).toBeNull();
+  });
+
+  it("does not render the disclaimer while the assistant message is still streaming", () => {
+    const mStreamingAnswer: ChatMessage = {
+      id: "stream-disc",
+      role: "assistant",
+      content: "partial answer",
+      streaming: true,
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mStreamingAnswer });
+    });
+
+    expect(screen.queryByTestId("answer-disclaimer-stream-disc")).toBeNull();
+  });
+
+  it("does not render the disclaimer on an empty (error-only) assistant message", () => {
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mWithError });
+    });
+
+    expect(screen.queryByTestId("answer-disclaimer-4")).toBeNull();
+  });
+
   it("tags each <li> with its role for styling hooks", () => {
     render(
       <ChatProvider>
@@ -152,6 +225,42 @@ describe("MessageList", () => {
     // chunks; concatenation reconstitutes the streamed text).
     expect(details.textContent).toContain("thinking step 1thinking step 2");
     expect(details.querySelectorAll("li")).toHaveLength(0);
+  });
+
+  it("drops model section titles and breaks reasoning blocks apart in the panel", () => {
+    const mHeadered: ChatMessage = {
+      id: "8",
+      role: "assistant",
+      content: "answer body",
+      reasoning: [
+        "**Searching for employee benefits**\n\nI will look it up.",
+        "**Summarizing health benefits**\n\nHere is the summary.",
+      ],
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mHeadered });
+    });
+
+    const details = screen.getByTestId("message-8-reasoning");
+    // The model's bold section titles are stripped from the panel...
+    expect(details.textContent).not.toContain("Searching for employee benefits");
+    expect(details.textContent).not.toContain("Summarizing health benefits");
+    // ...and the remaining bodies render through the markdown panel as a
+    // single paragraph: the section break is one soft line break (no
+    // blank line), so the bodies sit on adjacent lines within one <p>.
+    const paragraphs = details.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(1);
+    expect(paragraphs[0]?.textContent).toBe(
+      "I will look it up.\nHere is the summary.",
+    );
   });
 
   it("opens the reasoning panel and shows 'Thinking' while the message is streaming", () => {
@@ -236,6 +345,61 @@ describe("MessageList", () => {
     });
 
     expect(screen.queryByTestId("message-5-reasoning")).toBeNull();
+  });
+
+  it("shows the reasoning placeholder when there are no reasoning frames yet", () => {
+    const mPlaceholderOnly: ChatMessage = {
+      id: "ph",
+      role: "assistant",
+      content: "",
+      reasoning: [],
+      reasoningPlaceholder:
+        "Searching the knowledge base for relevant sources\u2026",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mPlaceholderOnly });
+    });
+
+    const details = screen.getByTestId("message-ph-reasoning");
+    expect(details.textContent).toContain(
+      "Searching the knowledge base for relevant sources\u2026",
+    );
+  });
+
+  it("drops the placeholder once real reasoning frames arrive", () => {
+    const mReasoningOverPlaceholder: ChatMessage = {
+      id: "both",
+      role: "assistant",
+      content: "answer body",
+      reasoning: ["real step"],
+      reasoningPlaceholder:
+        "Searching the knowledge base for relevant sources\u2026",
+    };
+    render(
+      <ChatProvider>
+        <Seed messages={[]} />
+        <MessageList />
+      </ChatProvider>,
+    );
+    const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+
+    act(() => {
+      dispatch({ type: "add", message: mReasoningOverPlaceholder });
+    });
+
+    const details = screen.getByTestId("message-both-reasoning");
+    expect(details.textContent).toContain("real step");
+    expect(details.textContent).not.toContain(
+      "Searching the knowledge base for relevant sources\u2026",
+    );
   });
 
   it("renders the reasoning panel and citation panel inside the same row as the avatar", () => {
@@ -530,7 +694,7 @@ describe("MessageList answer-token rendering", () => {
     )._dispatch;
   }
 
-  it("renders inline [docN] tokens as clickable buttons in the assistant bubble", () => {
+  it("renders inline [docN] markers as superscripts, not literal text or clickable tokens", () => {
     const mWithTokens: ChatMessage = {
       id: "tok-1",
       role: "assistant",
@@ -547,8 +711,19 @@ describe("MessageList answer-token rendering", () => {
       getDispatch()({ type: "add", message: mWithTokens });
     });
 
-    expect(screen.getByTestId("answer-token-tok-1-1")).toBeInTheDocument();
-    expect(screen.getByTestId("answer-token-tok-1-2")).toBeInTheDocument();
+    // Superscripts are visual-only: no clickable inline token buttons.
+    expect(screen.queryByTestId("answer-token-tok-1-1")).toBeNull();
+    expect(screen.queryByTestId("answer-token-tok-1-2")).toBeNull();
+    const bubble = screen.getByTestId("message-tok-1");
+    // The markers are rewritten, so the literal [docN] text is gone.
+    expect(bubble.textContent).not.toContain("[doc1]");
+    expect(bubble.textContent).not.toContain("[doc2]");
+    // …and render as <sup> superscript numbers instead.
+    const supText = Array.from(bubble.querySelectorAll("sup")).map(
+      (s) => s.textContent,
+    );
+    expect(supText).toContain("1");
+    expect(supText).toContain("2");
   });
 
   it("does NOT tokenize user message content", () => {
@@ -595,11 +770,11 @@ describe("MessageList answer-token rendering", () => {
     );
   });
 
-  it("clicking a [docN] token auto-expands the matching CitationPanel item", () => {
-    const mLive: ChatMessage = {
-      id: "tok-live",
+  it("numbers the reference chips to match the renumbered answer superscripts", () => {
+    const mOutOfOrder: ChatMessage = {
+      id: "c-order",
       role: "assistant",
-      content: "see [doc2] for details",
+      content: "first [doc2] then [doc1]",
       citations: [cit1, cit2],
     };
     render(
@@ -609,17 +784,31 @@ describe("MessageList answer-token rendering", () => {
       </ChatProvider>,
     );
     act(() => {
-      getDispatch()({ type: "add", message: mLive });
+      getDispatch()({ type: "add", message: mOutOfOrder });
     });
 
-    const headerB = screen
-      .getByTestId("citation-tok-live-doc-beta-header")
-      .querySelector("button")!;
-    expect(headerB.getAttribute("aria-expanded")).toBe("false");
+    // Open the reference block so the chips are easy to read.
+    fireEvent.click(screen.getByTestId("citations-toggle-c-order"));
 
-    fireEvent.click(screen.getByTestId("answer-token-tok-live-2"));
+    // [doc2] is cited first, so doc-beta becomes reference 1 and
+    // doc-alpha (cited via [doc1] second) becomes reference 2 — the
+    // chip numbers follow first-appearance order, not the original
+    // [docN] index.
+    const chipBeta = screen.getByTestId("citation-c-order-doc-beta");
+    expect(chipBeta).toHaveTextContent("1");
+    expect(chipBeta).toHaveTextContent("Beta");
+    const chipAlpha = screen.getByTestId("citation-c-order-doc-alpha");
+    expect(chipAlpha).toHaveTextContent("2");
+    expect(chipAlpha).toHaveTextContent("Alpha");
 
-    expect(headerB.getAttribute("aria-expanded")).toBe("true");
+    // The answer bubble's superscripts run 1,2 in document order, so
+    // the first-cited source (doc-beta = reference 1) lines up with the
+    // first superscript.
+    const bubble = screen.getByTestId("message-c-order");
+    const supText = Array.from(bubble.querySelectorAll("sup")).map(
+      (s) => s.textContent,
+    );
+    expect(supText).toEqual(["1", "2"]);
   });
 });
 

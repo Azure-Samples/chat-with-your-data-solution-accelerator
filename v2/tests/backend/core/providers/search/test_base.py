@@ -201,3 +201,30 @@ def test_list_sources_is_not_abstract() -> None:
     `PgVector` construction.
     """
     assert "list_sources" not in BaseSearch.__abstractmethods__
+
+
+@pytest.mark.asyncio
+async def test_default_get_document_by_key_raises_not_implemented() -> None:
+    """Calling the default body raises NotImplementedError with the class name.
+
+    Mirrors the fail-loud contract of
+    :meth:`BaseSearch.list_sources` -- a provider that forgets to
+    override fails at the call site rather than silently skipping
+    citation enrichment.
+    """
+    instance = _MinimalSearch(_make_settings(), MagicMock())
+    with pytest.raises(NotImplementedError) as exc_info:
+        await instance.get_document_by_key("doc-1")
+    assert "_MinimalSearch" in str(exc_info.value)
+    assert "get_document_by_key" in str(exc_info.value)
+
+
+def test_get_document_by_key_is_not_abstract() -> None:
+    """`get_document_by_key` ships with a default body, not @abstractmethod.
+
+    The default raises NotImplementedError so existing providers that
+    have not yet landed their override still instantiate. If this test
+    fails, the method became abstract by mistake and breaks
+    `AzureSearch` / `PgVector` construction.
+    """
+    assert "get_document_by_key" not in BaseSearch.__abstractmethods__

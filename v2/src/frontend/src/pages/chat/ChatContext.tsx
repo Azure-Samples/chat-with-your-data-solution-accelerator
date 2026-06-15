@@ -29,10 +29,13 @@ export const ChatActionType = {
   Add: "add",
   AppendAnswer: "append_answer",
   AppendReasoning: "append_reasoning",
+  SetReasoningPlaceholder: "set_reasoning_placeholder",
   AppendCitation: "append_citation",
   FinishStream: "finish_stream",
   SetError: "set_error",
   FocusCitation: "focus_citation",
+  ShowCitation: "show_citation",
+  CloseCitation: "close_citation",
   Reset: "reset",
 } as const;
 export type ChatActionType =
@@ -42,15 +45,23 @@ export type ChatAction =
   | { type: typeof ChatActionType.Add; message: ChatMessage }
   | { type: typeof ChatActionType.AppendAnswer; id: string; chunk: string }
   | { type: typeof ChatActionType.AppendReasoning; id: string; chunk: string }
+  | {
+      type: typeof ChatActionType.SetReasoningPlaceholder;
+      id: string;
+      text: string;
+    }
   | { type: typeof ChatActionType.AppendCitation; id: string; citation: Citation }
   | { type: typeof ChatActionType.FinishStream; id: string }
   | { type: typeof ChatActionType.SetError; id: string; error: string }
   | { type: typeof ChatActionType.FocusCitation; citationId: string | null }
+  | { type: typeof ChatActionType.ShowCitation; citation: Citation }
+  | { type: typeof ChatActionType.CloseCitation }
   | { type: typeof ChatActionType.Reset };
 
 export const initialChatState: ChatState = {
   messages: [],
   focusedCitationId: null,
+  activeCitation: null,
 };
 
 function mapMessage(
@@ -78,6 +89,14 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...m,
         reasoning: [...(m.reasoning ?? []), action.chunk],
       }));
+    case ChatActionType.SetReasoningPlaceholder:
+      // Replaces (never appends): the transient retrieval narration is a
+      // single line, and the renderer shows it only until real reasoning
+      // frames land in `reasoning`.
+      return mapMessage(state, action.id, (m) => ({
+        ...m,
+        reasoningPlaceholder: action.text,
+      }));
     case ChatActionType.AppendCitation:
       return mapMessage(state, action.id, (m) => {
         const existing = m.citations ?? [];
@@ -103,6 +122,13 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // the same token-click does not re-fire the panel open effect.
       if (state.focusedCitationId === action.citationId) return state;
       return { ...state, focusedCitationId: action.citationId };
+    case ChatActionType.ShowCitation:
+      return { ...state, activeCitation: action.citation };
+    case ChatActionType.CloseCitation:
+      // No-op when the detail column is already closed so a redundant
+      // dismiss does not churn reference equality for consumers.
+      if (state.activeCitation === null) return state;
+      return { ...state, activeCitation: null };
     case ChatActionType.Reset:
       return initialChatState;
   }

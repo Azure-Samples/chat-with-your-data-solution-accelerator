@@ -127,6 +127,19 @@
   padding-top: 4px; /* Optical alignment with avatar */
   background: transparent;
   color: var(--colorNeutralForeground1);
+  /* The answer renders through MarkdownContent, which emits its own
+     block-level breaks (and <br> for the model's hard breaks); collapse
+     soft source newlines so pre-wrap doesn't double the line spacing. */
+  white-space: normal;
+}
+
+/* Static, small, muted disclaimer rendered under a finished assistant
+   answer (above the reference block) — mirrors the v1 answer footer. */
+.disclaimer {
+  margin: 2px 0 0;
+  font-size: var(--fontSizeBase200);
+  line-height: var(--lineHeightBase200);
+  color: var(--colorNeutralForeground3);
 }
 
 .srOnly {
@@ -144,7 +157,8 @@
 .reasoning {
   /* Left edge sits flush with the list-item edge so it lines up with the
      assistant avatar and the citation panel below it (both at margin 0),
-     rather than indenting into the bubble column. */
+     rather than indenting into the bubble column. Spans the full assistant
+     content column so the reasoning panel is as wide as the answer prose. */
   margin: 0;
   padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
   background: var(--colorNeutralBackground2);
@@ -152,7 +166,9 @@
   border-radius: var(--borderRadiusMedium);
   font-size: var(--fontSizeBase200);
   color: var(--colorNeutralForeground3);
-  max-width: min(80%, 560px);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .reasoning summary {

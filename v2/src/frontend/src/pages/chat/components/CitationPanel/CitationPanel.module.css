@@ -2,9 +2,10 @@
  * Pillar: Stable Core
  * Phase: 7 (Testing + Documentation)
  *
- * CitationPanel styling. Low-contrast container so the panel reads as
- * secondary content under the answer body. All colors and spacing
- * come from Fluent v9 design tokens served by `<FluentProvider>`.
+ * CitationPanel styling. A lightweight collapsible reference block that
+ * sits under the answer body and reads as secondary content. All colors
+ * and spacing come from Fluent v9 design tokens served by
+ * `<FluentProvider>`.
  */
 
 .section {
@@ -12,63 +13,91 @@
   flex-direction: column;
   gap: var(--spacingVerticalXS);
   margin-top: var(--spacingVerticalS);
-  padding: var(--spacingVerticalS) var(--spacingHorizontalS);
-  border: 1px solid var(--colorNeutralStroke2);
-  border-radius: var(--borderRadiusMedium);
-  background: var(--colorNeutralBackground2);
 }
 
-.heading {
-  margin: 0;
-  font-size: var(--fontSizeBase200);
-  font-weight: var(--fontWeightSemibold);
-  color: var(--colorNeutralForeground2);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.headerRow {
+.toggle {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacingHorizontalS);
-  min-width: 0;
+  gap: var(--spacingHorizontalXS);
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--spacingVerticalXXS) var(--spacingHorizontalXS);
+  border: none;
+  border-radius: var(--borderRadiusSmall);
+  background: transparent;
+  color: var(--colorBrandForegroundLink);
+  font-family: inherit;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  cursor: pointer;
 }
 
-.title {
-  font-size: var(--fontSizeBase300);
-  color: var(--colorNeutralForeground1);
+.toggle:hover {
+  color: var(--colorBrandForegroundLinkHover);
+  background: var(--colorSubtleBackgroundHover);
+}
+
+.toggleLabel {
+  line-height: var(--lineHeightBase200);
+}
+
+.chipList {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacingHorizontalXS);
+}
+
+/* When the toggle is collapsed the list carries the `hidden` attribute.
+ * An explicit `display` on `.chipList` overrides the user-agent
+ * `[hidden] { display: none }` rule, so restate it here to actually hide
+ * the references when collapsed. */
+.chipList[hidden] {
+  display: none;
+}
+
+/* Each reference is a bordered, rounded chip the user can click to
+ * open the source detail column — mirrors the v1 citation chip row. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  max-width: 100%;
+  margin: 0;
+  padding: var(--spacingVerticalXXS) var(--spacingHorizontalS);
+  border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorBrandForegroundLink);
+  font-family: inherit;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--colorSubtleBackgroundHover);
+  border-color: var(--colorNeutralStroke1Hover);
+}
+
+.chipNumber {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: var(--borderRadiusCircular);
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  line-height: 1;
+}
+
+.chipLabel {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 32ch;
-}
-
-.score {
-  flex: 0 0 auto;
-  font-size: var(--fontSizeBase200);
-  font-weight: var(--fontWeightSemibold);
-  color: var(--colorBrandForeground1);
-  background: var(--colorBrandBackground2);
-  padding: 0 var(--spacingHorizontalXS);
-  border-radius: var(--borderRadiusSmall);
-}
-
-.snippet {
-  margin: 0 0 var(--spacingVerticalXS) 0;
-  font-size: var(--fontSizeBase200);
-  line-height: var(--lineHeightBase200);
-  color: var(--colorNeutralForeground2);
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.link {
-  display: inline-block;
-  font-size: var(--fontSizeBase200);
-  color: var(--colorBrandForegroundLink);
-  text-decoration: underline;
-}
-
-.link:hover {
-  color: var(--colorBrandForegroundLinkHover);
 }

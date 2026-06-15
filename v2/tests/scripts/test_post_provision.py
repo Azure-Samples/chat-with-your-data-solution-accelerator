@@ -153,12 +153,20 @@ def test_build_knowledge_base_seed_shape():
     )
 
     # Knowledge source: a searchIndex kind wrapping the existing chat index,
-    # pinning its semantic configuration for agentic retrieval.
+    # pinning its semantic configuration for agentic retrieval and requesting
+    # the friendly title / url / content fields as citation source data so
+    # knowledge-base citations carry the filename + snippet, not only the raw
+    # document key.
     assert knowledge_source["name"] == "cwyd-index-ks"
     assert knowledge_source["kind"] == "searchIndex"
     assert knowledge_source["searchIndexParameters"] == {
         "searchIndexName": "cwyd-index",
         "semanticConfigurationName": "default",
+        "sourceDataFields": [
+            {"name": "title"},
+            {"name": "url"},
+            {"name": "content"},
+        ],
     }
 
     # Knowledge base: references the knowledge source by name and lists the

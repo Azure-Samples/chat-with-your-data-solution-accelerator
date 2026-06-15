@@ -10,10 +10,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.tools.post_prompt import DEFAULT_FILTER_MESSAGE, PostPromptValidator
 from backend.core.types import (
+    ChatMessage,
+    ChatRole,
     Citation,
+    Conversation,
+    MessageRecord,
     OrchestratorChannel,
     OrchestratorEvent,
     RuntimeConfig,
@@ -22,6 +27,7 @@ from backend.models.conversation import ConversationResponse
 from backend.services.conversation import (
     build_post_prompt_validator,
     collect_response,
+    persist_turn,
 )
 
 
@@ -116,6 +122,108 @@ async def test_collect_response_raises_runtime_error_on_error_channel() -> None:
 
     with pytest.raises(RuntimeError, match="kaboom"):
         await collect_response(_gen(events), conversation_id="conv-err")
+
+
+class _FakeDB:
+    """Minimal recorder standing in for ``BaseDatabaseClient``.
+
+    Implements only the three methods ``persist_turn`` touches and
+    records every call so tests can assert the create / append sequence
+    without a live Cosmos DB or PostgreSQL backend.
+    """
+
+    def __init__(self, *, existing: Conversation | None = None) -> None:
+        self._existing = existing
+        self.created: list[tuple[str, str]] = []
+        self.added: list[tuple[str, str, ChatMessage]] = []
+
+    async def get_conversation(
+        self, conversation_id: str, user_id: str
+    ) -> Conversation | None:
+        existing = self._existing
+        if (
+            existing is not None
+            and existing.id == conversation_id
+            and existing.user_id == user_id
+        ):
+            return existing
+        return None
+
+    async def create_conversation(self, user_id: str, title: str) -> Conversation:
+        self.created.append((user_id, title))
+        return Conversation(id="conv-new", user_id=user_id, title=title)
+
+    async def add_message(
+        self, conversation_id: str, user_id: str, message: ChatMessage
+    ) -> MessageRecord:
+        self.added.append((conversation_id, user_id, message))
+        return MessageRecord(
+            id=f"msg-{len(self.added)}",
+            conversation_id=conversation_id,
+            role=message.role,
+            content=message.content,
+        )
+
+
+async def test_persist_turn_creates_conversation_titled_with_question() -> None:
+    fake = _FakeDB()
+
+    conversation_id = await persist_turn(
+        cast(BaseDatabaseClient, fake),
+        user_id="user-1",
+        conversation_id=None,
+        question="What is CWYD?",
+        answer="A chat-with-your-data accelerator.",
+    )
+
+    assert conversation_id == "conv-new"
+    assert fake.created == [("user-1", "What is CWYD?")]
+    assert len(fake.added) == 2
+    first_conv, first_user, first_msg = fake.added[0]
+    second_conv, second_user, second_msg = fake.added[1]
+    assert (first_conv, first_user) == ("conv-new", "user-1")
+    assert (second_conv, second_user) == ("conv-new", "user-1")
+    assert first_msg.role is ChatRole.USER
+    assert first_msg.content == "What is CWYD?"
+    assert second_msg.role is ChatRole.ASSISTANT
+    assert second_msg.content == "A chat-with-your-data accelerator."
+
+
+async def test_persist_turn_appends_to_existing_conversation() -> None:
+    existing = Conversation(id="conv-1", user_id="user-1", title="Original title")
+    fake = _FakeDB(existing=existing)
+
+    conversation_id = await persist_turn(
+        cast(BaseDatabaseClient, fake),
+        user_id="user-1",
+        conversation_id="conv-1",
+        question="A follow-up question",
+        answer="A follow-up answer.",
+    )
+
+    assert conversation_id == "conv-1"
+    assert fake.created == []
+    assert [conv for conv, _user, _msg in fake.added] == ["conv-1", "conv-1"]
+    assert [msg.role for _conv, _user, msg in fake.added] == [
+        ChatRole.USER,
+        ChatRole.ASSISTANT,
+    ]
+
+
+async def test_persist_turn_creates_new_when_conversation_id_unresolved() -> None:
+    fake = _FakeDB(existing=None)
+
+    conversation_id = await persist_turn(
+        cast(BaseDatabaseClient, fake),
+        user_id="user-1",
+        conversation_id="stale-or-forged",
+        question="New thread question",
+        answer="New thread answer.",
+    )
+
+    assert conversation_id == "conv-new"
+    assert fake.created == [("user-1", "New thread question")]
+    assert len(fake.added) == 2
 
 
 async def test_collect_response_ignores_unknown_channels() -> None:

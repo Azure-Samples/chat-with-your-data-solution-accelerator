@@ -86,6 +86,14 @@ Every concrete orchestrator (`langgraph.py`, `agent_framework.py`):
 3. Emits events on channels: `reasoning`, `tool`, `answer`, `citation`, `error`. Never inline reasoning into `answer`.
 4. Pre-pipeline: content safety check on input. Post-pipeline: post-prompt formatting + content safety check on output. Both live in `v2/src/backend/core/tools/` (cross-cutting helpers, not registry providers).
 
+### Citations (shared format contract — ADR 0026)
+
+Citation formatting is **shared infrastructure**, not per-orchestrator code. The orchestrator set is open (Hard Rule #4), so adding the Nth orchestrator adds **zero** new prompt and **zero** new formatter (copilot-instructions Hard Rule #20). Three invariants:
+
+- **R1 — one prompt input point.** Ground through `resolve_cwyd_instructions(...)` over the shared `CWYD_DEFAULT_BODY`; the fixed `CWYD_GUARDRAIL` owns the citation directive + no-context fallback. Do not author a per-orchestrator system / grounding prompt.
+- **R2 — one response-format point.** All citation shaping lives in `v2/src/backend/core/tools/citations.py`: `format_sources_block` (client-side `[docN]` injection, used by `langgraph`) and `normalize_kb_citations` (native `【N:M†source】` → `[docN]` rewrite, used by `agent_framework`). Both emit the same inline `[docN]` marker + `Citation` model on the `citation` channel. `run()` returns `(answer, citations)` and delegates to `citations.py` — never format markers inline, never invent a citation shape.
+- **R3 — backend-agnostic formatting.** Retrieval is keyed by `index_store` (registry dispatch) but the citation format is identical for Azure AI Search and pgvector. The `agent_framework` + pgvector cell (no KB) is rejected at config (`ConfigResolutionError` → 409, ADR 0022), never given a divergent formatter.
+
 ## LLM provider (Foundry IQ)
 
 - Class `FoundryIQ` in `v2/src/backend/core/providers/llm/foundry_iq.py`, registered as `@registry.register("foundry_iq")` against `backend/core/providers/llm/__init__.py`.

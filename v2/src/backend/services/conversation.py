@@ -6,9 +6,12 @@ Phase: 7 (router cleanup -- conversation buffered-response helpers)
 
 from collections.abc import AsyncIterator
 
+from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.tools.post_prompt import PostPromptValidator
 from backend.core.types import (
+    ChatMessage,
+    ChatRole,
     Citation,
     OrchestratorChannel,
     OrchestratorEvent,
@@ -16,7 +19,7 @@ from backend.core.types import (
 )
 from backend.models.conversation import ConversationResponse
 
-__all__ = ["build_post_prompt_validator", "collect_response"]
+__all__ = ["build_post_prompt_validator", "collect_response", "persist_turn"]
 
 
 def build_post_prompt_validator(
@@ -87,3 +90,48 @@ async def collect_response(
         citations=citations,
         conversation_id=conversation_id,
     )
+
+
+async def persist_turn(
+    db: BaseDatabaseClient,
+    *,
+    user_id: str,
+    conversation_id: str | None,
+    question: str,
+    answer: str,
+) -> str:
+    """Persist one completed chat turn and return its conversation id.
+
+    A turn is the latest user ``question`` paired with the assistant's
+    ``answer``. When ``conversation_id`` is ``None`` -- or names a
+    conversation that does not exist or is not owned by ``user_id`` --
+    a fresh conversation is created with its title set to ``question``,
+    the first thing the user asked. Otherwise the named conversation is
+    reused and its title left unchanged. The user message is appended
+    before the assistant message so ``list_messages`` (oldest-first)
+    replays the turn in spoken order, and the conversation's
+    ``updated_at`` bump floats it to the top of the newest-first list.
+
+    Only the latest turn is written -- not the full thread the frontend
+    sends -- so a follow-up appends two rows. The caller invokes this
+    only after a successful, non-blocked answer and owns any storage
+    failure: a persistence error must not retract an answer already
+    delivered to the user.
+    """
+    conversation = None
+    if conversation_id is not None:
+        conversation = await db.get_conversation(conversation_id, user_id)
+    if conversation is None:
+        conversation = await db.create_conversation(user_id, title=question)
+    resolved_id = conversation.id
+    await db.add_message(
+        resolved_id,
+        user_id,
+        ChatMessage(role=ChatRole.USER, content=question),
+    )
+    await db.add_message(
+        resolved_id,
+        user_id,
+        ChatMessage(role=ChatRole.ASSISTANT, content=answer),
+    )
+    return resolved_id
