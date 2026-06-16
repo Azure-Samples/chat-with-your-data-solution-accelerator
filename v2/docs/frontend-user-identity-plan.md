@@ -70,9 +70,9 @@ A browser-forwarded `x-ms-client-principal-id` is **not** a trust boundary — a
 ### Phase 4 — Bootstrap + UI
 
 * [x] F8 — auth state machine (`hooks/useAuth.tsx`): owns `AuthState`, exposes `resolve(authEnforced, userInfo)` syncing the `api/auth.tsx` singleton; `renderHook` vitest. (Hard Rule #10: chose the existing `hooks/` folder over a new `src/auth/` Context — only the shell consumes it.)
-* [ ] F9 — bootstrap effect in `App.tsx` `AppShell`: read `auth_enforced`, call `getUserInfo()`, set the resolved or default user, mark blocked when enforced but absent; vitest.
-* [ ] F10 — blocked-screen component (Fluent v9 adaptation of the v1 "Authentication Not Configured" screen); vitest.
-* [ ] F11 — render the blocked screen in the shell when `authEnforced && !userId`; vitest.
+* [x] F9 — bootstrap effect in `App.tsx` `AppShell`: read `auth_enforced`, call `getUserInfo()`, set the resolved or default user, mark blocked when enforced but absent; vitest.
+* [x] F10 — blocked-screen component (Fluent v9 adaptation of the v1 "Authentication Not Configured" screen); vitest.
+* [x] F11 — render the blocked screen in the shell when `authEnforced && !userId`; vitest.
 
 ### Phase 5 — Verify
 
