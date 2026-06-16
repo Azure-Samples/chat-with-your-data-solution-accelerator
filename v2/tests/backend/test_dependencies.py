@@ -273,6 +273,23 @@ def test_requires_role_falls_back_to_local_dev_when_no_headers_in_local() -> Non
     assert dep(request, _settings("local")) == "local-dev"
 
 
+def test_requires_role_falls_back_to_local_dev_when_id_present_no_claims_in_local() -> (
+    None
+):
+    """Local-dev bypass keys on absent CLAIMS, not absent headers.
+
+    The SPA forwards a default ``x-ms-client-principal-id`` on every
+    call (its shared ``userIdHeaders()`` seam), so the admin gate sees
+    the id header with NO ``x-ms-client-principal`` claims blob in local
+    dev. The claims blob is the sole authority for the role check, so the
+    bypass must trigger on its absence and return ``'local-dev'`` -- not
+    fall through to a ``401`` just because the forgeable id header rode
+    along."""
+    dep = requires_role("admin")
+    request = _request({_PRINCIPAL_ID: "00000000-0000-0000-0000-000000000000"})
+    assert dep(request, _settings("local")) == "local-dev"
+
+
 def test_requires_role_in_local_still_validates_when_headers_present() -> None:
     """Local environment does NOT skip role checking when the caller
     explicitly sends Easy Auth headers -- devs can exercise the

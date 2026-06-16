@@ -62,6 +62,7 @@ def _settings(
     db_type: str = "cosmosdb",
     index_store: str = "AzureSearch",
     project_endpoint: str = "https://my-foundry.cognitiveservices.azure.com/projects/proj1",
+    services_endpoint: str = "https://my-foundry.cognitiveservices.azure.com",
     gpt_deployment: str = "gpt-4o",
     embedding_deployment: str = "text-embedding-3-large",
     reasoning_deployment: str = "",
@@ -91,7 +92,10 @@ def _settings(
             cosmos_endpoint=cosmos_endpoint,
             postgres_endpoint=postgres_endpoint,
         ),
-        foundry=NS(project_endpoint=project_endpoint),
+        foundry=NS(
+            project_endpoint=project_endpoint,
+            services_endpoint=services_endpoint,
+        ),
         openai=NS(
             gpt_deployment=gpt_deployment,
             embedding_deployment=embedding_deployment,
@@ -2149,6 +2153,65 @@ async def test_upload_document_returns_503_when_storage_unconfigured(
     assert resp.status_code == 503
     assert "not configured" in resp.json()["detail"].lower()
     sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_document_returns_503_when_parse_service_unconfigured(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """Blank AZURE_AI_SERVICES_ENDPOINT + a Document-Intelligence-routed
+    file (PDF) -> 503, not a green 200 the file can never honour.
+
+    Document Intelligence parsing requires the endpoint, so a blank
+    value guarantees the queued message poisons downstream. The route
+    fails at the upload boundary with an actionable error rather than
+    reporting success for a file that can never be indexed -- the
+    false-success class this guard closes.
+    """
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "upload_document", sentinel)
+    app = admin_app_factory(_settings_with_storage(services_endpoint=""))
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("report.pdf", b"x", "application/pdf")},
+        )
+    assert resp.status_code == 503
+    assert "AZURE_AI_SERVICES_ENDPOINT" in resp.json()["detail"]
+    sentinel.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_document_allows_non_di_extension_without_parse_service(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """A non-Document-Intelligence file (``.txt``) does not need the AI
+    Services endpoint, so a blank value must NOT block it.
+
+    Locks the guard's precision: it fires only for extensions whose
+    parser is the Document Intelligence parser and never over-blocks a
+    file the deployment can index without that service.
+    """
+
+    async def fake_upload_document(**kwargs):  # type: ignore[no-untyped-def]
+        return UploadResponse(
+            filename=kwargs["filename"],
+            blob_path=f"docs/{kwargs['filename']}",
+            ingestion_job_id="job-txt-1",
+            queued=True,
+        )
+
+    monkeypatch.setattr(_admin_module, "upload_document", fake_upload_document)
+    app = admin_app_factory(_settings_with_storage(services_endpoint=""))
+    async with _client(app) as ac:
+        resp = await ac.post(
+            "/api/admin/documents",
+            files={"file": ("notes.txt", b"hello", "text/plain")},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["queued"] is True
 
 
 @pytest.mark.asyncio

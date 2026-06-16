@@ -71,7 +71,15 @@ class DocumentIntelligenceParser(BaseParser):
     def _get_client(self) -> DocumentIntelligenceClient:
         if self._client is not None:
             return self._client
-        endpoint = f"{self._settings.foundry.services_endpoint.rstrip('/')}/"
+        raw = self._settings.foundry.services_endpoint
+        if not raw.lower().startswith("https://"):
+            raise ValueError(
+                "AZURE_AI_SERVICES_ENDPOINT must be a non-empty https:// URL to "
+                "parse documents via Document Intelligence; got "
+                f"{raw!r}. Set it in the ingestion runtime environment "
+                "(Functions local.settings.json or the Container App settings)."
+            )
+        endpoint = f"{raw.rstrip('/')}/"
         self._client = DocumentIntelligenceClient(
             endpoint=endpoint,
             credential=self._credential,

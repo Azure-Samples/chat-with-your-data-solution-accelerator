@@ -154,6 +154,56 @@ def test_get_client_caches_constructed_sdk_client(
     sdk_ctor.assert_called_once()
 
 
+def test_get_client_raises_actionable_error_when_endpoint_is_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sdk_ctor = MagicMock(name="DocumentIntelligenceClient_should_not_be_called")
+    monkeypatch.setattr(di_parser_module, "DocumentIntelligenceClient", sdk_ctor)
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(endpoint=""),
+        credential=_make_credential(),
+    )
+    with pytest.raises(ValueError) as excinfo:
+        parser._get_client()
+    message = str(excinfo.value)
+    assert "AZURE_AI_SERVICES_ENDPOINT" in message
+    assert "https" in message
+    sdk_ctor.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "bad_endpoint",
+    [
+        "http://contoso.cognitiveservices.azure.com",
+        "/",
+        "contoso.cognitiveservices.azure.com",
+    ],
+)
+def test_get_client_raises_actionable_error_when_endpoint_is_not_https(
+    monkeypatch: pytest.MonkeyPatch, bad_endpoint: str
+) -> None:
+    sdk_ctor = MagicMock(name="DocumentIntelligenceClient_should_not_be_called")
+    monkeypatch.setattr(di_parser_module, "DocumentIntelligenceClient", sdk_ctor)
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(endpoint=bad_endpoint),
+        credential=_make_credential(),
+    )
+    with pytest.raises(ValueError) as excinfo:
+        parser._get_client()
+    assert "AZURE_AI_SERVICES_ENDPOINT" in str(excinfo.value)
+    sdk_ctor.assert_not_called()
+
+
+def test_get_client_injected_seam_bypasses_endpoint_validation() -> None:
+    injected = MagicMock()
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(endpoint=""),
+        credential=_make_credential(),
+        client=injected,
+    )
+    assert parser._get_client() is injected
+
+
 @pytest.mark.asyncio
 async def test_parse_calls_begin_analyze_document_with_model_id_and_bytes_source() -> None:
     fake_result = SimpleNamespace(pages=[_make_fake_page("page 1 content")])
