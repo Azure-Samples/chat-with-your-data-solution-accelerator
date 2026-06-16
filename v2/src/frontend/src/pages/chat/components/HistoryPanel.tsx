@@ -32,6 +32,7 @@
 import { useCallback, useEffect, useState, type JSX } from "react";
 import { Delete16Regular, Edit16Regular } from "@fluentui/react-icons";
 import type { HistoryConversation } from "@/models/chat";
+import { userIdHeaders } from "@/api/auth";
 import styles from "./HistoryPanel.module.css";
 
 const BACKEND_URL =
@@ -54,6 +55,7 @@ function buildUrl(path: string): string {
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...userIdHeaders(),
   };
   if (init?.headers !== undefined) {
     Object.assign(headers, init.headers as Record<string, string>);

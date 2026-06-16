@@ -66,6 +66,7 @@ A browser-forwarded `x-ms-client-principal-id` is **not** a trust boundary — a
 * [x] F5 — `conversationHistory.tsx` spreads `userIdHeaders()` onto the `GET /api/history/conversations/{id}` request; test.
 * [x] F6 — `admin.tsx` spreads `userIdHeaders()` on every call (all 8 fetch sites; `resetAdminConfig` inherits via `patchAdminConfig`); test.
 * [x] F7 — `speech.tsx` spreads `userIdHeaders()`; test.
+* [x] F12 — `HistoryPanel.tsx` (a **fifth** request seam missed by the four-client enumeration — it uses its own inline `fetchJson`, not an `api/*` client) spreads `userIdHeaders()` so the history **list / rename / delete** calls forward the principal; test. Caught during Phase 5 live verification by a real browser request-header capture (`/api/history/conversations` was going out with no header); see [BUG-0046](bugs.md).
 
 ### Phase 4 — Bootstrap + UI
 
@@ -76,9 +77,9 @@ A browser-forwarded `x-ms-client-principal-id` is **not** a trust boundary — a
 
 ### Phase 5 — Verify
 
-* [ ] Frontend: `vitest run`; `tsc -b` in both `v2/src/frontend` and `v2/src/tests/frontend`; `eslint` on touched files.
-* [ ] Backend: `pytest` (health + dependencies); `pyright --strict`; shared AST gates.
-* [ ] Live (`5273` / `8000`): two users get distinct histories; delete only own (cross-user `404`); local uses the default user; every request carries `x-ms-client-principal-id`; auth enforced + no `/.auth/me` → blocked screen.
+* [x] Frontend: `vitest run` (43 files / 554 passed); `tsc -b` in both `v2/src/frontend` and `v2/src/tests/frontend`; `eslint` on touched files (0 problems).
+* [x] Backend: `pytest` (health + dependencies, 1025 passed / 1 skipped); `pyright --strict` (0/0/0); shared AST gates.
+* [x] Live (`5273` / `8000`): two users get distinct histories + delete only own (cross-user `404` read, delete is a scoped no-op) — proved by the new `tests/integration/test_history_isolation_live.py` against real Cosmos; local uses the default user (`auth_enforced=false`); auth enforced + no `/.auth/me` → blocked screen (F11 test). Browser visual **done** after restarting the stale Vite dev server: the shell renders the normal (non-blocked) chat UI and a Playwright request-header capture confirmed every user-scoped `/api/*` call carries `x-ms-client-principal-id` — which **caught the F12 defect** (`/api/history/conversations` was missing the header) now fixed and re-confirmed live.
 
 ## Relevant files
 
