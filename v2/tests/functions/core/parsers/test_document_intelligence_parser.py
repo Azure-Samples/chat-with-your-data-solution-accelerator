@@ -47,6 +47,10 @@ def _make_fake_page(*lines: str) -> SimpleNamespace:
     return SimpleNamespace(lines=[SimpleNamespace(content=ln) for ln in lines])
 
 
+def _make_fake_paragraph(content: str | None) -> SimpleNamespace:
+    return SimpleNamespace(content=content)
+
+
 def _make_fake_client_with_result(result: Any) -> MagicMock:
     poller = MagicMock()
     poller.result = AsyncMock(return_value=result)
@@ -277,14 +281,96 @@ async def test_parse_skips_pages_with_no_lines_or_whitespace_content() -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_returns_empty_list_when_result_has_no_pages() -> None:
-    fake_client = _make_fake_client_with_result(SimpleNamespace(pages=None))
+async def test_parse_returns_empty_list_when_result_has_no_pages_or_paragraphs() -> None:
+    fake_client = _make_fake_client_with_result(
+        SimpleNamespace(pages=None, paragraphs=None)
+    )
     parser = DocumentIntelligenceParser(
         settings=_make_settings(),
         credential=_make_credential(),
         client=fake_client,
     )
     assert await parser.parse(b"...", source="empty.pdf") == []
+
+
+@pytest.mark.asyncio
+async def test_parse_falls_back_to_paragraphs_when_pages_have_no_lines() -> None:
+    # Office / HTML shape: Document Intelligence returns a single pageless
+    # page with empty lines and puts the extracted text in `paragraphs`.
+    fake_result = SimpleNamespace(
+        pages=[SimpleNamespace(lines=[])],
+        paragraphs=[
+            _make_fake_paragraph("First paragraph."),
+            _make_fake_paragraph("Second paragraph."),
+        ],
+    )
+    fake_client = _make_fake_client_with_result(fake_result)
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=fake_client,
+    )
+    chunks = await parser.parse(b"...", source="press.docx")
+    assert chunks == [
+        Chunk(
+            id=BaseParser.make_chunk_id("press.docx", 0),
+            content="First paragraph.",
+            source="press.docx",
+            index=0,
+        ),
+        Chunk(
+            id=BaseParser.make_chunk_id("press.docx", 1),
+            content="Second paragraph.",
+            source="press.docx",
+            index=1,
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_parse_prefers_pages_and_skips_paragraph_fallback_when_pages_have_text() -> None:
+    # PDF shape: both `pages[].lines` and `paragraphs` are populated. Chunks
+    # must come from the page pass only; the paragraph fallback must not
+    # fire, so page content is never duplicated by paragraph content.
+    fake_result = SimpleNamespace(
+        pages=[_make_fake_page("page line")],
+        paragraphs=[_make_fake_paragraph("paragraph that must be ignored")],
+    )
+    fake_client = _make_fake_client_with_result(fake_result)
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=fake_client,
+    )
+    chunks = await parser.parse(b"...", source="report.pdf")
+    assert [c.content for c in chunks] == ["page line"]
+
+
+@pytest.mark.asyncio
+async def test_parse_paragraph_fallback_skips_empty_and_keeps_indices_dense() -> None:
+    fake_result = SimpleNamespace(
+        pages=[],
+        paragraphs=[
+            _make_fake_paragraph("real one"),
+            _make_fake_paragraph("   "),
+            _make_fake_paragraph(""),
+            _make_fake_paragraph(None),
+            _make_fake_paragraph("real two"),
+        ],
+    )
+    fake_client = _make_fake_client_with_result(fake_result)
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=fake_client,
+    )
+    chunks = await parser.parse(b"...", source="sparse.docx")
+    assert [c.id for c in chunks] == [
+        BaseParser.make_chunk_id("sparse.docx", 0),
+        BaseParser.make_chunk_id("sparse.docx", 1),
+    ]
+    assert [c.content for c in chunks] == ["real one", "real two"]
+
 
 
 @pytest.mark.asyncio
