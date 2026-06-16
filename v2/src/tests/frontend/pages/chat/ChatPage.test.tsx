@@ -58,6 +58,21 @@ function citationStream(): AsyncIterable<StreamEvent> {
   };
 }
 
+// A stream that yields one answer frame and then mints a brand-new
+// conversation id via `onConversationId` -- modelling the backend's
+// terminal control frame at the end of a freshly-persisted turn.
+function newConversationStream(
+  conversationId: string,
+  onConversationId?: (id: string) => void,
+): AsyncIterable<StreamEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      yield { channel: "answer", content: "Answer.", metadata: {} };
+      onConversationId?.(conversationId);
+    },
+  };
+}
+
 async function openCitationDetail() {
   fireEvent.change(screen.getByLabelText(/message/i), {
     target: { value: "hi" },
@@ -291,5 +306,90 @@ describe("ChatPage history selection", () => {
     expect(
       screen.getByTestId("history-item-conv-7").getAttribute("aria-current"),
     ).toBe("true");
+  });
+});
+
+describe("ChatPage history auto-refresh", () => {
+  function stubCountingHistory(): { count: () => number } {
+    let historyListCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.endsWith("/api/history/status")) {
+          return new Response(
+            JSON.stringify({ enabled: true, db_type: "cosmosdb" }),
+            { status: 200 },
+          );
+        }
+        if (url.endsWith("/api/history/conversations")) {
+          historyListCalls += 1;
+          return new Response("[]", { status: 200 });
+        }
+        return new Response("not found", { status: 404 });
+      }),
+    );
+    return { count: () => historyListCalls };
+  }
+
+  it("refetches the conversation history after a new conversation is inserted", async () => {
+    const history = stubCountingHistory();
+    streamChatMock.mockImplementation((_messages, options) =>
+      newConversationStream("conv-new", options?.onConversationId),
+    );
+
+    render(<ChatPage historyOpen />);
+
+    // History loads once on mount.
+    await waitFor(() => {
+      expect(history.count()).toBe(1);
+    });
+
+    // The first message in a fresh chat mints a conversation id,
+    // flipping conversationId null -> non-null; the panel silently
+    // re-fetches so the new entry appears.
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: "first message" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+
+    await waitFor(() => {
+      expect(history.count()).toBe(2);
+    });
+  });
+
+  it("does not refetch history while the same conversation continues", async () => {
+    const history = stubCountingHistory();
+    streamChatMock.mockImplementation((_messages, options) =>
+      newConversationStream("conv-stable", options?.onConversationId),
+    );
+
+    render(<ChatPage historyOpen />);
+    await waitFor(() => {
+      expect(history.count()).toBe(1);
+    });
+
+    // First message mints conv-stable -> one refetch (count 2).
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: "first" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+    await waitFor(() => {
+      expect(history.count()).toBe(2);
+    });
+
+    // Second message re-emits the SAME id; conversationId does not
+    // transition null -> non-null, so no further refetch fires.
+    fireEvent.change(screen.getByLabelText(/message/i), {
+      target: { value: "second" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /send/i }));
+    await waitFor(() => {
+      expect(streamChatMock).toHaveBeenCalledTimes(2);
+    });
+    // Flush any pending effects, then confirm no extra history call.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(history.count()).toBe(2);
   });
 });

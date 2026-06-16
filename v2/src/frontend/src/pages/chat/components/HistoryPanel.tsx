@@ -46,6 +46,10 @@ interface LoadState {
 export interface HistoryPanelProps {
   selectedId?: string | null;
   onSelect?: (id: string) => void;
+  // Bumping this value triggers a silent background re-fetch of the
+  // conversation list (e.g. when the chat page mints a brand-new
+  // conversation, so the freshly-persisted entry appears in the panel).
+  reloadKey?: number;
 }
 
 function buildUrl(path: string): string {
@@ -74,6 +78,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 export function HistoryPanel({
   selectedId,
   onSelect,
+  reloadKey = 0,
 }: HistoryPanelProps): JSX.Element {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [items, setItems] = useState<HistoryConversation[]>([]);
@@ -108,7 +113,7 @@ export function HistoryPanel({
     return () => {
       controller.abort();
     };
-  }, [refresh]);
+  }, [refresh, reloadKey]);
 
   const handleRename = useCallback(
     async (id: string, currentTitle: string) => {

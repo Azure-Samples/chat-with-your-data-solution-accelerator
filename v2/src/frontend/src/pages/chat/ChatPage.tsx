@@ -14,7 +14,7 @@
  * `<CoralShellRow>` (flex:1 / min-height:0) — this shell just fills
  * 100% and lets its grid cells handle their own overflow.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchConversation } from "@/api/conversationHistory";
 import { ChatProvider, useChat } from "./ChatContext";
 import { PanelLeft } from "@/components/CoralShell/PanelLeft";
@@ -38,7 +38,25 @@ export interface ChatPageProps {
 function ChatShell({ historyOpen }: { historyOpen: boolean }) {
   const { state, dispatch } = useChat();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [historyReloadKey, setHistoryReloadKey] = useState(0);
+  const prevConversationIdRef = useRef<string | null>(state.conversationId);
   const citationOpen = state.activeCitation !== null;
+
+  // A brand-new conversation is "inserted" when the backend mints its
+  // id at the end of the first persisted turn, flipping conversationId
+  // null -> non-null. Bumping `historyReloadKey` on that transition
+  // makes the history panel silently re-fetch so the new entry appears.
+  // Selecting a past conversation from an empty chat also flips
+  // null -> non-null; that yields one harmless silent refetch.
+  useEffect(() => {
+    if (
+      prevConversationIdRef.current === null &&
+      state.conversationId !== null
+    ) {
+      setHistoryReloadKey((key) => key + 1);
+    }
+    prevConversationIdRef.current = state.conversationId;
+  }, [state.conversationId]);
 
   // Selecting a past conversation rehydrates its stored transcript +
   // persisted citations: highlight the row, fetch the saved messages,
@@ -75,7 +93,11 @@ function ChatShell({ historyOpen }: { historyOpen: boolean }) {
         aria-label="conversation history"
         className={styles.sidebar}
       >
-        <HistoryPanel selectedId={selectedId} onSelect={handleSelect} />
+        <HistoryPanel
+          selectedId={selectedId}
+          onSelect={handleSelect}
+          reloadKey={historyReloadKey}
+        />
       </PanelLeft>
       <div className={styles.main}>
         <div className={styles.scroll}>

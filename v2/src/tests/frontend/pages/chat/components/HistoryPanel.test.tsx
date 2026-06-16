@@ -308,4 +308,46 @@ describe("HistoryPanel", () => {
     );
     expect(listCall?.principal).toBe(DEFAULT_USER_ID);
   });
+
+  it("refetches the conversation list when reloadKey changes", async () => {
+    const calls = installFetch({
+      list: () =>
+        new Response(JSON.stringify(sampleList), { status: 200 }),
+    });
+    const listCalls = () =>
+      calls.filter(
+        (c) =>
+          c.method === "GET" &&
+          c.url.endsWith("/api/history/conversations"),
+      );
+    const { rerender } = render(<HistoryPanel reloadKey={0} />);
+
+    await screen.findByTestId("history-list");
+    expect(listCalls()).toHaveLength(1);
+
+    // A new conversation bumps the key; the panel silently refetches.
+    rerender(<HistoryPanel reloadKey={1} />);
+    await waitFor(() => {
+      expect(listCalls()).toHaveLength(2);
+    });
+  });
+
+  it("does not refetch when reloadKey is unchanged across re-renders", async () => {
+    const calls = installFetch({
+      list: () =>
+        new Response(JSON.stringify(sampleList), { status: 200 }),
+    });
+    const { rerender } = render(<HistoryPanel reloadKey={3} />);
+
+    await screen.findByTestId("history-list");
+    // An unrelated parent update re-renders with the same reloadKey.
+    rerender(<HistoryPanel reloadKey={3} selectedId="c-1" />);
+    await Promise.resolve();
+
+    const listCalls = calls.filter(
+      (c) =>
+        c.method === "GET" && c.url.endsWith("/api/history/conversations"),
+    );
+    expect(listCalls).toHaveLength(1);
+  });
 });
