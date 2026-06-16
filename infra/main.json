@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "8257042867279369414"
+      "templateHash": "9642437726761388509"
     }
   },
   "parameters": {
@@ -21540,7 +21540,7 @@
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('monitoring').outputs.logAnalyticsWorkspaceId.value))), createObject('value', null()))]",
           "privateEndpoints": "[if(parameters('enablePrivateNetworking'), createObject('value', createArray(createObject('name', format('pep-{0}', variables('keyVaultName')), 'customNetworkInterfaceName', format('nic-{0}', variables('keyVaultName')), 'privateDnsZoneGroup', createObject('privateDnsZoneGroupConfigs', createArray(createObject('privateDnsZoneResourceId', reference(format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').keyVault)).outputs.resourceId.value))), 'service', 'vault', 'subnetResourceId', reference('virtualNetwork').outputs.pepsSubnetResourceId.value))), createObject('value', createArray()))]",
           "roleAssignments": {
-            "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()), if(not(empty(parameters('principal').id)), createArray(createObject('principalId', parameters('principal').id, 'roleDefinitionIdOrName', 'Key Vault Secrets User')), createArray()))]"
+            "value": "[concat(if(not(equals(reference('managedIdentityModule').outputs.principalId.value, '')), createArray(createObject('principalId', reference('managedIdentityModule').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionIdOrName', '4633458b-17de-408a-b874-0445c86b69e6')), createArray()), if(not(empty(parameters('principal').id)), createArray(createObject('principalId', parameters('principal').id, 'roleDefinitionIdOrName', '4633458b-17de-408a-b874-0445c86b69e')), createArray()))]"
           },
           "secrets": {
             "value": [
@@ -52724,7 +52724,7 @@
               },
               {
                 "principalId": "[reference('managedIdentityModule').outputs.principalId.value]",
-                "roleDefinitionIdOrName": "Storage File Data Privileged Contributor",
+                "roleDefinitionIdOrName": "69566ab7-960f-475b-8e7c-b3118f30c6bd",
                 "principalType": "ServicePrincipal"
               }
             ]
@@ -55924,9 +55924,9 @@
         }
       },
       "dependsOn": [
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageFile)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageBlob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').storageQueue)]",
         "managedIdentityModule",
         "virtualNetwork"
       ]
