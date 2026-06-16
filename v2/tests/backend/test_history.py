@@ -13,6 +13,7 @@ from backend.core.settings import Environment
 from backend.core.tools.content_safety import ContentSafetyVerdict
 from backend.core.types import ChatMessage, Conversation, MessageRecord
 from backend.dependencies import (
+    _is_valid_principal_id,
     get_app_settings,
     get_content_safety_guard,
     get_database_client,
@@ -138,6 +139,62 @@ def test_get_user_id_raises_401_in_production_when_header_missing() -> None:
     with pytest.raises(HTTPException) as exc:
         get_user_id(Request(scope), settings)
     assert exc.value.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "00000000-0000-0000-0000-000000000000",  # all-zeros default user
+        "6b2e1f54-1c2d-4a8b-9f0e-1234567890ab",  # Entra object id
+        "local-dev",  # synthetic fallback
+        "integration-user",  # synthetic test principal
+    ],
+)
+def test_is_valid_principal_id_accepts_well_formed(value: str) -> None:
+    assert _is_valid_principal_id(value) is True
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "robert'); DROP TABLE users;--",  # injection punctuation + spaces
+        "user with spaces",  # internal whitespace
+        "bad\nid",  # control character
+        "x" * 129,  # overlong (>128)
+    ],
+)
+def test_is_valid_principal_id_rejects_malformed(value: str) -> None:
+    assert _is_valid_principal_id(value) is False
+
+
+def test_get_user_id_rejects_malformed_principal_id() -> None:
+    """B2: a present-but-malformed principal id fails closed.
+
+    A header carrying injection punctuation is never a legitimate
+    identity token; reject it with 401 regardless of environment so
+    the value never reaches a database partition key.
+    """
+    scope: dict[str, Any] = {
+        "type": "http",
+        "headers": [(b"x-ms-client-principal-id", b"robert'); DROP TABLE users;--")],
+    }
+    settings = MagicMock(environment=Environment.LOCAL)
+    with pytest.raises(HTTPException) as exc:
+        get_user_id(Request(scope), settings)
+    assert exc.value.status_code == 401
+
+
+def test_get_user_id_accepts_all_zeros_default_user() -> None:
+    """B2: the frontend's all-zeros default user id is well-formed."""
+    scope: dict[str, Any] = {
+        "type": "http",
+        "headers": [(b"x-ms-client-principal-id", b"00000000-0000-0000-0000-000000000000")],
+    }
+    settings = MagicMock(environment=Environment.PRODUCTION)
+    assert (
+        get_user_id(Request(scope), settings)
+        == "00000000-0000-0000-0000-000000000000"
+    )
 
 
 # ---------------------------------------------------------------------------

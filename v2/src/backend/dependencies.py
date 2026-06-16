@@ -24,6 +24,7 @@ import base64
 import binascii
 import json
 import logging
+import re
 from collections.abc import Callable
 from typing import Annotated, Any, cast
 
@@ -314,6 +315,31 @@ _LOCAL_DEV_USER = "local-dev"
 _ROLE_TYP_SHORT = "roles"
 _ROLE_TYP_FULL = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
 
+# Defensive allowlist for principal ids: alphanumerics plus the few
+# punctuation characters that legitimately appear in Entra object ids,
+# the all-zeros default user id, and the `local-dev` fallback, bounded
+# to 128 characters. Anything else (control chars, whitespace,
+# injection punctuation, overlong strings) is rejected before the id
+# becomes a database partition key.
+_PRINCIPAL_ID_PATTERN = re.compile(r"[A-Za-z0-9._@-]{1,128}")
+
+
+def _is_valid_principal_id(value: str) -> bool:
+    """Return whether `value` is a well-formed principal id.
+
+    Defensive well-formedness only. A browser-forwarded principal id
+    is forgeable and is therefore **not** a trust boundary -- this
+    check rejects obviously-garbage values before the id is used as a
+    database partition key; it does not assert that the caller is who
+    the id claims to be (authenticity stays anchored on the backend's
+    own Easy Auth claims, handled by `requires_role`).
+
+    The allowlist admits Entra object ids, the all-zeros default user
+    id, and the synthetic `local-dev` fallback while excluding
+    everything that has no business in an identity token.
+    """
+    return _PRINCIPAL_ID_PATTERN.fullmatch(value) is not None
+
 
 def get_user_id(request: Request, settings: SettingsDep) -> str:
     """Return the caller's user id from the Easy Auth principal-id header.
@@ -333,6 +359,11 @@ def get_user_id(request: Request, settings: SettingsDep) -> str:
     """
     value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
     if value:
+        if not _is_valid_principal_id(value):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Malformed client principal id.",
+            )
         return value
     if settings.environment is Environment.LOCAL:
         return _LOCAL_DEV_USER

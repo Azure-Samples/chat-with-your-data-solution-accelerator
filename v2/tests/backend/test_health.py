@@ -218,6 +218,7 @@ def _build_app(env: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> FastAPI:
 async def test_health_returns_200_when_all_checks_pass(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.delenv("AZURE_ENVIRONMENT", raising=False)
     app = _build_app(COSMOS_ENV, monkeypatch)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         r = await ac.get("/api/health")
@@ -225,6 +226,7 @@ async def test_health_returns_200_when_all_checks_pass(
     body = r.json()
     assert body["status"] == "pass"
     assert body["version"] == "v2"
+    assert body["auth_enforced"] is False
     names = {c["name"]: c["status"] for c in body["checks"]}
     assert names == {"foundry_iq": "pass", "database": "pass", "search": "pass"}
 
@@ -302,7 +304,7 @@ async def test_health_response_model_shape(
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         r = await ac.get("/api/health")
     body = r.json()
-    assert set(body.keys()) == {"status", "version", "checks"}
+    assert set(body.keys()) == {"status", "version", "auth_enforced", "checks"}
     for check in body["checks"]:
         assert set(check.keys()) >= {"name", "status"}
 
