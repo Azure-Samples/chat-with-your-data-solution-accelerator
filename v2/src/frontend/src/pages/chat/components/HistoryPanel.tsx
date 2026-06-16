@@ -10,17 +10,16 @@
  * page can rehydrate messages once the SSE wiring (#24/#25) feeds
  * them through `ChatContext`.
  *
- * Backend agnostic: the router behind `/api/history` dispatches to
- * either `cosmosdb` or `postgresql` (see backend task #29) -- this
- * panel reads the discriminator from `/api/history/status` only to
- * surface it in the panel header for ops visibility, never to branch
- * behavior (Hard Rule #4: no `if/elif` over provider keys).
+ * Backend agnostic: the `/api/history` router dispatches to either
+ * `cosmosdb` or `postgresql`, but this panel never reads or surfaces
+ * that discriminator and never branches on it (Hard Rule #4: no
+ * `if/elif` over provider keys).
  *
- * Phase 6 polish: New / Rename / Delete buttons render as round icon
- * buttons (Fluent v9 Add16Regular / Edit16Regular / Delete16Regular).
- * Per-row Rename + Delete are hover/focus-revealed (Slack/Outlook
- * pattern). Every `data-testid` + `aria-label` is preserved verbatim
- * from Phase 4.
+ * Phase 6 polish: Rename / Delete buttons render as round icon
+ * buttons (Fluent v9 Edit16Regular / Delete16Regular). Per-row
+ * Rename + Delete are hover/focus-revealed (Slack/Outlook pattern).
+ * Every `data-testid` + `aria-label` is preserved verbatim from
+ * Phase 4.
  *
  * Phase 4 MACAE re-skin: rows render as MACAE-style `.tab` chips
  * (border-radius var(--borderRadiusMedium), hover
@@ -31,21 +30,13 @@
  * to avoid nesting two `complementary` landmarks.
  */
 import { useCallback, useEffect, useState, type JSX } from "react";
-import {
-  Add16Regular,
-  Delete16Regular,
-  Edit16Regular,
-} from "@fluentui/react-icons";
+import { Delete16Regular, Edit16Regular } from "@fluentui/react-icons";
 import type { HistoryConversation } from "@/models/chat";
+import { userIdHeaders } from "@/api/auth";
 import styles from "./HistoryPanel.module.css";
 
 const BACKEND_URL =
   (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
-
-interface HistoryStatus {
-  enabled: boolean;
-  db_type: string;
-}
 
 interface LoadState {
   status: "loading" | "ready" | "error";
@@ -64,6 +55,7 @@ function buildUrl(path: string): string {
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    ...userIdHeaders(),
   };
   if (init?.headers !== undefined) {
     Object.assign(headers, init.headers as Record<string, string>);
@@ -84,20 +76,18 @@ export function HistoryPanel({
   onSelect,
 }: HistoryPanelProps): JSX.Element {
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
-  const [status, setStatus] = useState<HistoryStatus | null>(null);
   const [items, setItems] = useState<HistoryConversation[]>([]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
       const init: RequestInit = signal ? { signal } : {};
-      const [statusPayload, list] = await Promise.all([
-        fetchJson<HistoryStatus>("/api/history/status", init),
-        fetchJson<HistoryConversation[]>("/api/history/conversations", init),
-      ]);
+      const list = await fetchJson<HistoryConversation[]>(
+        "/api/history/conversations",
+        init,
+      );
       if (signal?.aborted) {
         return;
       }
-      setStatus(statusPayload);
       setItems(list);
       setLoad({ status: "ready" });
     } catch (err) {
@@ -119,20 +109,6 @@ export function HistoryPanel({
       controller.abort();
     };
   }, [refresh]);
-
-  const handleNew = useCallback(async () => {
-    try {
-      const created = await fetchJson<HistoryConversation>(
-        "/api/history/conversations",
-        { method: "POST", body: JSON.stringify({ title: "New chat" }) },
-      );
-      setItems((prev) => [created, ...prev]);
-      onSelect?.(created.id);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "create failed";
-      setLoad({ status: "error", message });
-    }
-  }, [onSelect]);
 
   const handleRename = useCallback(
     async (id: string, currentTitle: string) => {
@@ -159,8 +135,9 @@ export function HistoryPanel({
   );
 
   const handleDelete = useCallback(
-    async (id: string) => {
-      if (!window.confirm("Delete this conversation?")) {
+    async (id: string, title: string) => {
+      const label = title || "Untitled";
+      if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) {
         return;
       }
       try {
@@ -185,24 +162,7 @@ export function HistoryPanel({
       <header className={styles.header}>
         <div className={styles.headerRow}>
           <h3 className={styles.title}>History</h3>
-          <button
-            type="button"
-            onClick={() => {
-              void handleNew();
-            }}
-            data-testid="history-new"
-            aria-label="New chat"
-            title="New chat"
-            className={styles.iconButton}
-          >
-            <Add16Regular aria-hidden="true" />
-          </button>
         </div>
-        {status !== null && (
-          <p data-testid="history-db-type" className={styles.dbType}>
-            backend: {status.db_type}
-          </p>
-        )}
       </header>
 
       {load.status === "loading" && (
@@ -257,7 +217,7 @@ export function HistoryPanel({
                   <button
                     type="button"
                     onClick={() => {
-                      void handleDelete(c.id);
+                      void handleDelete(c.id, c.title);
                     }}
                     data-testid={`history-delete-${c.id}`}
                     aria-label={`Delete ${c.title || "Untitled"}`}

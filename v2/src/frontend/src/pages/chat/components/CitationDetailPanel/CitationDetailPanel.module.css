@@ -16,10 +16,13 @@
   padding: var(--spacingVerticalL) var(--spacingHorizontalL);
   border-left: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
   background: var(--colorNeutralBackground1);
-  overflow-y: auto;
+  /* The panel itself never scrolls; only `.body` does, so the header,
+     title, and link stay pinned and always visible. */
+  overflow: hidden;
 }
 
 .header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -51,6 +54,7 @@
 }
 
 .title {
+  flex: 0 0 auto;
   margin: 0;
   font-size: var(--fontSizeBase500);
   font-weight: var(--fontWeightSemibold);
@@ -60,6 +64,7 @@
 }
 
 .link {
+  flex: 0 0 auto;
   display: inline-block;
   font-size: var(--fontSizeBase200);
   font-weight: var(--fontWeightSemibold);
@@ -72,6 +77,9 @@
 }
 
 .body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   font-size: var(--fontSizeBase300);
   line-height: var(--lineHeightBase300);
   color: var(--colorNeutralForeground1);

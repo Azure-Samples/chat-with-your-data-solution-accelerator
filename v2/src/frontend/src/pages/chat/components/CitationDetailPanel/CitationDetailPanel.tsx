@@ -12,6 +12,11 @@
  * becomes formatted HTML — without `rehype-raw`, so any embedded raw
  * HTML stays escaped and XSS-safe.
  *
+ * The header, title, and deep-link form a pinned head; only the
+ * reference body scrolls, and it is keyed by citation id so switching
+ * sources resets the body to the top instead of inheriting the prior
+ * scroll position.
+ *
  * Returns `null` when no citation is active so the column collapses
  * and the chat reclaims the full width. Dismissing dispatches
  * `close_citation`, which clears the active citation and unmounts the
@@ -19,7 +24,7 @@
  */
 import { Dismiss20Regular } from "@fluentui/react-icons";
 import { ChatActionType, useChat } from "@/pages/chat/ChatContext";
-import { MarkdownContent } from "../MarkdownContent";
+import { MarkdownContent } from "@/pages/chat/components/MarkdownContent";
 import { deriveDocumentHref } from "./documentHref";
 import styles from "./CitationDetailPanel.module.css";
 
@@ -43,7 +48,9 @@ export function CitationDetailPanel() {
           type="button"
           className={styles.dismiss}
           aria-label="Close citation detail"
-          onClick={() => dispatch({ type: ChatActionType.CloseCitation })}
+          onClick={() => {
+            dispatch({ type: ChatActionType.CloseCitation });
+          }}
           data-testid="citation-detail-dismiss"
         >
           <Dismiss20Regular />
@@ -63,7 +70,11 @@ export function CitationDetailPanel() {
           Open document
         </a>
       )}
-      <div className={styles.body} data-testid="citation-detail-body">
+      <div
+        key={citation.id}
+        className={styles.body}
+        data-testid="citation-detail-body"
+      >
         <MarkdownContent content={citation.snippet} />
       </div>
     </aside>

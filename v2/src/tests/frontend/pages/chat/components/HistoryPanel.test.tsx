@@ -9,6 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { HistoryPanel } from "@/pages/chat/components/HistoryPanel";
+import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
 
 interface FakeConv {
   id: string;
@@ -24,8 +25,15 @@ interface RouteHandlers {
   remove?: (id: string) => Response | Promise<Response>;
 }
 
+interface CapturedCall {
+  url: string;
+  method: string;
+  body?: unknown;
+  principal: string | null;
+}
+
 function installFetch(routes: RouteHandlers) {
-  const calls: { url: string; method: string; body?: unknown }[] = [];
+  const calls: CapturedCall[] = [];
   const json = (data: unknown, status = 200) =>
     new Response(JSON.stringify(data), {
       status,
@@ -41,7 +49,10 @@ function installFetch(routes: RouteHandlers) {
       const body = init?.body
         ? JSON.parse(init.body as string)
         : undefined;
-      calls.push({ url, method, body });
+      const principal = new Headers(
+        init?.headers as HeadersInit | undefined,
+      ).get("x-ms-client-principal-id");
+      calls.push({ url, method, body, principal });
 
       if (url.endsWith("/api/history/status") && method === "GET") {
         return (
@@ -77,6 +88,8 @@ function installFetch(routes: RouteHandlers) {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  // Reset the module-level resolved id so each test starts from default.
+  setUserId(null);
 });
 
 const sampleList: FakeConv[] = [
@@ -85,7 +98,7 @@ const sampleList: FakeConv[] = [
 ];
 
 describe("HistoryPanel", () => {
-  it("loads /api/history/status + /conversations on mount", async () => {
+  it("loads /conversations on mount without calling /api/history/status", async () => {
     const calls = installFetch({
       list: () =>
         new Response(JSON.stringify(sampleList), {
@@ -97,12 +110,22 @@ describe("HistoryPanel", () => {
     render(<HistoryPanel />);
 
     expect(await screen.findByTestId("history-list")).toBeInTheDocument();
-    expect(screen.getByTestId("history-db-type")).toHaveTextContent("cosmosdb");
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
 
     const urls = calls.map((c) => c.url);
-    expect(urls.some((u) => u.endsWith("/api/history/status"))).toBe(true);
     expect(urls.some((u) => u.endsWith("/api/history/conversations"))).toBe(true);
+    expect(urls.some((u) => u.endsWith("/api/history/status"))).toBe(false);
+  });
+
+  it("does not display the backend database name", async () => {
+    installFetch({
+      list: () =>
+        new Response(JSON.stringify(sampleList), { status: 200 }),
+    });
+    render(<HistoryPanel />);
+
+    await screen.findByTestId("history-list");
+    expect(screen.queryByTestId("history-db-type")).not.toBeInTheDocument();
   });
 
   it("renders the empty state when the API returns no conversations", async () => {
@@ -144,33 +167,15 @@ describe("HistoryPanel", () => {
     expect(item).toHaveAttribute("aria-current", "true");
   });
 
-  it("creates a new conversation, prepends it, and selects it", async () => {
-    const calls = installFetch({
+  it("does not render a New chat button in the history column", async () => {
+    installFetch({
       list: () =>
         new Response(JSON.stringify(sampleList), { status: 200 }),
-      create: () =>
-        new Response(
-          JSON.stringify({
-            id: "c-new",
-            title: "New chat",
-            updated_at: "2026-04-28T02:00:00Z",
-          }),
-          { status: 201 },
-        ),
     });
-    const onSelect = vi.fn();
-    render(<HistoryPanel onSelect={onSelect} />);
+    render(<HistoryPanel />);
 
     await screen.findByTestId("history-list");
-    fireEvent.click(screen.getByTestId("history-new"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("history-item-c-new")).toBeInTheDocument();
-    });
-    expect(onSelect).toHaveBeenCalledWith("c-new");
-
-    const post = calls.find((c) => c.method === "POST");
-    expect(post?.body).toEqual({ title: "New chat" });
+    expect(screen.queryByTestId("history-new")).not.toBeInTheDocument();
   });
 
   it("renames a conversation when the prompt resolves to a non-empty value", async () => {
@@ -238,5 +243,69 @@ describe("HistoryPanel", () => {
     await Promise.resolve();
     expect(calls.some((c) => c.method === "DELETE")).toBe(false);
     expect(screen.getByTestId("history-item-c-1")).toBeInTheDocument();
+  });
+
+  it("names the conversation in the delete confirmation prompt", async () => {
+    installFetch({
+      list: () =>
+        new Response(JSON.stringify(sampleList), { status: 200 }),
+    });
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<HistoryPanel />);
+
+    await screen.findByTestId("history-list");
+    fireEvent.click(screen.getByTestId("history-delete-c-1"));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Delete "First"? This cannot be undone.',
+    );
+  });
+
+  it("forwards the x-ms-client-principal-id header on list, rename, and delete", async () => {
+    setUserId("history-user-oid");
+    const calls = installFetch({
+      list: () =>
+        new Response(JSON.stringify(sampleList), { status: 200 }),
+    });
+    vi.spyOn(window, "prompt").mockReturnValue("Renamed");
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<HistoryPanel />);
+
+    // List on mount.
+    await screen.findByTestId("history-list");
+
+    // Rename (PATCH).
+    fireEvent.click(screen.getByTestId("history-rename-c-1"));
+    await waitFor(() => {
+      expect(calls.some((c) => c.method === "PATCH")).toBe(true);
+    });
+
+    // Delete (DELETE).
+    fireEvent.click(screen.getByTestId("history-delete-c-2"));
+    await waitFor(() => {
+      expect(calls.some((c) => c.method === "DELETE")).toBe(true);
+    });
+
+    const historyCalls = calls.filter((c) =>
+      c.url.includes("/api/history/conversations"),
+    );
+    expect(historyCalls.length).toBeGreaterThanOrEqual(3);
+    for (const call of historyCalls) {
+      expect(call.principal).toBe("history-user-oid");
+    }
+  });
+
+  it("forwards the default user id on history calls before a user resolves", async () => {
+    const calls = installFetch({
+      list: () =>
+        new Response(JSON.stringify(sampleList), { status: 200 }),
+    });
+    render(<HistoryPanel />);
+
+    await screen.findByTestId("history-list");
+    const listCall = calls.find((c) =>
+      c.url.endsWith("/api/history/conversations"),
+    );
+    expect(listCall?.principal).toBe(DEFAULT_USER_ID);
   });
 });

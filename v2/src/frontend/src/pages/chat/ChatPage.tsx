@@ -14,7 +14,8 @@
  * `<CoralShellRow>` (flex:1 / min-height:0) — this shell just fills
  * 100% and lets its grid cells handle their own overflow.
  */
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { fetchConversation } from "@/api/conversationHistory";
 import { ChatProvider, useChat } from "./ChatContext";
 import { PanelLeft } from "@/components/CoralShell/PanelLeft";
 import { HistoryPanel } from "./components/HistoryPanel";
@@ -35,9 +36,32 @@ export interface ChatPageProps {
  * of overlaying it.
  */
 function ChatShell({ historyOpen }: { historyOpen: boolean }) {
-  const { state } = useChat();
+  const { state, dispatch } = useChat();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const citationOpen = state.activeCitation !== null;
+
+  // Selecting a past conversation rehydrates its stored transcript +
+  // persisted citations: highlight the row, fetch the saved messages,
+  // then replace the live transcript via `load_conversation`.
+  const handleSelect = useCallback(
+    (id: string): void => {
+      setSelectedId(id);
+      void fetchConversation(id)
+        .then((loaded) => {
+          dispatch({
+            type: "load_conversation",
+            conversationId: loaded.conversationId,
+            messages: loaded.messages,
+          });
+        })
+        .catch(() => {
+          // A failed load leaves the current transcript intact; the row
+          // stays highlighted so re-selecting retries.
+        });
+    },
+    [dispatch],
+  );
+
   return (
     <section
       aria-label="chat"
@@ -51,7 +75,7 @@ function ChatShell({ historyOpen }: { historyOpen: boolean }) {
         aria-label="conversation history"
         className={styles.sidebar}
       >
-        <HistoryPanel selectedId={selectedId} onSelect={setSelectedId} />
+        <HistoryPanel selectedId={selectedId} onSelect={handleSelect} />
       </PanelLeft>
       <div className={styles.main}>
         <div className={styles.scroll}>

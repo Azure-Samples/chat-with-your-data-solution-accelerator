@@ -37,7 +37,7 @@ from typing import cast
 from fastapi import APIRouter, HTTPException, status
 
 from backend.core.types import ChatMessage, ChatRole, Conversation, MessageRecord
-from backend.dependencies import DatabaseClientDep, SettingsDep, UserIdDep
+from backend.dependencies import ContentSafetyGuardDep, DatabaseClientDep, SettingsDep, UserIdDep
 from backend.models.history import AddMessageRequest, ConversationDetail, CreateConversationRequest, HistoryStatus, RenameConversationRequest, SetFeedbackRequest
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,22 @@ async def rename_conversation(
     body: RenameConversationRequest,
     db: DatabaseClientDep,
     user_id: UserIdDep,
+    content_safety: ContentSafetyGuardDep,
 ) -> Conversation:
+    # A renamed title is user-visible persisted text, so it is screened
+    # by the content-safety guard (when enabled) before being stored: a
+    # flagged title is rejected with 400 and never written. When the
+    # guard is disabled (no client wired, or operator-off via runtime
+    # overrides) screening is skipped. A guard transport failure
+    # (AzureError) propagates to the app-level handler (503), not a
+    # route-level try/except (Hard Rule #9).
+    if content_safety is not None:
+        verdict = await content_safety.screen(body.title)
+        if verdict.flagged:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Title was blocked by the content safety guard.",
+            )
     try:
         return await db.rename_conversation(
             conversation_id, user_id, body.title

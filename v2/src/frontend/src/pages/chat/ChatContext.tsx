@@ -36,6 +36,8 @@ export const ChatActionType = {
   FocusCitation: "focus_citation",
   ShowCitation: "show_citation",
   CloseCitation: "close_citation",
+  SetConversationId: "set_conversation_id",
+  LoadConversation: "load_conversation",
   Reset: "reset",
 } as const;
 export type ChatActionType =
@@ -56,10 +58,20 @@ export type ChatAction =
   | { type: typeof ChatActionType.FocusCitation; citationId: string | null }
   | { type: typeof ChatActionType.ShowCitation; citation: Citation }
   | { type: typeof ChatActionType.CloseCitation }
+  | {
+      type: typeof ChatActionType.SetConversationId;
+      conversationId: string | null;
+    }
+  | {
+      type: typeof ChatActionType.LoadConversation;
+      conversationId: string;
+      messages: ChatMessage[];
+    }
   | { type: typeof ChatActionType.Reset };
 
 export const initialChatState: ChatState = {
   messages: [],
+  conversationId: null,
   focusedCitationId: null,
   activeCitation: null,
 };
@@ -129,6 +141,19 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       // dismiss does not churn reference equality for consumers.
       if (state.activeCitation === null) return state;
       return { ...state, activeCitation: null };
+    case ChatActionType.SetConversationId:
+      return { ...state, conversationId: action.conversationId };
+    case ChatActionType.LoadConversation:
+      // Replace the transcript wholesale and clear the per-conversation
+      // citation UI (focused token + detail column) so a freshly loaded
+      // thread starts clean. Each loaded message carries its own
+      // citations, so the reference panels rehydrate from the message
+      // list with no extra wiring.
+      return {
+        ...initialChatState,
+        conversationId: action.conversationId,
+        messages: action.messages,
+      };
     case ChatActionType.Reset:
       return initialChatState;
   }

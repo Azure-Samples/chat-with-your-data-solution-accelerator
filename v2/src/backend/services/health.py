@@ -4,7 +4,7 @@ Pillar: Stable Core
 Phase: 7 (router cleanup -- health-probe diagnostic helpers)
 """
 
-from backend.core.settings import AppSettings, DbType, IndexStore
+from backend.core.settings import AppSettings, DbType, Environment, IndexStore
 from backend.models.health import CheckStatus, DependencyCheck, HealthResponse, OverallStatus
 
 __all__ = ["run_health_checks"]
@@ -56,4 +56,8 @@ def _aggregate(checks: list[DependencyCheck]) -> OverallStatus:
 def run_health_checks(settings: AppSettings) -> HealthResponse:
     """Run every dependency probe and assemble the aggregated response."""
     checks = [_check_foundry(settings), _check_database(settings), _check_search(settings)]
-    return HealthResponse(status=_aggregate(checks), checks=checks)
+    return HealthResponse(
+        status=_aggregate(checks),
+        auth_enforced=settings.environment is Environment.PRODUCTION,
+        checks=checks,
+    )

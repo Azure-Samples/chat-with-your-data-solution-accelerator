@@ -40,6 +40,7 @@ export function FluentThemeBridge({
   const { theme } = useTheme();
   return (
     <FluentProvider
+      className="appFluentRoot"
       theme={theme === Theme.Dark ? teamsDarkTheme : teamsLightTheme}
     >
       {children}

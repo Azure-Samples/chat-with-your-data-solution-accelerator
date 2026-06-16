@@ -40,6 +40,7 @@ describe("chatReducer", () => {
   it("clears messages on 'reset'", () => {
     const populated: ChatState = {
       messages: [userMsg, botMsg],
+      conversationId: "conv-1",
       focusedCitationId: null,
       activeCitation: null,
     };
@@ -511,5 +512,124 @@ describe("chatReducer citation detail panel", () => {
     });
     const cleared = chatReducer(shown, { type: ChatActionType.Reset });
     expect(cleared.activeCitation).toBeNull();
+  });
+});
+
+describe("chatReducer conversation tracking", () => {
+  it("initializes conversationId to null", () => {
+    expect(initialChatState.conversationId).toBeNull();
+  });
+
+  it("'set_conversation_id' sets the id from null", () => {
+    const next = chatReducer(initialChatState, {
+      type: ChatActionType.SetConversationId,
+      conversationId: "conv-1",
+    });
+    expect(next.conversationId).toBe("conv-1");
+  });
+
+  it("'set_conversation_id' overwrites an existing id", () => {
+    const a = chatReducer(initialChatState, {
+      type: ChatActionType.SetConversationId,
+      conversationId: "conv-1",
+    });
+    const b = chatReducer(a, {
+      type: ChatActionType.SetConversationId,
+      conversationId: "conv-2",
+    });
+    expect(b.conversationId).toBe("conv-2");
+  });
+
+  it("'set_conversation_id' clears the id when passed null", () => {
+    const set = chatReducer(initialChatState, {
+      type: ChatActionType.SetConversationId,
+      conversationId: "conv-1",
+    });
+    const cleared = chatReducer(set, {
+      type: ChatActionType.SetConversationId,
+      conversationId: null,
+    });
+    expect(cleared.conversationId).toBeNull();
+  });
+
+  it("'set_conversation_id' does not touch the messages array", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: ChatActionType.Add,
+      message: userMsg,
+    });
+    const next = chatReducer(seeded, {
+      type: ChatActionType.SetConversationId,
+      conversationId: "conv-1",
+    });
+    expect(next.messages).toBe(seeded.messages);
+  });
+
+  it("'load_conversation' replaces the transcript and sets the id", () => {
+    const seeded = chatReducer(initialChatState, {
+      type: ChatActionType.Add,
+      message: { id: "old", role: "user", content: "stale" },
+    });
+    const loaded = chatReducer(seeded, {
+      type: ChatActionType.LoadConversation,
+      conversationId: "conv-9",
+      messages: [userMsg, botMsg],
+    });
+    expect(loaded.conversationId).toBe("conv-9");
+    expect(loaded.messages).toEqual([userMsg, botMsg]);
+  });
+
+  it("'load_conversation' rehydrates citations carried on the loaded messages", () => {
+    const citation: Citation = {
+      id: "doc-1",
+      title: "Loaded source",
+      url: "https://example.com/loaded",
+      snippet: "rehydrated snippet",
+      score: 0.5,
+      metadata: {},
+    };
+    const assistantWithCitations: ChatMessage = {
+      id: "a1",
+      role: "assistant",
+      content: "answer with a source",
+      citations: [citation],
+    };
+    const loaded = chatReducer(initialChatState, {
+      type: ChatActionType.LoadConversation,
+      conversationId: "conv-9",
+      messages: [userMsg, assistantWithCitations],
+    });
+    expect(loaded.messages[1]!.citations).toEqual([citation]);
+  });
+
+  it("'load_conversation' clears citation UI from the prior conversation", () => {
+    const prior: ChatState = {
+      messages: [botMsg],
+      conversationId: "conv-1",
+      focusedCitationId: "doc-1",
+      activeCitation: {
+        id: "doc-1",
+        title: "Prior",
+        url: "https://example.com/prior",
+        snippet: "prior",
+        score: null,
+        metadata: {},
+      },
+    };
+    const loaded = chatReducer(prior, {
+      type: ChatActionType.LoadConversation,
+      conversationId: "conv-2",
+      messages: [userMsg],
+    });
+    expect(loaded.focusedCitationId).toBeNull();
+    expect(loaded.activeCitation).toBeNull();
+  });
+
+  it("'reset' clears conversationId back to null", () => {
+    const set = chatReducer(initialChatState, {
+      type: ChatActionType.SetConversationId,
+      conversationId: "conv-1",
+    });
+    const cleared = chatReducer(set, { type: ChatActionType.Reset });
+    expect(cleared.conversationId).toBeNull();
   });
 });

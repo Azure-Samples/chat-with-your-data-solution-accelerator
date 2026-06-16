@@ -169,7 +169,17 @@ export function MessageInput() {
 
     try {
       for await (const ev of streamChat(history, {
+        // Continue the active thread when one exists; `null` starts a
+        // fresh conversation — the backend mints the id and returns it
+        // on the terminal `conversation` control frame, surfaced via
+        // `onConversationId` below.
+        conversationId: state.conversationId,
         signal: controller.signal,
+        // Record the backend-resolved id so the next turn appends to
+        // the same conversation instead of starting another.
+        onConversationId: (conversationId) => {
+          dispatch({ type: "set_conversation_id", conversationId });
+        },
       })) {
         switch (ev.channel) {
           case "answer":

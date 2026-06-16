@@ -77,6 +77,48 @@ function renderHarness(citation: Citation) {
   );
 }
 
+/**
+ * Switch harness: two controls that show two different citations through
+ * the real reducer, so a test can verify the panel updates in place when
+ * the active citation changes.
+ */
+function SwitchHarness() {
+  const { dispatch } = useChat();
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="show-a"
+        onClick={() =>
+          dispatch({ type: ChatActionType.ShowCitation, citation: docFull })
+        }
+      >
+        a
+      </button>
+      <button
+        type="button"
+        data-testid="show-b"
+        onClick={() =>
+          dispatch({ type: ChatActionType.ShowCitation, citation: docNoUrl })
+        }
+      >
+        b
+      </button>
+      <CitationDetailPanel />
+    </>
+  );
+}
+
+function renderSwitchHarness() {
+  return render(
+    <FluentProvider theme={webLightTheme}>
+      <ChatProvider>
+        <SwitchHarness />
+      </ChatProvider>
+    </FluentProvider>,
+  );
+}
+
 describe("CitationDetailPanel", () => {
   it("renders nothing when no citation is active", () => {
     renderHarness(docFull);
@@ -165,5 +207,42 @@ describe("CitationDetailPanel", () => {
       fireEvent.click(screen.getByTestId("citation-detail-dismiss"));
     });
     expect(screen.queryByTestId("citation-detail-panel")).toBeNull();
+  });
+
+  it("keeps the title and open-document link outside the scrolling body", () => {
+    renderHarness(docFull);
+    act(() => {
+      fireEvent.click(screen.getByTestId("harness-show"));
+    });
+
+    const body = screen.getByTestId("citation-detail-body");
+    const title = screen.getByTestId("citation-detail-title");
+    const link = screen.getByTestId("citation-detail-link");
+    // The pinned head (title + link) must sit outside the scroll region so
+    // it stays visible no matter how far the reference body is scrolled.
+    expect(body.contains(title)).toBe(false);
+    expect(body.contains(link)).toBe(false);
+  });
+
+  it("remounts the reference body when the active citation changes so it resets to the top", () => {
+    renderSwitchHarness();
+    act(() => {
+      fireEvent.click(screen.getByTestId("show-a"));
+    });
+    const firstBody = screen.getByTestId("citation-detail-body");
+    expect(screen.getByTestId("citation-detail-title")).toHaveTextContent(
+      "Benefit_Options.pdf - Part 1",
+    );
+
+    act(() => {
+      fireEvent.click(screen.getByTestId("show-b"));
+    });
+    const secondBody = screen.getByTestId("citation-detail-body");
+    expect(screen.getByTestId("citation-detail-title")).toHaveTextContent(
+      "No Link Source.pdf",
+    );
+    // key={citation.id} forces a fresh body node on citation change, so a
+    // stale scroll position cannot carry over from the previous source.
+    expect(secondBody).not.toBe(firstBody);
   });
 });

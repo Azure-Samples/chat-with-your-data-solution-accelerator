@@ -22,6 +22,8 @@ module*. The orchestrator stream is wrapped by
 content-safety / post-prompt guards once they are exposed via DI.
 """
 
+import logging
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import StreamingResponse
 
@@ -35,14 +37,22 @@ from backend.dependencies import (
     RuntimeOverridesDep,
     SearchProviderDep,
     SettingsDep,
+    UserIdDep,
 )
 from backend.models.conversation import ConversationRequest, ConversationResponse
 from backend.core.agents.definitions import CWYD_AGENT
 from backend.core.pipelines.chat import KB_SEARCH_NARRATION, run_chat
 from backend.core.providers.orchestrators import registry as orchestrators_registry
+from backend.core.types import ChatRole
 from backend.services.admin import resolve_effective_config
-from backend.services.conversation import collect_response
-from backend.services.sse import SSE_MEDIA_TYPE, sse_stream, wants_sse
+from backend.services.conversation import (
+    collect_response,
+    persist_turn,
+    persisting_sse_stream,
+)
+from backend.services.sse import SSE_MEDIA_TYPE, wants_sse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["conversation"])
 
@@ -60,6 +70,7 @@ async def conversation(
     agents: AgentsProviderDep,
     credential: CredentialDep,
     db: DatabaseClientDep,
+    user_id: UserIdDep,
     content_safety: ContentSafetyGuardDep,
     post_prompt: PostPromptValidatorDep,
     overrides: RuntimeOverridesDep,
@@ -130,13 +141,61 @@ async def conversation(
         retrieval_hint=retrieval_hint,
     )
 
+    # The turn's question is the latest user message -- the frontend
+    # sends the running thread ending with the new user turn. Both
+    # response modes persist the completed turn keyed by `user_id` (the
+    # Easy Auth principal id, or `local-dev` when running locally) so
+    # the history panel can replay it; a new thread is titled with this
+    # question, a follow-up appends to `body.conversation_id`.
+    question = next(
+        (m.content for m in reversed(body.messages) if m.role == ChatRole.USER),
+        "",
+    )
+
     if wants_sse(accept):
+        # The streaming wrapper tees the event stream to the client and
+        # persists the turn after the answer is fully sent, appending a
+        # terminal `conversation` control frame with the resolved id.
         return StreamingResponse(
-            sse_stream(events, request),
+            persisting_sse_stream(
+                events,
+                request,
+                db=db,
+                user_id=user_id,
+                conversation_id=body.conversation_id,
+                question=question,
+            ),
             media_type=SSE_MEDIA_TYPE,
         )
 
-    return await collect_response(events, conversation_id=body.conversation_id)
+    # Buffered mode: drain first (a blocked turn raises out of
+    # `collect_response` before any write), then persist the completed
+    # answer and echo the resolved conversation id. A storage failure is
+    # logged and swallowed -- the answer is already collected, so it is
+    # returned regardless (matches the streaming wrapper's contract).
+    response = await collect_response(events, conversation_id=body.conversation_id)
+    if question and response.content:
+        try:
+            resolved_id = await persist_turn(
+                db,
+                user_id=user_id,
+                conversation_id=body.conversation_id,
+                question=question,
+                answer=response.content,
+                citations=response.citations,
+            )
+        except Exception:  # noqa: BLE001 -- answer already collected; never fail the turn on a storage error
+            logger.exception(
+                "Failed to persist conversation turn.",
+                extra={
+                    "operation": "persist_turn",
+                    "user_id": user_id,
+                    "conversation_id": body.conversation_id,
+                },
+            )
+        else:
+            response = response.model_copy(update={"conversation_id": resolved_id})
+    return response
 
 
 __all__ = ["router"]

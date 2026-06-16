@@ -92,6 +92,15 @@ export interface ChatMessage {
 export interface ChatState {
   messages: ChatMessage[];
   /**
+   * Id of the conversation this transcript belongs to, or `null` for a
+   * fresh chat whose first turn has not been persisted yet. Set from the
+   * terminal `conversation` SSE control frame once the backend persists a
+   * turn, or from a history selection when an existing conversation is
+   * loaded; cleared by a reset / new-chat so the next message starts a
+   * new conversation.
+   */
+  conversationId: string | null;
+  /**
    * Id of the citation the user most recently focused via an inline
    * `[docN]` answer-bubble token. `<CitationPanel>` reads this to
    * auto-expand the matching accordion item. `null` means no inline

@@ -393,6 +393,44 @@ async def test_add_message_silently_skips_parent_bump_when_missing() -> None:
 
 
 @pytest.mark.asyncio
+async def test_add_message_round_trips_metadata() -> None:
+    """An assistant turn's citations travel into the message item dict and
+    read back via `_to_message`. Cosmos stores the dict natively, so the
+    value is written as-is (no serialization) and surfaces on the record."""
+    client, container = _make_client()
+    metadata = {"citations": [{"id": "doc1", "title": "Benefit_Options.pdf"}]}
+
+    rec = await client.add_message(
+        conversation_id="c1",
+        user_id="u1",
+        message=ChatMessage(role="assistant", content="answer", metadata=metadata),
+    )
+
+    msg_body = container.create_item.await_args.kwargs["body"]
+    # Written into the item dict as the native object (no json.dumps).
+    assert msg_body["metadata"] == metadata
+    # And surfaced on the returned record (create_item echoes the body).
+    assert rec.metadata == metadata
+
+
+@pytest.mark.asyncio
+async def test_to_message_defaults_metadata_to_empty_dict_for_legacy_doc() -> None:
+    """A message doc written before the metadata key existed reads back
+    with `metadata == {}` rather than raising."""
+    legacy_item = {
+        "id": "m-legacy",
+        "conversationId": "c1",
+        "role": "user",
+        "content": "q",
+        "createdAt": "2026-04-28T00:00:00+00:00",
+    }
+
+    record = CosmosDBClient._to_message(legacy_item)
+
+    assert record.metadata == {}
+
+
+@pytest.mark.asyncio
 async def test_list_messages_orders_by_created_at_asc() -> None:
     client, container = _make_client(
         container_items=[

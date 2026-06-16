@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 import asyncio
+import json
 import uuid
 
 import asyncpg
@@ -104,7 +105,10 @@ def _msg_row(
     role: str = "user",
     content: str = "hi",
     feedback: str | None = None,
+    metadata: str = "{}",
 ) -> dict[str, Any]:
+    # `metadata` is a JSON-shaped str -- asyncpg returns a JSONB column as
+    # text (no codec registered), so the fake mirrors that wire shape.
     return {
         "id": id,
         "conversation_id": conversation_id,
@@ -113,6 +117,7 @@ def _msg_row(
         "content": content,
         "created_at": datetime(2026, 4, 28, tzinfo=timezone.utc),
         "feedback": feedback,
+        "metadata": metadata,
     }
 
 
@@ -367,6 +372,61 @@ async def test_add_message_translates_fk_violation_to_keyerror() -> None:
             user_id="u1",
             message=ChatMessage(role="user", content="hi"),
         )
+
+
+@pytest.mark.asyncio
+async def test_add_message_round_trips_metadata_as_jsonb() -> None:
+    """An assistant turn's citations travel into storage via the JSONB
+    `metadata` column: the INSERT carries the column, the bound parameter
+    is the JSON-serialized dict (JSONB accepts a JSON str), and the
+    RETURNING row parses back into `MessageRecord.metadata`."""
+    pool, conn = _make_pool()
+    metadata = {"citations": [{"id": "doc1", "title": "Benefit_Options.pdf"}]}
+    conn.fetchrow = AsyncMock(
+        return_value=_msg_row(
+            role="assistant", content="answer", metadata=json.dumps(metadata)
+        )
+    )
+    client = _make_client(pool=pool)
+
+    rec = await client.add_message(
+        conversation_id=_CID,
+        user_id="u1",
+        message=ChatMessage(role="assistant", content="answer", metadata=metadata),
+    )
+
+    insert_sql = conn.fetchrow.await_args.args[0]
+    assert insert_sql.startswith("INSERT INTO messages")
+    assert "metadata" in insert_sql
+    # The dict is bound as a JSON-shaped str (not the raw dict).
+    assert json.dumps(metadata) in conn.fetchrow.await_args.args
+    # The read path parses the JSONB str back into the dict.
+    assert rec.metadata == metadata
+
+
+@pytest.mark.asyncio
+async def test_list_messages_selects_and_parses_metadata() -> None:
+    """`list_messages` includes `metadata` in the SELECT and parses each
+    JSONB str back into a dict so a reloaded conversation carries it."""
+    pool, _ = _make_pool()
+    pool.fetch = AsyncMock(
+        return_value=[
+            _msg_row(role="user", content="q"),
+            _msg_row(
+                role="assistant",
+                content="a",
+                metadata='{"citations": [{"id": "doc1"}]}',
+            ),
+        ]
+    )
+    client = _make_client(pool=pool)
+
+    msgs = await client.list_messages(_CID, "u1")
+
+    sql = pool.fetch.await_args.args[0]
+    assert "metadata" in sql
+    assert msgs[0].metadata == {}
+    assert msgs[1].metadata == {"citations": [{"id": "doc1"}]}
 
 
 @pytest.mark.asyncio

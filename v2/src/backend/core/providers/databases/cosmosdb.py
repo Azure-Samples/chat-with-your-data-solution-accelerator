@@ -196,6 +196,7 @@ class CosmosDBClient(BaseDatabaseClient):
             content=str(item.get("content", "")),
             created_at=str(item.get("createdAt", "")),
             feedback=str(feedback) if feedback is not None else None,
+            metadata=item.get("metadata", {}),
         )
 
     async def _read_item(
@@ -399,6 +400,12 @@ class CosmosDBClient(BaseDatabaseClient):
             "role": message.role,
             "content": message.content,
             "createdAt": now,
+            # Cosmos stores the JSON object natively (no serialization
+            # step, unlike the Postgres JSONB column); a missing key on a
+            # legacy doc reads back as `{}` in `_to_message`. Carries the
+            # provider-agnostic per-message extras (an assistant turn's
+            # citations) so a reloaded conversation rehydrates them.
+            "metadata": message.metadata,
         }
         try:
             stored = await container.create_item(body=item)

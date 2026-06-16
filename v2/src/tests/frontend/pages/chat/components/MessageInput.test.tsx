@@ -39,9 +39,20 @@ function probeMessages() {
   return JSON.parse(screen.getByTestId("probe").textContent ?? "[]");
 }
 
+function probeConversationId(): string {
+  return screen.getByTestId("conversation-id-probe").textContent ?? "";
+}
+
 function Probe() {
   const { state } = useChat();
-  return <div data-testid="probe">{JSON.stringify(state.messages)}</div>;
+  return (
+    <>
+      <div data-testid="probe">{JSON.stringify(state.messages)}</div>
+      <div data-testid="conversation-id-probe">
+        {state.conversationId ?? "null"}
+      </div>
+    </>
+  );
 }
 
 function renderInput() {
@@ -566,6 +577,99 @@ describe("MessageInput cancel button", () => {
       expect(m.content).toBe("partial");
       expect(m.error ?? null).toBeNull();
     });
+  });
+});
+
+describe("MessageInput conversation-id wiring", () => {
+  beforeEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  afterEach(() => {
+    streamChatMock.mockReset();
+  });
+
+  it("sends conversationId: null to streamChat on a fresh chat", async () => {
+    streamChatMock.mockReturnValue(iterableOf([]));
+    renderInput();
+    await submit("first question");
+
+    await waitFor(() => {
+      expect(streamChatMock).toHaveBeenCalledTimes(1);
+    });
+    const opts = streamChatMock.mock.calls[0]![1];
+    expect(opts?.conversationId).toBeNull();
+  });
+
+  it("records the backend conversation id from the onConversationId callback", async () => {
+    streamChatMock.mockImplementation((_msgs, opts) => ({
+      async *[Symbol.asyncIterator]() {
+        yield { channel: "answer", content: "hi", metadata: {} };
+        opts?.onConversationId?.("conv-7");
+      },
+    }));
+
+    renderInput();
+    expect(probeConversationId()).toBe("null");
+    await submit("hello");
+
+    await waitFor(() => {
+      expect(probeConversationId()).toBe("conv-7");
+    });
+  });
+
+  it("continues the same conversation on the next submit", async () => {
+    streamChatMock.mockImplementationOnce((_msgs, opts) => ({
+      async *[Symbol.asyncIterator]() {
+        yield { channel: "answer", content: "first", metadata: {} };
+        opts?.onConversationId?.("conv-9");
+      },
+    }));
+    streamChatMock.mockReturnValueOnce(iterableOf([]));
+
+    renderInput();
+    await submit("first");
+    await waitFor(() => {
+      expect(probeMessages()[1].streaming).toBe(false);
+    });
+    await waitFor(() => {
+      expect(probeConversationId()).toBe("conv-9");
+    });
+
+    await submit("second");
+    await waitFor(() => {
+      expect(streamChatMock).toHaveBeenCalledTimes(2);
+    });
+    // The id recorded from the first stream is re-sent so the backend
+    // appends the second turn to the same conversation.
+    expect(streamChatMock.mock.calls[1]![1]?.conversationId).toBe("conv-9");
+  });
+
+  it("starts a fresh conversation (conversationId: null) after a reset", async () => {
+    streamChatMock.mockImplementationOnce((_msgs, opts) => ({
+      async *[Symbol.asyncIterator]() {
+        yield { channel: "answer", content: "hi", metadata: {} };
+        opts?.onConversationId?.("conv-3");
+      },
+    }));
+    streamChatMock.mockReturnValueOnce(iterableOf([]));
+
+    renderInput();
+    await submit("first");
+    await waitFor(() => {
+      expect(probeConversationId()).toBe("conv-3");
+    });
+
+    fireEvent.click(screen.getByTestId("message-input-clear"));
+    await waitFor(() => {
+      expect(probeConversationId()).toBe("null");
+    });
+
+    await submit("second");
+    await waitFor(() => {
+      expect(streamChatMock).toHaveBeenCalledTimes(2);
+    });
+    expect(streamChatMock.mock.calls[1]![1]?.conversationId).toBeNull();
   });
 });
 
