@@ -11,6 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { streamChat } from "@/api/streamChat";
+import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
 import type { StreamEvent } from "@/models/chat";
 
 const enc = new TextEncoder();
@@ -50,6 +51,8 @@ describe("streamChat", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    // `streamChat` forwards the shared auth singleton; reset it.
+    setUserId(null);
   });
 
   it("posts the messages payload to /api/conversation with SSE Accept header", async () => {
@@ -67,6 +70,25 @@ describe("streamChat", () => {
     expect(JSON.parse(init.body as string)).toEqual({
       messages: [{ role: "user", content: "hello" }],
     });
+  });
+
+  it("forwards the default principal id header when no user is resolved", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    await collect(streamChat([{ role: "user", content: "hello" }]));
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["x-ms-client-principal-id"]).toBe(DEFAULT_USER_ID);
+  });
+
+  it("forwards the resolved principal id header once a user is set", async () => {
+    setUserId("6b2e1f54-1c2d-4a8b-9f0e-1234567890ab");
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    await collect(streamChat([{ role: "user", content: "hello" }]));
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["x-ms-client-principal-id"]).toBe(
+      "6b2e1f54-1c2d-4a8b-9f0e-1234567890ab",
+    );
   });
 
   it("yields a single answer event from one well-formed SSE frame", async () => {

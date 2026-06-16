@@ -17,6 +17,7 @@
  * `streamChat` / `documentHref` / `HistoryPanel` base convention.
  */
 import type { ChatMessage, Citation, MessageRole } from "@/models/chat";
+import { userIdHeaders } from "@/api/auth";
 
 /** Result of {@link fetchConversation}: the resolved id + rehydrated transcript. */
 export interface LoadedConversation {
@@ -139,7 +140,7 @@ export async function fetchConversation(id: string): Promise<LoadedConversation>
   const url = `${backendUrl()}/api/history/conversations/${encodeURIComponent(id)}`;
   const response = await fetch(url, {
     method: "GET",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...userIdHeaders() },
   });
   if (!response.ok) {
     throw new Error(

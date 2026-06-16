@@ -11,6 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchConversation } from "@/api/conversationHistory";
+import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
 
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {
@@ -31,6 +32,8 @@ describe("fetchConversation", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    // `fetchConversation` forwards the shared auth singleton; reset it.
+    setUserId(null);
   });
 
   it("GETs the conversation detail route with the encoded id and JSON Accept header", async () => {
@@ -42,6 +45,25 @@ describe("fetchConversation", () => {
     expect(init.method).toBe("GET");
     const headers = init.headers as Record<string, string>;
     expect(headers["Accept"]).toBe("application/json");
+  });
+
+  it("forwards the default principal id header when no user is resolved", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ messages: [] }));
+    await fetchConversation("conv-1");
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["x-ms-client-principal-id"]).toBe(DEFAULT_USER_ID);
+  });
+
+  it("forwards the resolved principal id header once a user is set", async () => {
+    setUserId("6b2e1f54-1c2d-4a8b-9f0e-1234567890ab");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ messages: [] }));
+    await fetchConversation("conv-1");
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["x-ms-client-principal-id"]).toBe(
+      "6b2e1f54-1c2d-4a8b-9f0e-1234567890ab",
+    );
   });
 
   it("prepends VITE_BACKEND_URL to the detail route when set", async () => {

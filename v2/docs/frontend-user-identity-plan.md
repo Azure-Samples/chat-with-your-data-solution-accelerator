@@ -56,20 +56,20 @@ A browser-forwarded `x-ms-client-principal-id` is **not** a trust boundary — a
 
 ### Phase 2 — Frontend identity module (`api/auth.tsx`)
 
-* [ ] F1 — auth models: `UserInfo` / `AuthStatus` types + `DEFAULT_USER_ID` constant; vitest.
-* [ ] F2 — `getUserInfo()` → `fetch("/.auth/me")`, parse the principal, extract the `objectidentifier` claim, degrade gracefully on failure; vitest.
-* [ ] F3 — module-level resolved id + `getUserId()` (resolved id or default), `setUserId()`, and `userIdHeaders()`; vitest.
+* [x] F1 — auth models (`models/auth.tsx`): `UserClaim` / `AuthMeResponse` wire shapes, `UserInfo` / `AuthState` domain shapes, and the `AuthPhase` closed-set enum; vitest. (`DEFAULT_USER_ID` moved to `api/auth.tsx` per the v2-frontend "models declare types only — no constants" rule.)
+* [x] F2 — `api/auth.tsx` `getUserInfo()` → `fetch("/.auth/me")` (SPA origin, never the backend), extract the `objectidentifier` claim, degrade gracefully to `null` on failure / empty / missing-claim; vitest.
+* [x] F3 — `api/auth.tsx`: `DEFAULT_USER_ID` const + module-level resolved id + `getUserId()` (resolved id or default), `setUserId()`, and `userIdHeaders()` → `{ "x-ms-client-principal-id": <id> }`; vitest. (F3b folded in: with D2 health-fold, the bootstrap reads `auth_enforced` off the existing health payload — no separate getter.)
 
 ### Phase 3 — Inject the header into every client (one file per unit)
 
-* [ ] F4 — `streamChat.tsx` spreads `userIdHeaders()`; test.
-* [ ] F5 — `conversationHistory.tsx` spreads `userIdHeaders()`; test.
-* [ ] F6 — `admin.tsx` spreads `userIdHeaders()` on every call; test.
-* [ ] F7 — `speech.tsx` spreads `userIdHeaders()`; test.
+* [x] F4 — `streamChat.tsx` spreads `userIdHeaders()` onto the `POST /api/conversation` request; test.
+* [x] F5 — `conversationHistory.tsx` spreads `userIdHeaders()` onto the `GET /api/history/conversations/{id}` request; test.
+* [x] F6 — `admin.tsx` spreads `userIdHeaders()` on every call (all 8 fetch sites; `resetAdminConfig` inherits via `patchAdminConfig`); test.
+* [x] F7 — `speech.tsx` spreads `userIdHeaders()`; test.
 
 ### Phase 4 — Bootstrap + UI
 
-* [ ] F8 — auth context / provider (`userId`, `userInfo`, `authEnforced`) or `AppShell` state; vitest.
+* [x] F8 — auth state machine (`hooks/useAuth.tsx`): owns `AuthState`, exposes `resolve(authEnforced, userInfo)` syncing the `api/auth.tsx` singleton; `renderHook` vitest. (Hard Rule #10: chose the existing `hooks/` folder over a new `src/auth/` Context — only the shell consumes it.)
 * [ ] F9 — bootstrap effect in `App.tsx` `AppShell`: read `auth_enforced`, call `getUserInfo()`, set the resolved or default user, mark blocked when enforced but absent; vitest.
 * [ ] F10 — blocked-screen component (Fluent v9 adaptation of the v1 "Authentication Not Configured" screen); vitest.
 * [ ] F11 — render the blocked screen in the shell when `authEnforced && !userId`; vitest.

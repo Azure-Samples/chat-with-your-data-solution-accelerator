@@ -17,6 +17,7 @@ import {
   resetAdminConfig,
   uploadDocument,
 } from "@/api/admin";
+import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
 import type {
   AdminConfig,
   AdminStatus,
@@ -811,4 +812,88 @@ describe("resetAdminConfig", () => {
 
     await expect(resetAdminConfig()).rejects.toThrow(/status 403/);
   });
+});
+
+describe("principal id header forwarding", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    // Admin calls forward the shared auth singleton; reset it.
+    setUserId(null);
+  });
+
+  const RESOLVED_ID = "6b2e1f54-1c2d-4a8b-9f0e-1234567890ab";
+
+  const calls: {
+    name: string;
+    fixture: unknown;
+    invoke: () => Promise<unknown>;
+  }[] = [
+    { name: "getAdminStatus", fixture: STATUS_FIXTURE, invoke: getAdminStatus },
+    {
+      name: "addDocumentUrl",
+      fixture: INGEST_URL_FIXTURE,
+      invoke: () => addDocumentUrl("https://docs.example.com/article"),
+    },
+    {
+      name: "uploadDocument",
+      fixture: UPLOAD_FIXTURE,
+      invoke: () =>
+        uploadDocument(
+          new File(["pdf"], "test.pdf", { type: "application/pdf" }),
+        ),
+    },
+    { name: "reprocessAll", fixture: REPROCESS_FIXTURE, invoke: reprocessAll },
+    { name: "listDocuments", fixture: LIST_DOCUMENTS_FIXTURE, invoke: listDocuments },
+    {
+      name: "deleteDocument",
+      fixture: DELETE_DOCUMENT_FIXTURE,
+      invoke: () => deleteDocument("report.pdf"),
+    },
+    {
+      name: "getAdminConfig",
+      fixture: EFFECTIVE_CONFIG_FIXTURE,
+      invoke: getAdminConfig,
+    },
+    {
+      name: "patchAdminConfig",
+      fixture: RUNTIME_CONFIG_FIXTURE,
+      invoke: () => patchAdminConfig({ orchestrator_name: "langgraph" }),
+    },
+    {
+      name: "resetAdminConfig",
+      fixture: RUNTIME_CONFIG_FIXTURE,
+      invoke: resetAdminConfig,
+    },
+  ];
+
+  it.each(calls)(
+    "$name forwards the default principal id header when no user is resolved",
+    async ({ fixture, invoke }) => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(fixture));
+      await invoke();
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["x-ms-client-principal-id"]).toBe(DEFAULT_USER_ID);
+    },
+  );
+
+  it.each(calls)(
+    "$name forwards the resolved principal id header once a user is set",
+    async ({ fixture, invoke }) => {
+      setUserId(RESOLVED_ID);
+      fetchMock.mockResolvedValueOnce(jsonResponse(fixture));
+      await invoke();
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const headers = init.headers as Record<string, string>;
+      expect(headers["x-ms-client-principal-id"]).toBe(RESOLVED_ID);
+    },
+  );
 });

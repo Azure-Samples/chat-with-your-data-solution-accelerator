@@ -14,6 +14,7 @@
  * Azure Speech directly; no audio ever flows back through this
  * backend.
  */
+import { userIdHeaders } from "@/api/auth";
 import type { SpeechConfigPayload } from "@/models/speech";
 
 const SPEECH_URL = "/api/speech";
@@ -30,7 +31,7 @@ const SPEECH_URL = "/api/speech";
 export async function getSpeechConfig(): Promise<SpeechConfigPayload> {
   const response = await fetch(SPEECH_URL, {
     method: "GET",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...userIdHeaders() },
   });
   if (!response.ok) {
     throw new Error(
