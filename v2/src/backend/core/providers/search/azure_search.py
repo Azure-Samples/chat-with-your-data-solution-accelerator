@@ -207,9 +207,14 @@ class AzureSearch(BaseSearch):
         return results
 
     async def delete_by_source(self, source: str) -> int:
-        # OData string literals escape single quotes by doubling them.
-        escaped_source = source.replace("'", "''")
-        filter_expr = f"title eq '{escaped_source}'"
+        # `title` is searchable but NOT filterable in the deployed index,
+        # so a server-side `$filter` on it is rejected. Page every chunk
+        # selecting `id` + `title` and match the source by exact equality
+        # client-side -- the same index-schema-robust approach
+        # `list_sources` uses for the not-facetable `title`. Matching
+        # client-side also keeps the user-supplied filename out of any
+        # OData expression, closing the injection seam a server-side
+        # filter would open.
         client = self._get_client()
         ids: list[str] = []
         deleted_count = 0
@@ -218,12 +223,12 @@ class AzureSearch(BaseSearch):
                 AsyncIterable[dict[str, Any]],
                 await client.search(  # pyright: ignore[reportUnknownMemberType]
                     search_text="*",
-                    filter=filter_expr,
-                    select=["id"],
-                    top=1000,
+                    select=["id", "title"],
                 ),
             )
             async for doc in paged:
+                if doc.get("title") != source:
+                    continue
                 doc_id = doc.get("id")
                 if doc_id is not None:
                     ids.append(str(doc_id))
