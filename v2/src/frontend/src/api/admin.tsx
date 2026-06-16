@@ -32,6 +32,24 @@ const ADMIN_DOCUMENTS_INGEST_URL = "/api/admin/documents/url";
 const ADMIN_DOCUMENTS_REPROCESS_URL = "/api/admin/documents/reprocess";
 
 /**
+ * Absolute base for the backend API. `VITE_BACKEND_URL` is read at call
+ * time (empty when unset) so one bundle serves both the local Vite proxy
+ * (relative `/api/...`) and the deployed split-host topology, where the
+ * frontend (App Service) and backend (Container App) are different
+ * origins and an admin call must cross to the backend instead of hitting
+ * the SPA catch-all. Mirrors the `backendUrl()` seam in
+ * `conversationHistory.tsx` and the `apiUrl()` seam in `HistoryPanel.tsx`.
+ */
+function backendUrl(): string {
+  return (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
+}
+
+/** Join the backend base (trailing slash trimmed) with an API path. */
+function apiUrl(path: string): string {
+  return `${backendUrl().replace(/\/$/, "")}${path}`;
+}
+
+/**
  * Structured object form of FastAPI's `detail` field. The backend
  * 422 RAI gate (`backend.routers.admin.patch_config_endpoint`)
  * stamps `{msg, field, reason}` so callers can render a per-field
@@ -93,7 +111,7 @@ async function parseErrorBody(
  * (authenticated but not in the "admin" role), 5xx (backend down).
  */
 export async function getAdminStatus(): Promise<AdminStatus> {
-  const response = await fetch(ADMIN_STATUS_URL, {
+  const response = await fetch(apiUrl(ADMIN_STATUS_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -117,7 +135,7 @@ export async function getAdminStatus(): Promise<AdminStatus> {
  */
 export async function addDocumentUrl(url: string): Promise<IngestUrlResponse> {
   const requestBody: IngestUrlRequest = { url };
-  const response = await fetch(ADMIN_DOCUMENTS_INGEST_URL, {
+  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_INGEST_URL), {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -148,7 +166,7 @@ export async function addDocumentUrl(url: string): Promise<IngestUrlResponse> {
 export async function uploadDocument(file: File): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("file", file, file.name);
-  const response = await fetch(ADMIN_DOCUMENTS_URL, {
+  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_URL), {
     method: "POST",
     headers: { Accept: "application/json", ...userIdHeaders() },
     body: formData,
@@ -171,7 +189,7 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
  * 401/403 RBAC, 5xx backend down).
  */
 export async function reprocessAll(): Promise<ReprocessResponse> {
-  const response = await fetch(ADMIN_DOCUMENTS_REPROCESS_URL, {
+  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_REPROCESS_URL), {
     method: "POST",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -196,7 +214,7 @@ export async function reprocessAll(): Promise<ReprocessResponse> {
  * 5xx backend / search backend down).
  */
 export async function listDocuments(): Promise<ListDocumentsResponse> {
-  const response = await fetch(ADMIN_DOCUMENTS_URL, {
+  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -224,7 +242,7 @@ export async function listDocuments(): Promise<ListDocumentsResponse> {
 export async function deleteDocument(
   source: string,
 ): Promise<DeleteDocumentResponse> {
-  const url = `${ADMIN_DOCUMENTS_URL}/${encodeURIComponent(source)}`;
+  const url = apiUrl(`${ADMIN_DOCUMENTS_URL}/${encodeURIComponent(source)}`);
   const response = await fetch(url, {
     method: "DELETE",
     headers: { Accept: "application/json", ...userIdHeaders() },
@@ -250,7 +268,7 @@ export async function deleteDocument(
  * @throws Error on non-2xx (401/403 RBAC, 5xx backend down).
  */
 export async function getAdminConfig(): Promise<AdminConfig> {
-  const response = await fetch(ADMIN_CONFIG_EFFECTIVE_URL, {
+  const response = await fetch(apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -284,7 +302,7 @@ export async function getAdminConfig(): Promise<AdminConfig> {
 export async function patchAdminConfig(
   patch: AdminConfigPatch,
 ): Promise<RuntimeConfig> {
-  const response = await fetch(ADMIN_CONFIG_URL, {
+  const response = await fetch(apiUrl(ADMIN_CONFIG_URL), {
     method: "PATCH",
     headers: {
       Accept: "application/json",
