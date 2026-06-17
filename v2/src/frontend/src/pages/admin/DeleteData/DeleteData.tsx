@@ -238,12 +238,14 @@ export function DeleteData(): JSX.Element {
     if (sources === null || sources.length === 0) {
       return;
     }
+    let allSucceeded = true;
     for (const source of sources) {
       dispatch({ type: DeleteActionType.DeleteStarted, source });
       try {
         await deleteDocument(source);
         dispatch({ type: DeleteActionType.DeleteSucceeded, source });
       } catch (err) {
+        allSucceeded = false;
         dispatch({
           type: DeleteActionType.DeleteFailed,
           source,
@@ -251,7 +253,14 @@ export function DeleteData(): JSX.Element {
         });
       }
     }
-  }, [state.pendingDeleteSources]);
+    // A fully-successful batch re-syncs the listing with the server so the
+    // table reflects server truth rather than only the optimistic per-row
+    // removals. A partial failure skips the refresh so the failed rows keep
+    // their inline error and retry affordance.
+    if (allSucceeded) {
+      await refresh();
+    }
+  }, [state.pendingDeleteSources, refresh]);
 
   const handleRetryDelete = useCallback((source: string) => {
     dispatch({ type: DeleteActionType.ConfirmOpen, sources: [source] });

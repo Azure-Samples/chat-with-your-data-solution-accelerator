@@ -144,6 +144,7 @@ describe("getAdminStatus", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -159,6 +160,21 @@ describe("getAdminStatus", () => {
     expect((init.headers as Record<string, string>).Accept).toBe(
       "application/json",
     );
+  });
+
+  it("prepends VITE_BACKEND_URL to the status route when set", async () => {
+    // The deployed topology splits the frontend (App Service) and backend
+    // (Container App) across origins. A relative `/api/admin/status` would
+    // hit the SPA catch-all and return index.html (200 HTML), so the admin
+    // probe must target the backend origin to receive JSON and reveal the
+    // Admin button.
+    vi.stubEnv("VITE_BACKEND_URL", "https://backend.example.com");
+    fetchMock.mockResolvedValueOnce(jsonResponse(STATUS_FIXTURE));
+
+    await getAdminStatus();
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://backend.example.com/api/admin/status");
   });
 
   it("returns the typed payload on 200", async () => {

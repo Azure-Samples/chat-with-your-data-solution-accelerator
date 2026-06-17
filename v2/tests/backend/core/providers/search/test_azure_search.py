@@ -413,7 +413,11 @@ async def test_delete_by_source_collects_ids_then_deletes(
     client = MagicMock()
     client.search = AsyncMock(
         return_value=_FakeAsyncIter(
-            [{"id": "chunk-1"}, {"id": "chunk-2"}, {"id": "chunk-3"}]
+            [
+                {"id": "chunk-1", "title": "sample.pdf"},
+                {"id": "chunk-2", "title": "sample.pdf"},
+                {"id": "chunk-3", "title": "sample.pdf"},
+            ]
         )
     )
     client.delete_documents = AsyncMock(return_value=[])
@@ -426,8 +430,12 @@ async def test_delete_by_source_collects_ids_then_deletes(
 
     assert deleted == 3
     search_kwargs = client.search.await_args.kwargs
-    assert search_kwargs["filter"] == "title eq 'sample.pdf'"
-    assert search_kwargs["select"] == ["id"]
+    # `title` is searchable but NOT filterable in the deployed index, so
+    # the scan must not send a server-side $filter; it pages every chunk
+    # selecting id + title and matches the source client-side (mirrors
+    # list_sources).
+    assert "filter" not in search_kwargs
+    assert search_kwargs["select"] == ["id", "title"]
     assert search_kwargs["search_text"] == "*"
     delete_kwargs = client.delete_documents.await_args.kwargs
     assert delete_kwargs["documents"] == [
@@ -443,7 +451,16 @@ async def test_delete_by_source_returns_zero_when_no_matches(
 ) -> None:
     settings = _settings_for_search(monkeypatch)
     client = MagicMock()
-    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
+    # The scan yields chunks, but none whose title matches the source,
+    # so nothing is deleted.
+    client.search = AsyncMock(
+        return_value=_FakeAsyncIter(
+            [
+                {"id": "chunk-1", "title": "other.pdf"},
+                {"id": "chunk-2", "title": "another.pdf"},
+            ]
+        )
+    )
     client.delete_documents = AsyncMock()
     client.close = AsyncMock()
     handler = AzureSearch(
@@ -457,27 +474,40 @@ async def test_delete_by_source_returns_zero_when_no_matches(
 
 
 @pytest.mark.asyncio
-async def test_delete_by_source_escapes_single_quotes_in_odata_filter(
+async def test_delete_by_source_matches_title_client_side_only(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # OData literals escape single quotes by doubling them; failing to
-    # do so opens an OData injection seam on a route that accepts
-    # user-supplied filenames.
+    # The scan returns chunks from several sources; only the chunks
+    # whose title exactly equals the requested source are deleted.
+    # Matching client-side (rather than via a server-side OData $filter
+    # on the user-supplied filename) also removes the OData-injection
+    # seam a quote-bearing filename would otherwise open.
     settings = _settings_for_search(monkeypatch)
     client = MagicMock()
-    client.search = AsyncMock(return_value=_FakeAsyncIter([]))
-    client.delete_documents = AsyncMock()
+    client.search = AsyncMock(
+        return_value=_FakeAsyncIter(
+            [
+                {"id": "chunk-1", "title": "o'reilly.pdf"},
+                {"id": "chunk-2", "title": "other.pdf"},
+                {"id": "chunk-3", "title": "o'reilly.pdf"},
+            ]
+        )
+    )
+    client.delete_documents = AsyncMock(return_value=[])
     client.close = AsyncMock()
     handler = AzureSearch(
         settings=settings, credential=MagicMock(), client=client
     )
 
-    await handler.delete_by_source("o'reilly.pdf")
+    deleted = await handler.delete_by_source("o'reilly.pdf")
 
-    assert (
-        client.search.await_args.kwargs["filter"]
-        == "title eq 'o''reilly.pdf'"
-    )
+    assert deleted == 2
+    assert "filter" not in client.search.await_args.kwargs
+    delete_kwargs = client.delete_documents.await_args.kwargs
+    assert delete_kwargs["documents"] == [
+        {"id": "chunk-1"},
+        {"id": "chunk-3"},
+    ]
 
 
 @pytest.mark.asyncio

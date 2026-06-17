@@ -31,8 +31,13 @@ Design notes:
   policy.
 * Empty-chunk inputs (whitespace-only file, parser returns ``[]``)
   short-circuit before any embedder / search call. The Functions log
-  emits a single info entry so operators can spot zero-chunk files
-  without having to correlate parser + search records by job id.
+  emits a single warning entry so operators can spot an
+  uploaded-but-unindexed file in telemetry without having to
+  correlate parser + search records by job id. It stays a warning,
+  not a raise: a legitimately text-free input (image-only PDF, blank
+  file) also yields zero chunks, and raising would poison-loop it
+  forever -- the handler cannot tell a parser failure from a file
+  with no extractable text.
 """
 
 import logging
@@ -83,7 +88,7 @@ async def batch_push_handler(
     content = await download_blob(container_client, message.filename)
     chunks = await parser.parse(content, source=message.filename)
     if not chunks:
-        logger.info(
+        logger.warning(
             "batch_push produced zero chunks",
             extra={
                 "operation": "batch_push_handler",

@@ -120,7 +120,7 @@ async def test_zero_chunks_short_circuits_embed_and_search(
     search_provider = cast(BaseSearch, AsyncMock(spec=["merge_or_upload_documents"]))
     search_provider.merge_or_upload_documents = AsyncMock()  # type: ignore[method-assign]
 
-    caplog.set_level("INFO", logger="functions.batch_push.handler")
+    caplog.set_level("WARNING", logger="functions.batch_push.handler")
     docs = await batch_push_handler(
         _message(),
         _as_container(container),
@@ -134,6 +134,7 @@ async def test_zero_chunks_short_circuits_embed_and_search(
     search_provider.merge_or_upload_documents.assert_not_called()
     records = [r for r in caplog.records if r.name == "functions.batch_push.handler"]
     assert len(records) == 1
+    assert records[0].levelname == "WARNING"
     assert records[0].operation == "batch_push_handler"  # type: ignore[attr-defined]
     assert records[0].blob_filename == "doc.txt"  # type: ignore[attr-defined]
     assert records[0].ingestion_job_id == "job-1"  # type: ignore[attr-defined]

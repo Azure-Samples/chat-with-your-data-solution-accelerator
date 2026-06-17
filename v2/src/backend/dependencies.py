@@ -301,11 +301,13 @@ PostPromptValidatorDep = Annotated[
 # Authenticated caller without the requested role -> 403.
 #
 # Local-dev bypass: when ``settings.environment == 'local'`` AND no
-# Easy Auth headers are present, the gate returns ``"local-dev"`` so
-# the admin panel is exercisable end-to-end during development without
-# forging a base64 claims blob. Devs that *want* to exercise the role
-# gate locally can still send the header explicitly -- the bypass is
-# strictly a no-headers fallback.
+# Easy Auth *claims* header is present, the gate returns ``"local-dev"``
+# so the admin panel is exercisable end-to-end during development
+# without forging a base64 claims blob. The claims blob is the sole
+# authority for the role check, so the forgeable principal-id header
+# (which the SPA forwards by default on every call) does not defeat the
+# bypass. Devs that *want* to exercise the role gate locally can still
+# send the claims header explicitly.
 # ---------------------------------------------------------------------------
 
 
@@ -437,16 +439,16 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
         principal_id = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
         claims_raw = request.headers.get(_PRINCIPAL_HEADER, "").strip()
 
-        # Local-dev bypass: no headers at all in `local` -> synthetic user.
-        if not principal_id and not claims_raw:
+        # Local-dev bypass keys on the ABSENT CLAIMS blob -- the sole
+        # authority for the role check -- not on both headers being
+        # absent. The SPA forwards a default principal-id on every call
+        # (its shared `userIdHeaders()` seam), so the forgeable id header
+        # may ride along with no claims and must not defeat the bypass.
+        # In any non-local environment a missing claims blob fails closed:
+        # the id header alone can never satisfy a role gate.
+        if not claims_raw:
             if settings.environment is Environment.LOCAL:
                 return _LOCAL_DEV_USER
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Missing client principal; Easy Auth header required.",
-            )
-
-        if not claims_raw:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=(

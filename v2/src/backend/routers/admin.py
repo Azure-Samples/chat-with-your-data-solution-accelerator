@@ -95,6 +95,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+# Probe key into the ingestion parser registry used to detect uploads
+# that route to the Document Intelligence parser. PDF + DOCX register
+# the same DI parser class, so an identity comparison against this key
+# (rather than a hardcoded extension set) auto-includes any extension
+# that registers that parser -- keeping dispatch in the registry per
+# Hard Rule #4. The DI parser is the only parser that requires
+# AZURE_AI_SERVICES_ENDPOINT; non-DI parsers (txt / md / html) parse
+# locally and never read it.
+_DI_PARSER_PROBE_KEY = "pdf"
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -552,6 +563,11 @@ async def upload_document_endpoint(
       doc-processing queue configured -- the route stays mounted so
       operators discover the gap explicitly instead of
       routing-404-ing it.
+    * ``503`` when a Document-Intelligence-routed file (PDF / DOCX) is
+      uploaded while ``AZURE_AI_SERVICES_ENDPOINT`` is unset or not an
+      https URL -- the parse step would poison every queued message, so
+      the route refuses at the boundary rather than reporting a success
+      the file can never honour.
     * Upstream ``AzureError`` (blob upload, queue send) propagates
       to the app-level handlers in :mod:`backend.app`, which
       sanitise it into a 503 response with no SDK detail leaked.
@@ -579,6 +595,21 @@ async def upload_document_endpoint(
                 "extension": extension,
                 "supported": supported,
             },
+        )
+    if (
+        ingestion_parsers_registry.registry.get(extension)
+        is ingestion_parsers_registry.registry.get(_DI_PARSER_PROBE_KEY)
+        and not settings.foundry.services_endpoint.lower().startswith("https://")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Document parsing is not configured for this deployment: "
+                "AZURE_AI_SERVICES_ENDPOINT must be a non-empty https:// URL "
+                "to parse this file type via Document Intelligence. Refusing "
+                "the upload instead of reporting success for a file that "
+                "cannot be indexed."
+            ),
         )
     content = await file.read()
     if len(content) > MAX_UPLOAD_SIZE_BYTES:

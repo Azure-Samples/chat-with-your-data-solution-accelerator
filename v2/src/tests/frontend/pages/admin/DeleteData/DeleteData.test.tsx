@@ -251,7 +251,10 @@ describe("DeleteData -- per-row delete flow", () => {
   });
 
   it("Confirm fires deleteDocument with the source and removes the row on success", async () => {
-    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    listMock
+      .mockResolvedValueOnce(LIST_FIXTURE)
+      // Post-delete auto-refresh returns the server's fresh listing.
+      .mockResolvedValueOnce({ documents: [BETA], total: 1 });
     deleteMock.mockResolvedValueOnce(DELETE_FIXTURE);
     render(<DeleteData />);
 
@@ -297,7 +300,10 @@ describe("DeleteData -- per-row delete flow", () => {
   });
 
   it("Retry re-opens the confirm dialog so the operator can re-fire the delete", async () => {
-    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    listMock
+      .mockResolvedValueOnce(LIST_FIXTURE)
+      // The successful retry triggers a post-delete auto-refresh.
+      .mockResolvedValueOnce({ documents: [BETA], total: 1 });
     deleteMock
       .mockRejectedValueOnce(new Error("boom"))
       .mockResolvedValueOnce(DELETE_FIXTURE);
@@ -325,7 +331,10 @@ describe("DeleteData -- per-row delete flow", () => {
   });
 
   it("bulk confirm deletes every selected source", async () => {
-    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    listMock
+      .mockResolvedValueOnce(LIST_FIXTURE)
+      // All deletes succeed, so the post-delete auto-refresh sees an empty index.
+      .mockResolvedValueOnce(EMPTY_FIXTURE);
     deleteMock.mockResolvedValue(DELETE_FIXTURE);
     render(<DeleteData />);
 
@@ -357,7 +366,11 @@ describe("DeleteData -- per-row delete flow", () => {
   });
 
   it("bulk retry replays only the selected failed rows after a partial bulk failure", async () => {
-    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    listMock
+      .mockResolvedValueOnce(LIST_FIXTURE)
+      // The partial bulk failure skips refresh; the later retry fully succeeds
+      // and triggers the post-delete auto-refresh.
+      .mockResolvedValueOnce(EMPTY_FIXTURE);
     deleteMock
       .mockRejectedValueOnce(new Error("alpha failed"))
       .mockResolvedValueOnce(DELETE_FIXTURE)
@@ -418,5 +431,50 @@ describe("DeleteData -- refresh", () => {
       expect(screen.getByTestId("empty-message")).toBeInTheDocument();
     });
     expect(listMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("auto-refreshes the listing after a successful delete", async () => {
+    listMock
+      .mockResolvedValueOnce(LIST_FIXTURE)
+      .mockResolvedValueOnce({ documents: [BETA], total: 1 });
+    deleteMock.mockResolvedValueOnce(DELETE_FIXTURE);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("row-delete-alpha.pdf"));
+    fireEvent.click(screen.getByTestId("delete-confirm"));
+
+    await waitFor(() => {
+      expect(listMock).toHaveBeenCalledTimes(2);
+    });
+    expect(deleteMock).toHaveBeenCalledWith("alpha.pdf");
+    expect(
+      screen.queryByTestId("source-row-alpha.pdf"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("source-row-beta.pdf")).toBeInTheDocument();
+  });
+
+  it("does not auto-refresh after a partial delete failure", async () => {
+    listMock.mockResolvedValueOnce(LIST_FIXTURE);
+    deleteMock
+      .mockRejectedValueOnce(new Error("alpha failed"))
+      .mockResolvedValueOnce(DELETE_FIXTURE);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId("select-all"));
+    fireEvent.click(screen.getByTestId("bulk-delete-button"));
+    fireEvent.click(screen.getByTestId("delete-confirm"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("row-error-alpha.pdf")).toBeInTheDocument();
+    });
+    // The failed row keeps its retry affordance, so no re-sync fires: only
+    // the initial mount list call happened.
+    expect(listMock).toHaveBeenCalledTimes(1);
   });
 });
