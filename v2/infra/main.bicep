@@ -1770,6 +1770,17 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: cogContentSafety.outputs.endpoint }
             // Default orchestrator (runtime-switchable per request)
             { name: 'ORCHESTRATOR', value: 'agent_framework' }
+            // Storage — the admin surface writes uploaded documents to the
+            // blob container and enqueues each onto the doc-processing queue
+            // for the ingestion pipeline; the files route streams blobs back
+            // from the same container. The UAMI holds Storage Blob Data Owner
+            // + Storage Queue Data Contributor on the account; the blob and
+            // queue endpoints are derived from the account name. Mirrors the
+            // function app's storage wiring so both runtimes share one
+            // container + queue.
+            { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
+            { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
+            { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
           ],
           enableMonitoring
             ? [
