@@ -95,6 +95,8 @@ class BaseLLMProvider(ABC):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         """Unified streaming completion with auto-routing.
 
@@ -111,9 +113,12 @@ class BaseLLMProvider(ABC):
           non-empty), delegate to ``self.reason()`` and propagate every
           event it yields (``reasoning`` / ``answer`` / ``error``
           channels).
-        * Otherwise, delegate to ``self.chat()`` and yield a single
-          ``answer``-channel event with the assistant content. ``chat``
-          failures are surfaced as a single ``error`` event with
+        * Otherwise, delegate to ``self.chat()`` -- forwarding the
+          optional ``temperature`` / ``max_tokens`` sampling parameters
+          (omitted on the ``reason()`` branch above, which reasoning
+          models reject) -- and yield a single ``answer``-channel event
+          with the assistant content. ``chat`` failures are surfaced as
+          a single ``error`` event with
           ``metadata.code == "complete_chat_failed"`` so the SSE
           consumer never crashes mid-stream.
 
@@ -125,11 +130,19 @@ class BaseLLMProvider(ABC):
         reasoning_deployment = self._settings.openai.reasoning_deployment
         chosen = deployment or self._settings.openai.gpt_deployment
         if reasoning_deployment and chosen == reasoning_deployment:
+            # Reasoning models reject the chat sampling params; `reason()`
+            # does not expose `temperature` / `max_tokens`, so they are
+            # intentionally not forwarded on this branch.
             async for event in self.reason(messages, deployment=chosen):
                 yield event
             return
         try:
-            reply = await self.chat(messages, deployment=deployment)
+            reply = await self.chat(
+                messages,
+                deployment=deployment,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
         except Exception as exc:  # noqa: BLE001 -- surface to SSE error channel
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.ERROR,

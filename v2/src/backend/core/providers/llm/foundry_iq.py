@@ -323,7 +323,11 @@ class FoundryIQ(BaseLLMProvider):
     def _to_openai_messages(
         messages: Sequence[ChatMessage],
     ) -> list[dict[str, Any]]:
-        return [m.model_dump(exclude_none=True) for m in messages]
+        # Emit only the fields the OpenAI Chat Completions API accepts --
+        # a plain-string role and the content -- so ChatMessage's
+        # `metadata` field (and the enum role) never leak onto the wire.
+        # Mirrors `_to_responses_input`.
+        return [{"role": m.role.value, "content": m.content} for m in messages]
 
     @staticmethod
     def _to_responses_input(
@@ -360,7 +364,10 @@ class FoundryIQ(BaseLLMProvider):
         if temperature is not None:
             kwargs["temperature"] = temperature
         if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
+            # gpt-5 / o-series chat models reject the legacy `max_tokens`
+            # and require `max_completion_tokens` (identical semantics: an
+            # upper bound on generated tokens).
+            kwargs["max_completion_tokens"] = max_tokens
         try:
             response = cast(
                 _ChatResponse, await oai.chat.completions.create(**kwargs)
@@ -396,7 +403,10 @@ class FoundryIQ(BaseLLMProvider):
         if temperature is not None:
             kwargs["temperature"] = temperature
         if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
+            # gpt-5 / o-series chat models reject the legacy `max_tokens`
+            # and require `max_completion_tokens` (identical semantics: an
+            # upper bound on generated tokens).
+            kwargs["max_completion_tokens"] = max_tokens
         try:
             stream = cast(
                 AsyncIterator[_StreamEvent],
@@ -664,6 +674,8 @@ class FoundryIQ(BaseLLMProvider):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         """Completion that streams reasoning when the answer model supports it.
 
@@ -683,10 +695,17 @@ class FoundryIQ(BaseLLMProvider):
         """
         chosen = self._resolve_deployment(deployment, kind="chat")
         if await self.supports_reasoning(chosen):
+            # Reasoning models reject the chat sampling params, so
+            # `temperature` / `max_tokens` are not forwarded here.
             async for event in self.reason(messages, deployment=chosen):
                 yield event
             return
-        async for event in super().complete(messages, deployment=deployment):
+        async for event in super().complete(
+            messages,
+            deployment=deployment,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        ):
             yield event
 
     async def aclose(self) -> None:

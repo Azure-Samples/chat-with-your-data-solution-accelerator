@@ -292,6 +292,35 @@ def test_constructor_captures_search_knobs() -> None:
     assert orch._search_use_semantic_search is True
 
 
+def test_constructor_uses_effective_sampling_over_env() -> None:
+    """The effective `openai_temperature` / `openai_max_tokens` the router
+    forwards win over the `settings.openai` env defaults, so an admin
+    sampling override reaches the agent's `ChatOptions`."""
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings(),
+        llm=MagicMock(spec=BaseLLMProvider),
+        agents=_FakeAgentsProvider(),
+        db=object(),
+        openai_temperature=0.5,
+        openai_max_tokens=222,
+    )
+    assert orch._temperature == 0.5
+    assert orch._max_tokens == 222
+
+
+def test_constructor_falls_back_to_env_sampling_when_unset() -> None:
+    """With no effective sampling passed, the orchestrator uses the
+    `settings.openai` env defaults (`_settings()` sets 0.0 / 1000)."""
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings(),
+        llm=MagicMock(spec=BaseLLMProvider),
+        agents=_FakeAgentsProvider(),
+        db=object(),
+    )
+    assert orch._temperature == 0.0
+    assert orch._max_tokens == 1000
+
+
 # ---------------------------------------------------------------------------
 # run() behavior
 # ---------------------------------------------------------------------------

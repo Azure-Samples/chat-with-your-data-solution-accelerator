@@ -79,6 +79,8 @@ class LangGraphOrchestrator(OrchestratorBase):
         system_prompt: str | None = None,
         search_top_k: int | None = None,
         search_use_semantic_search: bool | None = None,
+        openai_temperature: float | None = None,
+        openai_max_tokens: int | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
@@ -91,11 +93,16 @@ class LangGraphOrchestrator(OrchestratorBase):
         # per-request retrieval knobs (admin-saved overrides or the
         # `settings.search` defaults); `run()` forwards them to
         # `BaseSearch.search`, where `None` means "use the provider default".
+        # `openai_temperature` / `openai_max_tokens` carry the effective
+        # sampling knobs; `run()` forwards them to `complete()`, where
+        # `None` means "send no sampling param (use the model default)".
         super().__init__(settings, llm)
         self._search = search
         self._system_prompt = system_prompt
         self._search_top_k = search_top_k
         self._search_use_semantic_search = search_use_semantic_search
+        self._openai_temperature = openai_temperature
+        self._openai_max_tokens = openai_max_tokens
         self._graph = self._build_graph()
 
     # ------------------------------------------------------------------
@@ -191,7 +198,11 @@ class LangGraphOrchestrator(OrchestratorBase):
         # future tool-node wiring reintroduces it for tool routing.
         answer_parts: list[str] = []
         saw_error = False
-        async for event in self.llm.complete(graph_messages):
+        async for event in self.llm.complete(
+            graph_messages,
+            temperature=self._openai_temperature,
+            max_tokens=self._openai_max_tokens,
+        ):
             if event.channel == OrchestratorChannel.ANSWER:
                 answer_parts.append(event.content)
             elif event.channel == OrchestratorChannel.ERROR:

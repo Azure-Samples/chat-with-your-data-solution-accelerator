@@ -37,6 +37,7 @@ class _FakeLLM(BaseLLMProvider):
         self._reply = reply
         self.calls: list[Sequence[ChatMessage]] = []
         self.embed_calls: list[Sequence[str]] = []
+        self.complete_calls: list[dict[str, float | int | None]] = []
 
     async def chat(
         self,
@@ -76,6 +77,8 @@ class _FakeLLM(BaseLLMProvider):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         # Override the base implementation (which would dereference
         # ``self._settings``) to mirror the non-reasoning path: record
@@ -83,6 +86,9 @@ class _FakeLLM(BaseLLMProvider):
         # reply. Subclasses can override this to inject reasoning /
         # error events for the CU-004b streaming tests.
         self.calls.append(list(messages))
+        self.complete_calls.append(
+            {"temperature": temperature, "max_tokens": max_tokens}
+        )
         yield OrchestratorEvent(channel="answer", content=self._reply)
 
 
@@ -94,6 +100,8 @@ class _BlankReplyLLM(_FakeLLM):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         # Yield nothing on the answer channel -- triggers the "no
         # assistant reply" error event in ``run()``.
@@ -446,6 +454,8 @@ class _ReasoningLLM(_FakeLLM):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         self.calls.append(list(messages))
         for ev in self._events:
@@ -504,6 +514,22 @@ async def test_run_propagates_error_events_from_complete() -> None:
     assert [e.channel for e in events] == ["reasoning", "error"]
     assert events[-1].metadata["code"] == "reason_stream_failed"
     assert events[-1].content == "upstream blew up"
+
+
+@pytest.mark.asyncio
+async def test_run_forwards_sampling_to_complete() -> None:
+    """run() forwards the effective `openai_temperature` / `openai_max_tokens`
+    knobs to `complete()` so the admin sampling settings reach the model."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM()
+    orch = LangGraphOrchestrator(
+        settings=settings,
+        llm=fake_llm,
+        openai_temperature=0.4,
+        openai_max_tokens=99,
+    )
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="hi")])]
+    assert fake_llm.complete_calls == [{"temperature": 0.4, "max_tokens": 99}]
 
 
 @pytest.mark.asyncio

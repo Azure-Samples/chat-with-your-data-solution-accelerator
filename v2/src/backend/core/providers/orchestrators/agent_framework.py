@@ -110,6 +110,8 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         search: BaseSearch | None = None,
         search_top_k: int | None = None,
         search_use_semantic_search: bool | None = None,
+        openai_temperature: float | None = None,
+        openai_max_tokens: int | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
@@ -149,14 +151,23 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         self._kb_name = search_settings.knowledge_base_name
         self._kb_api_version = search_settings.knowledge_base_api_version
         self._connection_name = search_settings.connection_name
-        # Sampling knobs are infra/admin-configured (not per-request), so
-        # capture them once here -- same rationale as the KB scalars
-        # above. The Foundry agent owns its model deployment, so these are
-        # the only inference knobs the agent path honors; they are
-        # threaded into every `agent.run(...)` via `ChatOptions`.
-        openai = settings.openai
-        self._temperature = openai.temperature
-        self._max_tokens = openai.max_tokens
+        # Sampling knobs carry the effective admin-configured values the
+        # router forwards (`openai_temperature` / `openai_max_tokens`),
+        # falling back to the `settings.openai` env defaults when a caller
+        # constructs the orchestrator without them. The Foundry agent owns
+        # its model deployment, so these are the only inference knobs the
+        # agent path honors; they are threaded into every `agent.run(...)`
+        # via `ChatOptions`.
+        self._temperature = (
+            openai_temperature
+            if openai_temperature is not None
+            else settings.openai.temperature
+        )
+        self._max_tokens = (
+            openai_max_tokens
+            if openai_max_tokens is not None
+            else settings.openai.max_tokens
+        )
 
     # ------------------------------------------------------------------
     # OrchestratorBase implementation

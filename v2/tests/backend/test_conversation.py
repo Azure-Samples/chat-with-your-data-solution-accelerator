@@ -558,6 +558,27 @@ async def test_router_forwards_effective_system_prompt_to_orchestrator(
     )
 
 
+@pytest.mark.asyncio
+async def test_router_forwards_effective_sampling_to_orchestrator(
+    app_with_fakes,
+) -> None:
+    """Router threads the effective `openai_temperature` / `openai_max_tokens`
+    sampling knobs into orchestrator construction so the model honors the
+    admin settings. With no override they resolve to the env defaults."""
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+    _FakeOrchestrator.last_kwargs = {}
+
+    async with _client(app_with_fakes) as client:
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+
+    assert resp.status_code == 200
+    assert _FakeOrchestrator.last_kwargs.get("openai_temperature") == 0.0
+    assert _FakeOrchestrator.last_kwargs.get("openai_max_tokens") == 1000
+
+
 async def test_router_saved_system_prompt_override_wins(
     app_with_fakes,
 ) -> None:
