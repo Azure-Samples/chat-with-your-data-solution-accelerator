@@ -158,10 +158,21 @@ class LangGraphOrchestrator(OrchestratorBase):
         if self._search is not None:
             query = self._latest_user_text(messages)
             if query:
+                # Embed the query so the search provider can run dense
+                # vector retrieval. pgvector needs the vector -- without
+                # one it falls back to AND-semantics full-text search that
+                # cannot match a multi-term question against small chunks;
+                # AzureSearch uses the vector for hybrid (text + vector)
+                # scoring on top of its semantic re-ranker.
+                embedding = await self.llm.embed([query])
+                query_vector = (
+                    embedding.vectors[0] if embedding.vectors else None
+                )
                 sources = await self._search.search(
                     query,
                     top_k=self._search_top_k,
                     use_semantic_search=self._search_use_semantic_search,
+                    vector=query_vector,
                 )
                 if sources:
                     citations = build_citations(sources)

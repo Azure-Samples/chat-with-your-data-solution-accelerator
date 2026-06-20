@@ -82,7 +82,12 @@ from backend.models.admin import (
     UploadResponse,
     WRITABLE_FIELDS,
 )
-from backend.services.admin import host_only, utcnow_iso, validate_prompt_with_rai
+from backend.services.admin import (
+    host_only,
+    resolve_effective_config,
+    utcnow_iso,
+    validate_prompt_with_rai,
+)
 from backend.services.ingestion import (
     MAX_UPLOAD_SIZE_BYTES,
     ingest_url,
@@ -114,12 +119,25 @@ _DI_PARSER_PROBE_KEY = "pdf"
 @router.get("/status", response_model=AdminStatus)
 async def status_endpoint(
     settings: SettingsDep,
+    overrides: RuntimeOverridesDep,
     _user: AdminUserIdDep,
 ) -> AdminStatus:
-    """Return the sanitized runtime status snapshot."""
+    """Return the sanitized runtime status snapshot.
+
+    The orchestrator is the **effective** value -- the env / code
+    default overlaid with any persisted ``RuntimeConfig`` override --
+    resolved through the same `resolve_effective_config` seam the chat
+    path and ``GET /config/effective`` use, so the snapshot matches what
+    the deployment actually runs: immediately after a save (PATCH
+    live-reloads ``app.state.runtime_overrides``) and after a restart
+    (the lifespan re-seeds that attribute from the database at boot).
+    The remaining fields are infra / env settings that are not
+    admin-overridable, so they surface from ``settings`` directly.
+    """
     obs_conn = settings.observability.app_insights_connection_string.strip()
+    effective = resolve_effective_config(settings, overrides)
     return AdminStatus(
-        orchestrator_name=settings.orchestrator.name,
+        orchestrator_name=effective.orchestrator_name,
         db_type=settings.database.db_type,
         index_store=settings.database.index_store,
         environment=settings.environment,

@@ -923,7 +923,11 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'search'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.search]!.outputs.resourceId
+                  // Search PE deploys in cosmosdb mode only. In postgresql mode the zone
+                  // array is shorter and the literal `dnsZoneIndex.search` (7) is out of
+                  // range for ARM's static index validation, so resolve to a valid in-range
+                  // index. The value is never used because this PE is gated out in that mode.
+                  privateDnsZoneResourceId: avmPrivateDnsZones[databaseType == 'cosmosdb' ? dnsZoneIndex.search : dnsZoneIndex.postgres]!.outputs.resourceId
                 }
               ]
             }

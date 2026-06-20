@@ -92,7 +92,7 @@ Citation formatting is **shared infrastructure**, not per-orchestrator code. The
 
 - **R1 — one prompt input point.** Ground through `resolve_cwyd_instructions(...)` over the shared `CWYD_DEFAULT_BODY`; the fixed `CWYD_GUARDRAIL` owns the citation directive + no-context fallback. Do not author a per-orchestrator system / grounding prompt.
 - **R2 — one response-format point.** All citation shaping lives in `v2/src/backend/core/tools/citations.py`: `format_sources_block` (client-side `[docN]` injection, used by `langgraph`) and `normalize_kb_citations` (native `【N:M†source】` → `[docN]` rewrite, used by `agent_framework`). Both emit the same inline `[docN]` marker + `Citation` model on the `citation` channel. `run()` returns `(answer, citations)` and delegates to `citations.py` — never format markers inline, never invent a citation shape.
-- **R3 — backend-agnostic formatting.** Retrieval is keyed by `index_store` (registry dispatch) but the citation format is identical for Azure AI Search and pgvector. The `agent_framework` + pgvector cell (no KB) is rejected at config (`ConfigResolutionError` → 409, ADR 0022), never given a divergent formatter.
+- **R3 — backend-agnostic formatting.** Retrieval is keyed by `index_store` (registry dispatch) but the citation format is identical for Azure AI Search and pgvector. The `agent_framework` + pgvector cell grounds app-side over `BaseSearch.search` (no KB), reusing the shared formatter (ADR 0027 supersedes the ADR 0022 rejection rule), never given a divergent formatter.
 
 ## LLM provider (Foundry IQ)
 

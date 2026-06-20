@@ -332,6 +332,41 @@ async def test_status_maps_orchestrator_db_index_environment(
 
 
 @pytest.mark.asyncio
+async def test_status_reflects_persisted_orchestrator_override(
+    admin_app_factory,
+) -> None:
+    """/status reports the EFFECTIVE orchestrator: a persisted
+    RuntimeConfig override (the same row the lifespan re-seeds from the
+    database at boot) overlays the env default, so the snapshot matches
+    what the chat path runs -- both after a save and after a restart."""
+    app = admin_app_factory(_settings(orchestrator_name="langgraph"))
+    # Simulate the post-save / post-restart state: the lifespan seeds
+    # app.state.runtime_overrides from the persisted RuntimeConfig.
+    app.state.runtime_overrides = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        updated_at="2026-06-19T12:00:00+00:00",
+        updated_by="u-admin",
+    )
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/status")
+    assert resp.status_code == 200
+    assert resp.json()["orchestrator_name"] == "agent_framework"
+
+
+@pytest.mark.asyncio
+async def test_status_uses_env_orchestrator_when_no_override(
+    admin_app_factory,
+) -> None:
+    """With no persisted override (cold start), /status falls back to the
+    env / code default orchestrator -- the dep tolerates the missing
+    app.state.runtime_overrides attribute."""
+    app = admin_app_factory(_settings(orchestrator_name="langgraph"))
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/status")
+    assert resp.json()["orchestrator_name"] == "langgraph"
+
+
+@pytest.mark.asyncio
 async def test_status_returns_cors_and_deployments(admin_app_factory) -> None:
     app = admin_app_factory(
         _settings(

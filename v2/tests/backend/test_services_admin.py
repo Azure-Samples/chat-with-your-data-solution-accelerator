@@ -268,34 +268,28 @@ def test_resolve_effective_config_false_boolean_override_is_honored() -> None:
 
 
 # ---------------------------------------------------------------------------
-# resolve_effective_config -- cross-setting guard (ADR 0022).
+# resolve_effective_config -- orchestrator / index-store coherence (ADR 0027).
 #
-# pgvector deployments have no Azure AI Search index, so the
-# agent_framework orchestrator (which grounds on a Foundry IQ Knowledge
-# Base over that index) cannot be served there. The resolver -- the single
-# choke point -- raises ConfigResolutionError, which the app-level handler
-# maps to HTTP 409. These call the resolver directly (it is a pure
-# function); the 409 mapping is covered in
-# tests/backend/test_app_exception_handlers.py.
+# Both orchestrators ground on either index store: langgraph and
+# agent_framework each run app-side RAG over pgvector, and agent_framework
+# additionally grounds on a Foundry IQ Knowledge Base when an Azure AI
+# Search index is present. So every orchestrator / index-store pairing is
+# served -- the resolver returns the effective config with no raise. (ADR
+# 0027 supersedes the ADR 0022 pgvector + agent_framework block; the
+# general ConfigResolutionError -> 409 mechanism is retained for any future
+# incompatible effective configuration.)
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_raises_on_pgvector_with_agent_framework() -> None:
-    """pgvector + the agent_framework env default -> ConfigResolutionError
-    carrying the actionable reason, the conflicting field/value context,
-    and a message that names the operator fix."""
+def test_resolve_allows_pgvector_with_agent_framework() -> None:
+    """pgvector + the agent_framework env default resolves with no raise:
+    agent_framework now grounds app-side on pgvector (ADR 0027 supersedes
+    the ADR 0022 block), so the pairing is served."""
     settings = _settings(
         orchestrator_name="agent_framework", index_store="pgvector"
     )
-    with pytest.raises(ConfigResolutionError) as excinfo:
-        resolve_effective_config(settings, None)
-    exc = excinfo.value
-    assert exc.reason == "orchestrator_requires_azure_search"
-    assert exc.context == {
-        "index_store": "pgvector",
-        "configured_orchestrator": "agent_framework",
-    }
-    assert "CWYD_ORCHESTRATOR_NAME=langgraph" in str(exc)
+    effective = resolve_effective_config(settings, None)
+    assert effective.orchestrator_name == "agent_framework"
 
 
 def test_resolve_allows_azure_search_with_agent_framework() -> None:
@@ -316,13 +310,12 @@ def test_resolve_allows_pgvector_with_langgraph() -> None:
     assert effective.orchestrator_name == "langgraph"
 
 
-def test_resolve_raises_when_override_flips_pgvector_to_agent_framework() -> None:
-    """The guard reads the POST-override orchestrator: a pgvector
+def test_resolve_honors_override_flipping_pgvector_to_agent_framework() -> None:
+    """The resolver reads the POST-override orchestrator: a pgvector
     deployment whose env default is langgraph but whose admin override
-    selects agent_framework is still rejected. This is why the check
-    runs after the override loop, not on settings alone."""
+    selects agent_framework resolves to agent_framework with no raise --
+    the admin switch takes effect on the next request."""
     settings = _settings(orchestrator_name="langgraph", index_store="pgvector")
     overrides = RuntimeConfig(orchestrator_name="agent_framework")
-    with pytest.raises(ConfigResolutionError) as excinfo:
-        resolve_effective_config(settings, overrides)
-    assert excinfo.value.context["configured_orchestrator"] == "agent_framework"
+    effective = resolve_effective_config(settings, overrides)
+    assert effective.orchestrator_name == "agent_framework"
