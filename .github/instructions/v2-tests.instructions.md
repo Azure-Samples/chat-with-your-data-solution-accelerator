@@ -1,6 +1,6 @@
 ---
-description: "CWYD v2 testing conventions and test-first contract. Use when: editing v2/tests/**, editing v2/src/**/tests/**, editing v2/src/tests/** (relocated frontend Vitest tree), adding a pytest test, adding a vitest/jest test, configuring fixtures, mocking Foundry IQ or Azure Search, asserting on SSE events, gating coverage, or completing the test step of the implement-then-test loop."
-applyTo: "v2/tests/**,v2/src/**/tests/**,v2/src/tests/**"
+description: "CWYD v2 testing conventions and test-first contract. Use when: editing v2/tests/**, editing v2/src/**/tests/**, editing v2/tests/frontend/** (relocated frontend Vitest tree), adding a pytest test, adding a vitest/jest test, configuring fixtures, mocking Foundry IQ or Azure Search, asserting on SSE events, gating coverage, or completing the test step of the implement-then-test loop."
+applyTo: "v2/tests/**,v2/src/**/tests/**"
 ---
 
 # v2 Testing Conventions

@@ -20,9 +20,9 @@
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["../../frontend/src/*"]
+      "@/*": ["../../src/frontend/src/*"]
     }
   },
-  "include": [".", "../../frontend/src"],
+  "include": [".", "../../src/frontend/src"],
   "exclude": ["vitest.config.ts"]
 }

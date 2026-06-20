@@ -4,7 +4,7 @@ name: v2 frontend checks (lint + typecheck + vitest)
 #
 # The v2 frontend is an npm workspace rooted at `v2/` with two members:
 #   - `v2/src/frontend`       -- the React 19 + TS + Vite 7 application.
-#   - `v2/src/tests/frontend` -- the Vitest tree (sibling workspace member).
+#   - `v2/tests/frontend`     -- the Vitest tree (sibling workspace member).
 # A single `npm ci` at the workspace root produces one hoisted
 # `v2/node_modules` shared by both members, so the test tree resolves the
 # frontend's deps natively (one React instance, no resolver shims).
@@ -12,9 +12,9 @@ name: v2 frontend checks (lint + typecheck + vitest)
 # Gates, all run after the root install:
 #   1. `npm run lint`                  -- ESLint flat config, both members.
 #   2. `npx tsc -p src/frontend`       -- app type-check (noEmit).
-#   3. `npx tsc -p src/tests/frontend` -- test-tree type-check (noEmit).
+#   3. `npx tsc -p tests/frontend`     -- test-tree type-check (noEmit).
 #   4. `npm test`                      -- vitest run (the suite under
-#                                         src/tests/frontend).
+#                                         tests/frontend).
 #
 # Mirrors `v2-typecheck.yml` (backend pyright) and `v2-backend-only-smoke.yml`
 # (backend smoke). Path-scoped so unrelated edits do not pay CI cost.
@@ -27,7 +27,7 @@ on:
       - "v2/package.json"
       - "v2/package-lock.json"
       - "v2/src/frontend/**"
-      - "v2/src/tests/frontend/**"
+      - "v2/tests/frontend/**"
       - ".github/workflows/v2-frontend-checks.yml"
   pull_request:
     branches:
@@ -36,7 +36,7 @@ on:
       - "v2/package.json"
       - "v2/package-lock.json"
       - "v2/src/frontend/**"
-      - "v2/src/tests/frontend/**"
+      - "v2/tests/frontend/**"
       - ".github/workflows/v2-frontend-checks.yml"
   workflow_dispatch:
 
@@ -67,7 +67,7 @@ jobs:
         run: npx tsc -p src/frontend
 
       - name: Typecheck tests (tsc strict, test tree)
-        run: npx tsc -p src/tests/frontend
+        run: npx tsc -p tests/frontend
 
       - name: Vitest (npm test)
         run: npm test
