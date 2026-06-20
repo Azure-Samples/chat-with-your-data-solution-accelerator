@@ -1,0 +1,126 @@
+"""Pillar: Stable Core / Phase: 6 — tests for v2/src/functions/blob_event/event_parser.py."""
+
+import base64
+import json
+
+import pytest
+from pydantic import ValidationError
+
+from functions.blob_event.event_parser import (
+    ParsedBlobRef,
+    parse_blob_created_subject,
+    subject_from_event_message,
+)
+
+
+def test_parses_canonical_documents_subject() -> None:
+    subject = "/blobServices/default/containers/documents/blobs/Benefit_Options.pdf"
+    assert parse_blob_created_subject(subject) == ParsedBlobRef(
+        container_name="documents", filename="Benefit_Options.pdf"
+    )
+
+
+def test_captures_virtual_directory_blob_path_whole() -> None:
+    subject = "/blobServices/default/containers/documents/blobs/2026/q1/report.pdf"
+    parsed = parse_blob_created_subject(subject)
+    assert parsed is not None
+    assert parsed.container_name == "documents"
+    # The blob path keeps its embedded '/' separators.
+    assert parsed.filename == "2026/q1/report.pdf"
+
+
+def test_non_documents_container_still_parses() -> None:
+    # The parser is container-agnostic; the Event Grid filter scopes to
+    # documents/, but parsing must not hard-code the container name.
+    subject = "/blobServices/default/containers/config/blobs/settings.json"
+    parsed = parse_blob_created_subject(subject)
+    assert parsed is not None
+    assert parsed.container_name == "config"
+    assert parsed.filename == "settings.json"
+
+
+@pytest.mark.parametrize(
+    "subject",
+    [
+        "",
+        "not-a-blob-subject",
+        # Container-level event (no /blobs/ segment) -> skip.
+        "/blobServices/default/containers/documents",
+        "/blobServices/default/containers/documents/",
+        # Missing the blobServices prefix.
+        "/containers/documents/blobs/file.pdf",
+        # A queue/table subject shape.
+        "/queueServices/default/queues/doc-processing",
+    ],
+)
+def test_non_matching_subject_returns_none(subject: str) -> None:
+    assert parse_blob_created_subject(subject) is None
+
+
+def test_blank_blob_segment_returns_none() -> None:
+    # A subject whose blob segment is only whitespace is a skip, not a
+    # ParsedBlobRef with an empty filename.
+    subject = "/blobServices/default/containers/documents/blobs/   "
+    assert parse_blob_created_subject(subject) is None
+
+
+def test_parsed_ref_is_frozen() -> None:
+    ref = parse_blob_created_subject(
+        "/blobServices/default/containers/documents/blobs/a.pdf"
+    )
+    assert ref is not None
+    with pytest.raises(ValidationError):
+        ref.filename = "b.pdf"  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# subject_from_event_message — extract the subject from a raw EG event body
+# ---------------------------------------------------------------------------
+
+_SUBJECT = "/blobServices/default/containers/documents/blobs/Benefit_Options.pdf"
+
+
+def _event_body(subject: str) -> dict[str, object]:
+    return {
+        "topic": "/subscriptions/x/resourceGroups/y/providers/Microsoft.Storage/storageAccounts/st",
+        "subject": subject,
+        "eventType": "Microsoft.Storage.BlobCreated",
+        "id": "abc",
+        "data": {"api": "PutBlob", "url": f"https://st.blob.core.windows.net{subject}"},
+        "dataVersion": "1",
+    }
+
+
+def test_extracts_subject_from_raw_json_event() -> None:
+    raw = json.dumps(_event_body(_SUBJECT)).encode("utf-8")
+    assert subject_from_event_message(raw) == _SUBJECT
+
+
+def test_extracts_subject_from_base64_event() -> None:
+    # Event Grid's queue encoding is outside our control; a base64 body
+    # is decoded defensively.
+    raw = base64.b64encode(json.dumps(_event_body(_SUBJECT)).encode("utf-8"))
+    assert subject_from_event_message(raw) == _SUBJECT
+
+
+def test_extracts_subject_from_single_event_array() -> None:
+    raw = json.dumps([_event_body(_SUBJECT)]).encode("utf-8")
+    assert subject_from_event_message(raw) == _SUBJECT
+
+
+def test_malformed_body_returns_none() -> None:
+    assert subject_from_event_message(b"not-json-not-base64-!!!") is None
+
+
+def test_json_without_subject_returns_none() -> None:
+    raw = json.dumps({"eventType": "Microsoft.Storage.BlobCreated"}).encode("utf-8")
+    assert subject_from_event_message(raw) is None
+
+
+def test_non_string_subject_returns_none() -> None:
+    raw = json.dumps({"subject": 123}).encode("utf-8")
+    assert subject_from_event_message(raw) is None
+
+
+def test_empty_array_returns_none() -> None:
+    assert subject_from_event_message(b"[]") is None
