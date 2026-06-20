@@ -106,6 +106,29 @@ class OrchestratorName(StrEnum):
     AGENT_FRAMEWORK = "agent_framework"
 
 
+class IngestionTrigger(StrEnum):
+    """How a written source blob gets picked up for indexing.
+
+    Closed-set env discriminator fully owned by the codebase (no
+    registry dispatch), so a hard `StrEnum` with no `str` arm per
+    Hard Rule #11.
+
+    Members:
+        DIRECT_ENQUEUE: the backend admin upload path enqueues a push
+            message to `doc_processing_queue` itself. The only trigger
+            available for local dev and any deploy without a storage
+            Event Grid subscription; the default.
+        EVENT_GRID: a storage Event Grid subscription fans
+            `BlobCreated` to the `blob-events` queue, which the
+            Functions `blob_event` queue trigger translates into a push
+            message. The backend writes the blob only and does not
+            enqueue, so a blob never double-ingests.
+    """
+
+    DIRECT_ENQUEUE = "direct_enqueue"
+    EVENT_GRID = "event_grid"
+
+
 # ---------------------------------------------------------------------------
 # Per-subsystem settings
 # ---------------------------------------------------------------------------
@@ -253,6 +276,7 @@ class StorageSettings(BaseSettings):
     storage_blob_endpoint: str = ""
     documents_container: str = ""
     doc_processing_queue: str = ""
+    ingestion_trigger: IngestionTrigger = IngestionTrigger.DIRECT_ENQUEUE
 
 
 class ObservabilitySettings(BaseSettings):
@@ -548,6 +572,7 @@ __all__ = [
     "FoundrySettings",
     "IdentitySettings",
     "IndexStore",
+    "IngestionTrigger",
     "NetworkSettings",
     "ObservabilitySettings",
     "OpenAISettings",

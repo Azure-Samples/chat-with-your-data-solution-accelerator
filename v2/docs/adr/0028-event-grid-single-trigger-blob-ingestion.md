@@ -14,12 +14,12 @@ The v2 infrastructure deploys an Event Grid **system topic** (`evgt-<SUFFIX>`) o
 
 It never worked. The only consumer of `doc-processing` is the `batch_push` queue trigger, which validates a CWYD ingestion envelope (`BatchPushQueueMessage`: `container_name`, `filename`, `ingestion_job_id`, `force_reindex`). An Event Grid `BlobCreated` event is a completely different schema, so every event fails validation, retries, and poisons (`BUG-0054`). **No translator from `BlobCreated` → CWYD envelope was ever written.**
 
-Two reference accelerators were checked for a pattern to copy:
+Two reference accelerators were checked for a pattern to adapt:
 
 - **MACAE (Multi-Agent Custom Automation Engine)** has **no** Event Grid ingestion at all — no system topic, no blob trigger, no queue ingestion. It seeds data at **provision time** via a script (`infra/scripts/index_datasets.py`) that reads blobs and writes straight to AI Search.
-- **CWYD v1** is the same shape: ingestion is HTTP-driven (`BatchStartProcessing` → queue → `batch_push_results`). v2 faithfully ports this as `batch_start` (HTTP) → `doc-processing` → `batch_push`.
+- **CWYD v1** *does* drive ingestion from Event Grid, but via a **polymorphic consumer**: a single queue trigger (`batch_push_results`) on `doc-processing` that branches on the message's `eventType` and handles `Microsoft.Storage.BlobCreated` / `BlobDeleted` events **directly** (pulling the filename out of `data.url`) alongside the legacy `BatchStartProcessing` envelope (`eventType == ""`). So v1 needed no separate translator — its *consumer* understood the raw Event Grid schema. (An earlier draft of this ADR wrongly stated v1 was HTTP-driven with no Event Grid; corrected 2026-06-20 after reading `code/backend/batch/batch_push_results.py`.)
 
-So the v2 Event Grid subscription is an **un-ported, handler-less addition** sitting next to the working API-driven path. Document ingestion already works without it (admin upload and `add_url` both enqueue / ingest directly).
+v2 carried the Event Grid → `doc-processing` subscription over from v1's shape but **deliberately did not** carry over v1's polymorphic loose-dict consumer: v2's `batch_push` validates a single strict, frozen `BatchPushQueueMessage` (`extra="forbid"`), so a raw `BlobCreated` event is a schema it rejects. The events therefore had no handler that understood them and poisoned. Reusing v1's polymorphic-consumer pattern is off the table — the v2 rebuild does not imitate v1's untyped, `eventType`-branching style — so B1 instead adds a small, typed translator that keeps `batch_push` single-schema. Document ingestion already works without the Event Grid path (admin upload and `add_url` both enqueue / ingest directly).
 
 The deciding product fact: operators **bulk-upload by dropping files directly into the `documents` blob container** (Storage Explorer, `azd`-seeded sample data, other tooling) — a workflow that bypasses the admin API entirely. Those files only ever fire `BlobCreated`; with no handler they are **never ingested**. So the Event Grid path is genuinely needed, not redundant — it just needs the missing handler built.
 

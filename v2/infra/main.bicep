@@ -1094,6 +1094,8 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
       queues: [
         { name: 'doc-processing' }
         { name: 'doc-processing-poison' }
+        { name: 'blob-events' }
+        { name: 'blob-events-poison' }
         { name: 'add-url' }
         { name: 'add-url-poison' }
       ]
@@ -1216,6 +1218,18 @@ resource existingStorageQueueDocProcessing 'Microsoft.Storage/storageAccounts/qu
 resource existingStorageQueueDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
   parent: existingStorageQueueServices
   name: 'doc-processing-poison'
+  properties: {}
+}
+
+resource existingStorageQueueBlobEvents 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'blob-events'
+  properties: {}
+}
+
+resource existingStorageQueueBlobEventsPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'blob-events-poison'
   properties: {}
 }
 
@@ -1943,6 +1957,9 @@ var functionsPlanSkuName = 'FC1'
 var functionsRuntimeName = 'python'
 var functionsRuntimeVersion = '3.11'
 var docProcessingQueueName = 'doc-processing'
+// Event Grid delivers BlobCreated events here; the blob_event queue
+// trigger translates each into a doc-processing ingestion envelope.
+var blobEventsQueueName = 'blob-events'
 var documentsContainerName = 'documents'
 // Built-in role definition GUIDs used by this section.
 //   Storage Queue Data Message Sender — for Event Grid → Storage Queue
@@ -2110,13 +2127,18 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-// Event Grid system topic on the Storage Account. Single subscription
-// for now: BlobCreated under /documents/ → doc-processing queue. The
-// add_url path is HTTP-triggered, not blob-triggered, so it does not
-// need an Event Grid subscription. When reusing v1's storage that
-// already has a system topic, the AVM module is skipped and a sibling
-// `existingEventGridSubscription` resource adds our subscription to the
-// v1 topic (Azure permits only one system topic per source).
+// Event Grid system topic on the Storage Account. Single subscription:
+// BlobCreated under /documents/ → blob-events queue, which the
+// blob_event queue trigger translates into doc-processing ingestion
+// envelopes consumed by batch_push (ADR 0028). A queue destination --
+// not an Event Grid AzureFunction trigger -- keeps managed-identity
+// delivery and deploys at provision time (the queue exists; a function
+// would not yet). The add_url path is HTTP-triggered, not
+// blob-triggered, so it needs no subscription. When reusing v1's
+// storage that already has a system topic, the AVM module is skipped
+// and a sibling `existingEventGridSubscription` resource adds our
+// subscription to the v1 topic (Azure permits only one system topic
+// per source).
 module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
   name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
   params: {
@@ -2131,6 +2153,10 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     }
     eventSubscriptions: [
       {
+        // Name retained (not 'blob-created-to-blob-events') so the
+        // destination repoint is an in-place update; renaming under
+        // azd incremental mode would orphan the prior subscription,
+        // leaving it to keep delivering to doc-processing.
         name: 'blob-created-to-doc-processing'
         // deliveryWithResourceIdentity (NOT plain destination) is required
         // because storage has allowSharedKeyAccess=false. The system
@@ -2143,7 +2169,7 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
             endpointType: 'StorageQueue'
             properties: {
               resourceId: effectiveStorageResourceId
-              queueName: docProcessingQueueName
+              queueName: blobEventsQueueName
             }
           }
         }
@@ -2183,7 +2209,8 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
 // v1's topic that routes BlobCreated events from the documents/ prefix
-// to our doc-processing queue. Delivery uses v2's UAMI (granted both
+// to our blob-events queue (the blob_event trigger translates them to
+// doc-processing). Delivery uses v2's UAMI (granted both
 // Queue Data Contributor on the storage account AND Queue Data Message
 // Sender on the specific queue \u2014 EG preflight validates the latter at
 // queue scope specifically).
@@ -2207,6 +2234,8 @@ resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments
 
 resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
   parent: existingEventGridTopic
+  // Name retained (see the new-topic subscription above): an in-place
+  // destination repoint, not a rename that would orphan the prior sub.
   name: 'cwyd2-blob-created-doc-processing'
   properties: {
     deliveryWithResourceIdentity: {
@@ -2218,7 +2247,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
         endpointType: 'StorageQueue'
         properties: {
           resourceId: effectiveStorageResourceId
-          queueName: docProcessingQueueName
+          queueName: blobEventsQueueName
         }
       }
     }
@@ -2234,7 +2263,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
     }
   }
   dependsOn: [
-    existingStorageQueueDocProcessing
+    existingStorageQueueBlobEvents
     existingStorageQueueContributor
     existingQueueMessageSenderRole
   ]

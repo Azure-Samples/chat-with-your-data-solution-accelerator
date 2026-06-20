@@ -194,13 +194,16 @@ class IngestUrlResponse(BaseModel):
 class UploadResponse(BaseModel):
     """Response shape for ``POST /api/admin/documents`` (multipart upload).
 
-    The route writes the file to the source blob container and
-    enqueues a single ``BatchPushQueueMessage`` so the existing
-    ``batch_push`` queue consumer picks it up and runs the same
-    parse / embed / push pipeline used by ``batch_start``. The
-    response is the operator-facing receipt: filename echo, blob
-    path for storage-explorer lookup, ``queued=True`` once the push
-    envelope is on the wire, and the correlation id propagated into
+    The route writes the file to the source blob container. When the
+    deploy's ingestion trigger is ``DIRECT_ENQUEUE`` it then enqueues a
+    single ``BatchPushQueueMessage`` so the existing ``batch_push``
+    queue consumer picks it up and runs the same parse / embed / push
+    pipeline used by ``batch_start``; when the trigger is
+    ``EVENT_GRID`` a storage Event Grid subscription drives that step
+    instead, so the route writes the blob only. The response is the
+    operator-facing receipt: filename echo, blob path for
+    storage-explorer lookup, ``queued`` reflecting whether the backend
+    enqueued the push envelope, and the correlation id propagated into
     every downstream log line.
     """
 

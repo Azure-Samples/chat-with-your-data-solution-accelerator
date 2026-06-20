@@ -38,7 +38,7 @@ from azure.core.exceptions import AzureError
 
 from backend.core.providers.embedders import registry as embedders_registry
 from backend.core.providers.search.base import BaseSearch
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, IngestionTrigger
 from backend.models.admin import (
     IngestUrlRequest,
     IngestUrlResponse,
@@ -150,8 +150,9 @@ async def upload_document(
     settings: AppSettings,
     credential: AsyncTokenCredential,
 ) -> UploadResponse:
-    """Write ``content`` to the source blob container and enqueue an
-    ingest message so ``batch_push`` will pick it up.
+    """Write ``content`` to the source blob container and, when the
+    deploy's ingestion trigger is ``DIRECT_ENQUEUE``, enqueue an ingest
+    message so ``batch_push`` picks it up.
 
     Two-step admin upload:
 
@@ -162,7 +163,16 @@ async def upload_document(
     2. Enqueue a single :class:`BatchPushQueueMessage` carrying
        ``(container_name, filename, ingestion_job_id)`` so the
        existing ``batch_push`` queue consumer runs the same
-       parse / embed / push pipeline used by ``batch_start``.
+       parse / embed / push pipeline used by ``batch_start`` --
+       **only** when ``settings.storage.ingestion_trigger`` is
+       :attr:`IngestionTrigger.DIRECT_ENQUEUE`.
+
+    When the trigger is :attr:`IngestionTrigger.EVENT_GRID`, a storage
+    Event Grid subscription fans the ``BlobCreated`` event from step 1
+    to the ``blob-events`` queue and the Functions ``blob_event``
+    queue trigger translates it into the same push message -- so this
+    helper writes the blob only and returns ``queued=False`` to avoid
+    double-ingesting the file.
 
     The two steps reuse the SDK helpers already authored for the
     Functions tier (:func:`functions.core.storage_clients.storage_clients`,
@@ -182,6 +192,9 @@ async def upload_document(
     container_name = settings.storage.documents_container
     queue_name = settings.storage.doc_processing_queue
     ingestion_job_id = str(uuid4())
+    backend_enqueues = (
+        settings.storage.ingestion_trigger is IngestionTrigger.DIRECT_ENQUEUE
+    )
     async with storage_clients(
         credential=credential,
         blob_endpoint=blob_endpoint,
@@ -204,30 +217,33 @@ async def upload_document(
                 },
             )
             raise
-        message = BatchPushQueueMessage(
-            container_name=container_name,
-            filename=filename,
-            ingestion_job_id=ingestion_job_id,
-        )
-        # ``enqueue_push_message`` already wraps its SDK boundary per
-        # Hard Rule #14 -- adding another try/except here would
-        # double-log on the same failure.
-        await enqueue_push_message(queue_client, message)
+        if backend_enqueues:
+            message = BatchPushQueueMessage(
+                container_name=container_name,
+                filename=filename,
+                ingestion_job_id=ingestion_job_id,
+            )
+            # ``enqueue_push_message`` already wraps its SDK boundary
+            # per Hard Rule #14 -- adding another try/except here would
+            # double-log on the same failure.
+            await enqueue_push_message(queue_client, message)
     logger.info(
-        "Admin file upload queued for indexing.",
+        "Admin file upload stored.",
         extra={
             "operation": "upload_document",
             "container": container_name,
             "blob_filename": filename,
             "ingestion_job_id": ingestion_job_id,
             "byte_count": len(content),
+            "ingestion_trigger": settings.storage.ingestion_trigger,
+            "queued": backend_enqueues,
         },
     )
     return UploadResponse(
         filename=filename,
         blob_path=f"{container_name}/{filename}",
         ingestion_job_id=ingestion_job_id,
-        queued=True,
+        queued=backend_enqueues,
     )
 
 

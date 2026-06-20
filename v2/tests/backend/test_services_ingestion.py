@@ -13,6 +13,7 @@ import pytest
 from azure.core.exceptions import AzureError
 
 import backend.services.ingestion as ingestion_module
+from backend.core.settings import IngestionTrigger
 from backend.models.admin import IngestUrlRequest
 from backend.services.ingestion import (
     _parser_key_for_url,
@@ -281,6 +282,7 @@ def _settings_stub(
     doc_processing_queue: str = "doc-processing",
     storage_account_name: str = "stg",
     storage_blob_endpoint: str = "",
+    ingestion_trigger: IngestionTrigger = IngestionTrigger.DIRECT_ENQUEUE,
 ) -> Any:
     """Settings stub shaped for ``upload_document``."""
     return NS(
@@ -289,6 +291,7 @@ def _settings_stub(
             doc_processing_queue=doc_processing_queue,
             storage_account_name=storage_account_name,
             storage_blob_endpoint=storage_blob_endpoint,
+            ingestion_trigger=ingestion_trigger,
         )
     )
 
@@ -361,6 +364,38 @@ async def test_upload_document_uploads_blob_and_enqueues_push(
     assert response.filename == "report.pdf"
     assert response.blob_path == "docs/report.pdf"
     assert response.queued is True
+
+
+@pytest.mark.asyncio
+async def test_upload_document_event_grid_trigger_uploads_blob_without_enqueue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With ``ingestion_trigger=EVENT_GRID`` the blob is written but no
+    push envelope is enqueued -- a storage Event Grid subscription drives
+    ingestion instead, so a backend-side enqueue would double-ingest.
+    The receipt reports ``queued=False`` per the field's defined meaning.
+    """
+    container_client, _queue_client, _captured = _patch_storage_clients(monkeypatch)
+    fake_enqueue = AsyncMock()
+    monkeypatch.setattr(ingestion_module, "enqueue_push_message", fake_enqueue)
+
+    response = await upload_document(
+        filename="report.pdf",
+        content=b"hello world",
+        settings=_settings_stub(ingestion_trigger=IngestionTrigger.EVENT_GRID),
+        credential=MagicMock(),
+    )
+
+    # Blob still written (Event Grid keys off the BlobCreated event).
+    container_client.upload_blob.assert_awaited_once_with(
+        name="report.pdf", data=b"hello world", overwrite=True
+    )
+    # Backend did NOT enqueue -- Event Grid -> blob-events -> blob_event
+    # owns the push.
+    fake_enqueue.assert_not_called()
+    assert response.queued is False
+    assert response.blob_path == "docs/report.pdf"
+    assert response.filename == "report.pdf"
 
 
 @pytest.mark.asyncio
