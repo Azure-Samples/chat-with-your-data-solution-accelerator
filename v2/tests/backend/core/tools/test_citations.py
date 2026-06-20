@@ -13,6 +13,7 @@ from backend.core.tools.citations import (
     format_sources_block,
     normalize_kb_citations,
     referenced_markers,
+    strip_kb_markers,
 )
 from backend.core.types import Citation, SearchResult
 
@@ -332,6 +333,36 @@ def test_normalize_kb_citations_preserves_title_url_snippet_and_score() -> None:
     assert c.url == "https://x/benefits"
     assert c.snippet == "PTO accrues monthly."
     assert c.score == 0.87
+
+
+# ---------------------------------------------------------------------------
+# strip_kb_markers -- drop native 【N:M†source】 markers from free text
+# (reasoning channel has no [docN] rendering)
+# ---------------------------------------------------------------------------
+
+
+def test_strip_kb_markers_removes_marker_and_collapses_whitespace() -> None:
+    text = f"The plan {_MARKER_A} covers dental."
+    # The marker (flanked by spaces) is removed and the doubled space it
+    # leaves behind collapses to one, so the text reads cleanly.
+    assert strip_kb_markers(text) == "The plan covers dental."
+
+
+def test_strip_kb_markers_removes_multiple_markers() -> None:
+    text = f"A{_MARKER_A} B{_MARKER_B} C"
+    assert strip_kb_markers(text) == "A B C"
+
+
+def test_strip_kb_markers_preserves_newlines() -> None:
+    text = f"First point {_MARKER_A} matters.\nSecond point."
+    # Newlines survive so a multi-line reasoning summary keeps its structure;
+    # only the horizontal whitespace around the removed marker collapses.
+    assert strip_kb_markers(text) == "First point matters.\nSecond point."
+
+
+def test_strip_kb_markers_noop_without_markers() -> None:
+    text = "Clean reasoning with no markers."
+    assert strip_kb_markers(text) == text
 
 
 # ---------------------------------------------------------------------------

@@ -78,6 +78,7 @@ from backend.core.tools.citations import (
     filter_to_referenced,
     format_sources_block,
     normalize_kb_citations,
+    strip_kb_markers,
 )
 from backend.core.types import (
     ChatMessage,
@@ -453,10 +454,16 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             elif ctype == "text_reasoning":
                 text = getattr(content, "text", "") or ""
                 if text:
+                    # Drop native `【N:M†source】` KB markers before the
+                    # reasoning event: the reasoning panel has no `[docN]`
+                    # rendering, so unstripped markers show as garbage. The
+                    # answer-side `normalize_kb_citations` owns rewriting
+                    # markers to `[docN]`; the reasoning channel only removes
+                    # them.
                     events.append(
                         OrchestratorEvent(
                             channel=OrchestratorChannel.REASONING,
-                            content=text,
+                            content=strip_kb_markers(text),
                         )
                     )
             elif ctype in ("function_call", "mcp_server_tool_call"):

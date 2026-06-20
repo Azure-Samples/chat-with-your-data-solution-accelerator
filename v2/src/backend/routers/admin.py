@@ -65,7 +65,7 @@ from backend.dependencies import (
     SearchProviderDep,
     SettingsDep,
 )
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import CWYD_DEFAULT_BODY
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.models.admin import (
     APP_VERSION,
@@ -173,7 +173,13 @@ async def config_endpoint(
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
         content_safety_enabled=settings.content_safety.enabled,
-        cwyd_agent_instructions=CWYD_AGENT.instructions,
+        # The editable persona body -- not the guardrail-wrapped runtime
+        # prompt. The fixed guardrail is appended exactly once at request
+        # time by `resolve_effective_config`; surfacing the body here keeps
+        # the operator's editor free of the non-negotiable rules so a
+        # seed-edit-save round-trip cannot bake the guardrail into the
+        # stored override and double-wrap it.
+        cwyd_agent_instructions=CWYD_DEFAULT_BODY,
         post_answering_prompt="",
         post_answering_enabled=False,
         post_answering_filter_message="",
@@ -204,7 +210,11 @@ async def config_effective_endpoint(
         "search_top_k": settings.search.top_k,
         "log_level": settings.observability.log_level,
         "content_safety_enabled": settings.content_safety.enabled,
-        "cwyd_agent_instructions": CWYD_AGENT.instructions,
+        # The editable persona body baseline -- a persisted override (also
+        # a raw body) overlays it below. Neither carries the fixed
+        # guardrail; it is appended once at request time by
+        # `resolve_effective_config`.
+        "cwyd_agent_instructions": CWYD_DEFAULT_BODY,
         "post_answering_prompt": "",
         "post_answering_enabled": False,
         "post_answering_filter_message": "",

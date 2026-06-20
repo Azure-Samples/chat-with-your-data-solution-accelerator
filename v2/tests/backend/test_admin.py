@@ -24,7 +24,10 @@ from pydantic import ValidationError
 
 import backend.routers.admin as _admin_module
 import backend.services.admin as _services_admin
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import (
+    CWYD_DEFAULT_BODY,
+    CWYD_GUARDRAIL,
+)
 from backend.core.providers.search.base import SourceListing
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
@@ -626,16 +629,42 @@ async def test_config_surfaces_content_safety_enabled_from_settings(
 async def test_config_surfaces_cwyd_agent_instructions_default(
     admin_app_factory,
 ) -> None:
-    """GET /api/admin/config must surface the built-in CWYD agent
-    system prompt as the env baseline so the admin UI can render the
-    current default before any operator override has been persisted.
-    The field reads from `CWYD_AGENT.instructions` (the source of
-    truth for the built-in system prompt) -- not from an env var --
-    because the v2 agent definitions are scenario data, not config."""
+    """GET /api/admin/config must surface the editable CWYD persona
+    *body* as the env baseline so the admin UI renders the operator's
+    starting point before any override has been persisted. The field
+    reads from `CWYD_DEFAULT_BODY` (the body the operator edits) -- not
+    the guardrail-wrapped runtime prompt -- because the fixed guardrail
+    is appended exactly once at request time, so seeding the editor with
+    it would let a save round-trip double-wrap it.
+    """
     app = admin_app_factory(_settings())
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config")
-    assert resp.json()["cwyd_agent_instructions"] == CWYD_AGENT.instructions
+    instructions = resp.json()["cwyd_agent_instructions"]
+    assert instructions == CWYD_DEFAULT_BODY
+    # The editable default must NOT carry the fixed guardrail -- that is
+    # what prevents the seed-edit-save double-wrap round-trip.
+    assert CWYD_GUARDRAIL not in instructions
+
+
+@pytest.mark.asyncio
+async def test_config_effective_default_persona_excludes_guardrail(
+    admin_app_factory,
+) -> None:
+    """GET /api/admin/config/effective must surface the editable persona
+    *body* (not the guardrail-wrapped prompt) as the env baseline, so the
+    two admin read surfaces agree and neither seeds the editor with the
+    fixed guardrail. The guardrail is appended exactly once at request
+    time by `resolve_effective_config`; if the editor seeded the wrapped
+    prompt, a save round-trip would store the guardrail and double-wrap it.
+    """
+    app = admin_app_factory(_settings())
+    # No persisted overrides -- the cold-start env baseline.
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    instructions = resp.json()["values"]["cwyd_agent_instructions"]
+    assert instructions == CWYD_DEFAULT_BODY
+    assert CWYD_GUARDRAIL not in instructions
 
 
 @pytest.mark.asyncio
@@ -1370,7 +1399,7 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "search_top_k": 5,
         "log_level": "INFO",
         "content_safety_enabled": False,
-        "cwyd_agent_instructions": CWYD_AGENT.instructions,
+        "cwyd_agent_instructions": CWYD_DEFAULT_BODY,
         "post_answering_prompt": "",
         "post_answering_enabled": False,
         "post_answering_filter_message": "",
@@ -1574,15 +1603,16 @@ async def test_config_effective_overlays_cwyd_agent_instructions_override(
 ) -> None:
     """A RuntimeConfig override on `cwyd_agent_instructions` must
     flip the merged value to the operator string + flag the field's
-    source as `override`, while leaving the env-baseline prompt for
+    source as `override`, while leaving the env-baseline persona for
     the cold case. Mirrors the content-safety overlay pattern; the
-    env baseline is `CWYD_AGENT.instructions` (the built-in default)."""
-    # Cold case -- no override -> built-in default, source 'env'.
+    env baseline is the editable `CWYD_DEFAULT_BODY` (the persona body
+    the operator edits), not the guardrail-wrapped runtime prompt."""
+    # Cold case -- no override -> editable persona body, source 'env'.
     app = admin_app_factory(_settings())
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config/effective")
     body = resp.json()
-    assert body["values"]["cwyd_agent_instructions"] == CWYD_AGENT.instructions
+    assert body["values"]["cwyd_agent_instructions"] == CWYD_DEFAULT_BODY
     assert body["sources"]["cwyd_agent_instructions"] == "env"
 
     # Override case -- persisted prompt -> override value, source 'override'.

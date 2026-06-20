@@ -407,6 +407,32 @@ async def test_run_emits_reasoning_events_for_text_reasoning_blocks() -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_strips_native_kb_markers_from_reasoning_events() -> None:
+    """A native 【N:M†source】 KB marker a reasoning summary emits must be
+    stripped before the `reasoning` event: the FE reasoning panel has no
+    `[docN]` rendering, so an unstripped marker shows as raw garbage. The
+    answer-side `normalize_kb_citations` owns marker rewriting; the
+    reasoning channel only removes them.
+    """
+    agent = _FakeAgent(
+        updates=[
+            _update(_reasoning_block("Checking the policy 【6:1†source】 next.")),
+            _update(_text_block("Final answer.")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    reasoning = [e.content for e in events if e.channel == "reasoning"]
+    assert reasoning == ["Checking the policy next."]
+    # No native marker leaks onto any channel.
+    assert all("【" not in e.content for e in events)
+
+
+@pytest.mark.asyncio
 async def test_run_emits_tool_events_for_function_call_blocks() -> None:
     agent = _FakeAgent(
         updates=[
