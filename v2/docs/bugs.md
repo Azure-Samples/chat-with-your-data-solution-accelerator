@@ -124,6 +124,14 @@ This file is tracked and may reach public GitHub. Never write real environment v
 | BUG-0066 | 2026-06-19 | 2026-06-19 | backend | high | fixed | The `agent_framework` orchestrator cannot ground on a **pgvector** deployment, so every chat is rejected at request time with HTTP 409 `ConfigResolutionError` (`reason=orchestrator_requires_azure_search`, ADR 0022). It retrieves only through a Foundry IQ Knowledge Base over an Azure AI Search index, and Foundry IQ has no PostgreSQL/pgvector knowledge-source type, so on pgvector it has zero retrieval and the guard blocks the pairing — violating the requirement that **both** orchestrators work on pgvector. Resolution accepted 2026-06-19: give `agent_framework` an app-side pgvector retrieval path (embed query → `search(query, vector=…)` → inject context → emit citations, reusing the BUG-0065 seam), relax the guard, and supersede ADR 0022 via ADR 0027; on pgvector `agent_framework` stops using Foundry IQ. Distinct from BUG-0064 (wrong default orchestrator). **Fixed 2026-06-19** — live-validated against the local stack on cloud pgvector: agent_framework returns 200 with a reasoning summary + pgvector dense-retrieval citations + a grounded [docN] answer; langgraph unchanged; switchable via admin. |
 | BUG-0067 | 2026-06-19 | 2026-06-19 | frontend | high | fixed | The chat UI renders a **blank page** when `POST /api/conversation` returns a non-2xx status (observed: the BUG-0066 HTTP 409). A "Message failed — streamChat: SSE request failed with status 409" toast shows, then the view blanks instead of degrading to an inline error, and the structured `{error, reason}` body is never surfaced. `MessageInput` does catch the error and dispatch `set_error` (hence the toast), but the page still blanks — there is no React error boundary, and `streamChat` never parses the JSON error body. Resolution: parse the JSON error body in `streamChat`, render a handled inline error, and wrap the chat surface in an error boundary so no stream/render failure blanks the page. **Fixed 2026-06-19** — `streamChat` error-body parsing + the `ErrorBoundary` are unit-tested (566 frontend tests green); the 409 trigger itself is resolved by BUG-0066. |
 | BUG-0068 | 2026-06-19 | 2026-06-19 | backend | medium | fixed | `GET /api/admin/status` reports `orchestrator_name` from the **env default** (`settings.orchestrator.name`), ignoring the persisted `RuntimeConfig` override, so after an operator saves a different orchestrator in the admin UI the status snapshot still shows the old value — even though the chat path and `GET /api/admin/config/effective` correctly apply the override. Same class as the admin config dropdown read-source defect (a read pointed at the env snapshot instead of the effective view), now on the status endpoint. Fix: `status_endpoint` overlays the override via `resolve_effective_config(settings, overrides)` (the single effective-config seam), so `/status` matches what the deployment runs immediately after a save and after a restart (the lifespan re-seeds `app.state.runtime_overrides` from the DB at boot). Persistence was never broken — the saved config is a DB row, not a file. |
+| BUG-0069 | 2026-06-19 |  | infra | high | open | A deployed **cloud** backend's `GET /api/admin/status` reports `"environment": "local"` instead of the real cloud environment (observed on a deployed Container App, alongside `app_insights_enabled: false` + `cors_origins: []`). `settings.environment` falls back to its `local` default because the environment setting is not wired onto the deployed runtime (same env-var-wiring class as BUG-0051/0052/0064). Security implication to verify: the admin auth local-dev bypass (BUG-0047) keys on `environment == "local"` — a missing Easy Auth claims blob then yields a synthetic `local-dev` admin, so a cloud runtime reporting `local` could grant admin without authentication. Fix direction: set the environment on the deployed backend (Bicep) so it reports the real environment, and confirm the admin gate fails closed in the cloud regardless. |
+| BUG-0070 | 2026-06-19 |  | frontend | medium | open | The microphone (speech-to-text) button in the chat composer does not work — clicking it does not capture or transcribe speech. Investigation needed across the FE speech client (the mic toggle in `MessageInput` + the `speech` API client) and the backend speech-token route / Speech resource RBAC: candidate causes include a missing/failing speech-token endpoint, browser mic-permission handling, or SDK wiring. |
+| BUG-0071 | 2026-06-19 |  | frontend | low | open | The header shows an "M" logo icon; it should be (a) replaced with an icon resembling "multi-agent" and (b) made clickable to navigate back to the home / chat view. Currently the icon is off-brand and non-interactive. |
+| BUG-0072 | 2026-06-19 |  | frontend | low | open | When a user is signed in, the top-right of the header does not show the user's initials (an avatar/persona chip). It should display initials derived from the resolved signed-in user (`/.auth/me`), matching the v1 header. |
+| BUG-0073 | 2026-06-19 |  | backend | high | open | Deleting a document via the admin Delete Data UI does not remove **all** references — the user can still access the deleted document (e.g. via `GET /api/files/{filename}`, and/or it still surfaces in retrieval). `delete_by_source` removes the index/pgvector chunks but the underlying Storage **blob** (and any other reference) is not deleted, so the document remains reachable. Fix direction: on delete, remove the index chunks AND the source blob (and any cached references) so the document is fully unreachable. |
+| BUG-0074 | 2026-06-19 |  | backend | high | open | The admin **Add URL** ingestion flow does not work — submitting a URL does not ingest its content (the URL never appears in the documents list and is not retrievable). Investigation needed across the chain: the FE add-url call, the backend `ingest_url` service / URL ingestion entry point, and the `add_url` Functions blueprint (fetch → parse → embed → index). Candidate causes include the URL fetch/parse step, the enqueue, or a deployment env/identity gap on the functions runtime. |
+| BUG-0075 | 2026-06-19 |  | backend | low | open | The admin documents list shows a blank **last modified** date — `GET /api/admin/documents` returns `last_modified: null` for every source. `list_sources` does not populate `last_modified` (the search / pgvector provider returns null). Fix direction: surface a last-modified timestamp in `list_sources` (from the Storage blob `Last-Modified`, or an indexed ingest timestamp) so the column renders. |
+| BUG-0076 | 2026-06-19 |  | frontend | medium | open | The admin section is missing the dropdown of predefined **business-case prompts** (the v1 use-case presets — e.g. employee assistance, contract assistance — that let an operator pick a starting persona/prompt). Fix direction: add a business-cases prompt dropdown to the admin Configuration so the operator can select a predefined use-case prompt; pairs with the prompt-editor surface. |
 
 ## Details
 
@@ -1139,3 +1147,91 @@ Root cause: `status_endpoint` ([routers/admin.py](../src/backend/routers/admin.p
 Fix: `status_endpoint` now takes `RuntimeOverridesDep` and reports `resolve_effective_config(settings, overrides).orchestrator_name` — the single effective-config seam shared with `/config/effective` and the chat path — so the status snapshot matches what the deployment actually runs, both immediately after a save and after a restart (the lifespan reloads the override from the database). The remaining status fields are infra / env settings that are not admin-overridable, so they continue to surface from `settings` directly.
 
 References: [worklog/2026-06-19.md](worklog/2026-06-19.md); observed while live-testing BUG-0066 (the agent_framework-on-pgvector feature).
+
+### BUG-0069 — cloud /api/admin/status reports `environment: "local"`
+
+Area: infra. Severity: high. Status: open (found 2026-06-19).
+
+Symptom: a deployed cloud backend's `GET /api/admin/status` returns `"environment": "local"` instead of the real cloud environment. Observed on a deployed Container App backend, alongside `app_insights_enabled: false` and `cors_origins: []` — consistent with an incomplete deployed env-var set.
+
+Likely cause (to verify): `settings.environment` defaults to `local` and the env var that sets it is not wired onto the deployed backend runtime — the same env-var-wiring class as BUG-0051 / BUG-0052 / BUG-0064 (vars set as Bicep outputs but never on the container `env`).
+
+Security implication (to verify): the admin auth gate's local-dev bypass (BUG-0047) keys on `environment == "local"` — in `local`, a missing Easy Auth claims blob yields a synthetic `local-dev` admin. A cloud runtime that reports `environment == "local"` could therefore grant admin access without authentication. Confirm whether the deployed admin gate actually fails closed independent of the environment string before adjusting severity.
+
+Fix direction: wire the environment setting on the deployed backend (Bicep) so it reports the real environment (e.g. `production`); confirm the admin gate fails closed in the cloud regardless of the environment value.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md); related BUG-0047 (admin local-dev bypass), BUG-0051/0052/0064 (deployed env-var wiring gaps).
+
+### BUG-0070 — chat microphone (speech-to-text) does not work
+
+Area: frontend. Severity: medium. Status: open (found 2026-06-19).
+
+Symptom: clicking the microphone button in the chat composer does not capture or transcribe speech into the message input.
+
+Investigation needed: the FE speech path (the mic toggle in `MessageInput` + the `speech` API client) and the backend speech-token route + Speech resource RBAC. Candidate causes: a missing/failing speech-token endpoint, the browser microphone-permission flow, the Cognitive Services Speech SDK wiring, or the Speech region/identity configuration.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md).
+
+### BUG-0071 — replace the "M" header logo with a multi-agent-style icon and make it click-to-home
+
+Area: frontend. Severity: low. Status: open (found 2026-06-19).
+
+Symptom: the header shows an "M" logo icon that is off-brand and non-interactive.
+
+Desired behavior: (a) replace the "M" icon with an icon resembling "multi-agent", and (b) make the logo clickable to navigate back to the home / chat view.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md).
+
+### BUG-0072 — show signed-in user initials in the top-right
+
+Area: frontend. Severity: low. Status: open (found 2026-06-19).
+
+Symptom: when a user is signed in, the top-right of the header does not show the user's initials.
+
+Desired behavior: render an avatar/persona chip with the user's initials, derived from the resolved signed-in user (`/.auth/me`, already fetched for identity per BUG-0046), matching the v1 header.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md); related BUG-0046 (user resolution on load).
+
+### BUG-0073 — deleting a document does not remove all references; deleted documents stay accessible
+
+Area: backend. Severity: high. Status: open (found 2026-06-19).
+
+Symptom: after deleting a document via the admin Delete Data UI, the user can still access the deleted document (e.g. through `GET /api/files/{filename}`, and/or it still surfaces in retrieval / citations).
+
+Likely cause (to verify): `delete_by_source` removes the search / pgvector index chunks, but the underlying Storage **blob** (and any other reference) is not deleted, so `GET /api/files/{filename}` still streams the file and the source remains reachable.
+
+Fix direction: on document delete, remove the index chunks AND the source blob (and any cached references) so the document is fully unreachable; confirm `GET /api/files/{filename}` 404s for a deleted source.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md); related BUG-0048 (delete-by-source id-discovery fix), BUG-0042 (the `/api/files` download route).
+
+### BUG-0074 — admin Add URL ingestion does not work
+
+Area: backend. Severity: high. Status: open (found 2026-06-19).
+
+Symptom: submitting a URL through the admin Add Data (URL) flow does not ingest the URL's content — it never appears in the documents list and is not retrievable.
+
+Investigation needed across the chain: the FE add-url call, the backend `ingest_url` service / the URL ingestion entry point, and the `add_url` Functions blueprint (fetch → parse → embed → index). Candidate causes: the URL fetch/parse step, the enqueue, or a deployment env/identity gap on the functions runtime.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md); related the `add_url` Functions blueprint (#42).
+
+### BUG-0075 — documents list "last modified" date is blank
+
+Area: backend. Severity: low. Status: open (found 2026-06-19).
+
+Symptom: the admin documents list shows a blank "last modified" date — `GET /api/admin/documents` returns `last_modified: null` for every source.
+
+Likely cause (to verify): `list_sources` does not populate `last_modified`; the search / pgvector provider returns null for the field.
+
+Fix direction: surface a last-modified timestamp in `list_sources` — from the Storage blob's `Last-Modified` (or an indexed ingest timestamp) — so the column renders.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md).
+
+### BUG-0076 — admin section missing the business-cases prompt dropdown
+
+Area: frontend. Severity: medium. Status: open (found 2026-06-19).
+
+Symptom: the admin Configuration is missing the dropdown of predefined business-case prompts (the v1 use-case presets — e.g. employee assistance, contract assistance — that let an operator pick a starting persona/prompt).
+
+Desired behavior: add a business-cases prompt dropdown to the admin Configuration so the operator can select a predefined use-case prompt; pairs with the existing prompt-editor surface.
+
+References: [worklog/2026-06-19.md](worklog/2026-06-19.md).
