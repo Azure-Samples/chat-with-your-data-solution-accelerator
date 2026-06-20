@@ -86,6 +86,17 @@ param azureAiServiceLocation string
 param databaseType string = 'cosmosdb'
 
 // ===================== //
+// Ingestion trigger     //
+// ===================== //
+
+@allowed([
+  'direct_enqueue'
+  'event_grid'
+])
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated to the blob-events queue and the blob_event Function translates it, so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
+param ingestionTrigger string = 'direct_enqueue'
+
+// ===================== //
 // v1 resource reuse     //
 // ===================== //
 // When set, the corresponding AVM module is SKIPPED and a raw `existing`
@@ -1799,6 +1810,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
             { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
             { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+            // Ingestion trigger -- direct_enqueue keeps the backend
+            // enqueueing the push message on upload; event_grid makes the
+            // backend write the blob only and lets the Event Grid -> blob-events
+            // -> blob_event Function own the push (no double-ingest).
+            { name: 'AZURE_INGESTION_TRIGGER', value: ingestionTrigger }
           ],
           enableMonitoring
             ? [
@@ -2411,6 +2427,9 @@ output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
 
 @description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
 output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
+
+@description('Ingestion trigger mode for the backend admin upload path: direct_enqueue (backend enqueues) or event_grid (Event Grid + blob_event Function own the push).')
+output AZURE_INGESTION_TRIGGER string = ingestionTrigger
 
 // --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
 

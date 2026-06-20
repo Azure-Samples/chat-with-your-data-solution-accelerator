@@ -17,6 +17,9 @@
     "databaseType": {
       "value": "${AZURE_ENV_DATABASE_TYPE=cosmosdb}"
     },
+    "ingestionTrigger": {
+      "value": "${AZURE_ENV_INGESTION_TRIGGER=direct_enqueue}"
+    },
     "gptModelName": {
       "value": "${AZURE_ENV_GPT_MODEL_NAME=gpt-5.1}"
     },
