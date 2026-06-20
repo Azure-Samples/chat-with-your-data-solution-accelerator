@@ -17,8 +17,10 @@ banned by Hard Rule #2 -- no Key Vault, no API keys, UAMI/AAD only):
    per-app credential singleton (UAMI in production, AzureCli /
    DefaultAzureCredential locally) constructed by the
    `providers/credentials/` registry domain.
-2. POST to `https://{region}.api.cognitive.microsoft.com/sts/v1.0/issueToken`
-   with `Authorization: Bearer <aad_token>` and
+2. POST to `https://{service_name}.cognitiveservices.azure.com/sts/v1.0/issueToken`
+   (the Speech account's custom-subdomain host -- Entra ID / AAD auth
+   requires the custom domain; regional `*.api.cognitive.microsoft.com`
+   hosts do not support AAD) with `Authorization: Bearer <aad_token>` and
    `x-ms-cognitiveservices-resource-id: <speech_account_resource_id>`.
    Empty body, plain-text response.
 3. Return the response body verbatim -- the Speech SDK consumes it as
@@ -45,8 +47,8 @@ logger = logging.getLogger(__name__)
 _TOKEN_MINT_TIMEOUT_SECONDS = 10.0
 
 
-def _token_mint_url(region: str) -> str:
-    return f"https://{region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+def _token_mint_url(service_name: str) -> str:
+    return f"https://{service_name}.cognitiveservices.azure.com/sts/v1.0/issueToken"
 
 
 async def mint_speech_token(
@@ -91,7 +93,7 @@ async def mint_speech_token(
         "x-ms-cognitiveservices-resource-id": settings.account_resource_id,
         "Content-Length": "0",
     }
-    url = _token_mint_url(region)
+    url = _token_mint_url(settings.service_name)
 
     owns_client = http_client is None
     client = http_client or httpx.AsyncClient(timeout=_TOKEN_MINT_TIMEOUT_SECONDS)

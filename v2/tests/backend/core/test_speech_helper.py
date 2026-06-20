@@ -24,6 +24,7 @@ from backend.core.speech import mint_speech_token
 _REGION = "eastus2"
 _TOKEN = "ey-fake-aad-token"
 _SPEECH_TOKEN = "fake-speech-auth-token-body"
+_SERVICE_NAME = "spch-cwyd001"
 _RESOURCE_ID = (
     "/subscriptions/x/resourceGroups/y/providers/"
     "Microsoft.CognitiveServices/accounts/spch-cwyd001"
@@ -59,7 +60,7 @@ class _StubCredential:
 
 def _settings() -> SpeechSettings:
     return SpeechSettings(
-        service_name="spch-cwyd001",
+        service_name=_SERVICE_NAME,
         service_region=_REGION,
         account_resource_id=_RESOURCE_ID,
     )
@@ -97,11 +98,13 @@ async def test_mints_token_via_aad_and_returns_response_body() -> None:
     # AAD scope is the cognitive-services resource scope -- never the
     # ARM scope or a per-region scope.
     assert cred.calls == [("https://cognitiveservices.azure.com/.default",)]
-    # Regional issueToken endpoint, POST, empty body, AAD bearer +
-    # resource-id headers.
+    # Custom-subdomain issueToken endpoint -- AAD (Entra ID) auth requires
+    # the account's custom domain; the regional host does not support it
+    # (BUG-0070 root cause 2; matches v1's `speechService.outputs.endpoint`).
+    # POST, empty body, AAD bearer + resource-id headers.
     assert captured["method"] == "POST"
     assert captured["url"] == (
-        f"https://{_REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+        f"https://{_SERVICE_NAME}.cognitiveservices.azure.com/sts/v1.0/issueToken"
     )
     assert captured["headers"]["authorization"] == f"Bearer {_TOKEN}"
     assert captured["headers"]["x-ms-cognitiveservices-resource-id"] == _RESOURCE_ID
