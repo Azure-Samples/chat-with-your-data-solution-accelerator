@@ -153,7 +153,7 @@ async def test_returns_503_when_speech_region_unset() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 502 when token mint fails (AAD or HTTP)
+# 502 when token mint fails (AAD acquisition)
 # ---------------------------------------------------------------------------
 
 
@@ -172,27 +172,6 @@ async def test_returns_502_when_aad_fails(
 
     assert resp.status_code == 502
     # SDK error message must NOT leak; only the sanitized detail.
-    assert resp.json() == {"detail": "Speech token mint failed."}
-
-
-async def test_returns_502_when_issue_token_http_fails(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    request = httpx.Request("POST", "https://eastus2.api.cognitive.microsoft.com/")
-    response = httpx.Response(403, request=request, text="forbidden")
-    monkeypatch.setattr(
-        "backend.routers.speech.mint_speech_token",
-        AsyncMock(
-            side_effect=httpx.HTTPStatusError(
-                "403 Forbidden", request=request, response=response
-            )
-        ),
-    )
-    app = _build_app(_settings_with_speech(), _StubCredentialProvider())
-    async with _client(app) as client:
-        resp = await client.get("/api/speech")
-
-    assert resp.status_code == 502
     assert resp.json() == {"detail": "Speech token mint failed."}
 
 

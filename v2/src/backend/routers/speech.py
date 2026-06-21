@@ -17,7 +17,6 @@ flow implemented in :mod:`backend.core.speech`.
 
 import logging
 
-import httpx
 from azure.core.exceptions import AzureError
 from fastapi import APIRouter, HTTPException, status
 
@@ -41,10 +40,10 @@ async def get_speech_config(
     the history router so the FE can render a consistent
     "feature-unavailable" banner.
 
-    502 ``Speech token mint failed`` when the AAD or issueToken HTTP
-    call fails. The underlying exception is logged with structured
-    context inside :func:`mint_speech_token`; the router scrubs the
-    detail so SDK error messages never leak to the browser.
+    502 ``Speech token mint failed`` when the AAD token acquisition
+    fails. The underlying exception is logged with structured context
+    inside :func:`mint_speech_token`; the router scrubs the detail so
+    SDK error messages never leak to the browser.
     """
     if not settings.speech.service_region:
         raise HTTPException(
@@ -58,7 +57,7 @@ async def get_speech_config(
             settings=settings.speech,
             credential=credential,
         )
-    except (AzureError, httpx.HTTPError) as exc:
+    except AzureError as exc:
         # Helper already logged with `extra={...}` -- here we only
         # translate to a sanitized HTTP error for the FE.
         logger.warning(
