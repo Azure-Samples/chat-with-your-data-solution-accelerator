@@ -101,17 +101,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-# Probe key into the ingestion parser registry used to detect uploads
-# that route to the Document Intelligence parser. PDF + DOCX register
-# the same DI parser class, so an identity comparison against this key
-# (rather than a hardcoded extension set) auto-includes any extension
-# that registers that parser -- keeping dispatch in the registry per
-# Hard Rule #4. The DI parser is the only parser that requires
-# AZURE_AI_SERVICES_ENDPOINT; non-DI parsers (txt / md / html) parse
-# locally and never read it.
-_DI_PARSER_PROBE_KEY = "pdf"
-
-
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -655,9 +644,16 @@ async def upload_document_endpoint(
                 "supported": supported,
             },
         )
+    # Detect uploads that route to the Document Intelligence parser via an
+    # identity comparison against the parser registered for "pdf" (rather
+    # than a hardcoded extension set): PDF + DOCX register the same DI
+    # parser class, so this auto-includes any extension that registers that
+    # parser, keeping dispatch in the registry per Hard Rule #4. The DI
+    # parser is the only parser that requires AZURE_AI_SERVICES_ENDPOINT;
+    # non-DI parsers (txt / md / html) parse locally and never read it.
     if (
         ingestion_parsers_registry.registry.get(extension)
-        is ingestion_parsers_registry.registry.get(_DI_PARSER_PROBE_KEY)
+        is ingestion_parsers_registry.registry.get("pdf")
         and not settings.foundry.services_endpoint.lower().startswith("https://")
     ):
         raise HTTPException(

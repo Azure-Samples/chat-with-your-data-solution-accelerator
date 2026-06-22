@@ -21,6 +21,8 @@ from azure.core.exceptions import AzureError
 from backend.core.settings import AppSettings, get_settings
 from functions.blob_event import blueprint as bp_module
 from functions.blob_event.blueprint import blob_event
+from functions.blob_event.event_parser import BlobEventType
+from functions.blob_event.handler import BlobEventOutcome
 from functions.core.contracts import BatchPushQueueMessage
 from functions.function_app import app
 
@@ -71,13 +73,15 @@ def _env(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
 
 
-def _event_body(subject: str) -> bytes:
-    """Raw Event Grid BlobCreated event JSON, as delivered to the queue."""
+def _event_body(
+    subject: str, event_type: str = "Microsoft.Storage.BlobCreated"
+) -> bytes:
+    """Raw Event Grid blob event JSON, as delivered to the queue."""
     return json.dumps(
         {
             "topic": "/subscriptions/x/resourceGroups/y/providers/Microsoft.Storage/storageAccounts/stcwyd001",
             "subject": subject,
-            "eventType": "Microsoft.Storage.BlobCreated",
+            "eventType": event_type,
             "id": "evt-1",
             "data": {
                 "api": "PutBlob",
@@ -101,14 +105,18 @@ class _FakeQueueMessage:
         return self._body
 
 
-def _make_msg(subject: str) -> func.QueueMessage:
-    return cast(func.QueueMessage, _FakeQueueMessage(_event_body(subject)))
+def _make_msg(
+    subject: str, event_type: str = "Microsoft.Storage.BlobCreated"
+) -> func.QueueMessage:
+    return cast(
+        func.QueueMessage, _FakeQueueMessage(_event_body(subject, event_type))
+    )
 
 
 def _patch_route_deps(
     monkeypatch: pytest.MonkeyPatch,
     execute: Callable[
-        [func.QueueMessage, AppSettings], Awaitable[BatchPushQueueMessage | None]
+        [func.QueueMessage, AppSettings], Awaitable[BlobEventOutcome | None]
     ],
     settings: AppSettings | None = None,
 ) -> None:
@@ -125,10 +133,12 @@ async def test_happy_path_dispatches_message_to_execute(
 
     async def fake_execute(
         msg: func.QueueMessage, settings: AppSettings
-    ) -> BatchPushQueueMessage | None:
+    ) -> BlobEventOutcome | None:
         captured["body"] = msg.get_body()
         captured["settings_type"] = type(settings).__name__
-        return BatchPushQueueMessage(container_name="documents", filename="a.pdf")
+        return BlobEventOutcome(
+            event_type=BlobEventType.CREATED, filename="a.pdf"
+        )
 
     _patch_route_deps(monkeypatch, fake_execute)
 
@@ -147,7 +157,7 @@ async def test_azure_error_in_execute_reraises_and_logs_exception(
 ) -> None:
     async def fake_execute(
         msg: func.QueueMessage, settings: AppSettings
-    ) -> BatchPushQueueMessage | None:
+    ) -> BlobEventOutcome | None:
         raise AzureError("queue 503")
 
     _patch_route_deps(monkeypatch, fake_execute)
@@ -173,7 +183,7 @@ async def test_unexpected_exception_in_execute_reraises_safety_net(
 ) -> None:
     async def fake_execute(
         msg: func.QueueMessage, settings: AppSettings
-    ) -> BatchPushQueueMessage | None:
+    ) -> BlobEventOutcome | None:
         raise RuntimeError("totally unexpected")
 
     _patch_route_deps(monkeypatch, fake_execute)
@@ -254,11 +264,72 @@ async def test_execute_enqueues_translated_envelope_to_doc_processing(
     result = await bp_module._execute(_make_msg(_DOCUMENTS_SUBJECT), AppSettings())
 
     assert result is not None
-    assert result.container_name == "documents"
-    assert result.filename == "Benefit_Options.pdf"
+    assert result.event_type is BlobEventType.CREATED
+    assert result.enqueued is not None
+    assert result.enqueued.container_name == "documents"
+    assert result.enqueued.filename == "Benefit_Options.pdf"
     # Exactly one CWYD envelope enqueued onto doc-processing; round-trips.
     assert len(sent) == 1
-    assert BatchPushQueueMessage.model_validate_json(sent[0]) == result
+    assert BatchPushQueueMessage.model_validate_json(sent[0]) == result.enqueued
+
+
+@pytest.mark.asyncio
+async def test_execute_deindexes_on_blob_deleted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A BlobDeleted event resolves the search provider and de-indexes the
+    # blob's chunks; the doc-processing queue client is never opened. The
+    # base env selects AzureSearch, so the pgvector pool branch is skipped.
+    deleted_sources: list[str] = []
+
+    class _StubCredCM:
+        async def __aenter__(self) -> object:
+            return object()
+
+        async def __aexit__(self, *_exc: object) -> None:
+            return None
+
+    class _StubCredProvider:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def get_credential(self) -> _StubCredCM:
+            return _StubCredCM()
+
+    class _StubSearch:
+        def __init__(self, **_kw: object) -> None:
+            pass
+
+        async def ensure_schema(self) -> None:
+            return None
+
+        async def delete_by_source(self, source: str) -> int:
+            deleted_sources.append(source)
+            return 5
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        bp_module.credentials_registry, "select_default", lambda _cid: "managed_identity"
+    )
+    monkeypatch.setattr(
+        bp_module.credentials_registry.registry, "get", lambda _key: _StubCredProvider
+    )
+    monkeypatch.setattr(
+        bp_module.search_registry.registry, "get", lambda _key: _StubSearch
+    )
+
+    result = await bp_module._execute(
+        _make_msg(_DOCUMENTS_SUBJECT, "Microsoft.Storage.BlobDeleted"), AppSettings()
+    )
+
+    assert result is not None
+    assert result.event_type is BlobEventType.DELETED
+    assert result.enqueued is None
+    assert result.deleted_count == 5
+    # de-index is keyed on the blob path (the indexed source).
+    assert deleted_sources == ["Benefit_Options.pdf"]
 
 
 def test_blob_event_route_registered_on_app() -> None:

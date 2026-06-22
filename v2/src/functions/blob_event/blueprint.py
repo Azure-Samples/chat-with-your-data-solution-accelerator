@@ -1,27 +1,35 @@
 """Pillar: Stable Core
 Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
-Queue-trigger blueprint that turns a ``Microsoft.Storage.BlobCreated``
-event into a doc-processing ingestion job, so any blob written to the
-documents container -- by a bulk drop, an admin upload, or any other
-writer -- is auto-ingested by the unchanged ``batch_push`` consumer.
+Queue-trigger blueprint that turns a Storage blob event into the right
+indexing action: a ``Microsoft.Storage.BlobCreated`` event becomes a
+doc-processing ingestion job (auto-ingested by the unchanged
+``batch_push`` consumer), and a ``Microsoft.Storage.BlobDeleted`` event
+de-indexes the blob's chunks. So any blob written to or removed from the
+documents container -- by a bulk drop / delete, an admin upload, or any
+other writer -- keeps the index in sync.
 
 Wire shape:
 
 * **Trigger** -- ``azure.functions.QueueMessage`` on the ``blob-events``
   queue. The Event Grid system topic on the storage account delivers
-  filtered ``BlobCreated`` events (scoped to the documents container) to
-  ``blob-events`` (a StorageQueue destination with managed-identity
-  delivery). A queue destination -- not an Event Grid ``AzureFunction``
-  trigger -- keeps the no-keys managed-identity posture and deploys as
-  pure bicep, because the queue exists at provision time (ADR 0028).
-* **Translate + reuse** -- the body delegates to
-  :func:`functions.blob_event.event_parser.subject_from_event_message`
-  (raw Event Grid event -> blob subject) then
-  :func:`functions.blob_event.handler.blob_event_handler` (subject ->
-  :class:`BatchPushQueueMessage` -> ``enqueue_push_message`` onto
-  ``doc-processing``). ``batch_push`` consumes ``doc-processing``
-  unchanged.
+  filtered ``BlobCreated`` / ``BlobDeleted`` events (scoped to the
+  documents container) to ``blob-events`` (a StorageQueue destination
+  with managed-identity delivery). A queue destination -- not an Event
+  Grid ``AzureFunction`` trigger -- keeps the no-keys managed-identity
+  posture and deploys as pure bicep, because the queue exists at
+  provision time (ADR 0028).
+* **Classify + dispatch** -- the body delegates to
+  :func:`functions.blob_event.event_parser.parse_blob_event` (raw Event
+  Grid event -> typed :class:`ParsedBlobEvent`), then branches on the
+  event type: a create calls
+  :func:`functions.blob_event.handler.handle_blob_created` (enqueue a
+  :class:`BatchPushQueueMessage` onto ``doc-processing``, consumed by the
+  unchanged ``batch_push``); a delete resolves the registry-first search
+  provider (exactly as ``batch_push`` does) and calls
+  :func:`functions.blob_event.handler.handle_blob_deleted`
+  (``delete_by_source``). Only the collaborator the matched action needs
+  is opened.
 * **Failure mode** -- :func:`functions.core.exception_mapping.log_queue_errors`
   logs a structured trail and re-raises so the runtime applies its
   retry -> poison-queue policy.
@@ -36,15 +44,22 @@ exactly as ``batch_push`` does. The private :func:`_execute` helper is
 the single seam tests monkeypatch.
 """
 
+from typing import Any
+
 import azure.functions as func
 from azure.storage.queue.aio import QueueClient
 
 from backend.core.providers.credentials import registry as credentials_registry
-from backend.core.settings import AppSettings, get_settings
-from functions.blob_event.event_parser import subject_from_event_message
-from functions.blob_event.handler import blob_event_handler
-from functions.core.contracts import BatchPushQueueMessage
+from backend.core.providers.search import registry as search_registry
+from backend.core.settings import AppSettings, IndexStore, get_settings
+from functions.blob_event.event_parser import BlobEventType, parse_blob_event
+from functions.blob_event.handler import (
+    BlobEventOutcome,
+    handle_blob_created,
+    handle_blob_deleted,
+)
 from functions.core.exception_mapping import log_queue_errors
+from functions.core.pgvector_pool import PgVectorPool
 from functions.core.storage_endpoints import resolve_storage_endpoints
 
 bp = func.Blueprint()
@@ -57,33 +72,73 @@ _BLOB_EVENTS_QUEUE = "blob-events"
 
 async def _execute(
     msg: func.QueueMessage, settings: AppSettings
-) -> BatchPushQueueMessage | None:
-    """Translate one Event Grid message into a doc-processing job.
+) -> BlobEventOutcome | None:
+    """Classify one Event Grid message and run the matching action.
 
-    Extracts the blob ``subject`` from the raw Event Grid event body
-    (a malformed / non-event message yields ``None`` -> skip, before any
-    credential or queue client is opened), then opens the
-    ``doc-processing`` queue client and dispatches to
-    :func:`blob_event_handler`. Extracted from :func:`blob_event` so
-    route-level tests monkeypatch this single seam instead of opening a
-    real credential / Storage Queue. Returns the enqueued envelope, or
-    ``None`` when the message was skipped, so callers can assert on the
-    wire shape.
+    Parses the raw event body into a typed :class:`ParsedBlobEvent` (a
+    malformed / non-blob / unhandled-type message yields ``None`` -> skip,
+    before any credential or SDK client is opened), then branches on the
+    event type and opens only the collaborator that branch needs:
+
+    * **create** -- open the ``doc-processing`` queue client and call
+      :func:`handle_blob_created` (enqueue an ingestion job).
+    * **delete** -- resolve the registry-first search provider (the
+      pgvector pool is acquired only on the pgvector path, mirroring
+      ``batch_push``) and call :func:`handle_blob_deleted`
+      (``delete_by_source``).
+
+    Extracted from :func:`blob_event` so route-level tests monkeypatch
+    this single seam instead of opening a real credential / Storage Queue
+    / Search service. Returns the :class:`BlobEventOutcome`, or ``None``
+    when the message was skipped.
     """
-    subject = subject_from_event_message(msg.get_body())
-    if subject is None:
+    event = parse_blob_event(msg.get_body())
+    if event is None:
         return None
-    _blob_endpoint, queue_endpoint = resolve_storage_endpoints(settings.storage)
     cred_provider = credentials_registry.registry.get(
         credentials_registry.select_default(settings.identity.uami_client_id)
     )(settings=settings)
     async with await cred_provider.get_credential() as credential:
-        async with QueueClient(
-            account_url=queue_endpoint,
-            queue_name=settings.storage.doc_processing_queue,
-            credential=credential,
-        ) as queue_client:
-            return await blob_event_handler(subject, queue_client)
+        if event.event_type is BlobEventType.CREATED:
+            _blob_endpoint, queue_endpoint = resolve_storage_endpoints(
+                settings.storage
+            )
+            async with QueueClient(
+                account_url=queue_endpoint,
+                queue_name=settings.storage.doc_processing_queue,
+                credential=credential,
+            ) as queue_client:
+                return await handle_blob_created(event.ref, queue_client)
+        # BlobEventType.DELETED -- de-index via the registry-first search
+        # provider. PgVectorPool is constructed only on the pgvector path
+        # so AzureSearch stays free of any postgres SDK touch; the pool is
+        # closed in `finally` so the credential context fully owns the
+        # connection lifecycle (mirrors batch_push).
+        search_key = settings.database.index_store
+        pool_helper: PgVectorPool | None = None
+        try:
+            # `Any` per Hard Rule #11 boundary carve-out: the registry
+            # callable accepts heterogeneous kwargs across provider
+            # concretes (AzureSearch takes settings+credential; PgVector
+            # additionally takes `pool`). Same pattern as batch_push.
+            search_kwargs: dict[str, Any] = {
+                "settings": settings,
+                "credential": credential,
+            }
+            if search_key == IndexStore.PGVECTOR:
+                pool_helper = PgVectorPool(settings=settings, credential=credential)
+                search_kwargs["pool"] = await pool_helper.acquire()
+            search_provider = search_registry.registry.get(search_key)(**search_kwargs)
+            try:
+                # ensure_schema is a no-op on AzureSearch and runs the
+                # pgvector DDL once-per-process; keeps delete provider-agnostic.
+                await search_provider.ensure_schema()
+                return await handle_blob_deleted(event.ref, search_provider)
+            finally:
+                await search_provider.aclose()
+        finally:
+            if pool_helper is not None:
+                await pool_helper.aclose()
 
 
 @bp.queue_trigger(
@@ -93,10 +148,10 @@ async def _execute(
 )
 @log_queue_errors("blob_event")
 async def blob_event(msg: func.QueueMessage) -> None:
-    """Queue trigger -- translate a ``BlobCreated`` event into ingestion.
+    """Queue trigger -- keep the index in sync with a Storage blob event.
 
-    Dispatches to :func:`_execute`, which extracts the subject, opens
-    the doc-processing queue client, and runs :func:`blob_event_handler`.
+    Dispatches to :func:`_execute`, which classifies the event and runs
+    the matching action (create -> enqueue ingestion; delete -> de-index).
     Failures bubble to :func:`log_queue_errors` which logs and re-raises
     so the runtime engages retry -> poison.
     """

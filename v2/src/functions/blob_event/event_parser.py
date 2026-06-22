@@ -3,12 +3,12 @@ Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
 Event parser for the ``blob_event`` blueprint.
 
-``blob_event`` is the Event Grid trigger that turns a
-``Microsoft.Storage.BlobCreated`` event into a CWYD ingestion job: any
-blob written to the documents container -- by a bulk drop, an admin
-upload, or any other writer -- fires ``BlobCreated``, and this module
-owns the first step: extracting the container + blob name the rest of
-the pipeline needs.
+``blob_event`` is the Event Grid trigger over Storage blob events on the
+documents container: a ``BlobCreated`` event (bulk drop, admin upload,
+any writer) drives ingestion, and a ``BlobDeleted`` event (bulk delete,
+Storage Explorer) drives de-indexing. This module owns the first step:
+classifying the event type (:class:`BlobEventType`) and extracting the
+container + blob name the rest of the pipeline needs.
 
 The reliable source of that pair is the event ``subject``, whose shape
 for a Storage blob event is::
@@ -28,6 +28,8 @@ import base64
 import binascii
 import json
 import re
+from enum import StrEnum
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -38,6 +40,24 @@ from pydantic import BaseModel, ConfigDict, Field
 _BLOB_SUBJECT_RE = re.compile(
     r"^/blobServices/default/containers/(?P<container>[^/]+)/blobs/(?P<blob>.+)$"
 )
+
+
+class BlobEventType(StrEnum):
+    """The Storage blob events the ``blob_event`` handler acts on.
+
+    ``CREATED`` drives ingestion (a blob was written -> enqueue a
+    doc-processing job); ``DELETED`` drives de-indexing (a blob was
+    removed -> delete its indexed chunks). Any other Event Grid event
+    type is skipped by :func:`parse_blob_event`.
+    """
+
+    CREATED = "Microsoft.Storage.BlobCreated"
+    DELETED = "Microsoft.Storage.BlobDeleted"
+
+
+# Reverse map for narrowing a raw `eventType` string to a known member
+# without a try/except (an unknown type maps to None -> skip).
+_EVENT_TYPE_BY_VALUE = {member.value: member for member in BlobEventType}
 
 
 class ParsedBlobRef(BaseModel):
@@ -51,6 +71,21 @@ class ParsedBlobRef(BaseModel):
 
     container_name: str = Field(min_length=1)
     filename: str = Field(min_length=1)
+
+
+class ParsedBlobEvent(BaseModel):
+    """Event type + blob reference parsed from one Event Grid message.
+
+    Frozen + ``extra="forbid"``: the handler reads ``event_type`` to
+    choose ingest (:attr:`BlobEventType.CREATED`) vs de-index
+    (:attr:`BlobEventType.DELETED`) and ``ref`` for the container +
+    blob name.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    event_type: BlobEventType
+    ref: ParsedBlobRef
 
 
 def parse_blob_created_subject(subject: str) -> ParsedBlobRef | None:
@@ -74,22 +109,16 @@ def parse_blob_created_subject(subject: str) -> ParsedBlobRef | None:
     return ParsedBlobRef(container_name=container, filename=blob)
 
 
-def subject_from_event_message(raw: bytes | str) -> str | None:
-    """Extract the ``subject`` from a raw Event Grid event message body.
-
-    The Event Grid system topic delivers one ``BlobCreated`` event per
-    Storage Queue message (EventGridSchema), whose top-level ``subject``
-    is the ``/blobServices/default/containers/<c>/blobs/<b>`` path that
-    :func:`parse_blob_created_subject` turns into a container + blob
-    reference. Returns that subject string, or ``None`` when the body is
-    not a JSON object carrying a string ``subject`` (so a malformed or
-    non-event message is skipped rather than ingested).
+def _decode_event_payload(raw: bytes | str) -> dict[str, Any] | None:
+    """Decode one Event Grid Storage-Queue message body to a dict.
 
     The body is tried as raw JSON first, then as base64-decoded JSON,
     because Event Grid's Storage-Queue wire encoding is an external
     behavior outside our control (raw JSON under the host's
     ``messageEncoding = none``, but base64 is tolerated defensively).
-    A single-event JSON array is also accepted.
+    A single-event JSON array is unwrapped to its first element.
+    Returns ``None`` when the body is not a JSON object (so a malformed
+    or non-event message is skipped rather than processed).
     """
     payload: object = None
     try:
@@ -103,5 +132,55 @@ def subject_from_event_message(raw: bytes | str) -> str | None:
         payload = payload[0] if payload else None
     if not isinstance(payload, dict):
         return None
+    return cast("dict[str, Any]", payload)
+
+
+def subject_from_event_message(raw: bytes | str) -> str | None:
+    """Extract the ``subject`` from a raw Event Grid event message body.
+
+    The Event Grid system topic delivers one Storage blob event per
+    Storage Queue message (EventGridSchema), whose top-level ``subject``
+    is the ``/blobServices/default/containers/<c>/blobs/<b>`` path that
+    :func:`parse_blob_created_subject` turns into a container + blob
+    reference. Returns that subject string, or ``None`` when the body is
+    not a JSON object carrying a string ``subject`` (so a malformed or
+    non-event message is skipped).
+    """
+    payload = _decode_event_payload(raw)
+    if payload is None:
+        return None
     subject = payload.get("subject")
     return subject if isinstance(subject, str) else None
+
+
+def parse_blob_event(raw: bytes | str) -> ParsedBlobEvent | None:
+    """Parse a raw Event Grid message into a typed blob event.
+
+    Extracts the ``eventType`` and ``subject`` from the message body and
+    returns a :class:`ParsedBlobEvent` carrying the matched
+    :class:`BlobEventType` (CREATED / DELETED) and the parsed container
+    + blob reference. Returns ``None`` -- so the caller skips the
+    message -- when the body is not a blob event we handle: a malformed
+    / non-JSON body, an ``eventType`` other than BlobCreated /
+    BlobDeleted, or a ``subject`` that is not a
+    ``/containers/<c>/blobs/<b>`` blob path. (BlobCreated and BlobDeleted
+    share the same subject shape, so one subject parser serves both.)
+    """
+    payload = _decode_event_payload(raw)
+    if payload is None:
+        return None
+    event_type_raw = payload.get("eventType")
+    event_type = (
+        _EVENT_TYPE_BY_VALUE.get(event_type_raw)
+        if isinstance(event_type_raw, str)
+        else None
+    )
+    if event_type is None:
+        return None
+    subject = payload.get("subject")
+    if not isinstance(subject, str):
+        return None
+    ref = parse_blob_created_subject(subject)
+    if ref is None:
+        return None
+    return ParsedBlobEvent(event_type=event_type, ref=ref)

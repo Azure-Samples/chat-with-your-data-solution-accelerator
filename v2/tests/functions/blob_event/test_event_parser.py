@@ -7,8 +7,11 @@ import pytest
 from pydantic import ValidationError
 
 from functions.blob_event.event_parser import (
+    BlobEventType,
+    ParsedBlobEvent,
     ParsedBlobRef,
     parse_blob_created_subject,
+    parse_blob_event,
     subject_from_event_message,
 )
 
@@ -124,3 +127,101 @@ def test_non_string_subject_returns_none() -> None:
 
 def test_empty_array_returns_none() -> None:
     assert subject_from_event_message(b"[]") is None
+
+
+# ---------------------------------------------------------------------------
+# parse_blob_event — classify the event type + parse the blob reference
+# ---------------------------------------------------------------------------
+
+
+def _typed_event_body(subject: str, event_type: str) -> dict[str, object]:
+    body = _event_body(subject)
+    body["eventType"] = event_type
+    return body
+
+
+def test_parses_blob_created_event() -> None:
+    raw = json.dumps(
+        _typed_event_body(_SUBJECT, "Microsoft.Storage.BlobCreated")
+    ).encode("utf-8")
+    assert parse_blob_event(raw) == ParsedBlobEvent(
+        event_type=BlobEventType.CREATED,
+        ref=ParsedBlobRef(container_name="documents", filename="Benefit_Options.pdf"),
+    )
+
+
+def test_parses_blob_deleted_event() -> None:
+    raw = json.dumps(
+        _typed_event_body(_SUBJECT, "Microsoft.Storage.BlobDeleted")
+    ).encode("utf-8")
+    assert parse_blob_event(raw) == ParsedBlobEvent(
+        event_type=BlobEventType.DELETED,
+        ref=ParsedBlobRef(container_name="documents", filename="Benefit_Options.pdf"),
+    )
+
+
+def test_parses_event_from_single_event_array() -> None:
+    raw = json.dumps(
+        [_typed_event_body(_SUBJECT, "Microsoft.Storage.BlobDeleted")]
+    ).encode("utf-8")
+    parsed = parse_blob_event(raw)
+    assert parsed is not None
+    assert parsed.event_type == BlobEventType.DELETED
+
+
+def test_parses_event_from_base64_body() -> None:
+    raw = base64.b64encode(
+        json.dumps(_typed_event_body(_SUBJECT, "Microsoft.Storage.BlobCreated")).encode(
+            "utf-8"
+        )
+    )
+    parsed = parse_blob_event(raw)
+    assert parsed is not None
+    assert parsed.event_type == BlobEventType.CREATED
+
+
+def test_unknown_event_type_returns_none() -> None:
+    raw = json.dumps(
+        _typed_event_body(_SUBJECT, "Microsoft.Storage.BlobTierChanged")
+    ).encode("utf-8")
+    assert parse_blob_event(raw) is None
+
+
+def test_missing_event_type_returns_none() -> None:
+    body = _event_body(_SUBJECT)
+    del body["eventType"]
+    raw = json.dumps(body).encode("utf-8")
+    assert parse_blob_event(raw) is None
+
+
+def test_non_string_event_type_returns_none() -> None:
+    raw = json.dumps(_typed_event_body(_SUBJECT, "")).encode("utf-8")
+    # An empty eventType is not a known member -> skip.
+    assert parse_blob_event(raw) is None
+
+
+def test_event_with_malformed_subject_returns_none() -> None:
+    raw = json.dumps(
+        _typed_event_body("not-a-blob-subject", "Microsoft.Storage.BlobCreated")
+    ).encode("utf-8")
+    assert parse_blob_event(raw) is None
+
+
+def test_event_without_subject_returns_none() -> None:
+    raw = json.dumps({"eventType": "Microsoft.Storage.BlobCreated"}).encode("utf-8")
+    assert parse_blob_event(raw) is None
+
+
+def test_event_malformed_body_returns_none() -> None:
+    assert parse_blob_event(b"not-json-not-base64-!!!") is None
+
+
+def test_parsed_event_is_frozen() -> None:
+    parsed = parse_blob_event(
+        json.dumps(
+            _typed_event_body(_SUBJECT, "Microsoft.Storage.BlobCreated")
+        ).encode("utf-8")
+    )
+    assert parsed is not None
+    with pytest.raises(ValidationError):
+        parsed.event_type = BlobEventType.DELETED  # type: ignore[misc]

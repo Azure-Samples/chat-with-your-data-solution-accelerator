@@ -93,7 +93,7 @@ param databaseType string = 'cosmosdb'
   'direct_enqueue'
   'event_grid'
 ])
-@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated to the blob-events queue and the blob_event Function translates it, so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
 param ingestionTrigger string = 'direct_enqueue'
 
 // ===================== //
@@ -1951,8 +1951,9 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
 //                    the configured vector index (AI Search OR Postgres)
 //   - add_url      — HTTP trigger; fetch URL content, parse, embed
 // Event Grid system topic on the Storage Account fans out BlobCreated
-// notifications under /documents/ to the doc-processing queue, which
-// triggers batch_push.
+// and BlobDeleted notifications under /documents/ to the blob-events
+// queue; the blob_event trigger turns a create into a doc-processing
+// ingestion job (batch_push) and a delete into a de-index.
 //
 // Flex Consumption (FC1) chosen over Premium because:
 //   - sub-second cold start, scale-to-zero (cheap when idle)
@@ -1973,8 +1974,9 @@ var functionsPlanSkuName = 'FC1'
 var functionsRuntimeName = 'python'
 var functionsRuntimeVersion = '3.11'
 var docProcessingQueueName = 'doc-processing'
-// Event Grid delivers BlobCreated events here; the blob_event queue
-// trigger translates each into a doc-processing ingestion envelope.
+// Event Grid delivers BlobCreated / BlobDeleted events here; the
+// blob_event queue trigger translates a create into a doc-processing
+// ingestion envelope and a delete into a de-index.
 var blobEventsQueueName = 'blob-events'
 var documentsContainerName = 'documents'
 // Built-in role definition GUIDs used by this section.
@@ -2144,9 +2146,10 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
 }
 
 // Event Grid system topic on the Storage Account. Single subscription:
-// BlobCreated under /documents/ → blob-events queue, which the
-// blob_event queue trigger translates into doc-processing ingestion
-// envelopes consumed by batch_push (ADR 0028). A queue destination --
+// BlobCreated / BlobDeleted under /documents/ → blob-events queue, which
+// the blob_event queue trigger translates into the right action (create
+// → doc-processing ingestion envelope consumed by batch_push; delete →
+// de-index) (ADR 0028). A queue destination --
 // not an Event Grid AzureFunction trigger -- keeps managed-identity
 // delivery and deploys at provision time (the queue exists; a function
 // would not yet). The add_url path is HTTP-triggered, not
@@ -2190,7 +2193,7 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
           }
         }
         filter: {
-          includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+          includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
           subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
           enableAdvancedFilteringOnArrays: true
         }
@@ -2224,9 +2227,10 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
 }
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
-// v1's topic that routes BlobCreated events from the documents/ prefix
-// to our blob-events queue (the blob_event trigger translates them to
-// doc-processing). Delivery uses v2's UAMI (granted both
+// v1's topic that routes BlobCreated / BlobDeleted events from the
+// documents/ prefix to our blob-events queue (the blob_event trigger
+// translates a create to doc-processing and a delete to a de-index).
+// Delivery uses v2's UAMI (granted both
 // Queue Data Contributor on the storage account AND Queue Data Message
 // Sender on the specific queue \u2014 EG preflight validates the latter at
 // queue scope specifically).
@@ -2268,7 +2272,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
       }
     }
     filter: {
-      includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+      includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
       subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
       enableAdvancedFilteringOnArrays: true
     }
