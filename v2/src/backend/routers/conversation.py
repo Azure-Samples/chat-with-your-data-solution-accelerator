@@ -108,6 +108,10 @@ async def conversation(
     #   * `search_top_k` / `search_use_semantic_search` -- per-request
     #     retrieval knobs `langgraph` forwards to `BaseSearch.search`
     #     and `agent_framework` swallows.
+    #   * `openai_temperature` / `openai_max_tokens` -- per-request
+    #     sampling knobs both orchestrators forward to the model
+    #     (`langgraph` via `complete()`, `agent_framework` via
+    #     `ChatOptions`).
     orchestrator = orchestrators_registry.registry.get(
         orchestrator_name
     )(
@@ -121,6 +125,8 @@ async def conversation(
         system_prompt=effective.cwyd_agent_instructions,
         search_top_k=effective.search_top_k,
         search_use_semantic_search=effective.search_use_semantic_search,
+        openai_temperature=effective.openai_temperature,
+        openai_max_tokens=effective.openai_max_tokens,
     )
 
     # Retrieval narration is gated on a wired search backend: when

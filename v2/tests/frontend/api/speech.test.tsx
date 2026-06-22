@@ -26,6 +26,7 @@ describe("getSpeechConfig", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
     // getSpeechConfig forwards the shared auth singleton; reset it.
     setUserId(null);
@@ -49,6 +50,22 @@ describe("getSpeechConfig", () => {
     expect((init.headers as Record<string, string>).Accept).toBe(
       "application/json",
     );
+  });
+
+  it("prepends VITE_BACKEND_URL to the speech route when set (split-host deploy)", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        token: "spch-token",
+        region: "eastus2",
+        languages: ["en-US"],
+      }),
+    );
+    vi.stubEnv("VITE_BACKEND_URL", "https://backend.example.com");
+
+    await getSpeechConfig();
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe("https://backend.example.com/api/speech");
   });
 
   it("returns the typed payload on 200", async () => {

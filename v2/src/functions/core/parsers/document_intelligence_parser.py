@@ -3,10 +3,10 @@
 Pillar: Stable Core
 Phase: 7
 
-Self-registers under multiple file-extension keys (``"pdf"``, ``"docx"``) per
-the registration convention in ``base.py`` (lowercase file extension, no
-leading dot). Eager-imported from ``functions/core/parsers/registry.py`` so
-both registrations fire at process start.
+Self-registers under multiple file-extension keys (``"pdf"``, ``"docx"``,
+``"jpeg"``, ``"jpg"``, ``"png"``) per the registration convention in
+``base.py`` (lowercase file extension, no leading dot). Eager-imported from
+``functions/core/parsers/registry.py`` so all registrations fire at process start.
 
 The Document Intelligence ``prebuilt-layout`` model natively analyses PDF,
 DOCX, XLSX, PPTX, HTML and image formats through the same
@@ -43,7 +43,7 @@ from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
-from backend.core.providers.parsers.base import BaseParser
+from backend.core.providers.parsers.base import BaseParser, ParserKey
 from backend.core.settings import AppSettings
 from backend.core.types import Chunk
 
@@ -52,10 +52,19 @@ from .registry import registry
 logger = logging.getLogger(__name__)
 
 
-@registry.register("docx")
-@registry.register("pdf")
+@registry.register(ParserKey.DOCX)
+@registry.register(ParserKey.PDF)
+@registry.register(ParserKey.JPEG)
+@registry.register(ParserKey.JPG)
+@registry.register(ParserKey.PNG)
 class DocumentIntelligenceParser(BaseParser):
     """Parse a document byte payload into one ``Chunk`` per page via Document Intelligence."""
+
+    # Document Intelligence is a network parser: it needs
+    # AZURE_AI_SERVICES_ENDPOINT to parse, so the admin upload boundary
+    # refuses a DI-routed file when that endpoint is unset (see
+    # BaseParser.requires_ai_services).
+    requires_ai_services = True
 
     _settings: AppSettings
     _credential: AsyncTokenCredential

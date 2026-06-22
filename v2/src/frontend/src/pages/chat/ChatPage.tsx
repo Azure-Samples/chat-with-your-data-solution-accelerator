@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchConversation } from "@/api/conversationHistory";
 import { ChatProvider, useChat } from "./ChatContext";
 import { PanelLeft } from "@/components/CoralShell/PanelLeft";
+import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { MessageList } from "./components/MessageList";
 import { MessageInput } from "./components/MessageInput";
@@ -121,7 +122,9 @@ function ChatShell({ historyOpen }: { historyOpen: boolean }) {
 export function ChatPage({ historyOpen = false }: ChatPageProps = {}) {
   return (
     <ChatProvider>
-      <ChatShell historyOpen={historyOpen} />
+      <ErrorBoundary>
+        <ChatShell historyOpen={historyOpen} />
+      </ErrorBoundary>
     </ChatProvider>
   );
 }

@@ -24,7 +24,10 @@ from pydantic import ValidationError
 
 import backend.routers.admin as _admin_module
 import backend.services.admin as _services_admin
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import (
+    CWYD_DEFAULT_BODY,
+    CWYD_GUARDRAIL,
+)
 from backend.core.providers.search.base import SourceListing
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
@@ -332,6 +335,41 @@ async def test_status_maps_orchestrator_db_index_environment(
 
 
 @pytest.mark.asyncio
+async def test_status_reflects_persisted_orchestrator_override(
+    admin_app_factory,
+) -> None:
+    """/status reports the EFFECTIVE orchestrator: a persisted
+    RuntimeConfig override (the same row the lifespan re-seeds from the
+    database at boot) overlays the env default, so the snapshot matches
+    what the chat path runs -- both after a save and after a restart."""
+    app = admin_app_factory(_settings(orchestrator_name="langgraph"))
+    # Simulate the post-save / post-restart state: the lifespan seeds
+    # app.state.runtime_overrides from the persisted RuntimeConfig.
+    app.state.runtime_overrides = RuntimeConfig(
+        orchestrator_name="agent_framework",
+        updated_at="2026-06-19T12:00:00+00:00",
+        updated_by="u-admin",
+    )
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/status")
+    assert resp.status_code == 200
+    assert resp.json()["orchestrator_name"] == "agent_framework"
+
+
+@pytest.mark.asyncio
+async def test_status_uses_env_orchestrator_when_no_override(
+    admin_app_factory,
+) -> None:
+    """With no persisted override (cold start), /status falls back to the
+    env / code default orchestrator -- the dep tolerates the missing
+    app.state.runtime_overrides attribute."""
+    app = admin_app_factory(_settings(orchestrator_name="langgraph"))
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/status")
+    assert resp.json()["orchestrator_name"] == "langgraph"
+
+
+@pytest.mark.asyncio
 async def test_status_returns_cors_and_deployments(admin_app_factory) -> None:
     app = admin_app_factory(
         _settings(
@@ -591,16 +629,42 @@ async def test_config_surfaces_content_safety_enabled_from_settings(
 async def test_config_surfaces_cwyd_agent_instructions_default(
     admin_app_factory,
 ) -> None:
-    """GET /api/admin/config must surface the built-in CWYD agent
-    system prompt as the env baseline so the admin UI can render the
-    current default before any operator override has been persisted.
-    The field reads from `CWYD_AGENT.instructions` (the source of
-    truth for the built-in system prompt) -- not from an env var --
-    because the v2 agent definitions are scenario data, not config."""
+    """GET /api/admin/config must surface the editable CWYD persona
+    *body* as the env baseline so the admin UI renders the operator's
+    starting point before any override has been persisted. The field
+    reads from `CWYD_DEFAULT_BODY` (the body the operator edits) -- not
+    the guardrail-wrapped runtime prompt -- because the fixed guardrail
+    is appended exactly once at request time, so seeding the editor with
+    it would let a save round-trip double-wrap it.
+    """
     app = admin_app_factory(_settings())
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config")
-    assert resp.json()["cwyd_agent_instructions"] == CWYD_AGENT.instructions
+    instructions = resp.json()["cwyd_agent_instructions"]
+    assert instructions == CWYD_DEFAULT_BODY
+    # The editable default must NOT carry the fixed guardrail -- that is
+    # what prevents the seed-edit-save double-wrap round-trip.
+    assert CWYD_GUARDRAIL not in instructions
+
+
+@pytest.mark.asyncio
+async def test_config_effective_default_persona_excludes_guardrail(
+    admin_app_factory,
+) -> None:
+    """GET /api/admin/config/effective must surface the editable persona
+    *body* (not the guardrail-wrapped prompt) as the env baseline, so the
+    two admin read surfaces agree and neither seeds the editor with the
+    fixed guardrail. The guardrail is appended exactly once at request
+    time by `resolve_effective_config`; if the editor seeded the wrapped
+    prompt, a save round-trip would store the guardrail and double-wrap it.
+    """
+    app = admin_app_factory(_settings())
+    # No persisted overrides -- the cold-start env baseline.
+    async with _client(app) as ac:
+        resp = await ac.get("/api/admin/config/effective")
+    instructions = resp.json()["values"]["cwyd_agent_instructions"]
+    assert instructions == CWYD_DEFAULT_BODY
+    assert CWYD_GUARDRAIL not in instructions
 
 
 @pytest.mark.asyncio
@@ -1335,7 +1399,7 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "search_top_k": 5,
         "log_level": "INFO",
         "content_safety_enabled": False,
-        "cwyd_agent_instructions": CWYD_AGENT.instructions,
+        "cwyd_agent_instructions": CWYD_DEFAULT_BODY,
         "post_answering_prompt": "",
         "post_answering_enabled": False,
         "post_answering_filter_message": "",
@@ -1539,15 +1603,16 @@ async def test_config_effective_overlays_cwyd_agent_instructions_override(
 ) -> None:
     """A RuntimeConfig override on `cwyd_agent_instructions` must
     flip the merged value to the operator string + flag the field's
-    source as `override`, while leaving the env-baseline prompt for
+    source as `override`, while leaving the env-baseline persona for
     the cold case. Mirrors the content-safety overlay pattern; the
-    env baseline is `CWYD_AGENT.instructions` (the built-in default)."""
-    # Cold case -- no override -> built-in default, source 'env'.
+    env baseline is the editable `CWYD_DEFAULT_BODY` (the persona body
+    the operator edits), not the guardrail-wrapped runtime prompt."""
+    # Cold case -- no override -> editable persona body, source 'env'.
     app = admin_app_factory(_settings())
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config/effective")
     body = resp.json()
-    assert body["values"]["cwyd_agent_instructions"] == CWYD_AGENT.instructions
+    assert body["values"]["cwyd_agent_instructions"] == CWYD_DEFAULT_BODY
     assert body["sources"]["cwyd_agent_instructions"] == "env"
 
     # Override case -- persisted prompt -> override value, source 'override'.
@@ -1817,35 +1882,112 @@ async def test_list_documents_requires_easy_auth_in_production() -> None:
 @pytest.mark.asyncio
 async def test_delete_document_returns_200_with_count_on_success(
     admin_app_factory,
+    monkeypatch,
 ) -> None:
-    """Happy path: search backend removes 2 chunks; route surfaces the
-    count in the typed response body and returns 200.
+    """Happy path: the search backend removes 2 chunks and the source
+    blob is deleted; the route surfaces both in the typed response
+    body and returns 200.
     """
     search = AsyncMock()
     search.delete_by_source = AsyncMock(return_value=2)
-    app = admin_app_factory(_settings(), search=search)
+    monkeypatch.setattr(
+        _admin_module, "delete_document", AsyncMock(return_value=True)
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/report.pdf")
     assert resp.status_code == 200
-    assert resp.json() == {"deleted": 2}
+    assert resp.json() == {"deleted": 2, "blob_deleted": True}
     search.delete_by_source.assert_awaited_once_with("report.pdf")
 
 
 @pytest.mark.asyncio
 async def test_delete_document_returns_404_when_no_chunks_match(
     admin_app_factory,
+    monkeypatch,
 ) -> None:
-    """No chunks matched the source -> 404 with the source name in the
-    operator-facing detail string so the response is self-explanatory.
+    """Neither an indexed chunk nor a source blob existed -> 404 with
+    the source name in the operator-facing detail string so the
+    response is self-explanatory.
     """
     search = AsyncMock()
     search.delete_by_source = AsyncMock(return_value=0)
-    app = admin_app_factory(_settings(), search=search)
+    monkeypatch.setattr(
+        _admin_module, "delete_document", AsyncMock(return_value=False)
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/missing.pdf")
     assert resp.status_code == 404
     assert "missing.pdf" in resp.json()["detail"]
     search.delete_by_source.assert_awaited_once_with("missing.pdf")
+
+
+@pytest.mark.asyncio
+async def test_delete_document_returns_200_when_only_blob_removed(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """An orphaned blob with no index chunks is still cleaned: 0 chunks
+    but ``blob_deleted=True`` -> 200, not 404.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=0)
+    monkeypatch.setattr(
+        _admin_module, "delete_document", AsyncMock(return_value=True)
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/orphan.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 0, "blob_deleted": True}
+
+
+@pytest.mark.asyncio
+async def test_delete_document_skips_blob_for_url_typed_source(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """A URL/path-typed source has no backing blob: ``delete_document``
+    raises ``ValueError`` (path separators), which the route swallows --
+    the delete still succeeds on the index chunks with
+    ``blob_deleted=False``.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=3)
+    monkeypatch.setattr(
+        _admin_module,
+        "delete_document",
+        AsyncMock(side_effect=ValueError("path separators")),
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/notes/2026.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 3, "blob_deleted": False}
+
+
+@pytest.mark.asyncio
+async def test_delete_document_skips_blob_when_no_container_configured(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """No documents container configured -> the blob-delete branch is
+    skipped entirely (``delete_document`` never called); the index
+    delete alone drives the result.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=1)
+    delete_doc = AsyncMock(return_value=True)
+    monkeypatch.setattr(_admin_module, "delete_document", delete_doc)
+    app = admin_app_factory(
+        _settings_with_storage(documents_container=""), search=search
+    )
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/report.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 1, "blob_deleted": False}
+    delete_doc.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -1882,6 +2024,11 @@ async def test_delete_document_requires_easy_auth_in_production() -> None:
     app.dependency_overrides[get_app_settings] = lambda: _settings(
         environment="production"
     )
+    # The route now resolves ``CredentialDep`` (for the blob delete);
+    # stub it so dependency resolution reaches the admin-role gate,
+    # which is what this test exercises. In a real deployment the
+    # lifespan-built credential is present, so the 401 fires the same.
+    app.dependency_overrides[get_credential] = lambda: AsyncMock()
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/report.pdf")
     assert resp.status_code == 401
@@ -1909,14 +2056,15 @@ async def test_ingest_url_returns_200_with_job_receipt_on_success(
         captured["body"] = body
         captured["kwargs"] = kwargs
         return IngestUrlResponse(
-            ingestion_job_id="job-42",
             url=body.url,
-            document_count=7,
+            filename="example.com_article.pdf",
+            blob_path="docs/example.com_article.pdf",
+            ingestion_job_id="job-42",
+            queued=True,
         )
 
     monkeypatch.setattr(_admin_module, "ingest_url", fake_ingest_url)
-    search = AsyncMock()
-    app = admin_app_factory(_settings(), search=search)
+    app = admin_app_factory(_settings_with_storage())
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/admin/documents/url",
@@ -1925,13 +2073,16 @@ async def test_ingest_url_returns_200_with_job_receipt_on_success(
     assert resp.status_code == 200
     body = resp.json()
     assert body == {
-        "ingestion_job_id": "job-42",
         "url": "https://example.com/article.pdf",
-        "document_count": 7,
+        "filename": "example.com_article.pdf",
+        "blob_path": "docs/example.com_article.pdf",
+        "ingestion_job_id": "job-42",
+        "queued": True,
     }
     assert captured["body"].url == "https://example.com/article.pdf"
-    # Service helper receives the lifespan-cached search + settings.
-    assert captured["kwargs"]["search_provider"] is search
+    # Service helper receives the lifespan-cached credential + settings.
+    assert "credential" in captured["kwargs"]
+    assert "settings" in captured["kwargs"]
 
 
 @pytest.mark.asyncio
@@ -1960,14 +2111,17 @@ async def test_ingest_url_returns_422_for_oversize_url(
 
 
 @pytest.mark.asyncio
-async def test_ingest_url_returns_503_when_search_disabled(
+async def test_ingest_url_returns_503_when_storage_unconfigured(
     admin_app_factory,
+    monkeypatch,
 ) -> None:
-    """No search backend -> 503 with operator-actionable detail.
-    Mirrors the parallel branch in ``DELETE /api/admin/documents``.
+    """No documents container / queue configured -> 503 with operator-
+    actionable detail. The route stays mounted so the gap is
+    discoverable instead of routing-404-ing.
     """
-    app = admin_app_factory(_settings())
-    app.dependency_overrides[get_search_provider] = lambda: None
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "ingest_url", sentinel)
+    app = admin_app_factory(_settings_with_storage(documents_container=""))
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/admin/documents/url",
@@ -1975,6 +2129,7 @@ async def test_ingest_url_returns_503_when_search_disabled(
         )
     assert resp.status_code == 503
     assert "not configured" in resp.json()["detail"].lower()
+    sentinel.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -1987,10 +2142,9 @@ async def test_ingest_url_requires_easy_auth_in_production() -> None:
     app.dependency_overrides[get_app_settings] = lambda: _settings(
         environment="production"
     )
-    # Pin a credential + search so the gate fails first instead of
-    # the lifespan-less dependencies tripping.
+    # Pin a credential so the gate fails first instead of the
+    # lifespan-less credential dependency tripping.
     app.dependency_overrides[get_credential] = lambda: AsyncMock()
-    app.dependency_overrides[get_search_provider] = lambda: AsyncMock()
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/admin/documents/url",
@@ -2114,8 +2268,10 @@ async def test_upload_document_returns_413_when_over_size_cap(
     surface the cap to the operator.
     """
     # Force the cap to a tiny value so the test stays fast and small.
+    # The cap lives on the service helper (validate_upload reads it), so
+    # patch it there rather than on the router.
     monkeypatch.setattr(
-        "backend.routers.admin.MAX_UPLOAD_SIZE_BYTES", 16
+        "backend.services.ingestion.MAX_UPLOAD_SIZE_BYTES", 16
     )
     sentinel = AsyncMock()
     monkeypatch.setattr(_admin_module, "upload_document", sentinel)

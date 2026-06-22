@@ -72,11 +72,21 @@ from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings
 from backend.core.tools.citations import (
+    build_citations,
     citations_from_annotations,
     enrich_kb_citations,
+    filter_to_referenced,
+    format_sources_block,
     normalize_kb_citations,
+    strip_kb_markers,
 )
-from backend.core.types import ChatMessage, OrchestratorChannel, OrchestratorEvent
+from backend.core.types import (
+    ChatMessage,
+    ChatRole,
+    Citation,
+    OrchestratorChannel,
+    OrchestratorEvent,
+)
 
 from .registry import registry
 from .base import OrchestratorBase
@@ -99,11 +109,14 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         agents: BaseAgentsProvider,
         db: BaseDatabaseClient,
         search: BaseSearch | None = None,
+        search_top_k: int | None = None,
+        search_use_semantic_search: bool | None = None,
+        openai_temperature: float | None = None,
+        openai_max_tokens: int | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
-        # orchestrator (`system_prompt` / `search_top_k` /
-        # `search_use_semantic_search` for `langgraph`, plus `credential` /
+        # orchestrator (`system_prompt` for `langgraph`, plus `credential` /
         # `agent_name` from the shared wiring contract). Avoids name-based
         # dispatch in the caller (Hard Rule #4).
         super().__init__(settings, llm)
@@ -117,6 +130,13 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # AzureSearch handler -- the agent_framework + pgvector cell is
         # rejected upstream, never reaching here.
         self._search = search
+        # Effective per-request retrieval knobs (admin-saved overrides or
+        # the `settings.search` defaults) the router forwards uniformly to
+        # every orchestrator; captured to forward to `BaseSearch.search`,
+        # where `None` means "use the provider default" -- symmetric with
+        # the `langgraph` orchestrator.
+        self._search_top_k = search_top_k
+        self._search_use_semantic_search = search_use_semantic_search
         # The CWYD orchestrator always drives the `cwyd` agent; the
         # provider's `build_agent` resolves / creates it and applies any
         # admin instruction override via `_resolve_definition`.
@@ -132,14 +152,23 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         self._kb_name = search_settings.knowledge_base_name
         self._kb_api_version = search_settings.knowledge_base_api_version
         self._connection_name = search_settings.connection_name
-        # Sampling knobs are infra/admin-configured (not per-request), so
-        # capture them once here -- same rationale as the KB scalars
-        # above. The Foundry agent owns its model deployment, so these are
-        # the only inference knobs the agent path honors; they are
-        # threaded into every `agent.run(...)` via `ChatOptions`.
-        openai = settings.openai
-        self._temperature = openai.temperature
-        self._max_tokens = openai.max_tokens
+        # Sampling knobs carry the effective admin-configured values the
+        # router forwards (`openai_temperature` / `openai_max_tokens`),
+        # falling back to the `settings.openai` env defaults when a caller
+        # constructs the orchestrator without them. The Foundry agent owns
+        # its model deployment, so these are the only inference knobs the
+        # agent path honors; they are threaded into every `agent.run(...)`
+        # via `ChatOptions`.
+        self._temperature = (
+            openai_temperature
+            if openai_temperature is not None
+            else settings.openai.temperature
+        )
+        self._max_tokens = (
+            openai_max_tokens
+            if openai_max_tokens is not None
+            else settings.openai.max_tokens
+        )
 
     # ------------------------------------------------------------------
     # OrchestratorBase implementation
@@ -151,8 +180,6 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         *,
         settings_override: dict[str, Any] | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
-        oss_messages = self._to_oss_messages(messages)
-
         # Build the KB retrieval tool only when a Knowledge Base is
         # configured. The tool is authenticated server-side via the
         # project search connection (`project_connection_id`), so there
@@ -164,6 +191,53 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         extra_tools: list[ToolTypes] | None = (
             [kb_tool.as_dict()] if kb_tool is not None else None
         )
+
+        # When no server-side KB tool is available (a pgvector deployment,
+        # where `_build_kb_tool()` returns None) but a search provider is
+        # wired, ground app-side like the `langgraph` path: embed the
+        # latest user query, retrieve from the search backend, and prepend
+        # the `[docN]` sources block to the latest user turn. The Agents
+        # Responses thread drops system messages (`_to_oss_messages`), so
+        # the grounding context rides the user turn rather than a system
+        # message; `build_citations` / `format_sources_block` /
+        # `filter_to_referenced` are the same shared seam the `langgraph`
+        # path uses, so the emitted citation wire shape is identical across
+        # orchestrators (Hard Rule #20).
+        retrieved_citations: list[Citation] = []
+        grounded_messages: Sequence[ChatMessage] = messages
+        if kb_tool is None and self._search is not None:
+            query = next(
+                (m.content for m in reversed(messages) if m.role is ChatRole.USER),
+                "",
+            )
+            if query:
+                embedding = await self.llm.embed([query])
+                query_vector = (
+                    embedding.vectors[0] if embedding.vectors else None
+                )
+                sources = await self._search.search(
+                    query,
+                    top_k=self._search_top_k,
+                    use_semantic_search=self._search_use_semantic_search,
+                    vector=query_vector,
+                )
+                if sources:
+                    retrieved_citations = build_citations(sources)
+                    block = format_sources_block(sources)
+                    # Prepend the [docN] block to the latest user turn so
+                    # the model reads the grounding immediately before the
+                    # question it must answer from.
+                    rebuilt = list(messages)
+                    for i in range(len(rebuilt) - 1, -1, -1):
+                        if rebuilt[i].role is ChatRole.USER:
+                            rebuilt[i] = ChatMessage(
+                                role=ChatRole.USER,
+                                content=f"Sources:\n{block}\n\n{rebuilt[i].content}",
+                            )
+                            break
+                    grounded_messages = rebuilt
+
+        oss_messages = self._to_oss_messages(grounded_messages)
 
         try:
             agent = await self._agents.build_agent(
@@ -240,35 +314,44 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                 return
 
         answer = "".join(answer_parts)
-        citations = citations_from_annotations(citation_annotations)
-        # Converge on the langgraph path's wire shape: rewrite any native
-        # 【N:M†source】 KB markers in the answer to the grouping-ordered
-        # [docN] and renumber the citation ids to match.
-        answer, citations = normalize_kb_citations(answer, citations)
-        # Backfill the friendly title / snippet a KB citation lacks (its
-        # annotation carries only the raw mcp://searchindex/<key> id) by
-        # resolving each key through the search provider's by-key lookup;
-        # langgraph-shaped citations and unresolved keys pass through
-        # unchanged. Best-effort: a transient lookup failure degrades to
-        # the normalized raw-id citations rather than failing an answer
-        # already fully assembled (get_document_by_key has logged the SDK
-        # failure at its own boundary).
-        search = self._search
-        if search is not None:
-            try:
-                citations = await enrich_kb_citations(
-                    citations, search.get_document_by_key
-                )
-            except AzureError:
-                logger.warning(
-                    "agent_framework citation enrichment skipped "
-                    "after lookup failure",
-                    extra={
-                        "operation": "enrich_citations",
-                        "provider": "agent_framework",
-                        "agent_name": self._definition.name,
-                    },
-                )
+        if retrieved_citations:
+            # pgvector app-side grounding path: the model cited the
+            # injected [docN] sources block, so keep only the markers it
+            # actually referenced -- symmetric with the langgraph path.
+            # There are no native KB annotations to normalize or enrich
+            # here; build_citations already carries title / snippet.
+            citations = filter_to_referenced(answer, retrieved_citations)
+        else:
+            # Foundry IQ KB path: citations ride native annotations.
+            citations = citations_from_annotations(citation_annotations)
+            # Converge on the langgraph path's wire shape: rewrite any native
+            # 【N:M†source】 KB markers in the answer to the grouping-ordered
+            # [docN] and renumber the citation ids to match.
+            answer, citations = normalize_kb_citations(answer, citations)
+            # Backfill the friendly title / snippet a KB citation lacks (its
+            # annotation carries only the raw mcp://searchindex/<key> id) by
+            # resolving each key through the search provider's by-key lookup;
+            # langgraph-shaped citations and unresolved keys pass through
+            # unchanged. Best-effort: a transient lookup failure degrades to
+            # the normalized raw-id citations rather than failing an answer
+            # already fully assembled (get_document_by_key has logged the SDK
+            # failure at its own boundary).
+            search = self._search
+            if search is not None:
+                try:
+                    citations = await enrich_kb_citations(
+                        citations, search.get_document_by_key
+                    )
+                except AzureError:
+                    logger.warning(
+                        "agent_framework citation enrichment skipped "
+                        "after lookup failure",
+                        extra={
+                            "operation": "enrich_citations",
+                            "provider": "agent_framework",
+                            "agent_name": self._definition.name,
+                        },
+                    )
 
         for citation in citations:
             yield OrchestratorEvent(
@@ -371,10 +454,16 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             elif ctype == "text_reasoning":
                 text = getattr(content, "text", "") or ""
                 if text:
+                    # Drop native `【N:M†source】` KB markers before the
+                    # reasoning event: the reasoning panel has no `[docN]`
+                    # rendering, so unstripped markers show as garbage. The
+                    # answer-side `normalize_kb_citations` owns rewriting
+                    # markers to `[docN]`; the reasoning channel only removes
+                    # them.
                     events.append(
                         OrchestratorEvent(
                             channel=OrchestratorChannel.REASONING,
-                            content=text,
+                            content=strip_kb_markers(text),
                         )
                     )
             elif ctype in ("function_call", "mcp_server_tool_call"):

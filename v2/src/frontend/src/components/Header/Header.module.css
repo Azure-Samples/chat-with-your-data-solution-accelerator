@@ -30,6 +30,21 @@
   min-width: 0;
 }
 
+.brandButton {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--borderRadiusMedium);
+}
+
+.brandButton:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 2px;
+}
+
 .titleStack {
   display: flex;
   align-items: baseline;

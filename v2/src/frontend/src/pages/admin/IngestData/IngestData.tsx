@@ -12,8 +12,10 @@
  *    an unsupported extension before touching the wire. Failed
  *    entries expose a Retry button that re-fires the same `File`.
  * 2. **Add URL** -- single-line text input. The URL must parse via
- *    `new URL(...)` before submission; submitted entries surface the
- *    server-stamped `ingestion_job_id` and `document_count`.
+ *    `new URL(...)` before submission; the backend downloads the URL,
+ *    stores it as a blob, and queues it for indexing, so submitted
+ *    entries surface the server-stamped `ingestion_job_id` and the
+ *    queued/stored status (same pipeline as file upload).
  * 3. **Reprocess all** -- prominent destructive action gated by a
  *    typed-confirmation modal (operator must type `REPROCESS`
  *    verbatim) so a stray click never re-fans the entire documents
@@ -600,9 +602,11 @@ export function IngestData(): JSX.Element {
                 entry.response !== undefined ? (
                   <span
                     className={styles.entryMeta}
-                    data-testid={`url-doc-count-${entry.id}`}
+                    data-testid={`url-result-${entry.id}`}
                   >
-                    {`${entry.response.document_count.toString()} chunks`}
+                    {entry.response.queued
+                      ? "queued for indexing"
+                      : "stored, indexing"}
                   </span>
                 ) : null}
                 {entry.status === SubmitStatus.Failed &&

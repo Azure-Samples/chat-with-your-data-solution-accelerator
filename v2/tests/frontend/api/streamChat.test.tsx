@@ -163,6 +163,45 @@ describe("streamChat", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("surfaces the backend JSON error body (message + reason + status) on a non-OK response", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: "Orchestrator 'agent_framework' is not available here.",
+          reason: "orchestrator_requires_azure_search",
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    let caught: unknown;
+    try {
+      await collect(streamChat([], { maxRetries: 2, baseDelayMs: 1 }));
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Error);
+    const error = caught as Error & { status?: number; reason?: string };
+    expect(error.message).toBe(
+      "Orchestrator 'agent_framework' is not available here.",
+    );
+    expect(error.status).toBe(409);
+    expect(error.reason).toBe("orchestrator_requires_azure_search");
+    // 409 is a 4xx -> non-retryable -> exactly one fetch.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to a generic status message when the error body is not JSON", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response("<html>502 Bad Gateway</html>", {
+        status: 502,
+        headers: { "Content-Type": "text/html" },
+      }),
+    );
+    await expect(
+      collect(streamChat([], { maxRetries: 0 })),
+    ).rejects.toThrow(/SSE request failed with status 502/);
+  });
+
   it("retries on a network error from fetch() and succeeds on the next attempt", async () => {
     fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
     fetchMock.mockResolvedValueOnce(

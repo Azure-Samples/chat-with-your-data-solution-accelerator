@@ -161,7 +161,7 @@ export function MessageList() {
               {m.role === "assistant" ? (
                 <div className={styles.content}>
                   {(m.streaming === true ||
-                    (m.reasoning && m.reasoning.length > 0) ||
+                    (m.reasoning !== undefined && m.reasoning.length > 0) ||
                     (m.reasoningPlaceholder !== undefined &&
                       m.reasoningPlaceholder.length > 0)) && (
                     <details
@@ -213,12 +213,12 @@ export function MessageList() {
                     <CitationPanel
                       messageId={m.id}
                       citations={referencedCitations}
-                      onSelectCitation={(citation) =>
+                      onSelectCitation={(citation) => {
                         dispatch({
                           type: ChatActionType.ShowCitation,
                           citation,
-                        })
-                      }
+                        });
+                      }}
                     />
                   )}
                 </div>

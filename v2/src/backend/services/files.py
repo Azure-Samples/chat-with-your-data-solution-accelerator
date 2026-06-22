@@ -1,21 +1,23 @@
-"""Document download service.
+"""Document download + delete service.
 
 Pillar: Stable Core
 Phase: 7 (Testing + Documentation)
 
 Reads a single ingested document blob back out of the documents
-container so the chat UI can deep-link a citation to its source file.
+container so the chat UI can deep-link a citation to its source file,
+and deletes a document blob from that container so an admin delete
+removes the source file alongside its index chunks.
 
 The blob name is the same value the ingestion pipeline wrote into the
 search index ``title`` field (``chunk.source`` -> ``SearchDocument.title``),
 so a citation's ``title`` round-trips straight back to ``download_blob``
 without any path reconstruction.
 
-A read-only ``ContainerClient`` is constructed directly here (rather than
+A ``ContainerClient`` is constructed directly here (rather than
 through :func:`functions.core.storage_clients.storage_clients`, which also
-builds a ``QueueClient``) so document serving stays independent of the
-ingestion-queue configuration -- reading a document does not require a
-push queue.
+builds a ``QueueClient``) so document serving + deletion stays independent
+of the ingestion-queue configuration -- reading or deleting a document
+does not require a push queue.
 
 Error contract (mapped to HTTP by the router layer):
 
@@ -95,6 +97,55 @@ async def download_document(
                 "document download failed",
                 extra={
                     "operation": "download_document",
+                    "container": container_name,
+                    "blob_filename": filename,
+                },
+            )
+            raise
+
+
+async def delete_document(
+    filename: str,
+    *,
+    settings: AppSettings,
+    credential: AsyncTokenCredential,
+) -> bool:
+    """Delete the document blob ``filename`` from the documents container.
+
+    Returns ``True`` when a blob was removed and ``False`` when no blob
+    with that name existed -- an already-absent blob is an idempotent
+    no-op success, not an error. The caller (router layer) owns HTTP
+    status mapping; this helper is concerned only with validation and
+    the storage delete.
+
+    Error contract:
+
+    * :class:`ValueError` -- the filename is empty, overlong, or carries
+      a path-traversal / control-character payload (or a URL-typed
+      source with a path separator). Rejected before any SDK call.
+    * :class:`azure.core.exceptions.AzureError` -- any storage failure
+      other than a missing blob, logged with structured extras then
+      re-raised per Hard Rule #14.
+    """
+    _validate_filename(filename)
+    blob_endpoint, _ = resolve_storage_endpoints(settings.storage)
+    container_name = settings.storage.documents_container
+    async with ContainerClient(
+        account_url=blob_endpoint,
+        container_name=container_name,
+        credential=credential,
+    ) as container_client:
+        try:
+            await container_client.delete_blob(filename)
+            return True
+        except ResourceNotFoundError:
+            # Already absent -- idempotent no-op, not an error.
+            return False
+        except AzureError:
+            logger.exception(
+                "document delete failed",
+                extra={
+                    "operation": "delete_document",
                     "container": container_name,
                     "blob_filename": filename,
                 },

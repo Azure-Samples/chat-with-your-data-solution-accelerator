@@ -47,6 +47,10 @@ spec):
   boundary the rule prescribes -- via ``m.model_dump(exclude_none=True)``
   per-message -- so the function exists *because of* Hard Rule #15, not in
   spite of it.
+* ``functions.blob_event.event_parser._decode_event_payload`` -- Hard Rule
+  #15(b): decodes the externally-defined Event Grid event envelope from a
+  Storage Queue message body. The schema is owned by Azure Event Grid; the
+  envelope carries arbitrary ``data`` whose shape varies per event type.
 If a new boundary case surfaces, add it here with a one-line justification
 and queue a §0.1 row noting the rule expansion.
 """
@@ -74,6 +78,10 @@ _ALLOWED: frozenset[tuple[str, str]] = frozenset(
         (
             "backend.core.providers.llm.foundry_iq",
             "FoundryIQ._to_openai_messages",
+        ),
+        (
+            "functions.blob_event.event_parser",
+            "_decode_event_payload",
         ),
     }
 )

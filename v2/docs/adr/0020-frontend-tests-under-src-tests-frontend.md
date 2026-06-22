@@ -1,11 +1,14 @@
 # ADR 0020 — Frontend tests live under `v2/src/tests/frontend/` (relocated from `v2/src/frontend/tests/`)
 
-- **Status**: Accepted
+> **Superseded by [ADR 0029](0029-frontend-tests-symmetric-under-tests-frontend.md) (2026-06-20).** The mirror-tree + no-colocation decision below still holds, but the test-tree root moved from `v2/src/tests/frontend/` to `v2/tests/frontend/` (symmetric with `v2/tests/backend/`). Read ADR 0029 for the current location and the build/tooling mechanics.
+
+- **Status**: Superseded by [ADR 0029](0029-frontend-tests-symmetric-under-tests-frontend.md)
 - **Date**: 2026-06-08
 - **Phase**: Post-Phase-7 (PP7 work stream — `U-PP7-RELOC`)
 - **Pillar**: Stable Core (frontend layout policy)
 - **Deciders**: CWYD v2 maintainers (repo-owner override of [ADR 0012](0012-frontend-test-folder-mirror.md) alternative #3)
 - **Supersedes**: [ADR 0012](0012-frontend-test-folder-mirror.md)
+- **Superseded by**: [ADR 0029](0029-frontend-tests-symmetric-under-tests-frontend.md) — frontend tests relocated from `v2/src/tests/frontend/` to `v2/tests/frontend/` (symmetric with the backend tree; mirror-tree + no-colocation invariants retained).
 
 ## Context
 

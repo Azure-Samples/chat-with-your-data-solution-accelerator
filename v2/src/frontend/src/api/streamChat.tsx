@@ -106,10 +106,69 @@ export interface StreamChatOptions {
   onConversationId?: (conversationId: string) => void;
 }
 
+/**
+ * Structured detail parsed from a non-OK JSON error body so the chat UI
+ * can render the backend's actionable message (and reason discriminator)
+ * inline instead of a bare "request failed with status N".
+ */
+interface StreamErrorDetail {
+  status?: number;
+  reason?: string;
+}
+
+/** Base for the stream-error classes; carries the optional structured
+ * detail parsed from a non-OK JSON error body. */
+class StreamError extends Error {
+  readonly status: number | undefined;
+  readonly reason: string | undefined;
+  constructor(message: string, detail: StreamErrorDetail = {}) {
+    super(message);
+    this.status = detail.status;
+    this.reason = detail.reason;
+  }
+}
+
 /** Connection-class failure: safe to retry if nothing has been yielded yet. */
-class RetryableStreamError extends Error {}
+class RetryableStreamError extends StreamError {}
 /** Permanent failure (e.g. 4xx): never retry. */
-class NonRetryableStreamError extends Error {}
+class NonRetryableStreamError extends StreamError {}
+
+/** Shape of the backend's JSON error body for `POST /api/conversation`
+ * (the FastAPI handlers emit `{ "error": "...", "reason": "..." }`). */
+interface ConversationErrorBody {
+  error?: string;
+  reason?: string;
+}
+
+/**
+ * Best-effort parse of a non-OK response's JSON error body. Returns the
+ * `{ error, reason }` the backend sends, or `null` when the body is
+ * absent / not JSON (e.g. a proxy 502 with an HTML body) so the caller
+ * falls back to a generic status message.
+ */
+async function readConversationError(
+  response: Response,
+): Promise<ConversationErrorBody | null> {
+  try {
+    const data: unknown = await response.json();
+    if (data === null || typeof data !== "object") return null;
+    const record = data as Record<string, unknown>;
+    const error = typeof record.error === "string" ? record.error : undefined;
+    const reason =
+      typeof record.reason === "string" ? record.reason : undefined;
+    if (error === undefined && reason === undefined) return null;
+    // Omit undefined keys rather than assigning `string | undefined` so the
+    // object satisfies `exactOptionalPropertyTypes` (an absent optional
+    // property is not the same as one set to `undefined`).
+    const body: ConversationErrorBody = {};
+    if (error !== undefined) body.error = error;
+    if (reason !== undefined) body.reason = reason;
+    return body;
+  } catch {
+    // Non-JSON or empty body -- fall back to the generic status message.
+    return null;
+  }
+}
 
 /**
  * Open an SSE stream against the conversation endpoint and yield typed
@@ -198,11 +257,20 @@ async function* streamChatOnce(
   }
 
   if (!response.ok) {
+    // Surface the backend's structured `{ error, reason }` body so the
+    // chat UI can render an actionable inline message; fall back to a
+    // generic status string when the body is absent / not JSON.
+    const errorBody = await readConversationError(response);
+    const message =
+      errorBody?.error ??
+      `streamChat: SSE request failed with status ${String(response.status)}`;
+    // Omit `reason` when absent so the literal satisfies
+    // `exactOptionalPropertyTypes` (see readConversationError above).
+    const detail: StreamErrorDetail = { status: response.status };
+    if (errorBody?.reason !== undefined) detail.reason = errorBody.reason;
     const ErrCtor =
       response.status >= 500 ? RetryableStreamError : NonRetryableStreamError;
-    throw new ErrCtor(
-      `streamChat: SSE request failed with status ${String(response.status)}`,
-    );
+    throw new ErrCtor(message, detail);
   }
 
   if (response.body === null) return;

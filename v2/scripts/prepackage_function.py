@@ -52,6 +52,7 @@ _FUNCTION_SUBPACKAGES = (
     "add_url",
     "batch_push",
     "batch_start",
+    "blob_event",
     "search_skill",
     "core",
 )

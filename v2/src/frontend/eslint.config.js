@@ -9,7 +9,7 @@
 // `projectService: true`, which reads `tsconfig.json` automatically.
 //
 // Scoped to `src/**`. The frontend Vitest tree is a separate workspace
-// member (v2/src/tests/frontend) and carries its own ESLint config.
+// member (v2/tests/frontend) and carries its own ESLint config.
 
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";

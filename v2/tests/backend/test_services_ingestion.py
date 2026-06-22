@@ -9,45 +9,62 @@ from types import SimpleNamespace as NS
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx
 import pytest
 from azure.core.exceptions import AzureError
 
 import backend.services.ingestion as ingestion_module
-from backend.models.admin import IngestUrlRequest
+from backend.core.settings import IngestionTrigger
+from backend.models.admin import IngestUrlRequest, UploadResponse
 from backend.services.ingestion import (
-    _parser_key_for_url,
+    MAX_UPLOAD_SIZE_BYTES,
+    UploadRejected,
+    _blob_name_for_url,
     ingest_url,
     reprocess_all,
     upload_document,
+    validate_upload,
 )
-from functions.add_url.handler import AddUrlRequest
 from functions.batch_start.models import BatchStartRequest
 from functions.core.contracts import BatchPushQueueMessage
 
 
 # ---------------------------------------------------------------------------
-# _parser_key_for_url -- registry key resolution from URL path extension
+# _blob_name_for_url -- deterministic, flat, parseable blob filename
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
     "url, expected",
     [
-        ("https://example.com/report.pdf", "pdf"),
-        ("https://example.com/path/notes.DOCX", "docx"),
-        ("https://example.com/article.html", "html"),
-        ("https://example.com/data.json", "json"),
-        # Ext-less URL falls back to txt parser.
-        ("https://example.com/article", "txt"),
-        ("https://example.com/", "txt"),
-        # Query string + fragment are stripped from suffix detection.
-        ("https://example.com/file.md?ref=x#top", "md"),
+        # Registered parser extensions are preserved.
+        ("https://example.com/docs/report.pdf", "example.com_docs_report.pdf"),
+        ("https://example.com/notes.DOCX", "example.com_notes.docx"),
+        ("https://example.com/raw.txt", "example.com_raw.txt"),
+        ("https://example.com/data.json", "example.com_data.json"),
+        ("https://example.com/file.md?ref=x#top", "example.com_file.md"),
+        # Ext-less / unknown URLs are web pages -> stored as .html so the
+        # HtmlParser extracts clean text downstream.
+        ("https://en.wikipedia.org/wiki/Foo", "en.wikipedia.org_wiki_Foo.html"),
+        ("https://example.com/", "example.com.html"),
+        ("https://example.com", "example.com.html"),
+        ("https://example.com/page.aspx", "example.com_page.html"),
     ],
 )
-def test_parser_key_for_url_returns_expected_registry_key(
+def test_blob_name_for_url_returns_flat_parseable_name(
     url: str, expected: str
 ) -> None:
-    assert _parser_key_for_url(url) == expected
+    assert _blob_name_for_url(url) == expected
+
+
+def test_blob_name_for_url_is_deterministic_and_has_no_separators() -> None:
+    url = "https://example.com/a/b/c/report.pdf"
+    name = _blob_name_for_url(url)
+    # Same URL -> same blob name (re-ingest overwrites); flat (no path
+    # separators) so it round-trips through `_validate_filename`.
+    assert _blob_name_for_url(url) == name
+    assert "/" not in name
+    assert "\\" not in name
 
 
 # ---------------------------------------------------------------------------
@@ -55,219 +72,67 @@ def test_parser_key_for_url_returns_expected_registry_key(
 # ---------------------------------------------------------------------------
 
 
-def _build_collaborators(
-    *,
-    document_count: int = 3,
-):
-    """Build mocked parser / embedder registry seams + a search provider.
-
-    Returns ``(parser_cls, embedder_cls, search_provider,
-    add_url_handler)`` so each test can patch the module-level
-    registry + delegate seams without colliding.
-    """
-    parser = MagicMock(name="parser_instance")
-    parser_cls = MagicMock(name="parser_cls", return_value=parser)
-    embedder = MagicMock(name="embedder_instance")
-    embedder.aclose = AsyncMock()
-    embedder_cls = MagicMock(name="embedder_cls", return_value=embedder)
-    search_provider = AsyncMock(name="search_provider")
-    documents = [MagicMock(name=f"doc-{i}") for i in range(document_count)]
-    add_url_handler = AsyncMock(return_value=documents)
-    return parser_cls, embedder_cls, search_provider, add_url_handler
-
-
 @pytest.mark.asyncio
-async def test_ingest_url_dispatches_parser_via_url_extension(
+async def test_ingest_url_downloads_and_uploads_like_a_file(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Service must resolve the parser registry entry keyed by the
-    URL's path extension -- registry-only dispatch (Hard Rule #4),
-    no ``if/elif`` on URL shape.
+    """The service downloads the URL bytes and hands them to
+    ``upload_document`` under a deterministic blob filename -- so a
+    URL ingests through the same store -> ``batch_push`` pipeline as a
+    file upload. The receipt echoes the URL + maps the upload result.
     """
-    parser_cls, embedder_cls, search_provider, fake_handler = _build_collaborators()
-    parser_registry = MagicMock()
-    parser_registry.get = MagicMock(return_value=parser_cls)
-    embedder_registry = MagicMock()
-    embedder_registry.get = MagicMock(return_value=embedder_cls)
-    monkeypatch.setattr(
-        ingestion_module.ingestion_parsers_registry,
-        "registry",
-        parser_registry,
+    fake_fetch = AsyncMock(return_value=b"<html>page</html>")
+    monkeypatch.setattr(ingestion_module, "fetch_url", fake_fetch)
+    receipt = UploadResponse(
+        filename="example.com_page.html",
+        blob_path="docs/example.com_page.html",
+        ingestion_job_id="job-up",
+        queued=True,
     )
-    monkeypatch.setattr(
-        ingestion_module.embedders_registry, "registry", embedder_registry
-    )
-    monkeypatch.setattr(ingestion_module, "add_url_handler", fake_handler)
+    fake_upload = AsyncMock(return_value=receipt)
+    monkeypatch.setattr(ingestion_module, "upload_document", fake_upload)
 
     settings = NS()
     credential = MagicMock()
     request = IngestUrlRequest(
-        url="https://example.com/report.pdf", ingestion_job_id="job-1"
+        url="https://example.com/page", ingestion_job_id="job-req"
     )
+    result = await ingest_url(request, settings=settings, credential=credential)
 
-    await ingest_url(
-        request,
-        settings=settings,
-        credential=credential,
-        search_provider=search_provider,
-    )
-
-    parser_registry.get.assert_called_once_with("pdf")
-    parser_cls.assert_called_once_with(settings=settings, credential=credential)
-    embedder_registry.get.assert_called_once_with("azure_openai")
-    embedder_cls.assert_called_once_with(settings=settings, credential=credential)
-
-
-@pytest.mark.asyncio
-async def test_ingest_url_returns_typed_response_with_document_count(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Receipt carries the correlation id, echoed URL, and pushed
-    chunk count. Count comes from the length of the document list
-    returned by ``add_url_handler`` -- the handler is the authority
-    on what landed in the index.
-    """
-    parser_cls, embedder_cls, search_provider, fake_handler = _build_collaborators(
-        document_count=5
-    )
-    monkeypatch.setattr(
-        ingestion_module.ingestion_parsers_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=parser_cls)),
-    )
-    monkeypatch.setattr(
-        ingestion_module.embedders_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=embedder_cls)),
-    )
-    monkeypatch.setattr(ingestion_module, "add_url_handler", fake_handler)
-
-    request = IngestUrlRequest(
-        url="https://example.com/notes.md", ingestion_job_id="job-xyz"
-    )
-    result = await ingest_url(
-        request,
-        settings=NS(),
-        credential=MagicMock(),
-        search_provider=search_provider,
-    )
-
-    assert result.ingestion_job_id == "job-xyz"
-    assert result.url == "https://example.com/notes.md"
-    assert result.document_count == 5
+    fake_fetch.assert_awaited_once_with("https://example.com/page")
+    _, up_kwargs = fake_upload.call_args
+    assert up_kwargs["filename"] == "example.com_page.html"
+    assert up_kwargs["content"] == b"<html>page</html>"
+    assert up_kwargs["settings"] is settings
+    assert up_kwargs["credential"] is credential
+    # Receipt echoes the URL and maps the upload result (no synchronous
+    # document_count -- indexing is async, same as file upload).
+    assert result.url == "https://example.com/page"
+    assert result.filename == "example.com_page.html"
+    assert result.blob_path == "docs/example.com_page.html"
+    assert result.ingestion_job_id == "job-up"
+    assert result.queued is True
 
 
 @pytest.mark.asyncio
-async def test_ingest_url_closes_embedder_on_success(
+async def test_ingest_url_propagates_fetch_error_without_uploading(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Embedder is built per-request and MUST be closed even on the
-    success path -- mirrors the discipline in
-    :mod:`functions.add_url.blueprint._execute`.
+    """A fetch failure propagates and the blob is never written --
+    the route's app-level handler maps ``httpx.HTTPError`` to 502.
     """
-    parser_cls, embedder_cls, search_provider, fake_handler = _build_collaborators()
     monkeypatch.setattr(
-        ingestion_module.ingestion_parsers_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=parser_cls)),
+        ingestion_module,
+        "fetch_url",
+        AsyncMock(side_effect=httpx.HTTPError("dead host")),
     )
-    monkeypatch.setattr(
-        ingestion_module.embedders_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=embedder_cls)),
-    )
-    monkeypatch.setattr(ingestion_module, "add_url_handler", fake_handler)
+    fake_upload = AsyncMock()
+    monkeypatch.setattr(ingestion_module, "upload_document", fake_upload)
 
-    embedder_instance = embedder_cls.return_value
-    request = IngestUrlRequest(
-        url="https://example.com/a.pdf", ingestion_job_id="job-1"
-    )
-    await ingest_url(
-        request,
-        settings=NS(),
-        credential=MagicMock(),
-        search_provider=search_provider,
-    )
-    embedder_instance.aclose.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_ingest_url_closes_embedder_on_handler_failure(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Embedder is closed even when ``add_url_handler`` raises --
-    the ``finally`` block must run before the exception propagates
-    so a fetch / embed / push failure doesn't leak the embedder's
-    async client.
-    """
-    parser_cls, embedder_cls, search_provider, _ = _build_collaborators()
-    boom = AsyncMock(side_effect=RuntimeError("upstream failure"))
-    monkeypatch.setattr(
-        ingestion_module.ingestion_parsers_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=parser_cls)),
-    )
-    monkeypatch.setattr(
-        ingestion_module.embedders_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=embedder_cls)),
-    )
-    monkeypatch.setattr(ingestion_module, "add_url_handler", boom)
-
-    embedder_instance = embedder_cls.return_value
-    request = IngestUrlRequest(
-        url="https://example.com/a.pdf", ingestion_job_id="job-1"
-    )
-    with pytest.raises(RuntimeError, match="upstream failure"):
-        await ingest_url(
-            request,
-            settings=NS(),
-            credential=MagicMock(),
-            search_provider=search_provider,
-        )
-    embedder_instance.aclose.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_ingest_url_forwards_request_and_search_to_handler(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The service delegates to ``add_url_handler`` with the
-    Functions-tier ``AddUrlRequest`` carrying the same URL +
-    correlation id, plus the lifespan-cached search provider --
-    proves the two ingestion paths share one orchestration pipeline.
-    """
-    parser_cls, embedder_cls, search_provider, fake_handler = _build_collaborators()
-    monkeypatch.setattr(
-        ingestion_module.ingestion_parsers_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=parser_cls)),
-    )
-    monkeypatch.setattr(
-        ingestion_module.embedders_registry,
-        "registry",
-        MagicMock(get=MagicMock(return_value=embedder_cls)),
-    )
-    monkeypatch.setattr(ingestion_module, "add_url_handler", fake_handler)
-
-    request = IngestUrlRequest(
-        url="https://example.com/x.pdf", ingestion_job_id="job-99"
-    )
-    await ingest_url(
-        request,
-        settings=NS(),
-        credential=MagicMock(),
-        search_provider=search_provider,
-    )
-
-    args, _ = fake_handler.call_args
-    forwarded_request, forwarded_parser, forwarded_embedder, forwarded_search = args
-    assert isinstance(forwarded_request, AddUrlRequest)
-    assert forwarded_request.url == "https://example.com/x.pdf"
-    assert forwarded_request.ingestion_job_id == "job-99"
-    assert forwarded_parser is parser_cls.return_value
-    assert forwarded_embedder is embedder_cls.return_value
-    assert forwarded_search is search_provider
+    request = IngestUrlRequest(url="https://example.com/x.pdf")
+    with pytest.raises(httpx.HTTPError):
+        await ingest_url(request, settings=NS(), credential=MagicMock())
+    fake_upload.assert_not_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +146,7 @@ def _settings_stub(
     doc_processing_queue: str = "doc-processing",
     storage_account_name: str = "stg",
     storage_blob_endpoint: str = "",
+    ingestion_trigger: IngestionTrigger = IngestionTrigger.DIRECT_ENQUEUE,
 ) -> Any:
     """Settings stub shaped for ``upload_document``."""
     return NS(
@@ -289,6 +155,7 @@ def _settings_stub(
             doc_processing_queue=doc_processing_queue,
             storage_account_name=storage_account_name,
             storage_blob_endpoint=storage_blob_endpoint,
+            ingestion_trigger=ingestion_trigger,
         )
     )
 
@@ -361,6 +228,38 @@ async def test_upload_document_uploads_blob_and_enqueues_push(
     assert response.filename == "report.pdf"
     assert response.blob_path == "docs/report.pdf"
     assert response.queued is True
+
+
+@pytest.mark.asyncio
+async def test_upload_document_event_grid_trigger_uploads_blob_without_enqueue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With ``ingestion_trigger=EVENT_GRID`` the blob is written but no
+    push envelope is enqueued -- a storage Event Grid subscription drives
+    ingestion instead, so a backend-side enqueue would double-ingest.
+    The receipt reports ``queued=False`` per the field's defined meaning.
+    """
+    container_client, _queue_client, _captured = _patch_storage_clients(monkeypatch)
+    fake_enqueue = AsyncMock()
+    monkeypatch.setattr(ingestion_module, "enqueue_push_message", fake_enqueue)
+
+    response = await upload_document(
+        filename="report.pdf",
+        content=b"hello world",
+        settings=_settings_stub(ingestion_trigger=IngestionTrigger.EVENT_GRID),
+        credential=MagicMock(),
+    )
+
+    # Blob still written (Event Grid keys off the BlobCreated event).
+    container_client.upload_blob.assert_awaited_once_with(
+        name="report.pdf", data=b"hello world", overwrite=True
+    )
+    # Backend did NOT enqueue -- Event Grid -> blob-events -> blob_event
+    # owns the push.
+    fake_enqueue.assert_not_called()
+    assert response.queued is False
+    assert response.blob_path == "docs/report.pdf"
+    assert response.filename == "report.pdf"
 
 
 @pytest.mark.asyncio
@@ -497,3 +396,97 @@ async def test_reprocess_all_propagates_azure_error_from_handler(
         await reprocess_all(
             settings=_settings_stub(), credential=MagicMock()
         )
+
+
+# ---------------------------------------------------------------------------
+# validate_upload -- pre-ingest validation gate (raises UploadRejected)
+# ---------------------------------------------------------------------------
+
+
+def _upload_settings(
+    *,
+    documents_container: str = "docs",
+    doc_processing_queue: str = "doc-processing",
+    services_endpoint: str = "https://ai.example.com/",
+) -> Any:
+    """Settings stub shaped for ``validate_upload`` (storage + foundry)."""
+    return NS(
+        storage=NS(
+            documents_container=documents_container,
+            doc_processing_queue=doc_processing_queue,
+        ),
+        foundry=NS(services_endpoint=services_endpoint),
+    )
+
+
+def test_validate_upload_accepts_local_parser_without_ai_services() -> None:
+    # A txt file parses locally, so it passes even with no AI Services
+    # endpoint configured.
+    validate_upload(
+        "notes.txt", 10, settings=_upload_settings(services_endpoint="")
+    )
+
+
+def test_validate_upload_accepts_di_file_when_ai_services_configured() -> None:
+    validate_upload("report.pdf", 10, settings=_upload_settings())
+
+
+def test_validate_upload_rejects_when_storage_unconfigured() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload(
+            "notes.txt", 10, settings=_upload_settings(documents_container="")
+        )
+    assert exc.value.status_code == 503
+
+
+def test_validate_upload_rejects_empty_filename() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload("", 10, settings=_upload_settings())
+    assert exc.value.status_code == 422
+
+
+def test_validate_upload_rejects_unsupported_extension() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload("data.xyz", 10, settings=_upload_settings())
+    assert exc.value.status_code == 415
+    assert isinstance(exc.value.detail, dict)
+    assert exc.value.detail["extension"] == "xyz"
+    # The supported set is sourced from the registry (the authoritative
+    # supported-file-type list), serialized as bare extensions.
+    assert "pdf" in exc.value.detail["supported"]
+
+
+def test_validate_upload_rejects_extensionless_filename() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload("README", 10, settings=_upload_settings())
+    assert exc.value.status_code == 415
+
+
+@pytest.mark.parametrize("filename", ["report.pdf", "memo.docx", "scan.png"])
+def test_validate_upload_rejects_di_file_when_ai_services_missing(
+    filename: str,
+) -> None:
+    # A Document-Intelligence-routed file with no https AI Services
+    # endpoint is refused (the parse step would poison every queued
+    # message) -- driven by the parser's requires_ai_services flag, not a
+    # hard-coded extension set.
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload(filename, 10, settings=_upload_settings(services_endpoint=""))
+    assert exc.value.status_code == 503
+
+
+def test_validate_upload_rejects_oversized_content() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload(
+            "big.txt", MAX_UPLOAD_SIZE_BYTES + 1, settings=_upload_settings()
+        )
+    assert exc.value.status_code == 413
+    assert isinstance(exc.value.detail, dict)
+    assert exc.value.detail["max_byte_count"] == MAX_UPLOAD_SIZE_BYTES
+
+
+def test_validate_upload_accepts_content_at_the_limit() -> None:
+    # Exactly the cap is allowed; only strictly-over is rejected.
+    validate_upload(
+        "big.txt", MAX_UPLOAD_SIZE_BYTES, settings=_upload_settings()
+    )

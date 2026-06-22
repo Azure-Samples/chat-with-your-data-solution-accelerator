@@ -18,6 +18,7 @@ from backend.core.settings import (
     DbType,
     DocumentIntelligenceSettings,
     IndexStore,
+    IngestionTrigger,
     OrchestratorName,
     OrchestratorSettings,
     SpeechSettings,
@@ -154,6 +155,44 @@ def test_search_knowledge_base_env_override_beats_default(
     assert settings.search.knowledge_source_name == "ks-custom"
     assert settings.search.knowledge_base_api_version == "2026-04-01"
     assert settings.search.connection_name == "search-conn-custom"
+
+
+def test_ingestion_trigger_defaults_to_direct_enqueue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`StorageSettings.ingestion_trigger` defaults to `DIRECT_ENQUEUE` so
+    local dev and any deploy without a storage Event Grid subscription keep
+    the backend-side enqueue (no env var set in `COSMOS_ENV`).
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    settings = AppSettings()
+    assert settings.storage.ingestion_trigger is IngestionTrigger.DIRECT_ENQUEUE
+
+
+def test_ingestion_trigger_env_override_selects_event_grid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`AZURE_INGESTION_TRIGGER=event_grid` flips the trigger to
+    `EVENT_GRID`; the cloud deploy sets this once the `blob_event`
+    queue trigger is live so the backend stops double-enqueueing.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_INGESTION_TRIGGER", "event_grid")
+    settings = AppSettings()
+    assert settings.storage.ingestion_trigger is IngestionTrigger.EVENT_GRID
+
+
+def test_ingestion_trigger_rejects_unknown_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unrecognized `AZURE_INGESTION_TRIGGER` fails closed at load --
+    the field is a hard `StrEnum` with no `str` arm (no registry dispatch
+    on this value) per Hard Rule #11.
+    """
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_INGESTION_TRIGGER", "kafka")
+    with pytest.raises(ValidationError):
+        AppSettings()
 
 
 # ---------------------------------------------------------------------------

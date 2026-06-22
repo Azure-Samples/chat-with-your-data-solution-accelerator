@@ -29,6 +29,9 @@ state is request-scoped, mirroring the discipline in
 """
 
 import logging
+import re
+from hashlib import blake2b
+from http import HTTPStatus
 from pathlib import PurePosixPath
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -36,16 +39,14 @@ from uuid import uuid4
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
-from backend.core.providers.embedders import registry as embedders_registry
-from backend.core.providers.search.base import BaseSearch
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, IngestionTrigger
 from backend.models.admin import (
     IngestUrlRequest,
     IngestUrlResponse,
     ReprocessResponse,
     UploadResponse,
 )
-from functions.add_url.handler import AddUrlRequest, add_url_handler
+from functions.add_url.url_fetcher import fetch_url
 from functions.batch_start.handler import batch_start_handler
 from functions.batch_start.models import BatchStartRequest
 from functions.batch_start.queue_writer import enqueue_push_message
@@ -56,36 +57,56 @@ from functions.core.storage_endpoints import resolve_storage_endpoints
 
 logger = logging.getLogger(__name__)
 
-# Ext-less URLs (``https://example.com/article``) fall back to the
-# text parser. Mirrors :data:`functions.add_url.blueprint._DEFAULT_PARSER_KEY`
-# -- duplicated rather than imported because the constant is a local
-# default policy for each ingestion entry point.
-_DEFAULT_PARSER_KEY = "txt"
-
-# Hardcoded embedder key. Mirrors the same choice in
-# :func:`functions.add_url.blueprint._execute`. Promotes to a settings
-# field when a second concrete embedder lands.
-_DEFAULT_EMBEDDER_KEY = "azure_openai"
-
 # Hard upload cap surfaced to the route layer so the 413 boundary +
 # the service helper agree on one number. Matches v1's admin upload
 # limit; tuned alongside the Functions host's request-size ceiling.
 MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024
 
+# Ext-less URLs (and any whose path extension is not a registered parser
+# key) are web pages, so they're stored with the HTML parser's extension
+# -- the pipeline's HtmlParser extracts clean text from them.
+_DEFAULT_URL_BLOB_EXT = "html"
 
-def _parser_key_for_url(url: str) -> str:
-    """Return the parser-registry key for ``url``.
+# Cap the derived blob stem well under the Storage 255-char blob-name
+# ceiling, leaving room for the extension + a dedup suffix.
+_MAX_URL_BLOB_STEM = 200
 
-    Extracts the URL path's lowercase extension (sans dot). Falls
-    back to :data:`_DEFAULT_PARSER_KEY` when the path has no
-    extension so ext-less URLs still route to a parser. Mirrors
-    :func:`functions.add_url.blueprint._parser_key_for_url` -- per
-    Stable Core per-blueprint independence, this is duplicated, not
-    imported.
+# Any run of characters outside this safe set collapses to a single
+# underscore so the derived blob name carries no path separators or
+# URL punctuation (it must round-trip through
+# :func:`backend.services.files._validate_filename`).
+_UNSAFE_BLOB_CHARS = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _blob_name_for_url(url: str) -> str:
+    """Derive a deterministic, flat blob filename from ``url``.
+
+    Keeps the URL path's last-segment extension when it maps to a
+    registered parser (``report.pdf`` -> ``...pdf``); otherwise stores
+    the URL with the text parser's extension (:data:`_DEFAULT_URL_BLOB_EXT`).
+    The stem is the sanitized ``host + path`` so distinct URLs map to
+    distinct blobs and the same URL always maps to the same blob
+    (re-ingesting overwrites). The result carries no path separators,
+    so it round-trips through
+    :func:`backend.services.files._validate_filename`.
     """
     parsed = urlparse(url)
     suffix = PurePosixPath(parsed.path).suffix.lstrip(".").lower()
-    return suffix or _DEFAULT_PARSER_KEY
+    extension = (
+        suffix
+        if suffix in ingestion_parsers_registry.registry
+        else _DEFAULT_URL_BLOB_EXT
+    )
+    raw_stem = f"{parsed.netloc}{parsed.path}"
+    if suffix:
+        raw_stem = raw_stem[: -(len(suffix) + 1)]
+    stem = _UNSAFE_BLOB_CHARS.sub("_", raw_stem).strip("._-")
+    if stem == "":
+        stem = _UNSAFE_BLOB_CHARS.sub("_", parsed.netloc).strip("._-") or "page"
+    if len(stem) > _MAX_URL_BLOB_STEM:
+        digest = blake2b(url.encode("utf-8"), digest_size=4).hexdigest()
+        stem = f"{stem[: _MAX_URL_BLOB_STEM - 9]}-{digest}"
+    return f"{stem}.{extension}"
 
 
 async def ingest_url(
@@ -93,54 +114,140 @@ async def ingest_url(
     *,
     settings: AppSettings,
     credential: AsyncTokenCredential,
-    search_provider: BaseSearch,
 ) -> IngestUrlResponse:
-    """Fetch a URL, parse + embed + index its chunks, return job receipt.
+    """Download a URL, store it as a blob, and ingest it like a file.
 
-    Resolves the parser registry entry for the URL's path extension
-    and the configured embedder, then delegates to
-    :func:`functions.add_url.handler.add_url_handler` -- the same
-    orchestration the Functions HTTP trigger uses, so an URL ingested
-    via this route lands in the same shape as one ingested via the
-    queue path.
+    Fetches the URL bytes via :func:`functions.add_url.url_fetcher.fetch_url`,
+    derives a deterministic blob filename (:func:`_blob_name_for_url`),
+    and hands both to :func:`upload_document` -- the same path admin
+    file upload uses -- so the URL's content flows through the
+    identical store-then-``batch_push`` pipeline (enqueued under
+    ``DIRECT_ENQUEUE``; Event-Grid-driven otherwise). This mirrors v1's
+    ``download_url_and_upload_to_blob`` admin path.
 
-    Returns the operator-facing response carrying the correlation id
-    + the count of chunks pushed to the search index. Any
-    ``httpx.HTTPError`` from the fetch or upstream
-    ``azure.core.exceptions.AzureError`` from the embedder / search
-    write propagates to the app-level handlers in :mod:`backend.app`
-    which sanitise both into 502 / 503 responses with no SDK detail
-    leaked.
+    Returns the operator-facing receipt: the URL echo plus the upload
+    result (derived filename, blob path, ``queued``, correlation id).
+    Any ``httpx.HTTPError`` from the fetch or ``azure.core.exceptions.AzureError``
+    from the blob write / enqueue propagates to the app-level handlers
+    in :mod:`backend.app`, which sanitise both into 502 / 503 responses
+    with no SDK detail leaked.
     """
-    parser_cls = ingestion_parsers_registry.registry.get(
-        _parser_key_for_url(request.url)
+    content = await fetch_url(request.url)
+    filename = _blob_name_for_url(request.url)
+    receipt = await upload_document(
+        filename=filename,
+        content=content,
+        settings=settings,
+        credential=credential,
     )
-    parser = parser_cls(settings=settings, credential=credential)
-    embedder_cls = embedders_registry.registry.get(_DEFAULT_EMBEDDER_KEY)
-    embedder = embedder_cls(settings=settings, credential=credential)
-    try:
-        documents = await add_url_handler(
-            AddUrlRequest(url=request.url, ingestion_job_id=request.ingestion_job_id),
-            parser,
-            embedder,
-            search_provider,
-        )
-    finally:
-        await embedder.aclose()
     logger.info(
-        "Admin URL ingest succeeded.",
+        "Admin URL ingest stored.",
         extra={
             "operation": "ingest_url",
             "url": request.url,
-            "ingestion_job_id": request.ingestion_job_id,
-            "document_count": len(documents),
+            "blob_filename": filename,
+            "ingestion_job_id": receipt.ingestion_job_id,
+            "byte_count": len(content),
+            "queued": receipt.queued,
         },
     )
     return IngestUrlResponse(
-        ingestion_job_id=request.ingestion_job_id,
         url=request.url,
-        document_count=len(documents),
+        filename=receipt.filename,
+        blob_path=receipt.blob_path,
+        ingestion_job_id=receipt.ingestion_job_id,
+        queued=receipt.queued,
     )
+
+
+class UploadRejected(Exception):
+    """An admin upload failed a pre-ingest validation gate.
+
+    Carries the HTTP status + detail the admin router maps onto an
+    ``HTTPException`` -- keeping this service FastAPI-free (the router
+    owns the HTTP translation, mirroring the ``ValueError`` -> 4xx
+    mapping the other admin routes already do). ``status_code`` is an
+    ``http.HTTPStatus`` (an ``int``), so it drops straight into
+    ``HTTPException(status_code=...)``.
+    """
+
+    def __init__(self, *, status_code: int, detail: object) -> None:
+        self.status_code = status_code
+        self.detail = detail
+        super().__init__(detail if isinstance(detail, str) else str(detail))
+
+
+def validate_upload(
+    filename: str, content_size: int, *, settings: AppSettings
+) -> None:
+    """Validate one admin upload is ingestable before it is stored.
+
+    Raises :class:`UploadRejected` (which the admin router maps to an
+    ``HTTPException``) when, in order:
+
+    * the deployment has no documents container / doc-processing queue
+      configured (``503``);
+    * ``filename`` is empty (``422``);
+    * the extension is missing or not registered in the parser registry
+      (``415`` -- the registry is the authoritative supported set,
+      Hard Rule #4);
+    * the resolved parser ``requires_ai_services`` but
+      ``AZURE_AI_SERVICES_ENDPOINT`` is unset / not an https URL
+      (``503`` -- the Document Intelligence parse step would otherwise
+      poison every queued message, so the upload is refused at the
+      boundary instead of reporting a success the file can never honour).
+      The parser declares its own need via
+      :attr:`backend.core.providers.parsers.base.BaseParser.requires_ai_services`,
+      so no extension set is hard-coded here (Hard Rule #4);
+    * ``content_size`` exceeds :data:`MAX_UPLOAD_SIZE_BYTES` (``413``).
+    """
+    if (
+        not settings.storage.documents_container
+        or not settings.storage.doc_processing_queue
+    ):
+        raise UploadRejected(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail="Document storage is not configured for this deployment.",
+        )
+    if not filename:
+        raise UploadRejected(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail="Uploaded file must carry a non-empty filename.",
+        )
+    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
+    if extension not in ingestion_parsers_registry.registry:
+        supported = sorted(ingestion_parsers_registry.registry.keys())
+        raise UploadRejected(
+            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            detail={
+                "msg": "Unsupported file extension.",
+                "extension": extension,
+                "supported": supported,
+            },
+        )
+    parser_cls = ingestion_parsers_registry.registry.get(extension)
+    if parser_cls.requires_ai_services and not settings.foundry.services_endpoint.lower().startswith(
+        "https://"
+    ):
+        raise UploadRejected(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail=(
+                "Document parsing is not configured for this deployment: "
+                "AZURE_AI_SERVICES_ENDPOINT must be a non-empty https:// URL "
+                "to parse this file type via Document Intelligence. Refusing "
+                "the upload instead of reporting success for a file that "
+                "cannot be indexed."
+            ),
+        )
+    if content_size > MAX_UPLOAD_SIZE_BYTES:
+        raise UploadRejected(
+            status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            detail={
+                "msg": "Uploaded file exceeds the maximum allowed size.",
+                "byte_count": content_size,
+                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
+            },
+        )
 
 
 async def upload_document(
@@ -150,8 +257,9 @@ async def upload_document(
     settings: AppSettings,
     credential: AsyncTokenCredential,
 ) -> UploadResponse:
-    """Write ``content`` to the source blob container and enqueue an
-    ingest message so ``batch_push`` will pick it up.
+    """Write ``content`` to the source blob container and, when the
+    deploy's ingestion trigger is ``DIRECT_ENQUEUE``, enqueue an ingest
+    message so ``batch_push`` picks it up.
 
     Two-step admin upload:
 
@@ -162,7 +270,16 @@ async def upload_document(
     2. Enqueue a single :class:`BatchPushQueueMessage` carrying
        ``(container_name, filename, ingestion_job_id)`` so the
        existing ``batch_push`` queue consumer runs the same
-       parse / embed / push pipeline used by ``batch_start``.
+       parse / embed / push pipeline used by ``batch_start`` --
+       **only** when ``settings.storage.ingestion_trigger`` is
+       :attr:`IngestionTrigger.DIRECT_ENQUEUE`.
+
+    When the trigger is :attr:`IngestionTrigger.EVENT_GRID`, a storage
+    Event Grid subscription fans the ``BlobCreated`` event from step 1
+    to the ``blob-events`` queue and the Functions ``blob_event``
+    queue trigger translates it into the same push message -- so this
+    helper writes the blob only and returns ``queued=False`` to avoid
+    double-ingesting the file.
 
     The two steps reuse the SDK helpers already authored for the
     Functions tier (:func:`functions.core.storage_clients.storage_clients`,
@@ -170,18 +287,19 @@ async def upload_document(
     so a file ingested via this route lands in the same shape as one
     ingested via the bulk ``batch_start`` fan-out.
 
-    Filename extension validation is the caller's concern (the route
-    layer maps unknown extensions to ``415 Unsupported Media Type``
-    using the parser registry). Size validation is also caller-side
-    (the route caps reads at :data:`MAX_UPLOAD_SIZE_BYTES` and
-    returns 413). The helper trusts its inputs and reports any SDK
-    failure via structured logging before re-raising per Hard Rule
-    #14.
+    Upload validation (extension / Document-Intelligence-config / size)
+    is the caller's concern -- :func:`validate_upload` raises
+    :class:`UploadRejected` and the admin route maps it to the matching
+    4xx / 503. This helper trusts its inputs and reports any SDK failure
+    via structured logging before re-raising per Hard Rule #14.
     """
     blob_endpoint, queue_endpoint = resolve_storage_endpoints(settings.storage)
     container_name = settings.storage.documents_container
     queue_name = settings.storage.doc_processing_queue
     ingestion_job_id = str(uuid4())
+    backend_enqueues = (
+        settings.storage.ingestion_trigger is IngestionTrigger.DIRECT_ENQUEUE
+    )
     async with storage_clients(
         credential=credential,
         blob_endpoint=blob_endpoint,
@@ -204,30 +322,33 @@ async def upload_document(
                 },
             )
             raise
-        message = BatchPushQueueMessage(
-            container_name=container_name,
-            filename=filename,
-            ingestion_job_id=ingestion_job_id,
-        )
-        # ``enqueue_push_message`` already wraps its SDK boundary per
-        # Hard Rule #14 -- adding another try/except here would
-        # double-log on the same failure.
-        await enqueue_push_message(queue_client, message)
+        if backend_enqueues:
+            message = BatchPushQueueMessage(
+                container_name=container_name,
+                filename=filename,
+                ingestion_job_id=ingestion_job_id,
+            )
+            # ``enqueue_push_message`` already wraps its SDK boundary
+            # per Hard Rule #14 -- adding another try/except here would
+            # double-log on the same failure.
+            await enqueue_push_message(queue_client, message)
     logger.info(
-        "Admin file upload queued for indexing.",
+        "Admin file upload stored.",
         extra={
             "operation": "upload_document",
             "container": container_name,
             "blob_filename": filename,
             "ingestion_job_id": ingestion_job_id,
             "byte_count": len(content),
+            "ingestion_trigger": settings.storage.ingestion_trigger,
+            "queued": backend_enqueues,
         },
     )
     return UploadResponse(
         filename=filename,
         blob_path=f"{container_name}/{filename}",
         ingestion_job_id=ingestion_job_id,
-        queued=True,
+        queued=backend_enqueues,
     )
 
 

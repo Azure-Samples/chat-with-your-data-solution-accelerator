@@ -254,11 +254,11 @@ def test_create_returns_agent_framework_instance() -> None:
 def test_constructor_swallows_uniform_extras() -> None:
     """The router forwards a uniform kwarg set to every orchestrator;
     `**_extras` must absorb the ones this orchestrator does not name
-    (langgraph-only `system_prompt` / `search_top_k` /
-    `search_use_semantic_search` plus the legacy `credential` / `agent_name`
-    from the shared wiring contract) without raising. `search` is now a
-    named parameter (it backs citation enrichment), so it is consumed, not
-    swallowed."""
+    (langgraph-only `system_prompt` plus the legacy `credential` /
+    `agent_name` from the shared wiring contract) without raising.
+    `search` / `search_top_k` / `search_use_semantic_search` are now named
+    parameters (search backs retrieval + citation enrichment; the knobs are
+    forwarded to `BaseSearch.search`), so they are consumed, not swallowed."""
     orch = AgentFrameworkOrchestrator(
         settings=_settings(),
         llm=MagicMock(spec=BaseLLMProvider),
@@ -272,6 +272,53 @@ def test_constructor_swallows_uniform_extras() -> None:
         agent_name="cwyd",
     )
     assert isinstance(orch, AgentFrameworkOrchestrator)
+
+
+def test_constructor_captures_search_knobs() -> None:
+    """The router forwards the effective per-request retrieval knobs
+    (`search_top_k` / `search_use_semantic_search`) uniformly; the
+    orchestrator captures them -- mirroring `langgraph` -- so `run()` can
+    forward them to `BaseSearch.search` on the pgvector grounding path."""
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings(),
+        llm=MagicMock(spec=BaseLLMProvider),
+        agents=_FakeAgentsProvider(),
+        db=object(),
+        search=MagicMock(),
+        search_top_k=7,
+        search_use_semantic_search=True,
+    )
+    assert orch._search_top_k == 7
+    assert orch._search_use_semantic_search is True
+
+
+def test_constructor_uses_effective_sampling_over_env() -> None:
+    """The effective `openai_temperature` / `openai_max_tokens` the router
+    forwards win over the `settings.openai` env defaults, so an admin
+    sampling override reaches the agent's `ChatOptions`."""
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings(),
+        llm=MagicMock(spec=BaseLLMProvider),
+        agents=_FakeAgentsProvider(),
+        db=object(),
+        openai_temperature=0.5,
+        openai_max_tokens=222,
+    )
+    assert orch._temperature == 0.5
+    assert orch._max_tokens == 222
+
+
+def test_constructor_falls_back_to_env_sampling_when_unset() -> None:
+    """With no effective sampling passed, the orchestrator uses the
+    `settings.openai` env defaults (`_settings()` sets 0.0 / 1000)."""
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings(),
+        llm=MagicMock(spec=BaseLLMProvider),
+        agents=_FakeAgentsProvider(),
+        db=object(),
+    )
+    assert orch._temperature == 0.0
+    assert orch._max_tokens == 1000
 
 
 # ---------------------------------------------------------------------------
@@ -357,6 +404,32 @@ async def test_run_emits_reasoning_events_for_text_reasoning_blocks() -> None:
         ("reasoning", "looking up docs"),
         ("answer", "Final answer."),
     ]
+
+
+@pytest.mark.asyncio
+async def test_run_strips_native_kb_markers_from_reasoning_events() -> None:
+    """A native 【N:M†source】 KB marker a reasoning summary emits must be
+    stripped before the `reasoning` event: the FE reasoning panel has no
+    `[docN]` rendering, so an unstripped marker shows as raw garbage. The
+    answer-side `normalize_kb_citations` owns marker rewriting; the
+    reasoning channel only removes them.
+    """
+    agent = _FakeAgent(
+        updates=[
+            _update(_reasoning_block("Checking the policy 【6:1†source】 next.")),
+            _update(_text_block("Final answer.")),
+        ]
+    )
+    orch = _make_orchestrator(agents=_FakeAgentsProvider(agent=agent))
+
+    events = [
+        ev async for ev in orch.run([ChatMessage(role="user", content="hi")])
+    ]
+
+    reasoning = [e.content for e in events if e.channel == "reasoning"]
+    assert reasoning == ["Checking the policy next."]
+    # No native marker leaks onto any channel.
+    assert all("【" not in e.content for e in events)
 
 
 @pytest.mark.asyncio
@@ -1095,3 +1168,92 @@ async def test_run_keeps_raw_citations_when_enrichment_lookup_fails(
         getattr(record, "operation", None) == "enrich_citations"
         for record in caplog.records
     )
+
+
+# ---------------------------------------------------------------------------
+# run() pgvector grounding -- app-side retrieval when no KB tool is built
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_grounds_on_pgvector_when_kb_unconfigured() -> None:
+    """On a pgvector deployment (`_build_kb_tool()` returns None) with a
+    search provider wired, run() embeds the query, retrieves with the
+    vector + effective knobs, injects the [docN] sources block into the
+    user turn, attaches no server-side KB tool, and emits only the
+    citations the answer actually references -- mirroring the langgraph
+    path (no native KB annotations on this path)."""
+    query_vector = [0.1, 0.2, 0.3]
+    llm = MagicMock(spec=BaseLLMProvider)
+    llm.supports_reasoning = AsyncMock(return_value=False)
+    llm.embed = AsyncMock(return_value=SimpleNamespace(vectors=[query_vector]))
+    search = MagicMock()
+    search.search = AsyncMock(
+        return_value=[
+            SearchResult(
+                id="k1",
+                content="Remote work is allowed three days a week.",
+                title="Policy.txt",
+                url="https://files/Policy.txt",
+                score=0.9,
+            ),
+            SearchResult(
+                id="k2",
+                content="Unrelated content.",
+                title="Other.txt",
+                url="https://files/Other.txt",
+                score=0.4,
+            ),
+        ]
+    )
+    agent = _FakeAgent(
+        updates=[_update(_text_block("You can work remotely [doc1]."))]
+    )
+    provider = _FakeAgentsProvider(agent=agent)
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings_with_search(endpoint=""),  # KB unconfigured
+        llm=llm,
+        agents=provider,
+        db=object(),
+        search=search,
+        search_top_k=5,
+        search_use_semantic_search=False,
+    )
+
+    events = [
+        ev
+        async for ev in orch.run(
+            [ChatMessage(role="user", content="How many remote days?")]
+        )
+    ]
+
+    # Embedded the query and retrieved with the vector + effective knobs.
+    llm.embed.assert_awaited_once()
+    search.search.assert_awaited_once()
+    search_kwargs = search.search.call_args.kwargs
+    assert search_kwargs["vector"] == query_vector
+    assert search_kwargs["top_k"] == 5
+    assert search_kwargs["use_semantic_search"] is False
+
+    # No server-side KB tool was attached (pgvector path).
+    assert provider.build_calls[0]["extra_tools"] is None
+
+    # The [docN] sources block + the original question both reached the
+    # agent on the user turn.
+    agent_text = " ".join(
+        getattr(content, "text", "")
+        for message in agent.run_calls[0]["messages"]
+        for content in getattr(message, "contents", [])
+    )
+    assert "[doc1]: Remote work is allowed three days a week." in agent_text
+    assert "How many remote days?" in agent_text
+
+    # Only the referenced citation ([doc1]) is emitted, not [doc2].
+    citation_events = [e for e in events if e.channel == "citation"]
+    assert len(citation_events) == 1
+    assert citation_events[0].metadata["id"] == "[doc1]"
+
+    # The answer streams unchanged.
+    answer_events = [e for e in events if e.channel == "answer"]
+    assert len(answer_events) == 1
+    assert answer_events[0].content == "You can work remotely [doc1]."

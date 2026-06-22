@@ -127,6 +127,13 @@ class DeleteDocumentResponse(BaseModel):
         description="Number of indexed chunks removed for the source.",
         ge=0,
     )
+    blob_deleted: bool = Field(
+        default=False,
+        description=(
+            "Whether the source blob was removed from the documents "
+            "container (False for URL-typed sources, which have no blob)."
+        ),
+    )
 
 
 class ListDocumentsResponse(BaseModel):
@@ -178,29 +185,54 @@ class IngestUrlRequest(BaseModel):
 
 
 class IngestUrlResponse(BaseModel):
-    """Response shape for ``POST /api/admin/documents/url``."""
+    """Response shape for ``POST /api/admin/documents/url``.
 
+    The route downloads the URL and writes it to the documents
+    container as a blob, then the same ``batch_push`` pipeline used by
+    file upload indexes it (enqueued under ``DIRECT_ENQUEUE``;
+    Event-Grid-driven otherwise). The response is the operator-facing
+    receipt: the URL echo, the derived blob filename + path, ``queued``
+    reflecting whether the backend enqueued the push envelope, and the
+    correlation id propagated into every downstream log line.
+    """
+
+    url: str = Field(..., description="Echo of the URL that was ingested.")
+    filename: str = Field(
+        ...,
+        description="Derived blob filename the URL content was stored as.",
+    )
+    blob_path: str = Field(
+        ...,
+        description=(
+            "Storage path the blob was written to, formatted as "
+            "``<container>/<filename>``."
+        ),
+    )
     ingestion_job_id: str = Field(
         ..., description="Correlation id for cross-log tracing."
     )
-    url: str = Field(..., description="Echo of the URL that was ingested.")
-    document_count: int = Field(
+    queued: bool = Field(
         ...,
-        ge=0,
-        description="Number of chunks written to the search index.",
+        description=(
+            "Whether the backend enqueued the push envelope (False when "
+            "the Event Grid trigger drives ingestion instead)."
+        ),
     )
 
 
 class UploadResponse(BaseModel):
     """Response shape for ``POST /api/admin/documents`` (multipart upload).
 
-    The route writes the file to the source blob container and
-    enqueues a single ``BatchPushQueueMessage`` so the existing
-    ``batch_push`` queue consumer picks it up and runs the same
-    parse / embed / push pipeline used by ``batch_start``. The
-    response is the operator-facing receipt: filename echo, blob
-    path for storage-explorer lookup, ``queued=True`` once the push
-    envelope is on the wire, and the correlation id propagated into
+    The route writes the file to the source blob container. When the
+    deploy's ingestion trigger is ``DIRECT_ENQUEUE`` it then enqueues a
+    single ``BatchPushQueueMessage`` so the existing ``batch_push``
+    queue consumer picks it up and runs the same parse / embed / push
+    pipeline used by ``batch_start``; when the trigger is
+    ``EVENT_GRID`` a storage Event Grid subscription drives that step
+    instead, so the route writes the blob only. The response is the
+    operator-facing receipt: filename echo, blob path for
+    storage-explorer lookup, ``queued`` reflecting whether the backend
+    enqueued the push envelope, and the correlation id propagated into
     every downstream log line.
     """
 

@@ -22,6 +22,7 @@
  * regress.
  */
 import {
+  Avatar,
   Toolbar,
   ToolbarButton,
   ToolbarToggleButton,
@@ -34,8 +35,10 @@ import {
   WeatherSunny20Regular,
 } from "@fluentui/react-icons";
 import { type JSX } from "react";
+import type { UserInfo } from "@/models/auth";
 import { Theme, useTheme } from "@/theme/themeContext";
 import styles from "./Header.module.css";
+import { resolveDisplayName, userInitials } from "./userIdentity";
 
 export interface HeaderToolsProps {
   historyOpen: boolean;
@@ -43,6 +46,7 @@ export interface HeaderToolsProps {
   onNewChat: () => void;
   adminAvailable?: boolean | null;
   onOpenAdmin?: () => void;
+  userInfo?: UserInfo | null;
 }
 
 export function HeaderTools({
@@ -51,8 +55,10 @@ export function HeaderTools({
   onNewChat,
   adminAvailable,
   onOpenAdmin,
+  userInfo,
 }: HeaderToolsProps): JSX.Element {
   const { theme, toggleTheme } = useTheme();
+  const displayName = resolveDisplayName(userInfo);
   const nextTheme =
     theme === Theme.Light ? Theme.Dark : Theme.Light;
   const themeIcon =
@@ -103,6 +109,15 @@ export function HeaderTools({
         title={`Switch to ${nextTheme} mode`}
         icon={themeIcon}
         onClick={toggleTheme}
+      />
+      <Avatar
+        shape="circular"
+        color="neutral"
+        name={displayName}
+        initials={userInitials(displayName)}
+        size={28}
+        title={displayName}
+        data-testid="header-user-avatar"
       />
     </Toolbar>
   );

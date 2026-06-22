@@ -19,7 +19,7 @@
 # every runtime + build dependency, so the dev server starts standalone with
 # zero coupling to the v2/ npm workspace or the sibling test package. The
 # workspace (v2/package.json) exists only so the Vitest tree under
-# src/tests/frontend can resolve the frontend's deps from one hoisted
+# tests/frontend can resolve the frontend's deps from one hoisted
 # node_modules; the deployable frontend never needs it.
 FROM node:20-alpine AS dev
 WORKDIR /app

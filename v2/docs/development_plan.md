@@ -86,6 +86,14 @@ Direction from the repo owner: plans, daily work, and bugs must live in **repo-t
 
 The `INGEST-EMBED-DOCKEY` row below stays in §0.1 as the phase-audit pointer; full defect detail now lives in `bugs.md` (`BUG-0001` / `BUG-0002`).
 
+### 0.0f Session receipt (2026-06-20) — frontend Vitest tree relocated to `v2/tests/frontend/` (ADR 0029)
+
+Repo-owner decision revisiting [ADR 0020](adr/0020-frontend-tests-under-src-tests-frontend.md)'s recorded alternative #2: make the frontend test tree **symmetric** with the backend tree. The Vitest package moved `v2/src/tests/frontend/` → `v2/tests/frontend/` (matching `v2/tests/backend/`, `v2/tests/functions/`), and the Python ASGI test `test_frontend_app.py` moved to `v2/tests/frontend_app/` so each test directory is single-toolchain. There is no longer a `v2/src/tests/` directory. Ratified in [ADR 0029](adr/0029-frontend-tests-symmetric-under-tests-frontend.md), which supersedes ADR 0020 (and transitively [ADR 0012](adr/0012-frontend-test-folder-mirror.md)).
+
+Mechanics: the `cwyd-frontend-tests` npm-workspace member path became `tests/frontend` in [v2/package.json](../package.json) (package name unchanged → `--workspace cwyd-frontend-tests` scripts unaffected); the test package's `@` alias re-pathed `../../frontend/src` → `../../src/frontend/src` (the alias *target* `v2/src/frontend/src` is unchanged, so test files need no import edits); `package-lock.json` regenerated; CI [`v2-frontend-checks.yml`](../../.github/workflows/v2-frontend-checks.yml) path filters + the `tsc -p tests/frontend` step updated; `Dockerfile.frontend` unaffected (copies only `src/frontend`). Guidance synced (Hard Rule #0): `v2-frontend.instructions.md`, `v2-tests.instructions.md` (`applyTo` drops `v2/src/tests/**`), Hard Rule #11 in `copilot-instructions.md`.
+
+Verification: Vitest **566 passed / 44 files** from the new layout; relocated pytest `tests/frontend_app/test_frontend_app.py` **4 passed**; the relocated test tree typechecks with no test-tree errors (the `@` re-path resolves). **Pre-existing, out of scope:** `tsc -p src/frontend` + `npm run lint` are red on **app-source** files unrelated to this move (`src/frontend/src/api/streamChat.tsx` `exactOptionalPropertyTypes` TS2375 from the BUG-0067 error-body code; `CitationPanel.tsx` / `MessageList.tsx` lint) — confirmed pre-existing (typescript 5.9.3 matches HEAD; no `src/frontend/src` file was touched by the move). Tracked separately for a follow-up FE gate-green pass.
+
 ---
 
 ## 0.1 Active debt queue

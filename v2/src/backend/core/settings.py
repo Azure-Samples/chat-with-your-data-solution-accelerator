@@ -106,6 +106,29 @@ class OrchestratorName(StrEnum):
     AGENT_FRAMEWORK = "agent_framework"
 
 
+class IngestionTrigger(StrEnum):
+    """How a written source blob gets picked up for indexing.
+
+    Closed-set env discriminator fully owned by the codebase (no
+    registry dispatch), so a hard `StrEnum` with no `str` arm per
+    Hard Rule #11.
+
+    Members:
+        DIRECT_ENQUEUE: the backend admin upload path enqueues a push
+            message to `doc_processing_queue` itself. The only trigger
+            available for local dev and any deploy without a storage
+            Event Grid subscription; the default.
+        EVENT_GRID: a storage Event Grid subscription fans
+            `BlobCreated` to the `blob-events` queue, which the
+            Functions `blob_event` queue trigger translates into a push
+            message. The backend writes the blob only and does not
+            enqueue, so a blob never double-ingests.
+    """
+
+    DIRECT_ENQUEUE = "direct_enqueue"
+    EVENT_GRID = "event_grid"
+
+
 # ---------------------------------------------------------------------------
 # Per-subsystem settings
 # ---------------------------------------------------------------------------
@@ -253,6 +276,7 @@ class StorageSettings(BaseSettings):
     storage_blob_endpoint: str = ""
     documents_container: str = ""
     doc_processing_queue: str = ""
+    ingestion_trigger: IngestionTrigger = IngestionTrigger.DIRECT_ENQUEUE
 
 
 class ObservabilitySettings(BaseSettings):
@@ -495,10 +519,14 @@ class AppSettings(BaseSettings):
     location: str = ""
     ai_service_location: str = ""
 
-    # Runtime mode. `local` is the default so a clean checkout boots
-    # without surprises; production deployments must set
-    # `AZURE_ENVIRONMENT=production` (set by `v2/infra/main.bicep`
-    # on the Container App env-vars).
+    # Runtime mode. `local` is the default so a clean checkout / dev run
+    # boots without surprises. Production deployments set
+    # `AZURE_ENVIRONMENT=production` via `v2/infra/main.bicep` on the
+    # backend Container App (and Function App) env-vars, which flips the
+    # final configuration to production -- the deployed admin auth gate
+    # then enforces Easy Auth (the local-dev bypass in
+    # backend.dependencies.requires_role fires only when
+    # `environment == 'local'`).
     #
     # Stable Core code that branches on environment must use this
     # field -- never sniff `os.getenv` ad-hoc -- so the value is
@@ -548,6 +576,7 @@ __all__ = [
     "FoundrySettings",
     "IdentitySettings",
     "IndexStore",
+    "IngestionTrigger",
     "NetworkSettings",
     "ObservabilitySettings",
     "OpenAISettings",

@@ -17,6 +17,12 @@ from functions.core.parsers.text_parser import TextParser
 def test_textparser_is_registered_under_txt() -> None:
     assert ingestion_parsers_registry.registry.get("txt") is TextParser
 
+def test_textparser_is_registered_under_md_and_json() -> None:
+    """Markdown + JSON are UTF-8 text, so they route to the same
+    TextParser (v1 supported all three)."""
+    assert ingestion_parsers_registry.registry.get("md") is TextParser
+    assert ingestion_parsers_registry.registry.get("json") is TextParser
+
 def test_textparser_is_a_baseparser_subclass() -> None:
     assert issubclass(TextParser, BaseParser)
 

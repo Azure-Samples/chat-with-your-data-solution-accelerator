@@ -1,6 +1,6 @@
 # ADR 0022 — Incompatible effective-config overrides raise a reusable `ConfigResolutionError`
 
-- **Status**: Accepted
+- **Status**: Accepted — decisions #2 (the pgvector + `agent_framework` rule) and #5 ("no silent fallback") are superseded by [ADR 0027](0027-agent-framework-app-side-rag-on-pgvector.md), which gives `agent_framework` an app-side pgvector grounding path; the reusable `ConfigResolutionError` mechanism (decisions #1 / #3 / #4) remains in force
 - **Date**: 2026-06-09
 - **Phase**: 8
 - **Pillar**: Stable Core (the `ConfigResolutionError` primitive + app-level handler) over a Configuration Layer rule (the pgvector + `agent_framework` guard)

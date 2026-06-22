@@ -9,7 +9,10 @@ import pytest
 from azure.core.exceptions import AzureError
 from pydantic import BaseModel, ValidationError
 
-from functions.core.exception_mapping import log_queue_errors, map_function_exceptions
+from functions.core.exception_mapping import (
+    log_queue_errors,
+    map_function_exceptions,
+)
 
 
 class _SampleBody(BaseModel):
@@ -257,3 +260,4 @@ async def test_queue_decorator_preserves_handler_name_and_doc() -> None:
 
     assert my_consumer.__name__ == "my_consumer"
     assert my_consumer.__doc__ == "Original docstring."
+

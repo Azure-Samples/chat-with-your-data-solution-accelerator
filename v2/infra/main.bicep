@@ -86,6 +86,17 @@ param azureAiServiceLocation string
 param databaseType string = 'cosmosdb'
 
 // ===================== //
+// Ingestion trigger     //
+// ===================== //
+
+@allowed([
+  'direct_enqueue'
+  'event_grid'
+])
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
+param ingestionTrigger string = 'direct_enqueue'
+
+// ===================== //
 // v1 resource reuse     //
 // ===================== //
 // When set, the corresponding AVM module is SKIPPED and a raw `existing`
@@ -923,7 +934,11 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'search'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.search]!.outputs.resourceId
+                  // Search PE deploys in cosmosdb mode only. In postgresql mode the zone
+                  // array is shorter and the literal `dnsZoneIndex.search` (7) is out of
+                  // range for ARM's static index validation, so resolve to a valid in-range
+                  // index. The value is never used because this PE is gated out in that mode.
+                  privateDnsZoneResourceId: avmPrivateDnsZones[databaseType == 'cosmosdb' ? dnsZoneIndex.search : dnsZoneIndex.postgres]!.outputs.resourceId
                 }
               ]
             }
@@ -1090,6 +1105,8 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
       queues: [
         { name: 'doc-processing' }
         { name: 'doc-processing-poison' }
+        { name: 'blob-events' }
+        { name: 'blob-events-poison' }
         { name: 'add-url' }
         { name: 'add-url-poison' }
       ]
@@ -1212,6 +1229,18 @@ resource existingStorageQueueDocProcessing 'Microsoft.Storage/storageAccounts/qu
 resource existingStorageQueueDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
   parent: existingStorageQueueServices
   name: 'doc-processing-poison'
+  properties: {}
+}
+
+resource existingStorageQueueBlobEvents 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'blob-events'
+  properties: {}
+}
+
+resource existingStorageQueueBlobEventsPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'blob-events-poison'
   properties: {}
 }
 
@@ -1713,6 +1742,15 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+            // Runtime mode (AppSettings.environment). Pinned to 'production'
+            // on every cloud deploy so the admin auth gate fails closed: the
+            // local-dev bypass in backend.dependencies.requires_role returns
+            // the synthetic 'local-dev' admin ONLY when environment == 'local',
+            // so a deployed runtime must never fall back to the 'local' default
+            // (a missing Easy Auth claims blob would otherwise grant admin
+            // without authentication). Also makes GET /api/admin/status report
+            // the real environment.
+            { name: 'AZURE_ENVIRONMENT', value: 'production' }
             // Foundry endpoints (consumed by both orchestrators)
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
             { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
@@ -1781,6 +1819,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
             { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
             { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+            // Ingestion trigger -- direct_enqueue keeps the backend
+            // enqueueing the push message on upload; event_grid makes the
+            // backend write the blob only and lets the Event Grid -> blob-events
+            // -> blob_event Function own the push (no double-ingest).
+            { name: 'AZURE_INGESTION_TRIGGER', value: ingestionTrigger }
           ],
           enableMonitoring
             ? [
@@ -1917,8 +1960,9 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
 //                    the configured vector index (AI Search OR Postgres)
 //   - add_url      — HTTP trigger; fetch URL content, parse, embed
 // Event Grid system topic on the Storage Account fans out BlobCreated
-// notifications under /documents/ to the doc-processing queue, which
-// triggers batch_push.
+// and BlobDeleted notifications under /documents/ to the blob-events
+// queue; the blob_event trigger turns a create into a doc-processing
+// ingestion job (batch_push) and a delete into a de-index.
 //
 // Flex Consumption (FC1) chosen over Premium because:
 //   - sub-second cold start, scale-to-zero (cheap when idle)
@@ -1939,6 +1983,10 @@ var functionsPlanSkuName = 'FC1'
 var functionsRuntimeName = 'python'
 var functionsRuntimeVersion = '3.11'
 var docProcessingQueueName = 'doc-processing'
+// Event Grid delivers BlobCreated / BlobDeleted events here; the
+// blob_event queue trigger translates a create into a doc-processing
+// ingestion envelope and a delete into a de-index.
+var blobEventsQueueName = 'blob-events'
 var documentsContainerName = 'documents'
 // Built-in role definition GUIDs used by this section.
 //   Storage Queue Data Message Sender — for Event Grid → Storage Queue
@@ -2040,6 +2088,9 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+          // Runtime mode (AppSettings.environment) -- pin 'production' so the
+          // deployed config reports production, parity with the backend.
+          { name: 'AZURE_ENVIRONMENT', value: 'production' }
           { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
           { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
           { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
@@ -2106,13 +2157,19 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-// Event Grid system topic on the Storage Account. Single subscription
-// for now: BlobCreated under /documents/ → doc-processing queue. The
-// add_url path is HTTP-triggered, not blob-triggered, so it does not
-// need an Event Grid subscription. When reusing v1's storage that
-// already has a system topic, the AVM module is skipped and a sibling
-// `existingEventGridSubscription` resource adds our subscription to the
-// v1 topic (Azure permits only one system topic per source).
+// Event Grid system topic on the Storage Account. Single subscription:
+// BlobCreated / BlobDeleted under /documents/ → blob-events queue, which
+// the blob_event queue trigger translates into the right action (create
+// → doc-processing ingestion envelope consumed by batch_push; delete →
+// de-index) (ADR 0028). A queue destination --
+// not an Event Grid AzureFunction trigger -- keeps managed-identity
+// delivery and deploys at provision time (the queue exists; a function
+// would not yet). The add_url path is HTTP-triggered, not
+// blob-triggered, so it needs no subscription. When reusing v1's
+// storage that already has a system topic, the AVM module is skipped
+// and a sibling `existingEventGridSubscription` resource adds our
+// subscription to the v1 topic (Azure permits only one system topic
+// per source).
 module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
   name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
   params: {
@@ -2127,6 +2184,10 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     }
     eventSubscriptions: [
       {
+        // Name retained (not 'blob-created-to-blob-events') so the
+        // destination repoint is an in-place update; renaming under
+        // azd incremental mode would orphan the prior subscription,
+        // leaving it to keep delivering to doc-processing.
         name: 'blob-created-to-doc-processing'
         // deliveryWithResourceIdentity (NOT plain destination) is required
         // because storage has allowSharedKeyAccess=false. The system
@@ -2139,12 +2200,12 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
             endpointType: 'StorageQueue'
             properties: {
               resourceId: effectiveStorageResourceId
-              queueName: docProcessingQueueName
+              queueName: blobEventsQueueName
             }
           }
         }
         filter: {
-          includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+          includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
           subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
           enableAdvancedFilteringOnArrays: true
         }
@@ -2178,8 +2239,10 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
 }
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
-// v1's topic that routes BlobCreated events from the documents/ prefix
-// to our doc-processing queue. Delivery uses v2's UAMI (granted both
+// v1's topic that routes BlobCreated / BlobDeleted events from the
+// documents/ prefix to our blob-events queue (the blob_event trigger
+// translates a create to doc-processing and a delete to a de-index).
+// Delivery uses v2's UAMI (granted both
 // Queue Data Contributor on the storage account AND Queue Data Message
 // Sender on the specific queue \u2014 EG preflight validates the latter at
 // queue scope specifically).
@@ -2203,6 +2266,8 @@ resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments
 
 resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
   parent: existingEventGridTopic
+  // Name retained (see the new-topic subscription above): an in-place
+  // destination repoint, not a rename that would orphan the prior sub.
   name: 'cwyd2-blob-created-doc-processing'
   properties: {
     deliveryWithResourceIdentity: {
@@ -2214,12 +2279,12 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
         endpointType: 'StorageQueue'
         properties: {
           resourceId: effectiveStorageResourceId
-          queueName: docProcessingQueueName
+          queueName: blobEventsQueueName
         }
       }
     }
     filter: {
-      includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+      includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
       subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
       enableAdvancedFilteringOnArrays: true
     }
@@ -2230,7 +2295,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
     }
   }
   dependsOn: [
-    existingStorageQueueDocProcessing
+    existingStorageQueueBlobEvents
     existingStorageQueueContributor
     existingQueueMessageSenderRole
   ]
@@ -2378,6 +2443,9 @@ output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
 
 @description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
 output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
+
+@description('Ingestion trigger mode for the backend admin upload path: direct_enqueue (backend enqueues) or event_grid (Event Grid + blob_event Function own the push).')
+output AZURE_INGESTION_TRIGGER string = ingestionTrigger
 
 // --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
 

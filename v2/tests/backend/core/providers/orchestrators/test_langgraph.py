@@ -16,6 +16,11 @@ from backend.core.settings import AppSettings
 from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult, OrchestratorEvent, SearchResult
 
 
+# Canned query embedding returned by ``_FakeLLM.embed`` so search-wiring
+# tests can assert the orchestrator forwards the vector to ``search``.
+_FAKE_QUERY_VECTOR: list[float] = [0.1, 0.2, 0.3]
+
+
 # ---------------------------------------------------------------------------
 # Fakes
 # ---------------------------------------------------------------------------
@@ -31,6 +36,8 @@ class _FakeLLM(BaseLLMProvider):
         # routing, which would otherwise dereference ``self._settings``).
         self._reply = reply
         self.calls: list[Sequence[ChatMessage]] = []
+        self.embed_calls: list[Sequence[str]] = []
+        self.complete_calls: list[dict[str, float | int | None]] = []
 
     async def chat(
         self,
@@ -53,10 +60,11 @@ class _FakeLLM(BaseLLMProvider):
     ) -> AsyncIterator[ChatChunk]:
         yield ChatChunk(content=self._reply)
 
-    async def embed(  # pragma: no cover - not exercised
+    async def embed(
         self, inputs: Sequence[str], *, deployment: str | None = None
     ) -> EmbeddingResult:
-        return EmbeddingResult(vectors=[], model="fake")
+        self.embed_calls.append(list(inputs))
+        return EmbeddingResult(vectors=[_FAKE_QUERY_VECTOR], model="fake")
 
     async def reason(  # pragma: no cover - not exercised
         self, messages: Sequence[ChatMessage], *, deployment: str | None = None
@@ -69,6 +77,8 @@ class _FakeLLM(BaseLLMProvider):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         # Override the base implementation (which would dereference
         # ``self._settings``) to mirror the non-reasoning path: record
@@ -76,6 +86,9 @@ class _FakeLLM(BaseLLMProvider):
         # reply. Subclasses can override this to inject reasoning /
         # error events for the CU-004b streaming tests.
         self.calls.append(list(messages))
+        self.complete_calls.append(
+            {"temperature": temperature, "max_tokens": max_tokens}
+        )
         yield OrchestratorEvent(channel="answer", content=self._reply)
 
 
@@ -87,6 +100,8 @@ class _BlankReplyLLM(_FakeLLM):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         # Yield nothing on the answer channel -- triggers the "no
         # assistant reply" error event in ``run()``.
@@ -336,7 +351,9 @@ async def test_run_forwards_search_knobs_to_search_provider() -> None:
 
     _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
 
-    assert fake_search.kwargs_calls == [{"top_k": 7, "use_semantic_search": True}]
+    assert fake_search.kwargs_calls == [
+        {"top_k": 7, "use_semantic_search": True, "vector": _FAKE_QUERY_VECTOR}
+    ]
 
 
 @pytest.mark.asyncio
@@ -354,7 +371,32 @@ async def test_run_defaults_search_knobs_to_none_when_unset() -> None:
 
     _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
 
-    assert fake_search.kwargs_calls == [{"top_k": None, "use_semantic_search": None}]
+    assert fake_search.kwargs_calls == [
+        {"top_k": None, "use_semantic_search": None, "vector": _FAKE_QUERY_VECTOR}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_run_embeds_query_and_passes_vector_to_search() -> None:
+    """The latest user query is embedded and the resulting vector is
+    forwarded to ``BaseSearch.search`` so pgvector runs dense retrieval
+    (without a vector it falls back to AND-semantics full-text search)."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM(reply="ok")
+    fake_search = _FakeSearch(
+        [{"id": "x", "content": "alpha", "title": "A", "url": "http://a"}]
+    )
+    orch = LangGraphOrchestrator(settings=settings, llm=fake_llm, search=fake_search)
+
+    _ = [
+        e
+        async for e in orch.run(
+            [ChatMessage(role="user", content="remote work policy?")]
+        )
+    ]
+
+    assert fake_llm.embed_calls == [["remote work policy?"]]
+    assert fake_search.kwargs_calls[0]["vector"] == _FAKE_QUERY_VECTOR
 
 
 @pytest.mark.asyncio
@@ -412,6 +454,8 @@ class _ReasoningLLM(_FakeLLM):
         messages: Sequence[ChatMessage],
         *,
         deployment: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         self.calls.append(list(messages))
         for ev in self._events:
@@ -470,6 +514,22 @@ async def test_run_propagates_error_events_from_complete() -> None:
     assert [e.channel for e in events] == ["reasoning", "error"]
     assert events[-1].metadata["code"] == "reason_stream_failed"
     assert events[-1].content == "upstream blew up"
+
+
+@pytest.mark.asyncio
+async def test_run_forwards_sampling_to_complete() -> None:
+    """run() forwards the effective `openai_temperature` / `openai_max_tokens`
+    knobs to `complete()` so the admin sampling settings reach the model."""
+    settings = MagicMock(spec=AppSettings)
+    fake_llm = _FakeLLM()
+    orch = LangGraphOrchestrator(
+        settings=settings,
+        llm=fake_llm,
+        openai_temperature=0.4,
+        openai_max_tokens=99,
+    )
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="hi")])]
+    assert fake_llm.complete_calls == [{"temperature": 0.4, "max_tokens": 99}]
 
 
 @pytest.mark.asyncio

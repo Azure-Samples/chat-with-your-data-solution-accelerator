@@ -195,3 +195,4 @@ def log_queue_errors(
         return _wrapper
 
     return _decorator
+

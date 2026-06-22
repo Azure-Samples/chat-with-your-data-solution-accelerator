@@ -236,6 +236,20 @@ def normalize_kb_citations(
     return normalized, renumbered
 
 
+def strip_kb_markers(text: str) -> str:
+    """Remove native Foundry IQ KB citation markers from free text.
+
+    The answer channel rewrites ``【N:M†source】`` markers to the shared
+    ``[docN]`` shape via :func:`normalize_kb_citations`; the reasoning
+    channel has no ``[docN]`` rendering, so it simply drops the markers.
+    Runs of spaces / tabs left behind by a removed marker are collapsed
+    to a single space so the text reads cleanly, while newlines are
+    preserved so a multi-line reasoning summary keeps its structure.
+    """
+    stripped = _KB_MARKER_RE.sub("", text)
+    return re.sub(r"[ \t]{2,}", " ", stripped)
+
+
 # Native Foundry IQ Knowledge Base source scheme. The agent_framework KB
 # annotation keys a citation by ``mcp://searchindex/<key>``, where ``<key>`` is
 # the Azure AI Search document id. Stripping the scheme yields the bare key a
@@ -360,4 +374,5 @@ __all__ = [
     "format_sources_block",
     "normalize_kb_citations",
     "referenced_markers",
+    "strip_kb_markers",
 ]

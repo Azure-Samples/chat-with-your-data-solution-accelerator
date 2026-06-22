@@ -153,9 +153,12 @@ async def test_chat_calls_openai_with_resolved_deployment(
 
 
 @pytest.mark.asyncio
-async def test_chat_passes_temperature_and_max_tokens(
+async def test_chat_passes_temperature_and_max_completion_tokens(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
+    """`max_tokens` is sent on the wire as `max_completion_tokens` -- the
+    forward-compatible parameter gpt-5 / o-series chat models require (the
+    legacy `max_tokens` is rejected with a 400)."""
     openai = MagicMock()
     openai.chat.completions.create = AsyncMock(
         return_value=_build_openai_chat_response("ok")
@@ -172,7 +175,8 @@ async def test_chat_passes_temperature_and_max_tokens(
     call = openai.chat.completions.create.await_args
     assert call.kwargs["model"] == "gpt-4o-mini"
     assert call.kwargs["temperature"] == 0.2
-    assert call.kwargs["max_tokens"] == 128
+    assert call.kwargs["max_completion_tokens"] == 128
+    assert "max_tokens" not in call.kwargs
 
 
 @pytest.mark.asyncio
@@ -214,6 +218,28 @@ async def test_chat_stream_yields_chunks(
     assert [c.content for c in chunks] == ["hel", "lo"]
     assert chunks[-1].finish_reason == "stop"
     assert openai.chat.completions.create.await_args.kwargs["stream"] is True
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_passes_max_completion_tokens(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """The streaming path uses the same `max_completion_tokens` wire name
+    as `chat()` (gpt-5 / o-series reject `max_tokens`)."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_stream(["ok"])
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    async for _ in provider.chat_stream(
+        [ChatMessage(role="user", content="hi")], max_tokens=64
+    ):
+        pass
+    call = openai.chat.completions.create.await_args
+    assert call.kwargs["max_completion_tokens"] == 64
+    assert "max_tokens" not in call.kwargs
 
 
 # ---------------------------------------------------------------------------
@@ -505,6 +531,36 @@ async def test_complete_routes_to_chat_for_default_deployment(
     # Confirms chat() (non-streaming) was called, not reason() (streaming).
     assert openai.chat.completions.create.await_args.kwargs["model"] == "gpt-4o"
     assert "stream" not in openai.chat.completions.create.await_args.kwargs
+
+
+@pytest.mark.asyncio
+async def test_complete_forwards_sampling_to_chat(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    """`complete()` forwards `temperature` / `max_tokens` to the chat()
+    branch (sent on the wire as `max_completion_tokens`)."""
+    openai = MagicMock()
+    openai.chat.completions.create = AsyncMock(
+        return_value=_build_openai_chat_response("ok")
+    )
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
+    )
+    provider.supports_reasoning = AsyncMock(return_value=False)  # type: ignore[method-assign]
+
+    _ = [
+        ev
+        async for ev in provider.complete(
+            [ChatMessage(role="user", content="hi")],
+            temperature=0.3,
+            max_tokens=77,
+        )
+    ]
+
+    call = openai.chat.completions.create.await_args
+    assert call.kwargs["temperature"] == 0.3
+    assert call.kwargs["max_completion_tokens"] == 77
+    assert "max_tokens" not in call.kwargs
 
 
 @pytest.mark.asyncio

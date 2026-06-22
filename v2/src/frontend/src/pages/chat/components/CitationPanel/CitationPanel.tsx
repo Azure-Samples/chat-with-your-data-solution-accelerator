@@ -84,7 +84,9 @@ export function CitationPanel({
         className={styles.toggle}
         aria-expanded={expanded}
         aria-controls={bodyId}
-        onClick={() => setExpanded((value) => !value)}
+        onClick={() => {
+          setExpanded((value) => !value);
+        }}
         data-testid={`citations-toggle-${messageId}`}
       >
         {expanded ? <ChevronDown16Regular /> : <ChevronRight16Regular />}
@@ -103,7 +105,9 @@ export function CitationPanel({
             key={citation.id}
             type="button"
             className={styles.chip}
-            onClick={() => onSelectCitation(citation)}
+            onClick={() => {
+              onSelectCitation(citation);
+            }}
             data-testid={`citation-${messageId}-${citation.id}`}
           >
             <span className={styles.chipNumber} aria-hidden="true">

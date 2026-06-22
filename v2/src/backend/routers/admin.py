@@ -42,7 +42,6 @@ test fixtures.
 """
 
 import logging
-from pathlib import PurePosixPath
 from typing import Annotated, Any
 
 from fastapi import (
@@ -65,7 +64,7 @@ from backend.dependencies import (
     SearchProviderDep,
     SettingsDep,
 )
-from backend.core.agents.definitions import CWYD_AGENT
+from backend.core.agents.definitions import CWYD_DEFAULT_BODY
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.models.admin import (
     APP_VERSION,
@@ -82,28 +81,23 @@ from backend.models.admin import (
     UploadResponse,
     WRITABLE_FIELDS,
 )
-from backend.services.admin import host_only, utcnow_iso, validate_prompt_with_rai
+from backend.services.admin import (
+    host_only,
+    resolve_effective_config,
+    utcnow_iso,
+    validate_prompt_with_rai,
+)
+from backend.services.files import delete_document
 from backend.services.ingestion import (
-    MAX_UPLOAD_SIZE_BYTES,
+    UploadRejected,
     ingest_url,
     reprocess_all,
     upload_document,
+    validate_upload,
 )
-from functions.core.parsers import registry as ingestion_parsers_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-
-
-# Probe key into the ingestion parser registry used to detect uploads
-# that route to the Document Intelligence parser. PDF + DOCX register
-# the same DI parser class, so an identity comparison against this key
-# (rather than a hardcoded extension set) auto-includes any extension
-# that registers that parser -- keeping dispatch in the registry per
-# Hard Rule #4. The DI parser is the only parser that requires
-# AZURE_AI_SERVICES_ENDPOINT; non-DI parsers (txt / md / html) parse
-# locally and never read it.
-_DI_PARSER_PROBE_KEY = "pdf"
 
 
 # ---------------------------------------------------------------------------
@@ -114,12 +108,25 @@ _DI_PARSER_PROBE_KEY = "pdf"
 @router.get("/status", response_model=AdminStatus)
 async def status_endpoint(
     settings: SettingsDep,
+    overrides: RuntimeOverridesDep,
     _user: AdminUserIdDep,
 ) -> AdminStatus:
-    """Return the sanitized runtime status snapshot."""
+    """Return the sanitized runtime status snapshot.
+
+    The orchestrator is the **effective** value -- the env / code
+    default overlaid with any persisted ``RuntimeConfig`` override --
+    resolved through the same `resolve_effective_config` seam the chat
+    path and ``GET /config/effective`` use, so the snapshot matches what
+    the deployment actually runs: immediately after a save (PATCH
+    live-reloads ``app.state.runtime_overrides``) and after a restart
+    (the lifespan re-seeds that attribute from the database at boot).
+    The remaining fields are infra / env settings that are not
+    admin-overridable, so they surface from ``settings`` directly.
+    """
     obs_conn = settings.observability.app_insights_connection_string.strip()
+    effective = resolve_effective_config(settings, overrides)
     return AdminStatus(
-        orchestrator_name=settings.orchestrator.name,
+        orchestrator_name=effective.orchestrator_name,
         db_type=settings.database.db_type,
         index_store=settings.database.index_store,
         environment=settings.environment,
@@ -155,7 +162,13 @@ async def config_endpoint(
         search_top_k=settings.search.top_k,
         log_level=settings.observability.log_level,
         content_safety_enabled=settings.content_safety.enabled,
-        cwyd_agent_instructions=CWYD_AGENT.instructions,
+        # The editable persona body -- not the guardrail-wrapped runtime
+        # prompt. The fixed guardrail is appended exactly once at request
+        # time by `resolve_effective_config`; surfacing the body here keeps
+        # the operator's editor free of the non-negotiable rules so a
+        # seed-edit-save round-trip cannot bake the guardrail into the
+        # stored override and double-wrap it.
+        cwyd_agent_instructions=CWYD_DEFAULT_BODY,
         post_answering_prompt="",
         post_answering_enabled=False,
         post_answering_filter_message="",
@@ -186,7 +199,11 @@ async def config_effective_endpoint(
         "search_top_k": settings.search.top_k,
         "log_level": settings.observability.log_level,
         "content_safety_enabled": settings.content_safety.enabled,
-        "cwyd_agent_instructions": CWYD_AGENT.instructions,
+        # The editable persona body baseline -- a persisted override (also
+        # a raw body) overlays it below. Neither carries the fixed
+        # guardrail; it is appended once at request time by
+        # `resolve_effective_config`.
+        "cwyd_agent_instructions": CWYD_DEFAULT_BODY,
         "post_answering_prompt": "",
         "post_answering_enabled": False,
         "post_answering_filter_message": "",
@@ -433,20 +450,33 @@ async def list_documents_endpoint(
 )
 async def delete_document_endpoint(
     source: str,
+    settings: SettingsDep,
+    credential: CredentialDep,
     search: SearchProviderDep,
     _user: AdminUserIdDep,
 ) -> DeleteDocumentResponse:
-    """Delete every indexed chunk whose source matches ``source``.
+    """Delete a document's indexed chunks **and** its source blob.
 
     ``source`` is the per-chunk filename or URL set at ingestion (the
     ``title`` field on every search backend). The ``{source:path}``
     converter captures URL-typed sources that contain slashes;
     FastAPI percent-decodes the path segment before the handler runs.
 
+    Removal is two-part so a deleted document becomes fully unreachable:
+
+    * the indexed chunks (search / pgvector), via
+      :meth:`BaseSearch.delete_by_source`; and
+    * the source blob in the documents container, via
+      :func:`backend.services.files.delete_document` -- attempted only
+      when a documents container is configured, and skipped for
+      URL-typed sources (a URL carries path separators, has no backing
+      blob, and raises :class:`ValueError` from filename validation).
+
     Status surface:
 
-    * ``200`` + ``{"deleted": N}`` when ``N > 0`` chunks were removed.
-    * ``404`` when no chunks matched.
+    * ``200`` + ``{"deleted": N, "blob_deleted": bool}`` when at least
+      one indexed chunk was removed or the source blob was deleted.
+    * ``404`` when neither an indexed chunk nor a source blob existed.
     * ``503`` when the deployment has no search backend configured
       (the route stays mounted so operators discover the gap
       explicitly instead of routing-404-ing it).
@@ -460,26 +490,38 @@ async def delete_document_endpoint(
             detail="Search backend is not configured for this deployment.",
         )
     deleted = await search.delete_by_source(source)
-    if deleted == 0:
+    blob_deleted = False
+    if settings.storage.documents_container:
+        try:
+            blob_deleted = await delete_document(
+                source, settings=settings, credential=credential
+            )
+        except ValueError:
+            # URL-typed sources (add_url ingestion) carry path
+            # separators and have no backing blob -- nothing to delete.
+            blob_deleted = False
+    if deleted == 0 and not blob_deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No indexed chunks found for source {source!r}.",
+            detail=f"No indexed chunks or source blob found for source {source!r}.",
         )
     logger.info(
-        "Admin deleted indexed chunks for source.",
+        "Admin deleted document.",
         extra={
             "operation": "delete_document",
             "source": source,
             "deleted_count": deleted,
+            "blob_deleted": blob_deleted,
         },
     )
-    return DeleteDocumentResponse(deleted=deleted)
+    return DeleteDocumentResponse(deleted=deleted, blob_deleted=blob_deleted)
 
 
 # ---------------------------------------------------------------------------
-# POST /api/admin/documents/url -- fetch one URL, parse + embed + index its
-# chunks. FE-facing entry point so the admin UI can drive URL ingest
-# through FastAPI instead of reaching into the Functions HTTP trigger.
+# POST /api/admin/documents/url -- download one URL, store it as a blob, and
+# ingest it like an uploaded file (the same store -> batch_push pipeline).
+# FE-facing entry point so the admin UI can drive URL ingest through FastAPI
+# instead of reaching into the Functions HTTP trigger.
 # ---------------------------------------------------------------------------
 
 
@@ -492,38 +534,43 @@ async def ingest_url_endpoint(
     body: IngestUrlRequest,
     settings: SettingsDep,
     credential: CredentialDep,
-    search: SearchProviderDep,
     _user: AdminUserIdDep,
 ) -> IngestUrlResponse:
-    """Fetch ``body.url`` and write its embedded chunks to the search index.
+    """Download ``body.url`` and ingest its content like an uploaded file.
 
-    Delegates the fetch / parse / embed / push pipeline to
-    :func:`backend.services.ingestion.ingest_url` -- same orchestration
-    the Functions HTTP trigger uses, so an URL ingested via this route
-    lands in the same shape as one ingested via the queue path.
+    Delegates to :func:`backend.services.ingestion.ingest_url`, which
+    fetches the URL, writes its bytes to the documents container as a
+    blob, and lets the same ``batch_push`` pipeline used by file upload
+    index it (enqueued under ``DIRECT_ENQUEUE``; Event-Grid-driven
+    otherwise). Mirrors v1's ``download_url_and_upload_to_blob`` admin
+    path so URL and file ingestion share one pipeline.
 
     Status surface:
 
-    * ``200`` + :class:`IngestUrlResponse` on success.
+    * ``200`` + :class:`IngestUrlResponse` (URL echo + the upload
+      receipt) on success.
     * ``422`` when the body fails Pydantic validation (URL empty or
       too long).
-    * ``503`` when the deployment has no search backend configured
-      (the route stays mounted so operators discover the gap
-      explicitly instead of routing-404-ing it).
-    * Upstream ``httpx.HTTPError`` (bad URL, dead host) /
-      ``AzureError`` (embedder / search) propagate to the app-level
-      handlers in :mod:`backend.app`.
+    * ``503`` when the deployment has no documents container or
+      doc-processing queue configured -- the route stays mounted so
+      operators discover the gap explicitly instead of routing-404-ing
+      it.
+    * Upstream ``httpx.HTTPError`` (bad URL, dead host) / ``AzureError``
+      (blob write, queue send) propagate to the app-level handlers in
+      :mod:`backend.app`.
     """
-    if search is None:
+    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Search backend is not configured for this deployment.",
+            detail=(
+                "Storage is not configured for this deployment "
+                "(documents container / doc-processing queue)."
+            ),
         )
     return await ingest_url(
         body,
         settings=settings,
         credential=credential,
-        search_provider=search,
     )
 
 
@@ -572,55 +619,14 @@ async def upload_document_endpoint(
       to the app-level handlers in :mod:`backend.app`, which
       sanitise it into a 503 response with no SDK detail leaked.
     """
-    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=(
-                "Document storage is not configured for this deployment."
-            ),
-        )
     filename = (file.filename or "").strip()
-    if not filename:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Uploaded file must carry a non-empty filename.",
-        )
-    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
-    if extension not in ingestion_parsers_registry.registry:
-        supported = sorted(ingestion_parsers_registry.registry.keys())
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail={
-                "msg": "Unsupported file extension.",
-                "extension": extension,
-                "supported": supported,
-            },
-        )
-    if (
-        ingestion_parsers_registry.registry.get(extension)
-        is ingestion_parsers_registry.registry.get(_DI_PARSER_PROBE_KEY)
-        and not settings.foundry.services_endpoint.lower().startswith("https://")
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=(
-                "Document parsing is not configured for this deployment: "
-                "AZURE_AI_SERVICES_ENDPOINT must be a non-empty https:// URL "
-                "to parse this file type via Document Intelligence. Refusing "
-                "the upload instead of reporting success for a file that "
-                "cannot be indexed."
-            ),
-        )
     content = await file.read()
-    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+    try:
+        validate_upload(filename, len(content), settings=settings)
+    except UploadRejected as exc:
         raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail={
-                "msg": "Uploaded file exceeds the maximum allowed size.",
-                "byte_count": len(content),
-                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
-            },
-        )
+            status_code=exc.status_code, detail=exc.detail
+        ) from exc
     return await upload_document(
         filename=filename,
         content=content,

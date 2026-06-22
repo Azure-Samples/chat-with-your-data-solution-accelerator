@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/theme/themeContext";
 function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
   const onToggleHistory = props?.onToggleHistory ?? vi.fn();
   const onNewChat = props?.onNewChat ?? vi.fn();
+  const onNavigateHome = props?.onNavigateHome ?? vi.fn();
   const onOpenAdmin = props?.onOpenAdmin ?? vi.fn();
   const utils = render(
     <ThemeProvider>
@@ -27,6 +28,7 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
           historyOpen={props?.historyOpen ?? false}
           onToggleHistory={onToggleHistory}
           onNewChat={onNewChat}
+          onNavigateHome={onNavigateHome}
           onOpenAdmin={onOpenAdmin}
           {...(props?.adminAvailable !== undefined
             ? { adminAvailable: props.adminAvailable }
@@ -35,21 +37,40 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
       </FluentThemeBridge>
     </ThemeProvider>,
   );
-  return { ...utils, onToggleHistory, onNewChat, onOpenAdmin };
+  return { ...utils, onToggleHistory, onNewChat, onNavigateHome, onOpenAdmin };
 }
 
 describe("Header", () => {
-  it("renders the title, the default subtitle, and a Microsoft brand logo", () => {
+  it("renders the title, the default subtitle, and a clickable multi-agent home logo", () => {
     renderHeader({ title: "Chat with your data" });
     expect(
       screen.getByRole("heading", { level: 1, name: /chat with your data/i }),
     ).toBeInTheDocument();
     // Default subtitle from MACAE pattern: "<title> | Solution Accelerator".
     expect(screen.getByText(/solution accelerator/i)).toBeInTheDocument();
-    // The 4-square Microsoft logo is rendered as an <svg role="img">
-    // with aria-label="Microsoft" so it is announced by screen readers.
-    const logos = screen.getAllByRole("img", { name: /microsoft/i });
-    expect(logos.length).toBeGreaterThan(0);
+    // The brand logo is now a multi-agent badge wrapped in a button that
+    // returns to the home / chat view.
+    expect(screen.getByTestId("header-home")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /go to home/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("calls onNavigateHome when the brand logo is clicked", () => {
+    const { onNavigateHome } = renderHeader();
+    fireEvent.click(screen.getByTestId("header-home"));
+    expect(onNavigateHome).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders the multi-agent brand mark itself, not an initials fallback", () => {
+    // Fluent's Avatar hides its `icon` slot whenever a `name` yields
+    // initials, so the brand mark must render with no `name` (otherwise
+    // the Avatar shows the "M" of "Multi-agent" instead of the logo).
+    // viewBox "0 0 33 32" is unique to <MultiAgentLogo>.
+    const { container } = renderHeader();
+    expect(
+      container.querySelector('svg[viewBox="0 0 33 32"]'),
+    ).not.toBeNull();
   });
 
   it("renders a custom subtitle when provided", () => {

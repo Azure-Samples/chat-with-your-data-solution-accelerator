@@ -10,6 +10,7 @@ fallback when no vector is supplied, (d) row -> SearchResult mapping,
 (e) the provider does NOT close the injected pool.
 """
 
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -350,10 +351,15 @@ async def test_delete_by_source_logs_and_reraises_on_postgres_error(
 
 @pytest.mark.asyncio
 async def test_list_sources_emits_group_by_title_with_count_aggregate() -> None:
+    ts_alpha = datetime(2026, 6, 20, 10, 0, tzinfo=timezone.utc)
+    ts_beta = datetime(2026, 6, 21, 12, 30, tzinfo=timezone.utc)
     pool = _make_pool(
         [
-            {"source": "alpha.pdf", "chunk_count": 3},
-            {"source": "beta.pdf", "chunk_count": 7},
+            {"source": "alpha.pdf", "chunk_count": 3, "last_modified": ts_alpha},
+            {"source": "beta.pdf", "chunk_count": 7, "last_modified": ts_beta},
+            # Defensive: a NULL aggregate maps to None (can't occur with
+            # the NOT NULL column, but the mapper handles it).
+            {"source": "gamma.pdf", "chunk_count": 1, "last_modified": None},
         ]
     )
     provider = PgVector(
@@ -366,13 +372,19 @@ async def test_list_sources_emits_group_by_title_with_count_aggregate() -> None:
     assert "FROM documents" in sql
     assert "GROUP BY title" in sql
     assert "COUNT(*) AS chunk_count" in sql
+    assert "MAX(last_modified) AS last_modified" in sql
     assert "ORDER BY title" in sql
     assert "WHERE title IS NOT NULL" in sql
     # Single positional arg -- no params.
     assert len(pool.fetch.await_args.args) == 1
     assert listings == [
-        SourceListing(source="alpha.pdf", chunk_count=3, last_modified=None),
-        SourceListing(source="beta.pdf", chunk_count=7, last_modified=None),
+        SourceListing(
+            source="alpha.pdf", chunk_count=3, last_modified=ts_alpha.isoformat()
+        ),
+        SourceListing(
+            source="beta.pdf", chunk_count=7, last_modified=ts_beta.isoformat()
+        ),
+        SourceListing(source="gamma.pdf", chunk_count=1, last_modified=None),
     ]
 
 
@@ -476,6 +488,7 @@ async def test_merge_or_upload_documents_emits_upsert_with_returning_id() -> Non
     assert "content = EXCLUDED.content" in sql
     assert "title = EXCLUDED.title" in sql
     assert "content_vector = EXCLUDED.content_vector" in sql
+    assert "last_modified = now()" in sql
     assert "RETURNING id" in sql
     assert params == [
         "a", "hello", "t1", "[0.1,0.2]",
@@ -550,7 +563,14 @@ async def test_ensure_schema_runs_extension_table_and_index_ddl_in_one_call() ->
     sql = pool.execute.await_args.args[0]
     assert "CREATE EXTENSION IF NOT EXISTS vector" in sql
     assert "CREATE TABLE IF NOT EXISTS documents" in sql
+    assert "last_modified   TIMESTAMPTZ NOT NULL DEFAULT now()" in sql
     assert "content_vector  vector(1536) NOT NULL" in sql
+    # Idempotent backfill so deploys whose table predates the column
+    # pick it up (CREATE TABLE IF NOT EXISTS won't alter an existing one).
+    assert (
+        "ADD COLUMN IF NOT EXISTS last_modified TIMESTAMPTZ NOT NULL DEFAULT now()"
+        in sql
+    )
     assert "CREATE INDEX IF NOT EXISTS documents_vec_hnsw" in sql
     assert "USING hnsw (content_vector vector_cosine_ops)" in sql
 
