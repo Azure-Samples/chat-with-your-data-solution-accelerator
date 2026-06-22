@@ -14,6 +14,7 @@ Canonical shape:
         content         TEXT NOT NULL,
         title           TEXT,
         url             TEXT,
+        last_modified   TIMESTAMPTZ NOT NULL DEFAULT now(),
         content_vector  vector(<dims>) NOT NULL
     );
     CREATE INDEX IF NOT EXISTS documents_vec_hnsw
@@ -186,15 +187,14 @@ class PgVector(BaseSearch):
         return len(rows)
 
     async def list_sources(self) -> list[SourceListing]:
-        # The schema has no timestamp column, so `last_modified` is
-        # always None for this backend -- deploys that need per-source
-        # freshness use the indexer-written `last_modified` on the
-        # Azure Search backend or query the source blob directly.
-        # NULL titles are excluded so the admin grid never shows a
-        # blank-name row (a chunk with no source can't be deleted by
-        # the matching `delete_by_source` route anyway).
+        # `last_modified` is the most recent chunk timestamp per source
+        # (MAX over the per-row `last_modified` column written at ingest
+        # / re-ingest). NULL titles are excluded so the admin grid never
+        # shows a blank-name row (a chunk with no source can't be deleted
+        # by the matching `delete_by_source` route anyway).
         sql = (
-            f"SELECT title AS source, COUNT(*) AS chunk_count "
+            f"SELECT title AS source, COUNT(*) AS chunk_count, "
+            f"MAX(last_modified) AS last_modified "
             f"FROM {self._table} "
             f"WHERE title IS NOT NULL "
             f"GROUP BY title "
@@ -218,7 +218,11 @@ class PgVector(BaseSearch):
             SourceListing(
                 source=str(row["source"]),
                 chunk_count=int(row["chunk_count"]),
-                last_modified=None,
+                last_modified=(
+                    row["last_modified"].isoformat()
+                    if row["last_modified"] is not None
+                    else None
+                ),
             )
             for row in rows
         ]
@@ -257,7 +261,8 @@ class PgVector(BaseSearch):
             f"ON CONFLICT (id) DO UPDATE SET "
             f"content = EXCLUDED.content, "
             f"title = EXCLUDED.title, "
-            f"content_vector = EXCLUDED.content_vector "
+            f"content_vector = EXCLUDED.content_vector, "
+            f"last_modified = now() "
             f"RETURNING id"
         )
         try:
@@ -303,8 +308,16 @@ class PgVector(BaseSearch):
                 "    content         TEXT NOT NULL,\n"
                 "    title           TEXT,\n"
                 "    url             TEXT,\n"
+                "    last_modified   TIMESTAMPTZ NOT NULL DEFAULT now(),\n"
                 f"    content_vector  vector({dimensions}) NOT NULL\n"
                 ");\n"
+                # Backfill the timestamp column on deploys whose table
+                # predates it -- CREATE TABLE IF NOT EXISTS never alters
+                # an existing table, so an explicit idempotent ADD COLUMN
+                # carries the migration. Existing rows take now() at
+                # migration time until they are re-ingested.
+                f"ALTER TABLE {self._table} ADD COLUMN IF NOT EXISTS "
+                "last_modified TIMESTAMPTZ NOT NULL DEFAULT now();\n"
                 f"CREATE INDEX IF NOT EXISTS {self._table}_vec_hnsw "
                 f"ON {self._table} USING hnsw "
                 "(content_vector vector_cosine_ops);"

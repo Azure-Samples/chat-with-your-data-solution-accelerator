@@ -71,11 +71,19 @@ export interface IngestUrlRequest {
 /**
  * Response shape for `POST /api/admin/documents/url`.
  * Mirrors `backend.models.admin.IngestUrlResponse`.
+ *
+ * The backend downloads the URL, stores it as a blob in the documents
+ * container, and lets the same `batch_push` pipeline as file upload
+ * index it -- so the receipt mirrors an upload (`filename`, `blob_path`,
+ * `queued`) plus the echoed `url`. Indexing is async, so there is no
+ * synchronous chunk count.
  */
 export interface IngestUrlResponse {
-  ingestion_job_id: string;
   url: string;
-  document_count: number;
+  filename: string;
+  blob_path: string;
+  ingestion_job_id: string;
+  queued: boolean;
 }
 
 /**

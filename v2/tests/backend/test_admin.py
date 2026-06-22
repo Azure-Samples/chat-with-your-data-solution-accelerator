@@ -2056,14 +2056,15 @@ async def test_ingest_url_returns_200_with_job_receipt_on_success(
         captured["body"] = body
         captured["kwargs"] = kwargs
         return IngestUrlResponse(
-            ingestion_job_id="job-42",
             url=body.url,
-            document_count=7,
+            filename="example.com_article.pdf",
+            blob_path="docs/example.com_article.pdf",
+            ingestion_job_id="job-42",
+            queued=True,
         )
 
     monkeypatch.setattr(_admin_module, "ingest_url", fake_ingest_url)
-    search = AsyncMock()
-    app = admin_app_factory(_settings(), search=search)
+    app = admin_app_factory(_settings_with_storage())
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/admin/documents/url",
@@ -2072,13 +2073,16 @@ async def test_ingest_url_returns_200_with_job_receipt_on_success(
     assert resp.status_code == 200
     body = resp.json()
     assert body == {
-        "ingestion_job_id": "job-42",
         "url": "https://example.com/article.pdf",
-        "document_count": 7,
+        "filename": "example.com_article.pdf",
+        "blob_path": "docs/example.com_article.pdf",
+        "ingestion_job_id": "job-42",
+        "queued": True,
     }
     assert captured["body"].url == "https://example.com/article.pdf"
-    # Service helper receives the lifespan-cached search + settings.
-    assert captured["kwargs"]["search_provider"] is search
+    # Service helper receives the lifespan-cached credential + settings.
+    assert "credential" in captured["kwargs"]
+    assert "settings" in captured["kwargs"]
 
 
 @pytest.mark.asyncio
@@ -2107,14 +2111,17 @@ async def test_ingest_url_returns_422_for_oversize_url(
 
 
 @pytest.mark.asyncio
-async def test_ingest_url_returns_503_when_search_disabled(
+async def test_ingest_url_returns_503_when_storage_unconfigured(
     admin_app_factory,
+    monkeypatch,
 ) -> None:
-    """No search backend -> 503 with operator-actionable detail.
-    Mirrors the parallel branch in ``DELETE /api/admin/documents``.
+    """No documents container / queue configured -> 503 with operator-
+    actionable detail. The route stays mounted so the gap is
+    discoverable instead of routing-404-ing.
     """
-    app = admin_app_factory(_settings())
-    app.dependency_overrides[get_search_provider] = lambda: None
+    sentinel = AsyncMock()
+    monkeypatch.setattr(_admin_module, "ingest_url", sentinel)
+    app = admin_app_factory(_settings_with_storage(documents_container=""))
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/admin/documents/url",
@@ -2122,6 +2129,7 @@ async def test_ingest_url_returns_503_when_search_disabled(
         )
     assert resp.status_code == 503
     assert "not configured" in resp.json()["detail"].lower()
+    sentinel.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -2134,10 +2142,9 @@ async def test_ingest_url_requires_easy_auth_in_production() -> None:
     app.dependency_overrides[get_app_settings] = lambda: _settings(
         environment="production"
     )
-    # Pin a credential + search so the gate fails first instead of
-    # the lifespan-less dependencies tripping.
+    # Pin a credential so the gate fails first instead of the
+    # lifespan-less credential dependency tripping.
     app.dependency_overrides[get_credential] = lambda: AsyncMock()
-    app.dependency_overrides[get_search_provider] = lambda: AsyncMock()
     async with _client(app) as ac:
         resp = await ac.post(
             "/api/admin/documents/url",

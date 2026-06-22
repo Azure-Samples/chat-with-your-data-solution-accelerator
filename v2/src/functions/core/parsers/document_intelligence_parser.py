@@ -3,10 +3,10 @@
 Pillar: Stable Core
 Phase: 7
 
-Self-registers under multiple file-extension keys (``"pdf"``, ``"docx"``) per
-the registration convention in ``base.py`` (lowercase file extension, no
-leading dot). Eager-imported from ``functions/core/parsers/registry.py`` so
-both registrations fire at process start.
+Self-registers under multiple file-extension keys (``"pdf"``, ``"docx"``,
+``"jpeg"``, ``"jpg"``, ``"png"``) per the registration convention in
+``base.py`` (lowercase file extension, no leading dot). Eager-imported from
+``functions/core/parsers/registry.py`` so all registrations fire at process start.
 
 The Document Intelligence ``prebuilt-layout`` model natively analyses PDF,
 DOCX, XLSX, PPTX, HTML and image formats through the same
@@ -54,6 +54,9 @@ logger = logging.getLogger(__name__)
 
 @registry.register("docx")
 @registry.register("pdf")
+@registry.register("jpeg")
+@registry.register("jpg")
+@registry.register("png")
 class DocumentIntelligenceParser(BaseParser):
     """Parse a document byte payload into one ``Chunk`` per page via Document Intelligence."""
 

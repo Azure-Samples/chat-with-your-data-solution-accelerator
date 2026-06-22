@@ -530,9 +530,10 @@ async def delete_document_endpoint(
 
 
 # ---------------------------------------------------------------------------
-# POST /api/admin/documents/url -- fetch one URL, parse + embed + index its
-# chunks. FE-facing entry point so the admin UI can drive URL ingest
-# through FastAPI instead of reaching into the Functions HTTP trigger.
+# POST /api/admin/documents/url -- download one URL, store it as a blob, and
+# ingest it like an uploaded file (the same store -> batch_push pipeline).
+# FE-facing entry point so the admin UI can drive URL ingest through FastAPI
+# instead of reaching into the Functions HTTP trigger.
 # ---------------------------------------------------------------------------
 
 
@@ -545,38 +546,43 @@ async def ingest_url_endpoint(
     body: IngestUrlRequest,
     settings: SettingsDep,
     credential: CredentialDep,
-    search: SearchProviderDep,
     _user: AdminUserIdDep,
 ) -> IngestUrlResponse:
-    """Fetch ``body.url`` and write its embedded chunks to the search index.
+    """Download ``body.url`` and ingest its content like an uploaded file.
 
-    Delegates the fetch / parse / embed / push pipeline to
-    :func:`backend.services.ingestion.ingest_url` -- same orchestration
-    the Functions HTTP trigger uses, so an URL ingested via this route
-    lands in the same shape as one ingested via the queue path.
+    Delegates to :func:`backend.services.ingestion.ingest_url`, which
+    fetches the URL, writes its bytes to the documents container as a
+    blob, and lets the same ``batch_push`` pipeline used by file upload
+    index it (enqueued under ``DIRECT_ENQUEUE``; Event-Grid-driven
+    otherwise). Mirrors v1's ``download_url_and_upload_to_blob`` admin
+    path so URL and file ingestion share one pipeline.
 
     Status surface:
 
-    * ``200`` + :class:`IngestUrlResponse` on success.
+    * ``200`` + :class:`IngestUrlResponse` (URL echo + the upload
+      receipt) on success.
     * ``422`` when the body fails Pydantic validation (URL empty or
       too long).
-    * ``503`` when the deployment has no search backend configured
-      (the route stays mounted so operators discover the gap
-      explicitly instead of routing-404-ing it).
-    * Upstream ``httpx.HTTPError`` (bad URL, dead host) /
-      ``AzureError`` (embedder / search) propagate to the app-level
-      handlers in :mod:`backend.app`.
+    * ``503`` when the deployment has no documents container or
+      doc-processing queue configured -- the route stays mounted so
+      operators discover the gap explicitly instead of routing-404-ing
+      it.
+    * Upstream ``httpx.HTTPError`` (bad URL, dead host) / ``AzureError``
+      (blob write, queue send) propagate to the app-level handlers in
+      :mod:`backend.app`.
     """
-    if search is None:
+    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Search backend is not configured for this deployment.",
+            detail=(
+                "Storage is not configured for this deployment "
+                "(documents container / doc-processing queue)."
+            ),
         )
     return await ingest_url(
         body,
         settings=settings,
         credential=credential,
-        search_provider=search,
     )
 
 

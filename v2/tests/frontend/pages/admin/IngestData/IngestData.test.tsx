@@ -38,9 +38,11 @@ const UPLOAD_FIXTURE: UploadResponse = {
 };
 
 const INGEST_URL_FIXTURE: IngestUrlResponse = {
-  ingestion_job_id: "22222222-2222-2222-2222-222222222222",
   url: "https://docs.example.com/article",
-  document_count: 7,
+  filename: "docs.example.com_article.txt",
+  blob_path: "documents/docs.example.com_article.txt",
+  ingestion_job_id: "22222222-2222-2222-2222-222222222222",
+  queued: true,
 };
 
 const REPROCESS_FIXTURE: ReprocessResponse = {
@@ -198,7 +200,7 @@ describe("IngestData -- add URL", () => {
     });
     expect(addUrlMock).toHaveBeenCalledWith("https://docs.example.com/article");
     await waitFor(() => {
-      expect(screen.getByText(/7 chunks/i)).toBeInTheDocument();
+      expect(screen.getByText(/queued for indexing/i)).toBeInTheDocument();
     });
   });
 

@@ -52,9 +52,11 @@ const STATUS_FIXTURE: AdminStatus = {
 };
 
 const INGEST_URL_FIXTURE: IngestUrlResponse = {
-  ingestion_job_id: "11111111-1111-1111-1111-111111111111",
   url: "https://docs.example.com/article",
-  document_count: 7,
+  filename: "docs.example.com_article.txt",
+  blob_path: "documents/docs.example.com_article.txt",
+  ingestion_job_id: "11111111-1111-1111-1111-111111111111",
+  queued: true,
 };
 
 const UPLOAD_FIXTURE: UploadResponse = {

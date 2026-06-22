@@ -60,7 +60,7 @@ def _make_fake_client_with_result(result: Any) -> MagicMock:
     return client
 
 
-@pytest.mark.parametrize("key", ["pdf", "docx"])
+@pytest.mark.parametrize("key", ["pdf", "docx", "jpeg", "jpg", "png"])
 def test_document_intelligence_parser_is_registered_under_key(key: str) -> None:
     assert (
         ingestion_parsers_registry.registry.get(key) is DocumentIntelligenceParser
