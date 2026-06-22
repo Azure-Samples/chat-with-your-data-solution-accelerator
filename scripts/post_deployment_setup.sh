@@ -108,8 +108,8 @@ cleanup() {
         echo "✓ Removing temporary firewall rule..."
         az postgres flexible-server firewall-rule delete \
             --resource-group "$RESOURCE_GROUP" \
-            --name "$SERVER_NAME" \
-            --rule-name "AllowPostDeploySetup" \
+            --server-name "$SERVER_NAME" \
+            --name "AllowPostDeploySetup" \
             --yes 2>/dev/null || true
     fi
     restore_network_access
@@ -329,8 +329,8 @@ else
     echo "✓ Adding temporary firewall rule for IP ${PUBLIC_IP}..."
     az postgres flexible-server firewall-rule create \
         --resource-group "$RESOURCE_GROUP" \
-        --name "$SERVER_NAME" \
-        --rule-name "AllowPostDeploySetup" \
+        --server-name "$SERVER_NAME" \
+        --name "AllowPostDeploySetup" \
         --start-ip-address "$PUBLIC_IP" \
         --end-ip-address "$PUBLIC_IP" > /dev/null 2>&1
 
