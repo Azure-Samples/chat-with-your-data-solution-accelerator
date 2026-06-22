@@ -213,6 +213,7 @@ function AppShell(): JSX.Element {
             void navigate(SectionPath[Section.Chat]);
           }}
           adminAvailable={adminAvailable}
+          userInfo={auth.userInfo}
           onOpenAdmin={() => {
             void navigate(SectionPath[Section.AdminIngest]);
           }}

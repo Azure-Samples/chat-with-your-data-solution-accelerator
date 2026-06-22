@@ -16,6 +16,7 @@
  */
 import { Avatar } from "@fluentui/react-components";
 import { type JSX } from "react";
+import type { UserInfo } from "@/models/auth";
 import type { Section } from "@/models/sections";
 import { HeaderTools } from "./HeaderTools";
 import { MultiAgentLogo } from "./MultiAgentLogo";
@@ -32,6 +33,7 @@ export interface HeaderProps {
   onNavigateHome?: () => void;
   adminAvailable?: boolean | null;
   onOpenAdmin?: () => void;
+  userInfo?: UserInfo | null;
 }
 
 const DEFAULT_SUBTITLE = "Solution Accelerator";
@@ -45,6 +47,7 @@ export function Header({
   onNavigateHome,
   adminAvailable,
   onOpenAdmin,
+  userInfo,
 }: HeaderProps): JSX.Element {
   return (
     <header className={styles.header} data-testid="app-header">
@@ -81,6 +84,7 @@ export function Header({
         onToggleHistory={onToggleHistory}
         onNewChat={onNewChat}
         adminAvailable={adminAvailable ?? null}
+        userInfo={userInfo ?? null}
         {...(onOpenAdmin !== undefined ? { onOpenAdmin } : {})}
       />
     </header>
