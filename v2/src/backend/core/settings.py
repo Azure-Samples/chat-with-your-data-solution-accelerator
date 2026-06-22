@@ -519,10 +519,14 @@ class AppSettings(BaseSettings):
     location: str = ""
     ai_service_location: str = ""
 
-    # Runtime mode. `local` is the default so a clean checkout boots
-    # without surprises; production deployments must set
-    # `AZURE_ENVIRONMENT=production` (set by `v2/infra/main.bicep`
-    # on the Container App env-vars).
+    # Runtime mode. `local` is the default so a clean checkout / dev run
+    # boots without surprises. Production deployments set
+    # `AZURE_ENVIRONMENT=production` via `v2/infra/main.bicep` on the
+    # backend Container App (and Function App) env-vars, which flips the
+    # final configuration to production -- the deployed admin auth gate
+    # then enforces Easy Auth (the local-dev bypass in
+    # backend.dependencies.requires_role fires only when
+    # `environment == 'local'`).
     #
     # Stable Core code that branches on environment must use this
     # field -- never sniff `os.getenv` ad-hoc -- so the value is

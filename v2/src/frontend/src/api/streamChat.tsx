@@ -157,7 +157,13 @@ async function readConversationError(
     const reason =
       typeof record.reason === "string" ? record.reason : undefined;
     if (error === undefined && reason === undefined) return null;
-    return { error, reason };
+    // Omit undefined keys rather than assigning `string | undefined` so the
+    // object satisfies `exactOptionalPropertyTypes` (an absent optional
+    // property is not the same as one set to `undefined`).
+    const body: ConversationErrorBody = {};
+    if (error !== undefined) body.error = error;
+    if (reason !== undefined) body.reason = reason;
+    return body;
   } catch {
     // Non-JSON or empty body -- fall back to the generic status message.
     return null;
@@ -258,10 +264,10 @@ async function* streamChatOnce(
     const message =
       errorBody?.error ??
       `streamChat: SSE request failed with status ${String(response.status)}`;
-    const detail: StreamErrorDetail = {
-      status: response.status,
-      reason: errorBody?.reason,
-    };
+    // Omit `reason` when absent so the literal satisfies
+    // `exactOptionalPropertyTypes` (see readConversationError above).
+    const detail: StreamErrorDetail = { status: response.status };
+    if (errorBody?.reason !== undefined) detail.reason = errorBody.reason;
     const ErrCtor =
       response.status >= 500 ? RetryableStreamError : NonRetryableStreamError;
     throw new ErrCtor(message, detail);

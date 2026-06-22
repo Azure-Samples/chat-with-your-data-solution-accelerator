@@ -1742,6 +1742,15 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+            // Runtime mode (AppSettings.environment). Pinned to 'production'
+            // on every cloud deploy so the admin auth gate fails closed: the
+            // local-dev bypass in backend.dependencies.requires_role returns
+            // the synthetic 'local-dev' admin ONLY when environment == 'local',
+            // so a deployed runtime must never fall back to the 'local' default
+            // (a missing Easy Auth claims blob would otherwise grant admin
+            // without authentication). Also makes GET /api/admin/status report
+            // the real environment.
+            { name: 'AZURE_ENVIRONMENT', value: 'production' }
             // Foundry endpoints (consumed by both orchestrators)
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
             { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
@@ -2079,6 +2088,9 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+          // Runtime mode (AppSettings.environment) -- pin 'production' so the
+          // deployed config reports production, parity with the backend.
+          { name: 'AZURE_ENVIRONMENT', value: 'production' }
           { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
           { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
           { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
