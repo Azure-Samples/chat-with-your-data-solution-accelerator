@@ -42,7 +42,6 @@ test fixtures.
 """
 
 import logging
-from pathlib import PurePosixPath
 from typing import Annotated, Any
 
 from fastapi import (
@@ -90,12 +89,12 @@ from backend.services.admin import (
 )
 from backend.services.files import delete_document
 from backend.services.ingestion import (
-    MAX_UPLOAD_SIZE_BYTES,
+    UploadRejected,
     ingest_url,
     reprocess_all,
     upload_document,
+    validate_upload,
 )
-from functions.core.parsers import registry as ingestion_parsers_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -620,62 +619,14 @@ async def upload_document_endpoint(
       to the app-level handlers in :mod:`backend.app`, which
       sanitise it into a 503 response with no SDK detail leaked.
     """
-    if not settings.storage.documents_container or not settings.storage.doc_processing_queue:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=(
-                "Document storage is not configured for this deployment."
-            ),
-        )
     filename = (file.filename or "").strip()
-    if not filename:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Uploaded file must carry a non-empty filename.",
-        )
-    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
-    if extension not in ingestion_parsers_registry.registry:
-        supported = sorted(ingestion_parsers_registry.registry.keys())
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail={
-                "msg": "Unsupported file extension.",
-                "extension": extension,
-                "supported": supported,
-            },
-        )
-    # Detect uploads that route to the Document Intelligence parser via an
-    # identity comparison against the parser registered for "pdf" (rather
-    # than a hardcoded extension set): PDF + DOCX register the same DI
-    # parser class, so this auto-includes any extension that registers that
-    # parser, keeping dispatch in the registry per Hard Rule #4. The DI
-    # parser is the only parser that requires AZURE_AI_SERVICES_ENDPOINT;
-    # non-DI parsers (txt / md / html) parse locally and never read it.
-    if (
-        ingestion_parsers_registry.registry.get(extension)
-        is ingestion_parsers_registry.registry.get("pdf")
-        and not settings.foundry.services_endpoint.lower().startswith("https://")
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=(
-                "Document parsing is not configured for this deployment: "
-                "AZURE_AI_SERVICES_ENDPOINT must be a non-empty https:// URL "
-                "to parse this file type via Document Intelligence. Refusing "
-                "the upload instead of reporting success for a file that "
-                "cannot be indexed."
-            ),
-        )
     content = await file.read()
-    if len(content) > MAX_UPLOAD_SIZE_BYTES:
+    try:
+        validate_upload(filename, len(content), settings=settings)
+    except UploadRejected as exc:
         raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail={
-                "msg": "Uploaded file exceeds the maximum allowed size.",
-                "byte_count": len(content),
-                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
-            },
-        )
+            status_code=exc.status_code, detail=exc.detail
+        ) from exc
     return await upload_document(
         filename=filename,
         content=content,

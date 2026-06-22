@@ -24,7 +24,7 @@ import re
 
 from bs4 import BeautifulSoup
 
-from backend.core.providers.parsers.base import BaseParser
+from backend.core.providers.parsers.base import BaseParser, ParserKey
 from backend.core.types import Chunk
 
 from .registry import registry
@@ -34,7 +34,7 @@ _PARAGRAPH_SEPARATOR = re.compile(r"(?:\r?\n[ \t]*){2,}")
 _NON_CONTENT_TAGS = ("script", "style", "noscript")
 
 
-@registry.register("html")
+@registry.register(ParserKey.HTML)
 class HtmlParser(BaseParser):
     """Parse an HTML page into one `Chunk` per paragraph of extracted text."""
 

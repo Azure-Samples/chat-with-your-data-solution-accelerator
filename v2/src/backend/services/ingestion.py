@@ -31,6 +31,7 @@ state is request-scoped, mirroring the discipline in
 import logging
 import re
 from hashlib import blake2b
+from http import HTTPStatus
 from pathlib import PurePosixPath
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -159,6 +160,96 @@ async def ingest_url(
     )
 
 
+class UploadRejected(Exception):
+    """An admin upload failed a pre-ingest validation gate.
+
+    Carries the HTTP status + detail the admin router maps onto an
+    ``HTTPException`` -- keeping this service FastAPI-free (the router
+    owns the HTTP translation, mirroring the ``ValueError`` -> 4xx
+    mapping the other admin routes already do). ``status_code`` is an
+    ``http.HTTPStatus`` (an ``int``), so it drops straight into
+    ``HTTPException(status_code=...)``.
+    """
+
+    def __init__(self, *, status_code: int, detail: object) -> None:
+        self.status_code = status_code
+        self.detail = detail
+        super().__init__(detail if isinstance(detail, str) else str(detail))
+
+
+def validate_upload(
+    filename: str, content_size: int, *, settings: AppSettings
+) -> None:
+    """Validate one admin upload is ingestable before it is stored.
+
+    Raises :class:`UploadRejected` (which the admin router maps to an
+    ``HTTPException``) when, in order:
+
+    * the deployment has no documents container / doc-processing queue
+      configured (``503``);
+    * ``filename`` is empty (``422``);
+    * the extension is missing or not registered in the parser registry
+      (``415`` -- the registry is the authoritative supported set,
+      Hard Rule #4);
+    * the resolved parser ``requires_ai_services`` but
+      ``AZURE_AI_SERVICES_ENDPOINT`` is unset / not an https URL
+      (``503`` -- the Document Intelligence parse step would otherwise
+      poison every queued message, so the upload is refused at the
+      boundary instead of reporting a success the file can never honour).
+      The parser declares its own need via
+      :attr:`backend.core.providers.parsers.base.BaseParser.requires_ai_services`,
+      so no extension set is hard-coded here (Hard Rule #4);
+    * ``content_size`` exceeds :data:`MAX_UPLOAD_SIZE_BYTES` (``413``).
+    """
+    if (
+        not settings.storage.documents_container
+        or not settings.storage.doc_processing_queue
+    ):
+        raise UploadRejected(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail="Document storage is not configured for this deployment.",
+        )
+    if not filename:
+        raise UploadRejected(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail="Uploaded file must carry a non-empty filename.",
+        )
+    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
+    if extension not in ingestion_parsers_registry.registry:
+        supported = sorted(ingestion_parsers_registry.registry.keys())
+        raise UploadRejected(
+            status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            detail={
+                "msg": "Unsupported file extension.",
+                "extension": extension,
+                "supported": supported,
+            },
+        )
+    parser_cls = ingestion_parsers_registry.registry.get(extension)
+    if parser_cls.requires_ai_services and not settings.foundry.services_endpoint.lower().startswith(
+        "https://"
+    ):
+        raise UploadRejected(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            detail=(
+                "Document parsing is not configured for this deployment: "
+                "AZURE_AI_SERVICES_ENDPOINT must be a non-empty https:// URL "
+                "to parse this file type via Document Intelligence. Refusing "
+                "the upload instead of reporting success for a file that "
+                "cannot be indexed."
+            ),
+        )
+    if content_size > MAX_UPLOAD_SIZE_BYTES:
+        raise UploadRejected(
+            status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
+            detail={
+                "msg": "Uploaded file exceeds the maximum allowed size.",
+                "byte_count": content_size,
+                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
+            },
+        )
+
+
 async def upload_document(
     *,
     filename: str,
@@ -196,13 +287,11 @@ async def upload_document(
     so a file ingested via this route lands in the same shape as one
     ingested via the bulk ``batch_start`` fan-out.
 
-    Filename extension validation is the caller's concern (the route
-    layer maps unknown extensions to ``415 Unsupported Media Type``
-    using the parser registry). Size validation is also caller-side
-    (the route caps reads at :data:`MAX_UPLOAD_SIZE_BYTES` and
-    returns 413). The helper trusts its inputs and reports any SDK
-    failure via structured logging before re-raising per Hard Rule
-    #14.
+    Upload validation (extension / Document-Intelligence-config / size)
+    is the caller's concern -- :func:`validate_upload` raises
+    :class:`UploadRejected` and the admin route maps it to the matching
+    4xx / 503. This helper trusts its inputs and reports any SDK failure
+    via structured logging before re-raising per Hard Rule #14.
     """
     blob_endpoint, queue_endpoint = resolve_storage_endpoints(settings.storage)
     container_name = settings.storage.documents_container

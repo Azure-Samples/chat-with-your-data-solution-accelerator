@@ -12,7 +12,6 @@ from functions.blob_event.event_parser import (
     ParsedBlobRef,
     parse_blob_created_subject,
     parse_blob_event,
-    subject_from_event_message,
 )
 
 
@@ -77,7 +76,7 @@ def test_parsed_ref_is_frozen() -> None:
 
 
 # ---------------------------------------------------------------------------
-# subject_from_event_message — extract the subject from a raw EG event body
+# Shared raw-event-body fixtures (used by the parse_blob_event cases below)
 # ---------------------------------------------------------------------------
 
 _SUBJECT = "/blobServices/default/containers/documents/blobs/Benefit_Options.pdf"
@@ -93,40 +92,6 @@ def _event_body(subject: str) -> dict[str, object]:
         "dataVersion": "1",
     }
 
-
-def test_extracts_subject_from_raw_json_event() -> None:
-    raw = json.dumps(_event_body(_SUBJECT)).encode("utf-8")
-    assert subject_from_event_message(raw) == _SUBJECT
-
-
-def test_extracts_subject_from_base64_event() -> None:
-    # Event Grid's queue encoding is outside our control; a base64 body
-    # is decoded defensively.
-    raw = base64.b64encode(json.dumps(_event_body(_SUBJECT)).encode("utf-8"))
-    assert subject_from_event_message(raw) == _SUBJECT
-
-
-def test_extracts_subject_from_single_event_array() -> None:
-    raw = json.dumps([_event_body(_SUBJECT)]).encode("utf-8")
-    assert subject_from_event_message(raw) == _SUBJECT
-
-
-def test_malformed_body_returns_none() -> None:
-    assert subject_from_event_message(b"not-json-not-base64-!!!") is None
-
-
-def test_json_without_subject_returns_none() -> None:
-    raw = json.dumps({"eventType": "Microsoft.Storage.BlobCreated"}).encode("utf-8")
-    assert subject_from_event_message(raw) is None
-
-
-def test_non_string_subject_returns_none() -> None:
-    raw = json.dumps({"subject": 123}).encode("utf-8")
-    assert subject_from_event_message(raw) is None
-
-
-def test_empty_array_returns_none() -> None:
-    assert subject_from_event_message(b"[]") is None
 
 
 # ---------------------------------------------------------------------------

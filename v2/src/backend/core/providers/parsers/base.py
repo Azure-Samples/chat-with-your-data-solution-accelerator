@@ -6,11 +6,35 @@ Phase: 6
 
 import hashlib
 from abc import ABC, abstractmethod
+from enum import StrEnum
+from typing import ClassVar
 
 from azure.core.credentials_async import AsyncTokenCredential
 
 from backend.core.settings import AppSettings
 from backend.core.types import Chunk
+
+
+class ParserKey(StrEnum):
+    """Registry keys for the ingestion parser provider domain.
+
+    The closed set of lowercase file extensions (no leading dot) the
+    pipeline can parse -- the key every :class:`BaseParser` self-registers
+    under (``@registry.register(ParserKey.PDF)``) and the key callers
+    resolve a parser by. ``StrEnum`` so a value computed from a blob path
+    (a plain ``str``) still matches a member-keyed registry entry, and
+    JSON / error-detail serialization stays the bare extension.
+    """
+
+    TXT = "txt"
+    MD = "md"
+    JSON = "json"
+    HTML = "html"
+    PDF = "pdf"
+    DOCX = "docx"
+    JPEG = "jpeg"
+    JPG = "jpg"
+    PNG = "png"
 
 
 class BaseParser(ABC):
@@ -19,15 +43,23 @@ class BaseParser(ABC):
     Implementations live under `v2/src/backend/core/providers/parsers/`
     (Stable Core defaults) or `v2/src/functions/core/parsers/`
     (ingestion-only formats like PDF/DOCX). All implementations
-    self-register via `@registry.register("<extension>")` where the
+    self-register via `@registry.register(ParserKey.<EXT>)` where the
     key is the lowercase file extension without the leading dot
-    (`"txt"`, `"pdf"`, `"md"`).
+    (`ParserKey.TXT`, `ParserKey.PDF`, `ParserKey.MD`).
 
     `parse` is async because production implementations may call out
     to Document Intelligence or other network parsers; pure-CPU
     parsers (text, markdown) can implement it as `async def` that
     returns immediately.
     """
+
+    # True when the parser routes to Azure AI Services (Document
+    # Intelligence) and therefore needs AZURE_AI_SERVICES_ENDPOINT
+    # configured to parse. The admin upload boundary reads this to refuse
+    # a file whose parse step would otherwise poison every queued message,
+    # without hard-coding which extensions are DI-routed. Pure-CPU parsers
+    # (text / markdown / html) leave it False.
+    requires_ai_services: ClassVar[bool] = False
 
     def __init__(
         self,

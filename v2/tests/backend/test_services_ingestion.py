@@ -17,10 +17,13 @@ import backend.services.ingestion as ingestion_module
 from backend.core.settings import IngestionTrigger
 from backend.models.admin import IngestUrlRequest, UploadResponse
 from backend.services.ingestion import (
+    MAX_UPLOAD_SIZE_BYTES,
+    UploadRejected,
     _blob_name_for_url,
     ingest_url,
     reprocess_all,
     upload_document,
+    validate_upload,
 )
 from functions.batch_start.models import BatchStartRequest
 from functions.core.contracts import BatchPushQueueMessage
@@ -393,3 +396,97 @@ async def test_reprocess_all_propagates_azure_error_from_handler(
         await reprocess_all(
             settings=_settings_stub(), credential=MagicMock()
         )
+
+
+# ---------------------------------------------------------------------------
+# validate_upload -- pre-ingest validation gate (raises UploadRejected)
+# ---------------------------------------------------------------------------
+
+
+def _upload_settings(
+    *,
+    documents_container: str = "docs",
+    doc_processing_queue: str = "doc-processing",
+    services_endpoint: str = "https://ai.example.com/",
+) -> Any:
+    """Settings stub shaped for ``validate_upload`` (storage + foundry)."""
+    return NS(
+        storage=NS(
+            documents_container=documents_container,
+            doc_processing_queue=doc_processing_queue,
+        ),
+        foundry=NS(services_endpoint=services_endpoint),
+    )
+
+
+def test_validate_upload_accepts_local_parser_without_ai_services() -> None:
+    # A txt file parses locally, so it passes even with no AI Services
+    # endpoint configured.
+    validate_upload(
+        "notes.txt", 10, settings=_upload_settings(services_endpoint="")
+    )
+
+
+def test_validate_upload_accepts_di_file_when_ai_services_configured() -> None:
+    validate_upload("report.pdf", 10, settings=_upload_settings())
+
+
+def test_validate_upload_rejects_when_storage_unconfigured() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload(
+            "notes.txt", 10, settings=_upload_settings(documents_container="")
+        )
+    assert exc.value.status_code == 503
+
+
+def test_validate_upload_rejects_empty_filename() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload("", 10, settings=_upload_settings())
+    assert exc.value.status_code == 422
+
+
+def test_validate_upload_rejects_unsupported_extension() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload("data.xyz", 10, settings=_upload_settings())
+    assert exc.value.status_code == 415
+    assert isinstance(exc.value.detail, dict)
+    assert exc.value.detail["extension"] == "xyz"
+    # The supported set is sourced from the registry (the authoritative
+    # supported-file-type list), serialized as bare extensions.
+    assert "pdf" in exc.value.detail["supported"]
+
+
+def test_validate_upload_rejects_extensionless_filename() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload("README", 10, settings=_upload_settings())
+    assert exc.value.status_code == 415
+
+
+@pytest.mark.parametrize("filename", ["report.pdf", "memo.docx", "scan.png"])
+def test_validate_upload_rejects_di_file_when_ai_services_missing(
+    filename: str,
+) -> None:
+    # A Document-Intelligence-routed file with no https AI Services
+    # endpoint is refused (the parse step would poison every queued
+    # message) -- driven by the parser's requires_ai_services flag, not a
+    # hard-coded extension set.
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload(filename, 10, settings=_upload_settings(services_endpoint=""))
+    assert exc.value.status_code == 503
+
+
+def test_validate_upload_rejects_oversized_content() -> None:
+    with pytest.raises(UploadRejected) as exc:
+        validate_upload(
+            "big.txt", MAX_UPLOAD_SIZE_BYTES + 1, settings=_upload_settings()
+        )
+    assert exc.value.status_code == 413
+    assert isinstance(exc.value.detail, dict)
+    assert exc.value.detail["max_byte_count"] == MAX_UPLOAD_SIZE_BYTES
+
+
+def test_validate_upload_accepts_content_at_the_limit() -> None:
+    # Exactly the cap is allowed; only strictly-over is rejected.
+    validate_upload(
+        "big.txt", MAX_UPLOAD_SIZE_BYTES, settings=_upload_settings()
+    )

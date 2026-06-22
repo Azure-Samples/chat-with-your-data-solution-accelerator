@@ -135,24 +135,6 @@ def _decode_event_payload(raw: bytes | str) -> dict[str, Any] | None:
     return cast("dict[str, Any]", payload)
 
 
-def subject_from_event_message(raw: bytes | str) -> str | None:
-    """Extract the ``subject`` from a raw Event Grid event message body.
-
-    The Event Grid system topic delivers one Storage blob event per
-    Storage Queue message (EventGridSchema), whose top-level ``subject``
-    is the ``/blobServices/default/containers/<c>/blobs/<b>`` path that
-    :func:`parse_blob_created_subject` turns into a container + blob
-    reference. Returns that subject string, or ``None`` when the body is
-    not a JSON object carrying a string ``subject`` (so a malformed or
-    non-event message is skipped).
-    """
-    payload = _decode_event_payload(raw)
-    if payload is None:
-        return None
-    subject = payload.get("subject")
-    return subject if isinstance(subject, str) else None
-
-
 def parse_blob_event(raw: bytes | str) -> ParsedBlobEvent | None:
     """Parse a raw Event Grid message into a typed blob event.
 

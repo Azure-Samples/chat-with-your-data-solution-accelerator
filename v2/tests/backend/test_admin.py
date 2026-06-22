@@ -2268,8 +2268,10 @@ async def test_upload_document_returns_413_when_over_size_cap(
     surface the cap to the operator.
     """
     # Force the cap to a tiny value so the test stays fast and small.
+    # The cap lives on the service helper (validate_upload reads it), so
+    # patch it there rather than on the router.
     monkeypatch.setattr(
-        "backend.routers.admin.MAX_UPLOAD_SIZE_BYTES", 16
+        "backend.services.ingestion.MAX_UPLOAD_SIZE_BYTES", 16
     )
     sentinel = AsyncMock()
     monkeypatch.setattr(_admin_module, "upload_document", sentinel)

@@ -33,14 +33,14 @@ poison-queue path engages (preferred over silent fall-back to
 import re
 
 from backend.core.types import Chunk
-from backend.core.providers.parsers.base import BaseParser
+from backend.core.providers.parsers.base import BaseParser, ParserKey
 from .registry import registry
 
 _PARAGRAPH_SEPARATOR = re.compile(r"(?:\r?\n[ \t]*){2,}")
 
-@registry.register("txt")
-@registry.register("md")
-@registry.register("json")
+@registry.register(ParserKey.TXT)
+@registry.register(ParserKey.MD)
+@registry.register(ParserKey.JSON)
 class TextParser(BaseParser):
     """Parse a UTF-8 text file (txt / md / json) into one `Chunk` per paragraph."""
 

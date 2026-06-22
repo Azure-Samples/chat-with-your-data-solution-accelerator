@@ -161,4 +161,3 @@ def test_outcome_round_trips_through_model() -> None:
     )
     assert created.deleted_count is None
     assert deleted.enqueued is None
-
