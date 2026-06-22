@@ -127,6 +127,13 @@ class DeleteDocumentResponse(BaseModel):
         description="Number of indexed chunks removed for the source.",
         ge=0,
     )
+    blob_deleted: bool = Field(
+        default=False,
+        description=(
+            "Whether the source blob was removed from the documents "
+            "container (False for URL-typed sources, which have no blob)."
+        ),
+    )
 
 
 class ListDocumentsResponse(BaseModel):

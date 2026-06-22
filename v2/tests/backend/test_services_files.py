@@ -13,7 +13,7 @@ from azure.core.exceptions import AzureError, ResourceNotFoundError
 from azure.storage.blob.aio import ContainerClient
 
 import backend.services.files as files_module
-from backend.services.files import download_document
+from backend.services.files import delete_document, download_document
 
 
 class _FakeDownloader:
@@ -59,6 +59,11 @@ class _FakeContainerClient:
         if self._raises is not None:
             raise self._raises
         return _FakeDownloader(self._payload)
+
+    async def delete_blob(self, blob: str) -> None:
+        self.calls.append(blob)
+        if self._raises is not None:
+            raise self._raises
 
 
 def _settings_stub(
@@ -224,3 +229,86 @@ async def test_valid_filename_with_spaces_is_accepted(
 
     assert result == b"ok"
     assert captured["client"].calls == ["Employee Handbook.pdf"]
+
+
+# ---------------------------------------------------------------------------
+# delete_document -- blob delete behind the admin document delete
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_returns_true_when_blob_deleted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _patch_container_client(monkeypatch)
+
+    result = await delete_document(
+        "Benefit_Options.pdf",
+        settings=_settings_stub(documents_container="docs"),
+        credential=cast(Any, object()),
+    )
+
+    assert result is True
+    assert captured["client"].calls == ["Benefit_Options.pdf"]
+    assert captured["kwargs"]["container_name"] == "docs"
+
+
+@pytest.mark.asyncio
+async def test_delete_returns_false_when_blob_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    _patch_container_client(monkeypatch, raises=ResourceNotFoundError("gone"))
+    caplog.set_level(logging.ERROR, logger="backend.services.files")
+
+    result = await delete_document(
+        "already_gone.pdf",
+        settings=_settings_stub(),
+        credential=cast(Any, object()),
+    )
+
+    # Idempotent no-op success -- nothing removed, nothing logged.
+    assert result is False
+    assert [r for r in caplog.records if r.name == "backend.services.files"] == []
+
+
+@pytest.mark.asyncio
+async def test_delete_other_azure_error_is_logged_and_reraised(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    _patch_container_client(monkeypatch, raises=AzureError("boom"))
+    caplog.set_level(logging.ERROR, logger="backend.services.files")
+
+    with pytest.raises(AzureError):
+        await delete_document(
+            "report.pdf",
+            settings=_settings_stub(documents_container="docs"),
+            credential=cast(Any, object()),
+        )
+
+    records = [r for r in caplog.records if r.name == "backend.services.files"]
+    assert len(records) == 1
+    record = records[0]
+    assert record.message == "document delete failed"
+    assert record.operation == "delete_document"  # type: ignore[attr-defined]
+    assert record.container == "docs"  # type: ignore[attr-defined]
+    assert record.blob_filename == "report.pdf"  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_delete_rejects_url_typed_source_before_any_sdk_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = _patch_container_client(monkeypatch)
+
+    with pytest.raises(ValueError):
+        await delete_document(
+            "https://example.com/report.pdf",
+            settings=_settings_stub(),
+            credential=cast(Any, object()),
+        )
+
+    # A URL source carries path separators -> rejected before any SDK
+    # client is constructed (URLs have no blob to delete).
+    assert "client" not in captured

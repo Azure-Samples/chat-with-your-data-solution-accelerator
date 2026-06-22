@@ -1882,35 +1882,112 @@ async def test_list_documents_requires_easy_auth_in_production() -> None:
 @pytest.mark.asyncio
 async def test_delete_document_returns_200_with_count_on_success(
     admin_app_factory,
+    monkeypatch,
 ) -> None:
-    """Happy path: search backend removes 2 chunks; route surfaces the
-    count in the typed response body and returns 200.
+    """Happy path: the search backend removes 2 chunks and the source
+    blob is deleted; the route surfaces both in the typed response
+    body and returns 200.
     """
     search = AsyncMock()
     search.delete_by_source = AsyncMock(return_value=2)
-    app = admin_app_factory(_settings(), search=search)
+    monkeypatch.setattr(
+        _admin_module, "delete_document", AsyncMock(return_value=True)
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/report.pdf")
     assert resp.status_code == 200
-    assert resp.json() == {"deleted": 2}
+    assert resp.json() == {"deleted": 2, "blob_deleted": True}
     search.delete_by_source.assert_awaited_once_with("report.pdf")
 
 
 @pytest.mark.asyncio
 async def test_delete_document_returns_404_when_no_chunks_match(
     admin_app_factory,
+    monkeypatch,
 ) -> None:
-    """No chunks matched the source -> 404 with the source name in the
-    operator-facing detail string so the response is self-explanatory.
+    """Neither an indexed chunk nor a source blob existed -> 404 with
+    the source name in the operator-facing detail string so the
+    response is self-explanatory.
     """
     search = AsyncMock()
     search.delete_by_source = AsyncMock(return_value=0)
-    app = admin_app_factory(_settings(), search=search)
+    monkeypatch.setattr(
+        _admin_module, "delete_document", AsyncMock(return_value=False)
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/missing.pdf")
     assert resp.status_code == 404
     assert "missing.pdf" in resp.json()["detail"]
     search.delete_by_source.assert_awaited_once_with("missing.pdf")
+
+
+@pytest.mark.asyncio
+async def test_delete_document_returns_200_when_only_blob_removed(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """An orphaned blob with no index chunks is still cleaned: 0 chunks
+    but ``blob_deleted=True`` -> 200, not 404.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=0)
+    monkeypatch.setattr(
+        _admin_module, "delete_document", AsyncMock(return_value=True)
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/orphan.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 0, "blob_deleted": True}
+
+
+@pytest.mark.asyncio
+async def test_delete_document_skips_blob_for_url_typed_source(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """A URL/path-typed source has no backing blob: ``delete_document``
+    raises ``ValueError`` (path separators), which the route swallows --
+    the delete still succeeds on the index chunks with
+    ``blob_deleted=False``.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=3)
+    monkeypatch.setattr(
+        _admin_module,
+        "delete_document",
+        AsyncMock(side_effect=ValueError("path separators")),
+    )
+    app = admin_app_factory(_settings_with_storage(), search=search)
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/notes/2026.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 3, "blob_deleted": False}
+
+
+@pytest.mark.asyncio
+async def test_delete_document_skips_blob_when_no_container_configured(
+    admin_app_factory,
+    monkeypatch,
+) -> None:
+    """No documents container configured -> the blob-delete branch is
+    skipped entirely (``delete_document`` never called); the index
+    delete alone drives the result.
+    """
+    search = AsyncMock()
+    search.delete_by_source = AsyncMock(return_value=1)
+    delete_doc = AsyncMock(return_value=True)
+    monkeypatch.setattr(_admin_module, "delete_document", delete_doc)
+    app = admin_app_factory(
+        _settings_with_storage(documents_container=""), search=search
+    )
+    async with _client(app) as ac:
+        resp = await ac.delete("/api/admin/documents/report.pdf")
+    assert resp.status_code == 200
+    assert resp.json() == {"deleted": 1, "blob_deleted": False}
+    delete_doc.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -1947,6 +2024,11 @@ async def test_delete_document_requires_easy_auth_in_production() -> None:
     app.dependency_overrides[get_app_settings] = lambda: _settings(
         environment="production"
     )
+    # The route now resolves ``CredentialDep`` (for the blob delete);
+    # stub it so dependency resolution reaches the admin-role gate,
+    # which is what this test exercises. In a real deployment the
+    # lifespan-built credential is present, so the 401 fires the same.
+    app.dependency_overrides[get_credential] = lambda: AsyncMock()
     async with _client(app) as ac:
         resp = await ac.delete("/api/admin/documents/report.pdf")
     assert resp.status_code == 401

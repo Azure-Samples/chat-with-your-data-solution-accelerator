@@ -88,6 +88,7 @@ from backend.services.admin import (
     utcnow_iso,
     validate_prompt_with_rai,
 )
+from backend.services.files import delete_document
 from backend.services.ingestion import (
     MAX_UPLOAD_SIZE_BYTES,
     ingest_url,
@@ -461,20 +462,33 @@ async def list_documents_endpoint(
 )
 async def delete_document_endpoint(
     source: str,
+    settings: SettingsDep,
+    credential: CredentialDep,
     search: SearchProviderDep,
     _user: AdminUserIdDep,
 ) -> DeleteDocumentResponse:
-    """Delete every indexed chunk whose source matches ``source``.
+    """Delete a document's indexed chunks **and** its source blob.
 
     ``source`` is the per-chunk filename or URL set at ingestion (the
     ``title`` field on every search backend). The ``{source:path}``
     converter captures URL-typed sources that contain slashes;
     FastAPI percent-decodes the path segment before the handler runs.
 
+    Removal is two-part so a deleted document becomes fully unreachable:
+
+    * the indexed chunks (search / pgvector), via
+      :meth:`BaseSearch.delete_by_source`; and
+    * the source blob in the documents container, via
+      :func:`backend.services.files.delete_document` -- attempted only
+      when a documents container is configured, and skipped for
+      URL-typed sources (a URL carries path separators, has no backing
+      blob, and raises :class:`ValueError` from filename validation).
+
     Status surface:
 
-    * ``200`` + ``{"deleted": N}`` when ``N > 0`` chunks were removed.
-    * ``404`` when no chunks matched.
+    * ``200`` + ``{"deleted": N, "blob_deleted": bool}`` when at least
+      one indexed chunk was removed or the source blob was deleted.
+    * ``404`` when neither an indexed chunk nor a source blob existed.
     * ``503`` when the deployment has no search backend configured
       (the route stays mounted so operators discover the gap
       explicitly instead of routing-404-ing it).
@@ -488,20 +502,31 @@ async def delete_document_endpoint(
             detail="Search backend is not configured for this deployment.",
         )
     deleted = await search.delete_by_source(source)
-    if deleted == 0:
+    blob_deleted = False
+    if settings.storage.documents_container:
+        try:
+            blob_deleted = await delete_document(
+                source, settings=settings, credential=credential
+            )
+        except ValueError:
+            # URL-typed sources (add_url ingestion) carry path
+            # separators and have no backing blob -- nothing to delete.
+            blob_deleted = False
+    if deleted == 0 and not blob_deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No indexed chunks found for source {source!r}.",
+            detail=f"No indexed chunks or source blob found for source {source!r}.",
         )
     logger.info(
-        "Admin deleted indexed chunks for source.",
+        "Admin deleted document.",
         extra={
             "operation": "delete_document",
             "source": source,
             "deleted_count": deleted,
+            "blob_deleted": blob_deleted,
         },
     )
-    return DeleteDocumentResponse(deleted=deleted)
+    return DeleteDocumentResponse(deleted=deleted, blob_deleted=blob_deleted)
 
 
 # ---------------------------------------------------------------------------
