@@ -209,6 +209,9 @@ function AppShell(): JSX.Element {
           onNewChat={() => {
             setNewChatNonce((n) => n + 1);
           }}
+          onNavigateHome={() => {
+            void navigate(SectionPath[Section.Chat]);
+          }}
           adminAvailable={adminAvailable}
           onOpenAdmin={() => {
             void navigate(SectionPath[Section.AdminIngest]);
