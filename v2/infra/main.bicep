@@ -154,6 +154,15 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
 // ============================================================================
 // Parameters — Compute
 // ============================================================================
@@ -260,6 +269,9 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     embeddingModelCapacity: embeddingModelCapacity
     azureOpenAiApiVersion: azureOpenAiApiVersion
     azureAiAgentApiVersion: azureAiAgentApiVersion
+    searchKnowledgeBaseName: searchKnowledgeBaseName
+    searchKnowledgeSourceName: searchKnowledgeSourceName
+    searchKnowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
     containerRegistryEndpoint: containerRegistryEndpoint
     imageTag: imageTag
     hostingModel: hostingModel
@@ -490,4 +502,3 @@ output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? avmDeployment
 
 @description('AI Search service endpoint. Empty in PostgreSQL mode.')
 output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT : ''
-

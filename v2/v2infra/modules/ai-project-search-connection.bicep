@@ -25,6 +25,9 @@ param searchServiceName string
 @description('Optional. Friendly name for the connection inside the Project. Lower-case, no spaces.')
 param connectionName string = 'search-${searchServiceName}'
 
+@description('Optional. Name of the Foundry IQ knowledge base this connection fronts (matches SearchSettings.knowledge_base_name). Surfaced so the agent_framework orchestrator resolves the KB by name through this connection.')
+param knowledgeBaseName string = 'cwyd-kb'
+
 resource searchService 'Microsoft.Search/searchServices@2025-02-01-preview' existing = {
   name: searchServiceName
 }
@@ -45,6 +48,10 @@ resource connection 'Microsoft.CognitiveServices/accounts/projects/connections@2
       ApiType: 'Azure'
       ResourceId: searchService.id
       location: searchService.location
+      // Records which Foundry IQ knowledge base resolves through this
+      // CognitiveSearch connection (the agent_framework orchestrator
+      // queries it by name). Unknown metadata keys are ignored by Foundry.
+      KnowledgeBaseName: knowledgeBaseName
     }
   }
 }
@@ -54,3 +61,6 @@ output resourceId string = connection.id
 
 @description('Friendly name of the Project connection (use this from agent code / Foundry IQ knowledge-base config).')
 output name string = connection.name
+
+@description('Name of the Foundry IQ knowledge base the agent resolves through this connection (flows to the backend as AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME).')
+output knowledgeBaseName string = knowledgeBaseName

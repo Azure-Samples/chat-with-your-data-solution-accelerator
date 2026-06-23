@@ -26,8 +26,8 @@ param managedIdentities object = {
   systemAssigned: true
 }
 
-@description('App settings as name-value pairs (object).')
-param appSettings object = {}
+@description('App settings as name-value pairs (array).')
+param appSettings array = []
 
 @description('Optional. Function app scale limit.')
 param functionAppScaleLimit int = -1
@@ -88,7 +88,8 @@ var baseAppSettings = union({
   runtimeStack == 'python' && !useDocker ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true' } : {}
 )
 
-var mergedAppSettings = union(baseAppSettings, appSettings)
+var appSettingsObject = reduce(appSettings, {}, (cur, item) => union(cur, { '${item.name}': item.value }))
+var mergedAppSettings = union(baseAppSettings, appSettingsObject)
 
 var updatedSiteConfig = union(siteConfig, {
   functionAppScaleLimit: functionAppScaleLimit != -1 ? functionAppScaleLimit : null

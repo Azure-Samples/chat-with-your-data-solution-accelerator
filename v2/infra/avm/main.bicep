@@ -142,6 +142,15 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
 // ============================================================================
 // Parameters — Compute
 // ============================================================================
@@ -849,6 +858,7 @@ module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if
     metadata: {
       ApiType: 'Azure'
       ResourceId: aiSearch!.outputs.resourceId
+      knowledgeBaseName: searchKnowledgeBaseName
     }
   }
 }
@@ -1175,6 +1185,10 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
             { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
             { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' && !empty(principal.id) ? principal.name : '' }
             { name: 'AZURE_SPEECH_SERVICE_NAME', value: speechService.outputs.name }
@@ -1182,7 +1196,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', value: speechService.outputs.resourceId }
             { name: 'AZURE_CONTENT_SAFETY_ENABLED', value: 'true' }
             { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: contentSafety.outputs.endpoint }
-            { name: 'ORCHESTRATOR', value: 'agent_framework' }  
+            { name: 'ORCHESTRATOR', value: 'agent_framework' }
             { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount.outputs.name }
             { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
             { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
@@ -1263,30 +1277,31 @@ module functionApp './modules/compute/function-app.bicep' = {
     runtimeVersion: '3.11'
     dockerFullImageName: hostingModel == 'container' ? '${containerRegistryEndpoint}/rag-functions:${imageTag}' : ''
     virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : null
-    appSettings: union(
-      {
-        AZURE_CLIENT_ID: userAssignedIdentity.outputs.clientId
-        AZURE_UAMI_CLIENT_ID: userAssignedIdentity.outputs.clientId
-        AZURE_TENANT_ID: subscription().tenantId
-        AZURE_AI_PROJECT_ENDPOINT: aiProject.outputs.projectEndpoint
-        AZURE_OPENAI_ENDPOINT: aiServices.outputs.endpoint
-        AZURE_OPENAI_API_VERSION: azureOpenAiApiVersion
-        AZURE_OPENAI_EMBEDDING_DEPLOYMENT: embeddingModelName
-        AZURE_DB_TYPE: databaseType
-        AZURE_INDEX_STORE: indexStoreValue
-        AZURE_COSMOS_ENDPOINT: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : ''
-        AZURE_AI_SEARCH_ENDPOINT: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : ''
-        AZURE_POSTGRES_ENDPOINT: postgresLibpqUri
-        AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME: databaseType == 'postgresql' ? principal.name : ''
-        AZURE_STORAGE_ACCOUNT_NAME: storageAccount!.outputs.name
-        AZURE_DOCUMENTS_CONTAINER: documentsContainerName
-        AZURE_DOC_PROCESSING_QUEUE: docProcessingQueueName
-      },
+    appSettings: concat(
+      [
+        { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+        { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+        { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+        { name: 'AZURE_ENVIRONMENT', value: 'production' }
+        { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
+        { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+        { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
+        { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
+        { name: 'AZURE_DB_TYPE', value: databaseType }
+        { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
+        { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
+        { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+        { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
+        { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? principal.name : '' }
+        { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount!.outputs.name }
+        { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
+        { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+      ],
       enableMonitoring
-      ? {
-          APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights!.outputs.connectionString
-      }
-      : {}
+        ? [
+            { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: applicationInsights!.outputs.connectionString }
+          ]
+        : []
     )
   }
 }

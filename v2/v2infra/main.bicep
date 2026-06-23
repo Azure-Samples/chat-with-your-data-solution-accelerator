@@ -86,6 +86,17 @@ param azureAiServiceLocation string
 param databaseType string = 'cosmosdb'
 
 // ===================== //
+// Ingestion trigger     //
+// ===================== //
+
+@allowed([
+  'direct_enqueue'
+  'event_grid'
+])
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
+param ingestionTrigger string = 'direct_enqueue'.
+
+// ===================== //
 // v1 resource reuse     //
 // ===================== //
 // When set, the corresponding AVM module is SKIPPED and a raw `existing`
@@ -178,6 +189,15 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
 // CU-009a (2026-05-05): a previous Bicep param + container-app env
 // binding for the Foundry agent identity were removed. Per ADR 0008
 // (lazy-foundry-agent-bootstrap), agent identity is no longer an
@@ -191,8 +211,8 @@ param azureAiAgentApiVersion string = '2025-05-01'
 // WAF flags             //
 // ===================== //
 
-@description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.')
-param enableMonitoring bool = false
+@description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource. Defaults to `true` for any deployed env (ADR-0018): observability is Stable Core, not a WAF opt-in. The `false` branch stays only for `bicep build` self-checks and unit tests.')
+param enableMonitoring bool = true
 
 @description('Optional. Higher SKUs and autoscaling on App Service Plan, Container Apps, Search, and PostgreSQL.')
 param enableScalability bool = false
@@ -307,6 +327,16 @@ module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = if (en
     applicationType: 'web'
     kind: 'web'
     disableLocalAuth: true
+    // The UAMI ingests telemetry via Entra (local auth disabled above).
+    // Without `Monitoring Metrics Publisher` every workload write path
+    // silently 401s and telemetry vanishes. ADR-0018.
+    roleAssignments: [
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        roleDefinitionIdOrName: 'Monitoring Metrics Publisher'
+      }
+    ]
   }
 }
 
@@ -904,7 +934,11 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
               privateDnsZoneGroupConfigs: [
                 {
                   name: 'search'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.search]!.outputs.resourceId
+                  // Search PE deploys in cosmosdb mode only. In postgresql mode the zone
+                  // array is shorter and the literal `dnsZoneIndex.search` (7) is out of
+                  // range for ARM's static index validation, so resolve to a valid in-range
+                  // index. The value is never used because this PE is gated out in that mode.
+                  privateDnsZoneResourceId: avmPrivateDnsZones[databaseType == 'cosmosdb' ? dnsZoneIndex.search : dnsZoneIndex.postgres]!.outputs.resourceId
                 }
               ]
             }
@@ -954,6 +988,46 @@ resource existingSearchProjectIndexReader 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Foundry IQ knowledge bases call their query-planning chat model with
+// the Search service's system-assigned managed identity (the knowledge
+// base model `authIdentity` is null, which defaults to the Search MI).
+// That identity therefore needs Cognitive Services OpenAI User on the
+// account hosting the chat deployment, or the model call 401s and
+// knowledge-base retrieval returns nothing. The chat model lives on the
+// new Foundry account (default) or a reused v1 OpenAI account
+// (`useExistingOpenAi`); the principal is the new Search service's
+// system MI. Reusing an existing Search service (`useExistingSearch`)
+// is not covered here because v2 does not own that service's identity
+// configuration — grant Cognitive Services OpenAI User to the reused
+// Search service's identity on the chat-model account manually.
+resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
+  name: aiServicesName
+}
+
+resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
+  name: guid(aiServicesName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: aiServicesAccount
+  properties: {
+    // Cognitive Services OpenAI User — lets the Search MI call the KB
+    // query-planning chat deployment on the Foundry account.
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource searchOpenAiUserOnReusedOpenAi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && useExistingOpenAi) {
+  name: guid(existingOpenAiName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  scope: existingOpenAi
+  properties: {
+    // Cognitive Services OpenAI User — lets the Search MI call the KB
+    // query-planning chat deployment on the reused v1 OpenAI account.
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
+    principalType: 'ServicePrincipal'
+  }
+}
+
 var effectiveSearchName = useExistingSearch ? existingSearchName : (databaseType == 'cosmosdb' ? aiSearch!.outputs.name : '')
 var effectiveSearchEndpoint = useExistingSearch ? 'https://${existingSearchName}.search.windows.net' : (databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '')
 
@@ -966,6 +1040,7 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
     aiServicesAccountName: aiServicesName
     projectName: aiProject.outputs.name
     searchServiceName: effectiveSearchName
+    knowledgeBaseName: searchKnowledgeBaseName
   }
 }
 
@@ -1030,6 +1105,8 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
       queues: [
         { name: 'doc-processing' }
         { name: 'doc-processing-poison' }
+        { name: 'blob-events' }
+        { name: 'blob-events-poison' }
         { name: 'add-url' }
         { name: 'add-url-poison' }
       ]
@@ -1155,6 +1232,18 @@ resource existingStorageQueueDocProcessingPoison 'Microsoft.Storage/storageAccou
   properties: {}
 }
 
+resource existingStorageQueueBlobEvents 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'blob-events'
+  properties: {}
+}
+
+resource existingStorageQueueBlobEventsPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
+  parent: existingStorageQueueServices
+  name: 'blob-events-poison'
+  properties: {}
+}
+
 resource existingStorageQueueAddUrl 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
   parent: existingStorageQueueServices
   name: 'add-url'
@@ -1231,6 +1320,7 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
       'EnableServerless'
     ]
     networkRestrictions: {
+      networkAclBypass: 'None'
       publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     }
     diagnosticSettings: enableMonitoring
@@ -1652,6 +1742,15 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+            // Runtime mode (AppSettings.environment). Pinned to 'production'
+            // on every cloud deploy so the admin auth gate fails closed: the
+            // local-dev bypass in backend.dependencies.requires_role returns
+            // the synthetic 'local-dev' admin ONLY when environment == 'local',
+            // so a deployed runtime must never fall back to the 'local' default
+            // (a missing Easy Auth claims blob would otherwise grant admin
+            // without authentication). Also makes GET /api/admin/status report
+            // the real environment.
+            { name: 'AZURE_ENVIRONMENT', value: 'production' }
             // Foundry endpoints (consumed by both orchestrators)
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
             { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
@@ -1677,6 +1776,20 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
             { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
             { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
+            // Foundry IQ knowledge base config (agent_framework orchestrator).
+            // The agent grounds on the KB via the Search MCP endpoint
+            // ({search}/knowledgebases/{kb}/mcp?api-version=<ver>); the
+            // api-version is operator-tunable so the KB protocol can advance
+            // without a new image. Defaults match the names post_provision.py
+            // seeds; resolved through the Project-Search connection.
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
+            // Foundry Project ↔ Search connection name (category CognitiveSearch).
+            // The agent_framework orchestrator passes this as the KB MCP tool's
+            // project_connection_id so Foundry IQ executes retrieval server-side
+            // under the Project identity. Empty in postgresql mode (no connection).
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
@@ -1695,6 +1808,22 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: cogContentSafety.outputs.endpoint }
             // Default orchestrator (runtime-switchable per request)
             { name: 'ORCHESTRATOR', value: 'agent_framework' }
+            // Storage — the admin surface writes uploaded documents to the
+            // blob container and enqueues each onto the doc-processing queue
+            // for the ingestion pipeline; the files route streams blobs back
+            // from the same container. The UAMI holds Storage Blob Data Owner
+            // + Storage Queue Data Contributor on the account; the blob and
+            // queue endpoints are derived from the account name. Mirrors the
+            // function app's storage wiring so both runtimes share one
+            // container + queue.
+            { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
+            { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
+            { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+            // Ingestion trigger -- direct_enqueue keeps the backend
+            // enqueueing the push message on upload; event_grid makes the
+            // backend write the blob only and lets the Event Grid -> blob-events
+            // -> blob_event Function own the push (no double-ingest).
+            { name: 'AZURE_INGESTION_TRIGGER', value: ingestionTrigger }
           ],
           enableMonitoring
             ? [
@@ -1831,8 +1960,9 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
 //                    the configured vector index (AI Search OR Postgres)
 //   - add_url      — HTTP trigger; fetch URL content, parse, embed
 // Event Grid system topic on the Storage Account fans out BlobCreated
-// notifications under /documents/ to the doc-processing queue, which
-// triggers batch_push.
+// and BlobDeleted notifications under /documents/ to the blob-events
+// queue; the blob_event trigger turns a create into a doc-processing
+// ingestion job (batch_push) and a delete into a de-index.
 //
 // Flex Consumption (FC1) chosen over Premium because:
 //   - sub-second cold start, scale-to-zero (cheap when idle)
@@ -1853,6 +1983,10 @@ var functionsPlanSkuName = 'FC1'
 var functionsRuntimeName = 'python'
 var functionsRuntimeVersion = '3.11'
 var docProcessingQueueName = 'doc-processing'
+// Event Grid delivers BlobCreated / BlobDeleted events here; the
+// blob_event queue trigger translates a create into a doc-processing
+// ingestion envelope and a delete into a de-index.
+var blobEventsQueueName = 'blob-events'
 var documentsContainerName = 'documents'
 // Built-in role definition GUIDs used by this section.
 //   Storage Queue Data Message Sender — for Event Grid → Storage Queue
@@ -1954,6 +2088,9 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
           { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+          // Runtime mode (AppSettings.environment) -- pin 'production' so the
+          // deployed config reports production, parity with the backend.
+          { name: 'AZURE_ENVIRONMENT', value: 'production' }
           { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
           { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
           { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
@@ -2020,13 +2157,19 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-// Event Grid system topic on the Storage Account. Single subscription
-// for now: BlobCreated under /documents/ → doc-processing queue. The
-// add_url path is HTTP-triggered, not blob-triggered, so it does not
-// need an Event Grid subscription. When reusing v1's storage that
-// already has a system topic, the AVM module is skipped and a sibling
-// `existingEventGridSubscription` resource adds our subscription to the
-// v1 topic (Azure permits only one system topic per source).
+// Event Grid system topic on the Storage Account. Single subscription:
+// BlobCreated / BlobDeleted under /documents/ → blob-events queue, which
+// the blob_event queue trigger translates into the right action (create
+// → doc-processing ingestion envelope consumed by batch_push; delete →
+// de-index) (ADR 0028). A queue destination --
+// not an Event Grid AzureFunction trigger -- keeps managed-identity
+// delivery and deploys at provision time (the queue exists; a function
+// would not yet). The add_url path is HTTP-triggered, not
+// blob-triggered, so it needs no subscription. When reusing v1's
+// storage that already has a system topic, the AVM module is skipped
+// and a sibling `existingEventGridSubscription` resource adds our
+// subscription to the v1 topic (Azure permits only one system topic
+// per source).
 module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
   name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
   params: {
@@ -2041,6 +2184,10 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     }
     eventSubscriptions: [
       {
+        // Name retained (not 'blob-created-to-blob-events') so the
+        // destination repoint is an in-place update; renaming under
+        // azd incremental mode would orphan the prior subscription,
+        // leaving it to keep delivering to doc-processing.
         name: 'blob-created-to-doc-processing'
         // deliveryWithResourceIdentity (NOT plain destination) is required
         // because storage has allowSharedKeyAccess=false. The system
@@ -2053,12 +2200,12 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
             endpointType: 'StorageQueue'
             properties: {
               resourceId: effectiveStorageResourceId
-              queueName: docProcessingQueueName
+              queueName: blobEventsQueueName
             }
           }
         }
         filter: {
-          includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+          includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
           subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
           enableAdvancedFilteringOnArrays: true
         }
@@ -2092,8 +2239,10 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
 }
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
-// v1's topic that routes BlobCreated events from the documents/ prefix
-// to our doc-processing queue. Delivery uses v2's UAMI (granted both
+// v1's topic that routes BlobCreated / BlobDeleted events from the
+// documents/ prefix to our blob-events queue (the blob_event trigger
+// translates a create to doc-processing and a delete to a de-index).
+// Delivery uses v2's UAMI (granted both
 // Queue Data Contributor on the storage account AND Queue Data Message
 // Sender on the specific queue \u2014 EG preflight validates the latter at
 // queue scope specifically).
@@ -2117,6 +2266,8 @@ resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments
 
 resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
   parent: existingEventGridTopic
+  // Name retained (see the new-topic subscription above): an in-place
+  // destination repoint, not a rename that would orphan the prior sub.
   name: 'cwyd2-blob-created-doc-processing'
   properties: {
     deliveryWithResourceIdentity: {
@@ -2128,12 +2279,12 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
         endpointType: 'StorageQueue'
         properties: {
           resourceId: effectiveStorageResourceId
-          queueName: docProcessingQueueName
+          queueName: blobEventsQueueName
         }
       }
     }
     filter: {
-      includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+      includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
       subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
       enableAdvancedFilteringOnArrays: true
     }
@@ -2144,7 +2295,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
     }
   }
   dependsOn: [
-    existingStorageQueueDocProcessing
+    existingStorageQueueBlobEvents
     existingStorageQueueContributor
     existingQueueMessageSenderRole
   ]
@@ -2248,6 +2399,15 @@ output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveS
 @description('AI Search service name. Empty in postgresql mode.')
 output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? effectiveSearchName : ''
 
+@description('Foundry IQ knowledge base name. Backend grounds the agent_framework orchestrator on it; post_provision.py seeds it. Carries the configured name in both modes (post_provision skips seeding when the Search endpoint is empty).')
+output AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME string = searchKnowledgeBaseName
+
+@description('Foundry IQ knowledge source name backing the knowledge base. Seeded by post_provision.py before the knowledge base (the base references it).')
+output AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME string = searchKnowledgeSourceName
+
+@description('Foundry IQ knowledge base / knowledge source REST API version (operator-tunable). Used by post_provision.py to seed and by the backend to build the MCP retrieval URL.')
+output AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION string = searchKnowledgeBaseApiVersion
+
 // --- Conditional: Cosmos DB (cosmosdb mode only) ---
 
 @description('Cosmos DB account endpoint (DocumentEndpoint). Empty in postgresql mode.')
@@ -2283,6 +2443,9 @@ output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
 
 @description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
 output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
+
+@description('Ingestion trigger mode for the backend admin upload path: direct_enqueue (backend enqueues) or event_grid (Event Grid + blob_event Function own the push).')
+output AZURE_INGESTION_TRIGGER string = ingestionTrigger
 
 // --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
 
