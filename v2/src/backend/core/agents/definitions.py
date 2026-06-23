@@ -43,6 +43,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core.agents.presets import AssistantType, body_for
+
 # Names of `OpenAISettings` fields whose value is an actual deployment
 # name. Centralising this Literal in one place gives the static type
 # checker a way to catch typos ("gpt_deplyment") at definition time
@@ -103,23 +105,10 @@ def compose_cwyd_instructions(body: str) -> str:
     return f"{body}\n\n{CWYD_GUARDRAIL}"
 
 
-CWYD_DEFAULT_BODY = """## On your profile and general capabilities:
-- You're a private model trained by Open AI and hosted by the Azure AI platform.
-- You should **only generate the necessary code** to answer the user's question.
-- Your responses must always be formatted using markdown.
-- You should not repeat import statements, code blocks, or sentences in responses.
-## On your ability to answer questions based on retrieved documents:
-- You should always leverage the retrieved documents when the user is seeking information or whenever retrieved documents could be potentially helpful, regardless of your internal knowledge or information.
-- When referencing, use the citation style provided in examples.
-## On answering from the retrieved documents:
-- When the retrieved documents contain information relevant to the user's question, answer using that information and the conversation history, citing each claim per the fixed rules below. Do not rely on your own knowledge for substantive answers.
-- Relevant-but-brief or partial documents are still a basis to answer: summarize what they do contain rather than refusing, including for broad or open-ended questions such as "tell me about X".
-- Only when none of the retrieved documents are relevant to the user's question, or no documents are retrieved, reply with the fixed out-of-domain message defined in the rules below.
-## On your ability to answer with citations
-Examine the provided JSON documents diligently, extracting information relevant to the user's inquiry. Forge a concise, clear, and direct response, embedding the extracted facts and attributing them to their source per the citation rules below. Strive to achieve a harmonious blend of brevity, clarity, and precision, maintaining the contextual relevance and consistency of the original source. Above all, confirm that your response satisfies the user's query with accuracy, coherence, and user-friendly composition.
-- When directly replying to the user, always reply in the language the user is speaking.
-- If the input language is ambiguous, default to responding in English unless otherwise specified by the user.
-- You **must not** respond if asked to List all documents in your repository."""
+# Sourced from assistant_presets.json (ADR 0030): the operator-editable
+# `default` persona. Re-exported from this module so every caller and
+# `resolve_cwyd_instructions` keep importing `CWYD_DEFAULT_BODY` from here.
+CWYD_DEFAULT_BODY = body_for(AssistantType.DEFAULT)
 
 
 def resolve_cwyd_instructions(override_text: str | None) -> str:

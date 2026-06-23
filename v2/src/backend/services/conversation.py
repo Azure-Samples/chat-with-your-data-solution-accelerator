@@ -10,6 +10,10 @@ from collections.abc import AsyncIterator
 
 from fastapi import Request
 
+from backend.core.agents.presets import (
+    DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
+    DEFAULT_POST_ANSWERING_PROMPT,
+)
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.tools.post_prompt import PostPromptValidator
@@ -48,14 +52,15 @@ def build_post_prompt_validator(
     """Build a ``PostPromptValidator`` from runtime overrides, or ``None``.
 
     The post-answering knobs live only in ``RuntimeConfig`` -- there
-    is no ``AppSettings`` env baseline -- so the cascade is simple:
-    a validator is built only when the operator both opts in
-    (``post_answering_enabled is True``) and supplies a non-empty
-    ``post_answering_prompt`` template. Any other combination
-    (overrides missing, toggle ``None``/``False``, blank prompt)
-    returns ``None`` so the chat pipeline streams unbuffered. When
-    set, ``post_answering_filter_message`` overrides the validator's
-    built-in default; empty/whitespace keeps the default.
+    is no ``AppSettings`` env baseline -- so the cascade is: a validator
+    is built only when the operator opts in
+    (``post_answering_enabled is True``). The validation prompt and
+    filter message come from the override, falling back to the populated
+    JSON defaults (ADR 0030) when the override is empty -- so enabling
+    the feature without re-typing the prompt uses the default the admin
+    UI already shows, rather than silently doing nothing. Any
+    not-enabled combination (overrides missing, toggle ``None`` /
+    ``False``) returns ``None`` so the chat pipeline streams unbuffered.
     """
     if overrides is None:
         return None
@@ -63,15 +68,15 @@ def build_post_prompt_validator(
         return None
     prompt = overrides.post_answering_prompt
     if prompt is None or not prompt.strip():
-        return None
+        prompt = DEFAULT_POST_ANSWERING_PROMPT
     filter_message = overrides.post_answering_filter_message
-    if filter_message:
-        return PostPromptValidator(
-            llm,
-            validation_prompt=prompt,
-            filter_message=filter_message,
-        )
-    return PostPromptValidator(llm, validation_prompt=prompt)
+    if filter_message is None or not filter_message.strip():
+        filter_message = DEFAULT_POST_ANSWERING_FILTER_MESSAGE
+    return PostPromptValidator(
+        llm,
+        validation_prompt=prompt,
+        filter_message=filter_message,
+    )
 
 
 async def collect_response(

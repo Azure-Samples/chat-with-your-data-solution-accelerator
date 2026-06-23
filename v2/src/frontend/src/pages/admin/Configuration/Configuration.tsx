@@ -48,24 +48,29 @@ import {
 import {
   Button,
   Input,
+  Label,
   Select,
   Switch,
   Textarea,
+  Tooltip,
 } from "@fluentui/react-components";
 import type {
   SwitchOnChangeData,
   TextareaOnChangeData,
 } from "@fluentui/react-components";
+import { Info16Regular } from "@fluentui/react-icons";
 import {
   AdminApiError,
   getAdminConfig,
+  getAssistantTypePresets,
   patchAdminConfig,
   resetAdminConfig,
 } from "@/api/admin";
-import { LogLevel, OrchestratorName } from "@/models/admin";
+import { AssistantType, LogLevel, OrchestratorName } from "@/models/admin";
 import type {
   AdminConfig,
   AdminConfigPatch,
+  AssistantTypePresets,
   RuntimeConfig,
 } from "@/models/admin";
 import {
@@ -89,6 +94,7 @@ type ConfigFieldKey =
   | "search_top_k"
   | "log_level"
   | "content_safety_enabled"
+  | "ai_assistant_type"
   | "cwyd_agent_instructions"
   | "post_answering_prompt"
   | "post_answering_enabled"
@@ -113,6 +119,7 @@ interface FieldSpec {
   key: ConfigFieldKey;
   label: string;
   hint: string;
+  tooltip: string;
   kind: "text" | "number" | "boolean" | "select";
   multiline?: boolean;
   allowEmpty?: boolean;
@@ -169,9 +176,24 @@ function extractRaiRejection(
 
 const FIELD_SPECS: readonly FieldSpec[] = [
   {
+    key: "ai_assistant_type",
+    label: "Assistant type",
+    hint: "Switch between the default, contract, and employee personas. Selecting one loads its prompt into the System prompt field below, where you can edit it before saving.",
+    tooltip:
+      "Choose which persona preset the assistant answers under: the default assistant, the Contract Assistant, or the Employee (HR) Assistant. Selecting one loads its prompt into the System prompt field below, which you can still edit before saving.",
+    kind: "select",
+    options: [
+      AssistantType.Default,
+      AssistantType.Contract,
+      AssistantType.Employee,
+    ],
+  },
+  {
     key: "cwyd_agent_instructions",
     label: "System prompt",
     hint: "System prompt for the primary assistant. Leave empty to fall back to the built-in default prompt.",
+    tooltip:
+      "The system persona the assistant answers under. Sources are retrieved and cited automatically by the orchestrator, so this is behavioral instructions only -- no {sources} or {question} placeholders are needed. Leave empty to fall back to the built-in default prompt.",
     kind: "text",
     multiline: true,
     allowEmpty: true,
@@ -180,6 +202,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "orchestrator_name",
     label: "Orchestrator",
     hint: "Registry key of the active orchestrator (e.g. langgraph, agent_framework).",
+    tooltip:
+      "The orchestration engine that runs the chat pipeline. Swappable through the backend provider registry; the built-in choices are langgraph and agent_framework.",
     kind: "select",
     options: [OrchestratorName.LangGraph, OrchestratorName.AgentFramework],
   },
@@ -187,6 +211,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "openai_temperature",
     label: "OpenAI temperature",
     hint: "Sampling temperature for the chat model. 0.0 = deterministic, 2.0 = maximally random.",
+    tooltip:
+      "Sampling temperature for the chat model. Lower values (near 0.0) make answers more focused and deterministic; higher values (toward 2.0) make them more varied and creative.",
     kind: "number",
     numberStep: "0.05",
     numberMin: 0,
@@ -196,6 +222,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "openai_max_tokens",
     label: "OpenAI max tokens",
     hint: "Maximum number of tokens the chat model may generate per response.",
+    tooltip:
+      "Upper bound on the number of tokens the chat model may generate in a single response. Higher values allow longer answers but cost more per call.",
     kind: "number",
     numberStep: "1",
     numberMin: 1,
@@ -204,12 +232,16 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "search_use_semantic_search",
     label: "Use semantic search",
     hint: "Enable Azure AI Search semantic reranking on retrieval queries.",
+    tooltip:
+      "Enable Azure AI Search semantic reranking on retrieval queries, reordering retrieved chunks by relevance for higher-quality grounding.",
     kind: "boolean",
   },
   {
     key: "search_top_k",
     label: "Search top K",
     hint: "Number of chunks to retrieve per query before reranking.",
+    tooltip:
+      "How many document chunks to retrieve per query before reranking. Larger values widen the grounding context at the cost of more tokens.",
     kind: "number",
     numberStep: "1",
     numberMin: 1,
@@ -218,6 +250,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "log_level",
     label: "Log level",
     hint: "Python logging level for the backend process (DEBUG, INFO, WARNING, ERROR).",
+    tooltip:
+      "Verbosity of the backend process logs. DEBUG is the most detailed; ERROR is the quietest. Affects the running process via live-reload.",
     kind: "select",
     options: [LogLevel.Debug, LogLevel.Info, LogLevel.Warning, LogLevel.Error],
   },
@@ -225,18 +259,24 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "content_safety_enabled",
     label: "Content safety",
     hint: "Enable the Azure AI Content Safety pre-filter on user input.",
+    tooltip:
+      "Screen user input through Azure AI Content Safety before it reaches the model, blocking messages that breach the configured harm categories.",
     kind: "boolean",
   },
   {
     key: "post_answering_enabled",
     label: "Post-answering validator",
     hint: "Run the post-answering groundedness check on every assistant response. Requires a non-empty prompt below to take effect.",
+    tooltip:
+      "Run a second groundedness check on every assistant response. This adds an extra model call per answer and can replace ungrounded answers with the filter message below, so enable it deliberately. Requires the post-answering prompt below.",
     kind: "boolean",
   },
   {
     key: "post_answering_prompt",
     label: "Post-answering prompt",
     hint: "Prompt template the validator sends back to the LLM. Use {question}, {answer}, and {sources} placeholders. Leave empty to disable the validator regardless of the toggle above.",
+    tooltip:
+      "You can configure a post prompt that allows to fact-check or process the answer, given the sources, question and answer. This prompt needs to return True or False.",
     kind: "text",
     multiline: true,
     allowEmpty: true,
@@ -245,6 +285,8 @@ const FIELD_SPECS: readonly FieldSpec[] = [
     key: "post_answering_filter_message",
     label: "Post-answering filter message",
     hint: "Reply returned to the user when the validator rejects an answer as ungrounded. Leave empty to fall back to the built-in default message.",
+    tooltip:
+      "The message that is returned to the user, when the post-answering prompt returns.",
     kind: "text",
     allowEmpty: true,
   },
@@ -262,6 +304,7 @@ interface ConfigurationState {
   saveError: string | null;
   raiRejection: { field: ConfigFieldKey; message: string } | null;
   lastRuntime: RuntimeConfig | null;
+  assistantTypePresets: AssistantTypePresets;
   resetConfirmOpen: boolean;
 }
 
@@ -282,7 +325,11 @@ export type ConfigActionType =
 
 type ConfigurationAction =
   | { type: typeof ConfigActionType.LoadStarted }
-  | { type: typeof ConfigActionType.LoadSucceeded; config: AdminConfig }
+  | {
+      type: typeof ConfigActionType.LoadSucceeded;
+      config: AdminConfig;
+      presets: AssistantTypePresets;
+    }
   | { type: typeof ConfigActionType.LoadFailed; error: string }
   | {
       type: typeof ConfigActionType.FieldChanged;
@@ -313,6 +360,7 @@ const initialState: ConfigurationState = {
   saveError: null,
   raiRejection: null,
   lastRuntime: null,
+  assistantTypePresets: {},
   resetConfirmOpen: false,
 };
 
@@ -325,6 +373,7 @@ function configToForm(config: AdminConfig): FormValues {
     search_top_k: config.search_top_k,
     log_level: config.log_level,
     content_safety_enabled: config.content_safety_enabled,
+    ai_assistant_type: config.ai_assistant_type,
     cwyd_agent_instructions: config.cwyd_agent_instructions,
     post_answering_prompt: config.post_answering_prompt,
     post_answering_enabled: config.post_answering_enabled,
@@ -357,6 +406,7 @@ export function configurationReducer(
         saveError: null,
         raiRejection: null,
         lastRuntime: state.lastRuntime,
+        assistantTypePresets: action.presets,
         resetConfirmOpen: false,
       };
     case ConfigActionType.LoadFailed:
@@ -413,6 +463,7 @@ export function configurationReducer(
         saveError: null,
         raiRejection: null,
         lastRuntime: action.runtime,
+        assistantTypePresets: state.assistantTypePresets,
         resetConfirmOpen: false,
       };
     case ConfigActionType.SaveFailed:
@@ -476,6 +527,9 @@ function computePatch(
         break;
       case "cwyd_agent_instructions":
         patch.cwyd_agent_instructions = after as string;
+        break;
+      case "ai_assistant_type":
+        patch.ai_assistant_type = after as string;
         break;
       case "post_answering_prompt":
         patch.post_answering_prompt = after as string;
@@ -564,8 +618,11 @@ export function Configuration(): JSX.Element {
   const load = useCallback(async (): Promise<void> => {
     dispatch({ type: ConfigActionType.LoadStarted });
     try {
-      const config = await getAdminConfig();
-      dispatch({ type: ConfigActionType.LoadSucceeded, config });
+      const [config, presets] = await Promise.all([
+        getAdminConfig(),
+        getAssistantTypePresets(),
+      ]);
+      dispatch({ type: ConfigActionType.LoadSucceeded, config, presets });
     } catch (err) {
       dispatch({ type: ConfigActionType.LoadFailed, error: errorMessage(err) });
     }
@@ -614,6 +671,25 @@ export function Configuration(): JSX.Element {
         });
       },
     [],
+  );
+
+  const handleAssistantTypeChange = useCallback(
+    (_ev: ChangeEvent<HTMLSelectElement>, data: { value: string }): void => {
+      dispatch({
+        type: ConfigActionType.FieldChanged,
+        key: "ai_assistant_type",
+        value: data.value,
+      });
+      const presetBody = state.assistantTypePresets[data.value];
+      if (presetBody !== undefined) {
+        dispatch({
+          type: ConfigActionType.FieldChanged,
+          key: "cwyd_agent_instructions",
+          value: presetBody,
+        });
+      }
+    },
+    [state.assistantTypePresets],
   );
 
   const handleTextareaChange = useCallback(
@@ -803,12 +879,21 @@ export function Configuration(): JSX.Element {
                           className={styles.field}
                           data-testid={`config-field-${spec.key}`}
                         >
-                          <label
-                            htmlFor={inputId}
-                            className={styles.fieldLabel}
-                          >
-                            {spec.label}
-                          </label>
+                          <div className={styles.fieldLabel}>
+                            <Label htmlFor={inputId}>{spec.label}</Label>
+                            <Tooltip
+                              content={spec.tooltip}
+                              relationship="label"
+                              withArrow
+                            >
+                              <Button
+                                type="button"
+                                appearance="transparent"
+                                size="small"
+                                icon={<Info16Regular />}
+                              />
+                            </Tooltip>
+                          </div>
                           {spec.kind === "text" && spec.multiline === true ? (
                             <Textarea
                               id={inputId}
@@ -865,7 +950,11 @@ export function Configuration(): JSX.Element {
                             <Select
                               id={inputId}
                               value={value as string}
-                              onChange={handleSelectChange(spec.key)}
+                              onChange={
+                                spec.key === "ai_assistant_type"
+                                  ? handleAssistantTypeChange
+                                  : handleSelectChange(spec.key)
+                              }
                               disabled={state.saveStatus === SaveStatus.Saving}
                               data-testid={inputId}
                             >

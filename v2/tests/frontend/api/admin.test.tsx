@@ -11,6 +11,7 @@ import {
   deleteDocument,
   getAdminConfig,
   getAdminStatus,
+  getAssistantTypePresets,
   listDocuments,
   patchAdminConfig,
   reprocessAll,
@@ -92,6 +93,7 @@ const ADMIN_CONFIG_FIXTURE: AdminConfig = {
   log_level: "INFO",
   content_safety_enabled: false,
   cwyd_agent_instructions: "You are the Chat With Your Data assistant.",
+  ai_assistant_type: "default",
   post_answering_prompt: "",
   post_answering_enabled: false,
   post_answering_filter_message: "",
@@ -106,6 +108,7 @@ const RUNTIME_CONFIG_FIXTURE: RuntimeConfig = {
   log_level: null,
   content_safety_enabled: null,
   cwyd_agent_instructions: null,
+  ai_assistant_type: null,
   post_answering_prompt: null,
   post_answering_enabled: null,
   post_answering_filter_message: null,
@@ -128,9 +131,15 @@ const EFFECTIVE_CONFIG_FIXTURE = {
     log_level: "env",
     content_safety_enabled: "env",
     cwyd_agent_instructions: "env",
+    ai_assistant_type: "env",
     post_answering_prompt: "env",
     post_answering_enabled: "env",
     post_answering_filter_message: "env",
+  },
+  assistant_type_presets: {
+    default: "You are the Chat With Your Data assistant.",
+    "contract assistant": "You are an AI Contract Assistant.",
+    "employee assistant": "You are an AI HR Assistant.",
   },
   updated_at: "2026-06-03T11:00:00Z",
   updated_by: "admin-user-id",
@@ -646,6 +655,56 @@ describe("getAdminConfig", () => {
   });
 });
 
+describe("getAssistantTypePresets", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("GETs /api/admin/config/effective with a JSON Accept header", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(EFFECTIVE_CONFIG_FIXTURE));
+
+    await getAssistantTypePresets();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/admin/config/effective");
+    expect(init.method).toBe("GET");
+    expect((init.headers as Record<string, string>).Accept).toBe(
+      "application/json",
+    );
+  });
+
+  it("returns the assistant_type_presets map unwrapped from the envelope", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(EFFECTIVE_CONFIG_FIXTURE));
+
+    const result = await getAssistantTypePresets();
+
+    expect(result).toEqual(EFFECTIVE_CONFIG_FIXTURE.assistant_type_presets);
+    expect(result["contract assistant"]).toBe(
+      "You are an AI Contract Assistant.",
+    );
+  });
+
+  it("throws on 403 (authenticated but not in admin role)", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { detail: "Caller is not in the 'admin' role." },
+        { status: 403 },
+      ),
+    );
+
+    await expect(getAssistantTypePresets()).rejects.toThrow(/status 403/);
+  });
+});
+
 describe("patchAdminConfig", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -806,6 +865,7 @@ describe("resetAdminConfig", () => {
       log_level: null,
       content_safety_enabled: null,
       cwyd_agent_instructions: null,
+      ai_assistant_type: null,
       post_answering_prompt: null,
       post_answering_enabled: null,
       post_answering_filter_message: null,
@@ -879,6 +939,11 @@ describe("principal id header forwarding", () => {
       name: "getAdminConfig",
       fixture: EFFECTIVE_CONFIG_FIXTURE,
       invoke: getAdminConfig,
+    },
+    {
+      name: "getAssistantTypePresets",
+      fixture: EFFECTIVE_CONFIG_FIXTURE,
+      invoke: getAssistantTypePresets,
     },
     {
       name: "patchAdminConfig",

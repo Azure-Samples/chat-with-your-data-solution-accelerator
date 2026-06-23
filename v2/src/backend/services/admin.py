@@ -15,6 +15,11 @@ from backend.core.agents.definitions import (
     CWYD_AGENT,
     resolve_cwyd_instructions,
 )
+from backend.core.agents.presets import (
+    DEFAULT_ASSISTANT_TYPE,
+    DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
+    DEFAULT_POST_ANSWERING_PROMPT,
+)
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.settings import AppSettings
@@ -129,9 +134,10 @@ def resolve_effective_config(
         "log_level": settings.observability.log_level,
         "content_safety_enabled": settings.content_safety.enabled,
         "cwyd_agent_instructions": CWYD_AGENT.instructions,
-        "post_answering_prompt": "",
+        "ai_assistant_type": DEFAULT_ASSISTANT_TYPE,
+        "post_answering_prompt": DEFAULT_POST_ANSWERING_PROMPT,
         "post_answering_enabled": False,
-        "post_answering_filter_message": "",
+        "post_answering_filter_message": DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
     }
     if overrides is not None:
         for name in values:

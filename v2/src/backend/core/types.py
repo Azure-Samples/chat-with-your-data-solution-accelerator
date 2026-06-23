@@ -13,6 +13,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core.agents.presets import AssistantType
+
 
 class AadScope(StrEnum):
     """Closed-set AAD token-scope discriminator for UAMI/AAD auth (Hard Rule #11).
@@ -295,6 +297,13 @@ class RuntimeConfig(BaseModel):
     `AgentDefinition` singleton; when set, the provider applies the
     override at agent-creation time.
 
+    `ai_assistant_type` records which prompt preset the operator
+    selected (default / contract assistant / employee assistant, ADR
+    0030). It is UI / provenance state -- the prompt that actually
+    flows to the agent is `cwyd_agent_instructions` (the frontend
+    loads the selected preset body into it). `None` falls through to
+    the default type.
+
     `post_answering_prompt`, `post_answering_enabled`, and
     `post_answering_filter_message` configure the optional
     `PostPromptValidator` wired into the chat pipeline. When
@@ -322,6 +331,7 @@ class RuntimeConfig(BaseModel):
     log_level: str | None = None
     content_safety_enabled: bool | None = None
     cwyd_agent_instructions: str | None = None
+    ai_assistant_type: AssistantType | None = None
     post_answering_prompt: str | None = None
     post_answering_enabled: bool | None = None
     post_answering_filter_message: str | None = None

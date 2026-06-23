@@ -28,6 +28,13 @@ from backend.core.agents.definitions import (
     CWYD_DEFAULT_BODY,
     CWYD_GUARDRAIL,
 )
+from backend.core.agents.presets import (
+    ASSISTANT_PRESETS,
+    DEFAULT_ASSISTANT_TYPE,
+    DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
+    DEFAULT_POST_ANSWERING_PROMPT,
+    AssistantType,
+)
 from backend.core.providers.search.base import SourceListing
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.dependencies import (
@@ -542,6 +549,7 @@ _EXPECTED_CONFIG_KEYS = {
     "log_level",
     "content_safety_enabled",
     "cwyd_agent_instructions",
+    "ai_assistant_type",
     "post_answering_prompt",
     "post_answering_enabled",
     "post_answering_filter_message",
@@ -672,17 +680,18 @@ async def test_config_surfaces_post_answering_defaults(
     admin_app_factory,
 ) -> None:
     """GET /api/admin/config must surface the three post-answering
-    fields with their env baseline (`""` / `False` / `""`) before any
-    operator override has been persisted. The validator stays off
-    until an operator explicitly enables it, so the baseline shape
-    is the no-op configuration."""
+    fields with their populated JSON defaults (ADR 0030) + the
+    `ai_assistant_type` selector. The validator stays OFF
+    (`post_answering_enabled is False`) until an operator enables it,
+    but the prompt + filter text are no longer empty."""
     app = admin_app_factory(_settings())
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/config")
     body = resp.json()
-    assert body["post_answering_prompt"] == ""
+    assert body["ai_assistant_type"] == DEFAULT_ASSISTANT_TYPE
+    assert body["post_answering_prompt"] == DEFAULT_POST_ANSWERING_PROMPT
     assert body["post_answering_enabled"] is False
-    assert body["post_answering_filter_message"] == ""
+    assert body["post_answering_filter_message"] == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
 
 
 @pytest.mark.asyncio
@@ -967,6 +976,82 @@ async def test_patch_config_explicit_null_clears_content_safety_override(
     persisted = db.upsert_runtime_config.await_args.args[0]
     assert persisted.content_safety_enabled is None
     assert resp.json()["content_safety_enabled"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "wire_value, expected_member",
+    [
+        ("default", AssistantType.DEFAULT),
+        ("contract assistant", AssistantType.CONTRACT),
+        ("employee assistant", AssistantType.EMPLOYEE),
+    ],
+)
+async def test_patch_config_accepts_ai_assistant_type(
+    admin_app_factory, wire_value: str, expected_member: AssistantType
+) -> None:
+    """PATCH must accept every `AssistantType` member as a runtime
+    override. The selector is what drives the persona preset on the
+    admin SPA (ADR 0030); persisting it is the load-bearing half --
+    the orchestrator reads the merged value at chat time."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"ai_assistant_type": wire_value},
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.ai_assistant_type is expected_member
+    assert resp.json()["ai_assistant_type"] == wire_value
+
+
+@pytest.mark.asyncio
+async def test_patch_config_rejects_unknown_ai_assistant_type_with_422(
+    admin_app_factory,
+) -> None:
+    """A value outside the closed `AssistantType` set MUST raise 422 --
+    the StrEnum annotation is the schema gate. A typo'd selector must
+    never silently persist as a free-text persona key."""
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"ai_assistant_type": "marketing assistant"},
+        )
+    assert resp.status_code == 422
+    db.upsert_runtime_config.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_patch_config_explicit_null_clears_ai_assistant_type_override(
+    admin_app_factory,
+) -> None:
+    """RFC 7396 `null` clears the persisted selector override, so the
+    next request falls through to the JSON default assistant type. The
+    PATCH response echoes the merged override shape, so the cleared
+    field reads back as `None` (the env-fallthrough is applied later by
+    `resolve_effective_config`, not by this endpoint)."""
+    db = _fake_db(current=RuntimeConfig(ai_assistant_type=AssistantType.CONTRACT))
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"ai_assistant_type": None},
+        )
+    assert resp.status_code == 200
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.ai_assistant_type is None
+    assert resp.json()["ai_assistant_type"] is None
+
+
+def test_writable_fields_includes_ai_assistant_type() -> None:
+    """`ai_assistant_type` is auto-derived into `WRITABLE_FIELDS` from
+    `RuntimeConfig.model_fields`; lock the derivation in so a refactor
+    cannot silently drop the persona selector from the PATCH surface."""
+    assert "ai_assistant_type" in WRITABLE_FIELDS
 
 
 def test_writable_fields_includes_cwyd_agent_instructions() -> None:
@@ -1359,7 +1444,13 @@ async def test_patch_config_audit_failure_does_not_roll_back_patch(
 # ---------------------------------------------------------------------------
 
 
-_EXPECTED_EFFECTIVE_KEYS = {"values", "sources", "updated_at", "updated_by"}
+_EXPECTED_EFFECTIVE_KEYS = {
+    "values",
+    "sources",
+    "assistant_type_presets",
+    "updated_at",
+    "updated_by",
+}
 
 
 @pytest.mark.asyncio
@@ -1400,9 +1491,10 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "log_level": "INFO",
         "content_safety_enabled": False,
         "cwyd_agent_instructions": CWYD_DEFAULT_BODY,
-        "post_answering_prompt": "",
+        "ai_assistant_type": DEFAULT_ASSISTANT_TYPE,
+        "post_answering_prompt": DEFAULT_POST_ANSWERING_PROMPT,
         "post_answering_enabled": False,
-        "post_answering_filter_message": "",
+        "post_answering_filter_message": DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
     }
     assert body["sources"] == {
         "orchestrator_name": "env",
@@ -1413,9 +1505,16 @@ async def test_config_effective_returns_env_defaults_when_no_overrides(
         "log_level": "env",
         "content_safety_enabled": "env",
         "cwyd_agent_instructions": "env",
+        "ai_assistant_type": "env",
         "post_answering_prompt": "env",
         "post_answering_enabled": "env",
         "post_answering_filter_message": "env",
+    }
+    # The static Assistant Type presets ride the same response so the
+    # admin SPA can repopulate the persona textarea on selector change
+    # without a second round-trip (ADR 0030).
+    assert body["assistant_type_presets"] == {
+        member.value: ASSISTANT_PRESETS[member] for member in ASSISTANT_PRESETS
     }
     assert body["updated_at"] is None
     assert body["updated_by"] is None
@@ -1470,6 +1569,7 @@ async def test_config_effective_overlays_partial_overrides(
         "log_level": "override",
         "content_safety_enabled": "env",
         "cwyd_agent_instructions": "env",
+        "ai_assistant_type": "env",
         "post_answering_prompt": "env",
         "post_answering_enabled": "env",
         "post_answering_filter_message": "env",
@@ -1528,6 +1628,7 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         log_level="DEBUG",
         content_safety_enabled=True,
         cwyd_agent_instructions="You are the override assistant.",
+        ai_assistant_type=AssistantType.CONTRACT,
         post_answering_prompt="Validate {sources} {question} {answer}.",
         post_answering_enabled=True,
         post_answering_filter_message="The answer was filtered out.",
@@ -1548,6 +1649,7 @@ async def test_config_effective_overlays_all_fields_when_fully_overridden(
         "log_level": "DEBUG",
         "content_safety_enabled": True,
         "cwyd_agent_instructions": "You are the override assistant.",
+        "ai_assistant_type": "contract assistant",
         "post_answering_prompt": "Validate {sources} {question} {answer}.",
         "post_answering_enabled": True,
         "post_answering_filter_message": "The answer was filtered out.",
@@ -1721,11 +1823,13 @@ def test_effective_admin_config_coerces_string_to_enum(
             log_level="INFO",
             content_safety_enabled=False,
             cwyd_agent_instructions="You are the assistant.",
+            ai_assistant_type=AssistantType.DEFAULT,
             post_answering_prompt="",
             post_answering_enabled=False,
             post_answering_filter_message="",
         ),
         sources={"orchestrator_name": wire_value},  # type: ignore[dict-item]
+        assistant_type_presets={},
     )
     member = cfg.sources["orchestrator_name"]
     assert member is getattr(ConfigSource, expected_member)
@@ -1747,11 +1851,13 @@ def test_effective_admin_config_rejects_unknown_source_value() -> None:
                 log_level="INFO",
                 content_safety_enabled=False,
                 cwyd_agent_instructions="You are the assistant.",
+                ai_assistant_type=AssistantType.DEFAULT,
                 post_answering_prompt="",
                 post_answering_enabled=False,
                 post_answering_filter_message="",
             ),
             sources={"orchestrator_name": "fallback"},  # type: ignore[dict-item]
+            assistant_type_presets={},
         )
 
 
@@ -1771,6 +1877,7 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
             log_level="INFO",
             content_safety_enabled=False,
             cwyd_agent_instructions="You are the assistant.",
+            ai_assistant_type=AssistantType.DEFAULT,
             post_answering_prompt="",
             post_answering_enabled=False,
             post_answering_filter_message="",
@@ -1779,6 +1886,7 @@ def test_effective_admin_config_serializes_enum_members_as_wire_strings() -> Non
             "orchestrator_name": ConfigSource.ENV,
             "log_level": ConfigSource.OVERRIDE,
         },
+        assistant_type_presets={},
     )
     dumped = cfg.model_dump(mode="json")
     assert dumped["sources"] == {
