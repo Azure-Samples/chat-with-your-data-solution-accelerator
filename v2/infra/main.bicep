@@ -2219,9 +2219,9 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
 // subscription (BlobCreated / BlobDeleted under /documents/ →
 // blob-events queue, which the blob_event queue trigger translates into
 // the right action: create → doc-processing ingestion envelope consumed
-// by batch_push; delete → de-index, ADR 0028) is created as the
-// SEPARATE `newEventGridSubscription` resource below, NOT embedded in
-// this module's `eventSubscriptions`. Reason: Event Grid synchronously
+// by batch_push; delete → de-index, ADR 0028) is created as the separate
+// `newEventGridSubscription` resource below, NOT embedded in this
+// module's `eventSubscriptions`. Reason: Event Grid synchronously
 // validates that the delivery identity holds Storage Queue Data Message
 // Sender when the subscription is created. An embedded subscription is
 // created inside this module, before `eventGridQueueSenderRole` (which
