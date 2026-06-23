@@ -1,0 +1,34 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+name: cwyd-deployment
+endpoint_name: cwyd-endpoint
+model: azureml:cwyd-model:1
+  # You can also specify model files path inline
+  # path: examples/flows/chat/basic-chat
+environment:
+  image: mcr.microsoft.com/azureml/promptflow/promptflow-runtime:latest
+  inference_config:
+    liveness_route:
+      path: /health
+      port: 8080
+    readiness_route:
+      path: /health
+      port: 8080
+    scoring_route:
+      path: /score
+      port: 8080
+instance_type: Standard_DS3_v2
+instance_count: 1
+request_settings:
+  request_timeout_ms: 120000 # 2 minutes
+environment_variables:
+
+  # "compute" mode is the default mode, if you want to deploy to serving mode, you need to set this env variable to "serving"
+  PROMPTFLOW_RUN_MODE: serving
+
+  # for pulling connections from workspace
+  PRT_CONFIG_OVERRIDE: deployment.subscription_id=<subscription_id>,deployment.resource_group=<resource_group>,deployment.workspace_name=<workspace_name>,deployment.endpoint_name=<endpoint_name>,deployment.deployment_name=<deployment_name>
+
+  # (Optional) When there are multiple fields in the response, using this env variable will filter the fields to expose in the response.
+  # For example, if there are 2 flow outputs: "answer", "context", and I only want to have "answer" in the endpoint response, I can set this env variable to '["answer"]'.
+  # If you don't set this environment, by default all flow outputs will be included in the endpoint response.
+  # PROMPTFLOW_RESPONSE_INCLUDED_FIELDS: '["category", "evidence"]'
