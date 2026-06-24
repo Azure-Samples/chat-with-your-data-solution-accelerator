@@ -246,7 +246,6 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 // integration. The flag is the supported WAF-aligned topology and
 // requires no follow-up work to enable.
 
-
 // 15-char solution suffix used in every resource name. Lowercased and stripped
 // of separators so it stays valid for resources with the strictest naming rules
 // (PostgreSQL, Storage Account).
@@ -257,7 +256,8 @@ var solutionSuffix = toLower(trim(replace(
     ''
   ),
   '*',
-  '')))
+  ''
+)))
 
 var allTags = union(
   {
@@ -539,46 +539,48 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
     // with an empty deployments set; agents reach the model via the v1
     // OAI endpoint exported as AZURE_OPENAI_ENDPOINT. Otherwise Foundry
     // hosts the three deployments directly.
-    deployments: useExistingOpenAi ? [] : [
-      {
-        name: gptModelName
-        model: {
-          format: 'OpenAI'
-          name: gptModelName
-          version: gptModelVersion
-        }
-        sku: {
-          name: gptModelDeploymentType
-          capacity: gptModelCapacity
-        }
-        raiPolicyName: 'Microsoft.DefaultV2'
-      }
-      {
-        name: reasoningModelName
-        model: {
-          format: 'OpenAI'
-          name: reasoningModelName
-          version: reasoningModelVersion
-        }
-        sku: {
-          name: reasoningModelDeploymentType
-          capacity: reasoningModelCapacity
-        }
-        raiPolicyName: 'Microsoft.DefaultV2'
-      }
-      {
-        name: embeddingModelName
-        model: {
-          format: 'OpenAI'
-          name: embeddingModelName
-          version: embeddingModelVersion
-        }
-        sku: {
-          name: embeddingModelDeploymentType
-          capacity: embeddingModelCapacity
-        }
-      }
-    ]
+    deployments: useExistingOpenAi
+      ? []
+      : [
+          {
+            name: gptModelName
+            model: {
+              format: 'OpenAI'
+              name: gptModelName
+              version: gptModelVersion
+            }
+            sku: {
+              name: gptModelDeploymentType
+              capacity: gptModelCapacity
+            }
+            raiPolicyName: 'Microsoft.DefaultV2'
+          }
+          {
+            name: reasoningModelName
+            model: {
+              format: 'OpenAI'
+              name: reasoningModelName
+              version: reasoningModelVersion
+            }
+            sku: {
+              name: reasoningModelDeploymentType
+              capacity: reasoningModelCapacity
+            }
+            raiPolicyName: 'Microsoft.DefaultV2'
+          }
+          {
+            name: embeddingModelName
+            model: {
+              format: 'OpenAI'
+              name: embeddingModelName
+              version: embeddingModelVersion
+            }
+            sku: {
+              name: embeddingModelDeploymentType
+              capacity: embeddingModelCapacity
+            }
+          }
+        ]
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -684,7 +686,10 @@ resource existingOpenAiUamiRole 'Microsoft.Authorization/roleAssignments@2022-04
   properties: {
     // Cognitive Services OpenAI User — grants inference on every
     // deployment on the account (chat, reasoning, embedding).
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -694,7 +699,9 @@ resource existingOpenAiUamiRole 'Microsoft.Authorization/roleAssignments@2022-04
 // pipeline. When reusing v1 OAI, this points at the v1 account
 // (`https://<name>.openai.azure.com/`); otherwise it falls back to the
 // v2 Foundry account endpoint where the deployments live.
-var effectiveOpenAiEndpoint = useExistingOpenAi ? 'https://${existingOpenAiName}.openai.azure.com/' : aiServices.outputs.endpoint
+var effectiveOpenAiEndpoint = useExistingOpenAi
+  ? 'https://${existingOpenAiName}.openai.azure.com/'
+  : aiServices.outputs.endpoint
 
 // Foundry Project — child of the AI Services account. Hosts agents
 // (Agent Framework orchestrator) and knowledge bases (Foundry IQ).
@@ -938,7 +945,9 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
                   // array is shorter and the literal `dnsZoneIndex.search` (7) is out of
                   // range for ARM's static index validation, so resolve to a valid in-range
                   // index. The value is never used because this PE is gated out in that mode.
-                  privateDnsZoneResourceId: avmPrivateDnsZones[databaseType == 'cosmosdb' ? dnsZoneIndex.search : dnsZoneIndex.postgres]!.outputs.resourceId
+                  privateDnsZoneResourceId: avmPrivateDnsZones[databaseType == 'cosmosdb'
+                    ? dnsZoneIndex.search
+                    : dnsZoneIndex.postgres]!.outputs.resourceId
                 }
               ]
             }
@@ -962,7 +971,10 @@ resource existingSearchUamiIndexContributor 'Microsoft.Authorization/roleAssignm
   name: guid(existingSearch!.id, userAssignedIdentity.name, '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
   scope: existingSearch
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -972,7 +984,10 @@ resource existingSearchUamiServiceContributor 'Microsoft.Authorization/roleAssig
   name: guid(existingSearch!.id, userAssignedIdentity.name, '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
   scope: existingSearch
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -982,7 +997,10 @@ resource existingSearchProjectIndexReader 'Microsoft.Authorization/roleAssignmen
   name: guid(existingSearch!.id, aiProject.name, '1407120a-92aa-4202-b7e9-c0e197c71c8f')
   scope: existingSearch
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+    )
     principalId: aiProject.outputs.projectPrincipalId
     principalType: 'ServicePrincipal'
   }
@@ -1010,7 +1028,10 @@ resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022
   properties: {
     // Cognitive Services OpenAI User — lets the Search MI call the KB
     // query-planning chat deployment on the Foundry account.
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    )
     principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
@@ -1022,14 +1043,21 @@ resource searchOpenAiUserOnReusedOpenAi 'Microsoft.Authorization/roleAssignments
   properties: {
     // Cognitive Services OpenAI User — lets the Search MI call the KB
     // query-planning chat deployment on the reused v1 OpenAI account.
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    )
     principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
 }
 
-var effectiveSearchName = useExistingSearch ? existingSearchName : (databaseType == 'cosmosdb' ? aiSearch!.outputs.name : '')
-var effectiveSearchEndpoint = useExistingSearch ? 'https://${existingSearchName}.search.windows.net' : (databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '')
+var effectiveSearchName = useExistingSearch
+  ? existingSearchName
+  : (databaseType == 'cosmosdb' ? aiSearch!.outputs.name : '')
+var effectiveSearchEndpoint = useExistingSearch
+  ? 'https://${existingSearchName}.search.windows.net'
+  : (databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '')
 
 // Foundry Project ↔ Search connection (cosmosdb mode only). Lets Foundry
 // IQ knowledge bases resolve this Search service by friendly name and
@@ -1261,7 +1289,10 @@ resource existingStorageBlobContributor 'Microsoft.Authorization/roleAssignments
   name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
   scope: storageAccountExisting
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -1272,7 +1303,10 @@ resource existingStorageQueueContributor 'Microsoft.Authorization/roleAssignment
   name: guid(storageAccountExisting.id, userAssignedIdentity.name, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
   scope: storageAccountExisting
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -1283,7 +1317,10 @@ resource existingStorageAccountContributor 'Microsoft.Authorization/roleAssignme
   name: guid(storageAccountExisting.id, userAssignedIdentity.name, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
   scope: storageAccountExisting
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -1291,7 +1328,9 @@ resource existingStorageAccountContributor 'Microsoft.Authorization/roleAssignme
 
 var effectiveStorageName = useExistingStorage ? existingStorageName : storageAccount!.outputs.name
 var effectiveStorageResourceId = useExistingStorage ? storageAccountExisting.id : storageAccount!.outputs.resourceId
-var effectiveStorageBlobEndpoint = useExistingStorage ? storageAccountExisting.properties.primaryEndpoints.blob : storageAccount!.outputs.primaryBlobEndpoint
+var effectiveStorageBlobEndpoint = useExistingStorage
+  ? storageAccountExisting.properties.primaryEndpoints.blob
+  : storageAccount!.outputs.primaryBlobEndpoint
 
 // ----------------------------------------------------------------------
 // Cosmos DB (CONDITIONAL — cosmosdb mode only).
@@ -1316,9 +1355,11 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
     disableLocalAuthentication: true
     enableAutomaticFailover: enableRedundancy
     zoneRedundant: enableRedundancy
-    capabilitiesToAdd: enableRedundancy ? [] : [
-      'EnableServerless'
-    ]
+    capabilitiesToAdd: enableRedundancy
+      ? []
+      : [
+          'EnableServerless'
+        ]
     networkRestrictions: {
       networkAclBypass: 'None'
       publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
@@ -1400,7 +1441,7 @@ resource existingCosmosConversations 'Microsoft.DocumentDB/databaseAccounts/sqlD
     resource: {
       id: 'conversations'
       partitionKey: {
-        paths: [ '/userId' ]
+        paths: ['/userId']
         kind: 'Hash'
       }
     }
@@ -1417,8 +1458,12 @@ resource existingCosmosUamiRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAs
   }
 }
 
-var effectiveCosmosName = useExistingCosmos ? existingCosmosName : (databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : '')
-var effectiveCosmosEndpoint = useExistingCosmos ? existingCosmos!.properties.documentEndpoint : (databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '')
+var effectiveCosmosName = useExistingCosmos
+  ? existingCosmosName
+  : (databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : '')
+var effectiveCosmosEndpoint = useExistingCosmos
+  ? existingCosmos!.properties.documentEndpoint
+  : (databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '')
 
 // ----------------------------------------------------------------------
 // PostgreSQL Flexible Server + pgvector (CONDITIONAL — postgresql mode).
@@ -1532,7 +1577,9 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
     // AVM module flips it off automatically when delegatedSubnetResourceId
     // is set.
     delegatedSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.postgresSubnetResourceId : null
-    privateDnsZoneArmResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.postgres]!.outputs.resourceId : null
+    privateDnsZoneArmResourceId: enablePrivateNetworking
+      ? avmPrivateDnsZones[dnsZoneIndex.postgres]!.outputs.resourceId
+      : null
     diagnosticSettings: enableMonitoring
       ? [
           {
@@ -1587,7 +1634,9 @@ module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
     // `<app>.<defaultDomain>` resolve to that internal IP from inside
     // the VNet (frontend Web App, Function App, Bastion clients).
     internal: enablePrivateNetworking
-    infrastructureSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.containerAppsSubnetResourceId : null
+    infrastructureSubnetResourceId: enablePrivateNetworking
+      ? virtualNetwork!.outputs.containerAppsSubnetResourceId
+      : null
     // Workload Profile Consumption (NOT classic Consumption). Required
     // for full VNet integration in #7-#8 and to allow mixing Dedicated
     // profiles (e.g. GPU) later without re-creating the env. Idle cost
@@ -1614,7 +1663,7 @@ module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
 // settings to it without round-tripping through a module output.
 resource containerAppsEnvResource 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
   name: containerAppsEnvName
-  dependsOn: [ containerAppsEnv ]
+  dependsOn: [containerAppsEnv]
 }
 
 resource containerAppsEnvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableMonitoring) {
@@ -1789,9 +1838,15 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // The agent_framework orchestrator passes this as the KB MCP tool's
             // project_connection_id so Foundry IQ executes retrieval server-side
             // under the Project identity. Empty in postgresql mode (no connection).
-            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : '' }
+            {
+              name: 'AZURE_AI_SEARCH_CONNECTION_NAME'
+              value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : ''
+            }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
+            {
+              name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME'
+              value: databaseType == 'postgresql' ? postgresAdminPrincipalName : ''
+            }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
             // Speech token for the browser SDK. UAMI holds Cognitive
             // Services Speech User on the spch-* account; resource-id
@@ -2110,7 +2165,10 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
           { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
           { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-          { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
+          {
+            name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME'
+            value: databaseType == 'postgresql' ? postgresAdminPrincipalName : ''
+          }
           // Storage wiring used by batch_start / batch_push / add_url.
           { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
           { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
@@ -2144,7 +2202,7 @@ resource storageAccountExisting 'Microsoft.Storage/storageAccounts@2024-01-01' e
   // the static-analysis warning rather than add a runtime guard.
   #disable-next-line BCP334
   name: useExistingStorage ? existingStorageName : storageAccountName
-  dependsOn: [ storageAccount ]
+  dependsOn: [storageAccount]
 }
 
 resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -2157,18 +2215,26 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-// Event Grid system topic on the Storage Account. Single subscription:
-// BlobCreated / BlobDeleted under /documents/ → blob-events queue, which
-// the blob_event queue trigger translates into the right action (create
-// → doc-processing ingestion envelope consumed by batch_push; delete →
-// de-index) (ADR 0028). A queue destination --
-// not an Event Grid AzureFunction trigger -- keeps managed-identity
-// delivery and deploys at provision time (the queue exists; a function
-// would not yet). The add_url path is HTTP-triggered, not
-// blob-triggered, so it needs no subscription. When reusing v1's
-// storage that already has a system topic, the AVM module is skipped
-// and a sibling `existingEventGridSubscription` resource adds our
-// subscription to the v1 topic (Azure permits only one system topic
+// Event Grid system topic on the Storage Account. The single
+// subscription (BlobCreated / BlobDeleted under /documents/ →
+// blob-events queue, which the blob_event queue trigger translates into
+// the right action: create → doc-processing ingestion envelope consumed
+// by batch_push; delete → de-index, ADR 0028) is created as the separate
+// `newEventGridSubscription` resource below, NOT embedded in this
+// module's `eventSubscriptions`. Reason: Event Grid synchronously
+// validates that the delivery identity holds Storage Queue Data Message
+// Sender when the subscription is created. An embedded subscription is
+// created inside this module, before `eventGridQueueSenderRole` (which
+// needs this module's MI principalId output) can grant that role — so
+// the validator fails every deployment. Splitting the subscription out
+// lets it `dependsOn` the role assignment, mirroring the existing-topic
+// path. A queue destination -- not an Event Grid AzureFunction trigger
+// -- keeps managed-identity delivery and deploys at provision time (the
+// queue exists; a function would not yet). The add_url path is
+// HTTP-triggered, not blob-triggered, so it needs no subscription. When
+// reusing v1's storage that already has a system topic, the AVM module
+// is skipped and a sibling `existingEventGridSubscription` resource adds
+// our subscription to the v1 topic (Azure permits only one system topic
 // per source).
 module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
   name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
@@ -2182,40 +2248,7 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     managedIdentities: {
       systemAssigned: true
     }
-    eventSubscriptions: [
-      {
-        // Name retained (not 'blob-created-to-blob-events') so the
-        // destination repoint is an in-place update; renaming under
-        // azd incremental mode would orphan the prior subscription,
-        // leaving it to keep delivering to doc-processing.
-        name: 'blob-created-to-doc-processing'
-        // deliveryWithResourceIdentity (NOT plain destination) is required
-        // because storage has allowSharedKeyAccess=false. The system
-        // topic's system-assigned MI authenticates to Storage Queue.
-        deliveryWithResourceIdentity: {
-          identity: {
-            type: 'SystemAssigned'
-          }
-          destination: {
-            endpointType: 'StorageQueue'
-            properties: {
-              resourceId: effectiveStorageResourceId
-              queueName: blobEventsQueueName
-            }
-          }
-        }
-        filter: {
-          includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
-          subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
-          enableAdvancedFilteringOnArrays: true
-        }
-        eventDeliverySchema: 'EventGridSchema'
-        retryPolicy: {
-          maxDeliveryAttempts: 30
-          eventTimeToLiveInMinutes: 1440
-        }
-      }
-    ]
+    eventSubscriptions: []
   }
 }
 
@@ -2228,7 +2261,10 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
   name: guid(storageAccountExisting.id, eventGridSystemTopicName, storageQueueDataMessageSenderRoleId)
   scope: storageAccountExisting
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataMessageSenderRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      storageQueueDataMessageSenderRoleId
+    )
     // managedIdentities.systemAssigned: true is set unconditionally on
     // the topic above, so this output is always populated. The non-null
     // assertion satisfies Bicep's nullable-output type without the
@@ -2236,6 +2272,58 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
     principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
+}
+
+// Reference to the system topic the AVM module creates above, so the
+// standalone subscription can attach to it as a parent. Gated on the
+// same condition as the module.
+resource newEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-preview' existing = if (!useExistingEventGridTopic) {
+  name: eventGridSystemTopicName
+}
+
+// The blob-events subscription on the newly created system topic.
+// Created AFTER `eventGridQueueSenderRole` (via dependsOn) so Event
+// Grid's synchronous MI-delivery validator sees the Storage Queue Data
+// Message Sender grant already in place — the fix for the
+// "Managed identity for event subscription does not have authorization
+// to deliver to the endpoint" failure (aka.ms/egmsivalidation).
+resource newEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (!useExistingEventGridTopic) {
+  parent: newEventGridTopic
+  // Name retained (not 'blob-created-to-blob-events') so the destination
+  // repoint is an in-place update; renaming under azd incremental mode
+  // would orphan the prior subscription, leaving it to keep delivering
+  // to doc-processing.
+  name: 'blob-created-to-doc-processing'
+  properties: {
+    // deliveryWithResourceIdentity (NOT plain destination) is required
+    // because storage has allowSharedKeyAccess=false. The system topic's
+    // system-assigned MI authenticates to Storage Queue.
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'SystemAssigned'
+      }
+      destination: {
+        endpointType: 'StorageQueue'
+        properties: {
+          resourceId: effectiveStorageResourceId
+          queueName: blobEventsQueueName
+        }
+      }
+    }
+    filter: {
+      includedEventTypes: ['Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted']
+      subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
+      enableAdvancedFilteringOnArrays: true
+    }
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
+  dependsOn: [
+    eventGridQueueSenderRole
+  ]
 }
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
@@ -2258,7 +2346,10 @@ resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments
   name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
   scope: storageAccountExisting
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
+    )
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -2284,7 +2375,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
       }
     }
     filter: {
-      includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
+      includedEventTypes: ['Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted']
       subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
       enableAdvancedFilteringOnArrays: true
     }
@@ -2470,7 +2561,9 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 // --- Conditional: monitoring ---
 
 @description('Application Insights connection string. Empty when enableMonitoring=false.')
-output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring ? applicationInsights!.outputs.connectionString : ''
+output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring
+  ? applicationInsights!.outputs.connectionString
+  : ''
 
 // --- Conditional: private networking (enablePrivateNetworking only) ---
 
