@@ -1828,7 +1828,14 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
           enableMonitoring
             ? [
                 {
-                  name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+                  // Backend ACA is a plain container with no host-level App
+                  // Insights agent, so its Python lifespan calls
+                  // configure_azure_monitor with the connection string read
+                  // from the AZURE_-prefixed typed setting
+                  // (ObservabilitySettings, env_prefix=AZURE_). The Function
+                  // app keeps the standard APPLICATIONINSIGHTS_CONNECTION_STRING
+                  // that its host reads natively. (ADR-0018, BUG-0055.)
+                  name: 'AZURE_APP_INSIGHTS_CONNECTION_STRING'
                   value: applicationInsights!.outputs.connectionString
                 }
               ]

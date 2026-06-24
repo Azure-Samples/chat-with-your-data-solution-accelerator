@@ -127,22 +127,39 @@ services:
     project: ./build-functions
     language: py
     host: function
+    # prepackage is SERVICE-scoped (not project-scoped) so it fires on a
+    # targeted `azd deploy function` as well as `azd package` / `azd up`.
+    # A project-level `hooks.prepackage` only runs on the `package`
+    # command, so per-service deploys shipped a stale build-functions/
+    # artifact (BUG-0058). It regenerates v2/build-functions/ from
+    # src/functions/ + src/backend/ (function_app.py + host.json at root,
+    # a functions/ subpackage carrying the blueprint tree so
+    # `from functions.<sub>...` resolves at deploy root, a backend/
+    # subpackage, plus generated requirements.txt + .funcignore -- see
+    # v2/scripts/prepackage_function.py for the layout contract). The run
+    # path is relative to the service path (build-functions/), so it
+    # climbs to ../scripts/; the Python script resolves every path from
+    # its own location, so the hook cwd is irrelevant.
+    hooks:
+      prepackage:
+        posix:
+          shell: sh
+          run: ../scripts/prepackage-function.sh
+          continueOnError: false
+          interactive: false
+        windows:
+          shell: pwsh
+          run: ../scripts/prepackage-function.ps1
+          continueOnError: false
+          interactive: false
 
 # ----------------------------------------------------------------------
-# Hooks.
+# Project-level hooks.
 #
-#   prepackage  -- runs before every `azd package` / `azd deploy`.
-#                  Regenerates v2/build-functions/ from src/functions/
-#                  + src/backend/ so the Flex Consumption deploy artifact
-#                  contains: `function_app.py` + `host.json` at root, a
-#                  `functions/` subpackage carrying the blueprint tree
-#                  (so `from functions.<sub>...` imports resolve at
-#                  deploy root), a `backend/` subpackage, plus
-#                  generated `requirements.txt` + `.funcignore`. See
-#                  v2/scripts/prepackage_function.py for the layout
-#                  contract. Hook is project-scoped (top-level) so cwd
-#                  is v2/ regardless of which service triggered the
-#                  package step.
+#   prepackage is intentionally NOT here -- it is SERVICE-scoped under
+#   `services.function.hooks.prepackage` (above) so it fires on a
+#   targeted `azd deploy function`, which a project-level package hook
+#   does not (BUG-0058).
 #
 #   postprovision -- runs after every successful `azd provision` /
 #                    `azd up`. Idempotent. In postgresql mode it
@@ -156,17 +173,6 @@ services:
 # behaviour is identical across platforms.
 # ----------------------------------------------------------------------
 hooks:
-  prepackage:
-    posix:
-      shell: sh
-      run: ./scripts/prepackage-function.sh
-      continueOnError: false
-      interactive: false
-    windows:
-      shell: pwsh
-      run: ./scripts/prepackage-function.ps1
-      continueOnError: false
-      interactive: false
   postprovision:
     posix:
       shell: sh
