@@ -129,6 +129,7 @@ Select one of the following options to set up your Chat with your Data local dep
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/)
 - [Node.js LTS](https://nodejs.org/en)
 - [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) <small>(v2.87.0+ required for post-deployment scripts)</small>
 - [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) <small>(v0.33.0+)</small>
 - [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
 - [Git](https://git-scm.com/downloads)
@@ -308,6 +309,18 @@ az login
 ```shell
 az login --tenant-id <tenant-id>
 ```
+
+> **Important:** The post-deployment script requires **Azure CLI version 2.87.0 or later**.
+>
+> Check your installed version:
+> ```bash
+> az version
+> ```
+>
+> If your version is earlier than **2.87.0**, upgrade Azure CLI before running the script:
+> ```bash
+> az upgrade
+> ```
 
 **PowerShell (Windows):**
 ```powershell
