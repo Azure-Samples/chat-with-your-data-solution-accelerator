@@ -1096,7 +1096,7 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
     skuName: enableRedundancy ? 'Standard_ZRS' : 'Standard_LRS'
     accessTier: 'Hot'
     allowBlobPublicAccess: false
-    allowSharedKeyAccess: false
+    allowSharedKeyAccess: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
@@ -2044,9 +2044,7 @@ var docProcessingQueueName = 'doc-processing'
 var blobEventsQueueName = 'blob-events'
 var documentsContainerName = 'documents'
 // Built-in role definition GUIDs used by this section.
-//   Storage Queue Data Message Sender — for Event Grid → Storage Queue
 //   Storage Blob Data Owner           — for AzureWebJobsStorage Flex pkg
-var storageQueueDataMessageSenderRoleId = 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
 var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
 
 module functionPlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
@@ -2239,26 +2237,7 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     topicType: 'Microsoft.Storage.StorageAccounts'
     eventSubscriptions: [
       {
-        // Name retained (not 'blob-created-to-blob-events') so the
-        // destination repoint is an in-place update; renaming under
-        // azd incremental mode would orphan the prior subscription,
-        // leaving it to keep delivering to doc-processing.
         name: 'blob-created-to-doc-processing'
-        // deliveryWithResourceIdentity (NOT plain destination) is required
-        // because storage has allowSharedKeyAccess=false. The system
-        // topic's system-assigned MI authenticates to Storage Queue.
-        // deliveryWithResourceIdentity: {
-        //   identity: {
-        //     type: 'SystemAssigned'
-        //   }
-        //   destination: {
-        //     endpointType: 'StorageQueue'
-        //     properties: {
-        //       resourceId: effectiveStorageResourceId
-        //       queueName: blobEventsQueueName
-        //     }
-        //   }
-        // }
         destination: {
           endpointType: 'StorageQueue'
           properties: {
@@ -2281,25 +2260,6 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
   }
 }
 
-// Grant the Event Grid system topic's system-assigned MI permission to
-// enqueue messages on the storage account's queues. Skipped when
-// reusing v1's topic (the existingEventGridSubscription below uses our
-// UAMI, which already gets Queue Data Contributor via
-// existingStorageQueueContributor above).
-// resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingEventGridTopic) {
-//   name: guid(storageAccountExisting.id, eventGridSystemTopicName, storageQueueDataMessageSenderRoleId)
-//   scope: storageAccountExisting
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataMessageSenderRoleId)
-//     // managedIdentities.systemAssigned: true is set unconditionally on
-//     // the topic above, so this output is always populated. The non-null
-//     // assertion satisfies Bicep's nullable-output type without the
-//     // empty-string fallback (which would fail the GUID min-length check).
-//     principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
-//     principalType: 'ServicePrincipal'
-//   }
-// }
-
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
 // v1's topic that routes BlobCreated / BlobDeleted events from the
 // documents/ prefix to our blob-events queue (the blob_event trigger
@@ -2312,10 +2272,10 @@ resource existingEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-pre
   name: existingEventGridTopicName
 }
 
-// Message Sender grant scoped to the storage account. EG's MI preflight
-// validator walks the storage account hierarchy when checking delivery
-// authorization for StorageQueue destinations; queue-scope alone is not
-// recognized by the synchronous validator. Account-scope is required.
+// Message Sender grant scoped to the storage account — kept for the
+// existing-topic path so the UAMI can still enqueue via RBAC at runtime
+// (Functions queue trigger). Not required for Event Grid delivery now
+// that we use plain destination + shared key access.
 resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingEventGridTopic) {
   name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
   scope: storageAccountExisting
@@ -2331,23 +2291,8 @@ resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments
 
 resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
   parent: existingEventGridTopic
-  // Name retained (see the new-topic subscription above): an in-place
-  // destination repoint, not a rename that would orphan the prior sub.
   name: 'cwyd2-blob-created-doc-processing'
   properties: {
-    // deliveryWithResourceIdentity: {
-    //   identity: {
-    //     type: 'UserAssigned'
-    //     userAssignedIdentity: userAssignedIdentity.outputs.resourceId
-    //   }
-    //   destination: {
-    //     endpointType: 'StorageQueue'
-    //     properties: {
-    //       resourceId: effectiveStorageResourceId
-    //       queueName: blobEventsQueueName
-    //     }
-    //   }
-    // }
     destination: {
       endpointType: 'StorageQueue'
       properties: {
