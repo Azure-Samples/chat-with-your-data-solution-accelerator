@@ -13,7 +13,8 @@ If you are unable to run this accelerator using a DevContainer or in GitHub Code
   - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) **Optional**
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/)
 - [Node.js LTS](https://nodejs.org/en)
-- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
+- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v2.18.0+)</small>
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) <small>(v2.87.0+ required for post-deployment scripts)</small>
 - [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) <small>(v0.33.0+)</small>
 - [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
 
