@@ -24,6 +24,7 @@ from backend.core.agents.definitions import (
     CWYD_AGENT,
     CWYD_DEFAULT_BODY,
     CWYD_GUARDRAIL,
+    PROMPT_REVIEW_AGENT,
     RAI_AGENT,
     AgentDefinition,
     compose_cwyd_instructions,
@@ -269,6 +270,30 @@ def test_rai_agent_uses_macae_classifier_pattern() -> None:
     assert RAI_AGENT.tools == ()
 
 
+def test_prompt_review_agent_reviews_system_prompts_not_user_messages() -> None:
+    """`PROMPT_REVIEW_AGENT` gates the admin prompt-save path (BUG-0084).
+    It is a separate TRUE/FALSE classifier from `RAI_AGENT`, calibrated
+    to review operator-authored SYSTEM PROMPTS -- it must frame the
+    input as a system prompt (not a user message) and explicitly permit
+    the guardrail / refusal language a legitimate persona carries, so
+    the default prompt and ordinary personas are not false-positived.
+    """
+    instr = PROMPT_REVIEW_AGENT.instructions
+    assert PROMPT_REVIEW_AGENT.name == "prompt_review"
+    # TRUE/FALSE single-token shape (same parser as `rai_check`).
+    assert "TRUE" in instr
+    assert "FALSE" in instr
+    # Framed as a system-prompt review, NOT a user-message screen.
+    assert "system prompt" in instr.lower()
+    assert "not a" in instr.lower() and "chat message" in instr.lower()
+    # Legitimate guardrail / refusal language is explicitly allowed --
+    # the calibration that fixes the false positive on the default.
+    assert "guardrail" in instr.lower()
+    assert "allow" in instr.lower() or "allowed" in instr.lower()
+    # Pure classifier -- no tools.
+    assert PROMPT_REVIEW_AGENT.tools == ()
+
+
 def test_builtin_agents_keyed_by_definition_name() -> None:
     """The lazy resolver (CU-010c) looks up by `definition.name`. If
     the dict key drifts from `.name`, agents would be created in
@@ -276,7 +301,7 @@ def test_builtin_agents_keyed_by_definition_name() -> None:
     """
     for key, definition in BUILTIN_AGENTS.items():
         assert key == definition.name
-    assert set(BUILTIN_AGENTS) == {"cwyd", "rai"}
+    assert set(BUILTIN_AGENTS) == {"cwyd", "rai", "prompt_review"}
 
 
 def test_builtin_deployment_attrs_are_real_openai_settings_fields() -> None:

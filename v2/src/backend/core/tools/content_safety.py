@@ -35,7 +35,7 @@ from azure.ai.contentsafety.models import AnalyzeTextOptions, TextCategory
 from azure.core.exceptions import AzureError
 from pydantic import BaseModel, Field
 
-from backend.core.agents.definitions import RAI_AGENT
+from backend.core.agents.definitions import RAI_AGENT, AgentDefinition
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.databases.base import BaseDatabaseClient
 
@@ -113,20 +113,29 @@ async def rai_check(
     text: str,
     agents: BaseAgentsProvider,
     db: BaseDatabaseClient,
+    *,
+    agent: AgentDefinition = RAI_AGENT,
 ) -> bool:
-    """Run `text` through the Responsible AI binary classifier.
+    """Run `text` through a Responsible AI binary classifier.
 
-    Returns `True` when the input is safe to forward to the primary
-    agent, `False` when it must be blocked.
+    Returns `True` when the input is safe to forward, `False` when it
+    must be blocked.
 
-    Builds the dedicated RAI Foundry agent through the shared
-    `build_agent` seam -- the same construction path the chat
-    orchestrator uses for the primary agent -- then issues a single
-    non-streaming `agent.run` and reads the agent's reply text. The
-    named Prompt Agent is resolved / created server-side on first use
-    and addressed by its stable name thereafter; the client-side
-    `agent_framework.Agent` is an async context manager that owns its
-    chat-client transport for the duration of the call.
+    `agent` selects the classifier definition. It defaults to
+    `RAI_AGENT`, the user-message screener the chat pipeline uses; the
+    admin prompt-save gate passes `PROMPT_REVIEW_AGENT` instead, which
+    is calibrated to review operator-authored *system prompts* rather
+    than end-user messages (BUG-0084). Both share this TRUE/FALSE
+    parsing and fail-closed contract.
+
+    Builds the selected Foundry agent through the shared `build_agent`
+    seam -- the same construction path the chat orchestrator uses for
+    the primary agent -- then issues a single non-streaming `agent.run`
+    and reads the agent's reply text. The named Prompt Agent is
+    resolved / created server-side on first use and addressed by its
+    stable name thereafter; the client-side `agent_framework.Agent` is
+    an async context manager that owns its chat-client transport for
+    the duration of the call.
 
     Verdict parsing: a case-insensitive, whitespace-stripped reply
     that starts with `TRUE` means safe (return `True`). Anything else
@@ -139,31 +148,31 @@ async def rai_check(
     Foundry round-trip -- mirrors `ContentSafetyGuard.screen()` and
     avoids spending a round-trip on idle prompts.
 
-    A transport failure of the RAI agent (`AzureError`) is logged at
-    the SDK boundary and re-raised rather than degraded to a verdict,
-    so an outage surfaces as an error to the caller instead of
+    A transport failure of the classifier agent (`AzureError`) is
+    logged at the SDK boundary and re-raised rather than degraded to a
+    verdict, so an outage surfaces as an error to the caller instead of
     masquerading as a policy block.
 
     MACAE attribution: the TRUE/FALSE classifier prompt shape and the
     dedicated-agent pattern are adapted from
-    `common/utils/utils_af.py::create_RAI_agent`. The RAI agent's
+    `common/utils/utils_af.py::create_RAI_agent`. The classifier's
     model deployment is selected via `AgentDefinition.deployment_attr`
     instead of MACAE's per-RAI env var.
     """
     if not text or not text.strip():
         return True
 
-    agent = await agents.build_agent(RAI_AGENT, db)
-    async with agent:
+    built = await agents.build_agent(agent, db)
+    async with built:
         try:
-            response = await agent.run(text)
+            response = await built.run(text)
         except AzureError:
             logger.exception(
                 "rai_check agent run failed",
                 extra={
                     "operation": "rai_check",
                     "provider": "agent_framework",
-                    "agent_name": RAI_AGENT.name,
+                    "agent_name": agent.name,
                 },
             )
             raise

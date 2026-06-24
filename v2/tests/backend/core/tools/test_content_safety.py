@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from azure.core.exceptions import HttpResponseError
 
-from backend.core.agents.definitions import RAI_AGENT
+from backend.core.agents.definitions import PROMPT_REVIEW_AGENT, RAI_AGENT
 from backend.core.tools.content_safety import (
     DEFAULT_SEVERITY_THRESHOLD,
     ContentSafetyGuard,
@@ -296,6 +296,29 @@ async def test_rai_check_builds_rai_agent_with_db_by_identity() -> None:
         "rai_check must pass the RAI_AGENT singleton, not a fresh definition"
     )
     assert call["db"] is db, "rai_check must forward the db client by identity"
+
+
+@pytest.mark.asyncio
+async def test_rai_check_honors_explicit_agent_argument() -> None:
+    """The `agent` keyword selects the classifier definition. The admin
+    prompt-save gate passes `PROMPT_REVIEW_AGENT` (a system-prompt
+    reviewer) instead of the default user-message `RAI_AGENT`
+    (BUG-0084); `rai_check` must build exactly the agent it is given.
+    """
+    agent = _FakeRaiAgent(response_text="TRUE")
+    provider = _FakeRaiAgentsProvider(agent)
+    db = _FakeDatabaseClient()
+
+    result = await rai_check(
+        "You are a friendly HR assistant.",
+        provider,
+        db,
+        agent=PROMPT_REVIEW_AGENT,
+    )
+
+    assert result is True
+    assert len(provider.build_calls) == 1
+    assert provider.build_calls[0]["definition"] is PROMPT_REVIEW_AGENT
 
 
 @pytest.mark.asyncio

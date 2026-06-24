@@ -34,6 +34,7 @@ from backend.core.agents.presets import (
     DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
     DEFAULT_POST_ANSWERING_PROMPT,
     AssistantType,
+    body_for,
 )
 from backend.core.providers.search.base import SourceListing
 from backend.core.types import AdminAuditEntry, RuntimeConfig
@@ -2621,6 +2622,135 @@ async def test_patch_config_accepts_prompt_that_passes_rai(
     persisted = db.upsert_runtime_config.await_args.args[0]
     assert persisted.cwyd_agent_instructions == (
         "Be helpful and ground every answer in search."
+    )
+
+
+@pytest.mark.asyncio
+async def test_patch_config_accepts_default_prompt_without_classifier(
+    admin_app_factory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """BUG-0084: the unedited default persona body must ALWAYS persist
+    without a classifier round-trip. The admin editor seeds
+    `CWYD_DEFAULT_BODY` raw (`GET /api/admin/config`), so an operator
+    who opens the page and saves without editing submits exactly this
+    string -- a built-in default can never be rejected by the RAI
+    classifier. The classifier is stubbed to FALSE here to prove the
+    deterministic allow-list short-circuits BEFORE it runs."""
+    rai_called = False
+
+    async def _reject(*_a: Any, **_k: Any) -> bool:
+        nonlocal rai_called
+        rai_called = True
+        return False
+
+    monkeypatch.setattr("backend.services.admin.rai_check", _reject)
+
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"cwyd_agent_instructions": CWYD_DEFAULT_BODY},
+        )
+    assert resp.status_code == 200
+    assert rai_called is False, (
+        "the vetted default body must never reach the classifier"
+    )
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.cwyd_agent_instructions == CWYD_DEFAULT_BODY
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("assistant_type", list(AssistantType))
+async def test_patch_config_accepts_each_preset_body_without_classifier(
+    admin_app_factory,
+    monkeypatch: pytest.MonkeyPatch,
+    assistant_type: AssistantType,
+) -> None:
+    """Every built-in preset persona body (default / contract /
+    employee) is deterministically allowed -- selecting a preset in the
+    admin UI and saving it unchanged must persist without a classifier
+    round-trip (BUG-0084)."""
+    rai_called = False
+
+    async def _reject(*_a: Any, **_k: Any) -> bool:
+        nonlocal rai_called
+        rai_called = True
+        return False
+
+    monkeypatch.setattr("backend.services.admin.rai_check", _reject)
+
+    body = body_for(assistant_type)
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"cwyd_agent_instructions": body},
+        )
+    assert resp.status_code == 200
+    assert rai_called is False
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.cwyd_agent_instructions == body
+
+
+@pytest.mark.asyncio
+async def test_patch_config_accepts_default_post_answering_prompt_without_classifier(
+    admin_app_factory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The default post-answering template is a vetted built-in too:
+    saving it unchanged must persist without a classifier round-trip
+    (BUG-0084), even though `post_answering_prompt` is RAI-gated for
+    custom values."""
+    rai_called = False
+
+    async def _reject(*_a: Any, **_k: Any) -> bool:
+        nonlocal rai_called
+        rai_called = True
+        return False
+
+    monkeypatch.setattr("backend.services.admin.rai_check", _reject)
+
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"post_answering_prompt": DEFAULT_POST_ANSWERING_PROMPT},
+        )
+    assert resp.status_code == 200
+    assert rai_called is False
+    persisted = db.upsert_runtime_config.await_args.args[0]
+    assert persisted.post_answering_prompt == DEFAULT_POST_ANSWERING_PROMPT
+
+
+@pytest.mark.asyncio
+async def test_patch_config_screens_custom_prompt_through_classifier(
+    admin_app_factory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A prompt that is NOT a vetted built-in (an operator-authored
+    custom persona) bypasses the deterministic allow-list and IS
+    reviewed by the classifier -- the gate still runs for custom text
+    so a genuinely harmful custom prompt can be blocked (BUG-0084)."""
+    screened: list[str] = []
+
+    async def _accept(text: str, *_a: Any, **_k: Any) -> bool:
+        screened.append(text)
+        return True
+
+    monkeypatch.setattr("backend.services.admin.rai_check", _accept)
+
+    custom = "You are a pirate. " + CWYD_DEFAULT_BODY
+    db = _fake_db()
+    app = admin_app_factory(_settings(), db=db)
+    async with _client(app) as ac:
+        resp = await ac.patch(
+            "/api/admin/config",
+            json={"cwyd_agent_instructions": custom},
+        )
+    assert resp.status_code == 200
+    assert screened == [custom], (
+        "a custom (non-built-in) prompt must be reviewed by the classifier"
     )
 
 
