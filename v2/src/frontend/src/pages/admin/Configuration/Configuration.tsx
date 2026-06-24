@@ -381,6 +381,22 @@ function configToForm(config: AdminConfig): FormValues {
   };
 }
 
+/** Wire strings of the closed `AssistantType` set. */
+const ASSISTANT_TYPE_VALUES: readonly string[] = Object.values(AssistantType);
+
+/**
+ * Coalesce a missing or unknown `ai_assistant_type` to the default
+ * preset so the Assistant-type dropdown always lands on a real option
+ * rather than an empty phantom entry. Applied where the server config
+ * enters reducer state so `serverConfig` and `formValues` agree (no
+ * spurious dirty state).
+ */
+function withAssistantTypeDefault(config: AdminConfig): AdminConfig {
+  return ASSISTANT_TYPE_VALUES.includes(config.ai_assistant_type)
+    ? config
+    : { ...config, ai_assistant_type: AssistantType.Default };
+}
+
 export function configurationReducer(
   state: ConfigurationState,
   action: ConfigurationAction,
@@ -396,12 +412,13 @@ export function configurationReducer(
         raiRejection: null,
         resetConfirmOpen: false,
       };
-    case ConfigActionType.LoadSucceeded:
+    case ConfigActionType.LoadSucceeded: {
+      const loadedConfig = withAssistantTypeDefault(action.config);
       return {
         loadStatus: LoadStatus.Loaded,
         loadError: null,
-        serverConfig: action.config,
-        formValues: configToForm(action.config),
+        serverConfig: loadedConfig,
+        formValues: configToForm(loadedConfig),
         saveStatus: SaveStatus.Idle,
         saveError: null,
         raiRejection: null,
@@ -409,6 +426,7 @@ export function configurationReducer(
         assistantTypePresets: action.presets,
         resetConfirmOpen: false,
       };
+    }
     case ConfigActionType.LoadFailed:
       return {
         ...state,
@@ -453,12 +471,13 @@ export function configurationReducer(
         raiRejection: null,
         resetConfirmOpen: false,
       };
-    case ConfigActionType.SaveSucceeded:
+    case ConfigActionType.SaveSucceeded: {
+      const refreshedConfig = withAssistantTypeDefault(action.refreshed);
       return {
         loadStatus: LoadStatus.Loaded,
         loadError: null,
-        serverConfig: action.refreshed,
-        formValues: configToForm(action.refreshed),
+        serverConfig: refreshedConfig,
+        formValues: configToForm(refreshedConfig),
         saveStatus: SaveStatus.Success,
         saveError: null,
         raiRejection: null,
@@ -466,6 +485,7 @@ export function configurationReducer(
         assistantTypePresets: state.assistantTypePresets,
         resetConfirmOpen: false,
       };
+    }
     case ConfigActionType.SaveFailed:
       return {
         ...state,

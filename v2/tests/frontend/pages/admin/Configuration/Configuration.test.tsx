@@ -210,6 +210,47 @@ describe("Configuration -- initial load", () => {
     expect(logLevelSelect.value).toBe("INFO");
   });
 
+  it("renders the assistant type field as a dropdown of the known presets", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const assistantSelect = screen.getByTestId(
+      "config-input-ai_assistant_type",
+    ) as HTMLSelectElement;
+    expect(assistantSelect.tagName).toBe("SELECT");
+    expect(
+      Array.from(assistantSelect.options).map((option) => option.value),
+    ).toEqual(["default", "contract assistant", "employee assistant"]);
+    expect(assistantSelect.value).toBe("default");
+  });
+
+  it("defaults the assistant type dropdown to 'default' when the server omits the field", async () => {
+    // Simulate a backend that predates the Assistant-type presets and
+    // therefore returns a config with no `ai_assistant_type`. The
+    // dropdown must still land on the default preset, never an empty
+    // phantom option.
+    const staleConfig: AdminConfig = { ...CONFIG_FIXTURE };
+    delete (staleConfig as { ai_assistant_type?: string }).ai_assistant_type;
+    getMock.mockResolvedValueOnce(staleConfig);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const assistantSelect = screen.getByTestId(
+      "config-input-ai_assistant_type",
+    ) as HTMLSelectElement;
+    expect(assistantSelect.value).toBe("default");
+    expect(
+      Array.from(assistantSelect.options).map((option) => option.value),
+    ).toEqual(["default", "contract assistant", "employee assistant"]);
+  });
+
   it("renders human-readable labels without the internal config-key suffix", async () => {
     getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
 
