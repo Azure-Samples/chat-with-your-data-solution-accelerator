@@ -28,8 +28,7 @@ azure_package_log_level = getattr(
 for logger_name in AZURE_LOGGING_PACKAGES:
     logging.getLogger(logger_name).setLevel(azure_package_log_level)
 
-# We cannot use EnvHelper here as Application Insights should be configured first
-# for instrumentation to work correctly
+# We cannot use EnvHelper here as Application Insights should be configured first for instrumentation to work correctly
 if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
     configure_azure_monitor()
     HTTPXClientInstrumentor().instrument()  # httpx is used by openai

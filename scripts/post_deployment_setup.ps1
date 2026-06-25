@@ -264,8 +264,8 @@ else {
     Write-Host "✓ Adding temporary firewall rule for IP $publicIp..."
     az postgres flexible-server firewall-rule create `
         --resource-group $ResourceGroupName `
-        --name $serverName `
-        --rule-name "AllowPostDeploySetup" `
+        --server-name $serverName `
+        --name "AllowPostDeploySetup" `
         --start-ip-address $publicIp `
         --end-ip-address $publicIp 2>$null | Out-Null
 
@@ -353,8 +353,8 @@ else {
         Write-Host "✓ Removing temporary firewall rule..."
         az postgres flexible-server firewall-rule delete `
             --resource-group $ResourceGroupName `
-            --name $serverName `
-            --rule-name "AllowPostDeploySetup" `
+            --server-name $serverName `
+            --name "AllowPostDeploySetup" `
             --yes 2>$null
     }
 
