@@ -15,7 +15,7 @@
  * alongside this getter; together they are the single seam every API
  * client spreads to forward `x-ms-client-principal-id`.
  */
-import type { AuthMeResponse, UserInfo } from "@/models/auth";
+import type { AuthMeResponse, UserClaim, UserInfo } from "@/models/auth";
 
 /**
  * Entra object-identifier claim URI. The stable per-user id (the `oid`)
@@ -64,7 +64,35 @@ export async function getUserInfo(): Promise<UserInfo | null> {
     if (!response.ok) {
       return null;
     }
-    const principals = (await response.json()) as AuthMeResponse[];
+    const body = (await response.json()) as unknown;
+
+    // Container Apps format: { clientPrincipal: { claims: [...], userId: "..." } }
+    if (
+      body !== null &&
+      typeof body === "object" &&
+      "clientPrincipal" in body
+    ) {
+      const cp = (body as Record<string, unknown>).clientPrincipal;
+      if (!cp || typeof cp !== "object") {
+        return null;
+      }
+      const principal = cp as Record<string, unknown>;
+      const claims = (principal.claims as UserClaim[] | undefined) ?? [];
+      // Prefer the objectidentifier claim; fall back to the top-level
+      // userId field (which IS the Entra oid on Container Apps).
+      const userId =
+        claims.find((claim) => claim.typ === OBJECT_ID_CLAIM)?.val ??
+        (typeof principal.userId === "string"
+          ? (principal.userId as string)
+          : null);
+      if (!userId) {
+        return null;
+      }
+      return { userId, claims };
+    }
+
+    // App Service format: [{ user_claims: [...], user_id: "..." }]
+    const principals = body as AuthMeResponse[];
     const principal = principals[0];
     if (!principal) {
       return null;

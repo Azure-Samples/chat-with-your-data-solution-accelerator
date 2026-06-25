@@ -9,16 +9,37 @@ backend. When unset (code deployment where the backend handles ``/api``
 directly), those paths return 404.
 """
 
+import base64
+import json
 import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 _DIST_DIR = Path(os.environ.get("DIST_DIR", "/usr/src/app/dist"))
 _BACKEND_URL = os.environ.get("VITE_BACKEND_URL", "").rstrip("/")
 
 app = FastAPI(title="cwyd-frontend")
+
+
+# ---- Easy Auth user-info endpoint ------------------------------------
+# Container Apps Easy Auth injects x-ms-client-principal on every request
+# but may not serve /.auth/me as a token-store endpoint. This route reads
+# the sidecar-injected header and returns the claims in the format the
+# SPA expects (Container Apps clientPrincipal shape).
+@app.get("/.auth/me", response_model=None)
+async def auth_me(request: Request) -> Response:
+    raw = request.headers.get("x-ms-client-principal", "")
+    if not raw:
+        return JSONResponse(content={"clientPrincipal": None})
+    try:
+        decoded = base64.b64decode(raw)
+        principal = json.loads(decoded)
+    except Exception:
+        return JSONResponse(content={"clientPrincipal": None})
+    return JSONResponse(content={"clientPrincipal": principal})
+
 
 # ---- API proxy (container deployment only) ----------------------------
 if _BACKEND_URL:
