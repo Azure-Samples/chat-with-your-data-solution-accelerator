@@ -136,9 +136,56 @@ def _require(name: str) -> str:
     return value
 
 
+def _resolve_deployer_upn() -> str:
+    """Resolve the deployer's Postgres username.
+
+    Priority: AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME (Bicep output, exact
+    value registered as admin) > az CLI > AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME.
+    """
+    import subprocess
+
+    # Bicep output: the exact principalName used when registering the
+    # deployer as a Postgres Entra admin (deployer().userPrincipalName).
+    deployer_name = os.environ.get("AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME", "").strip()
+    if deployer_name:
+        return deployer_name
+
+    try:
+        result = subprocess.run(
+            [
+                "az",
+                "ad",
+                "signed-in-user",
+                "show",
+                "--query",
+                "userPrincipalName",
+                "-o",
+                "tsv",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            shell=True,
+        )
+        upn = result.stdout.strip()
+        if upn:
+            return upn
+    except Exception:
+        pass
+    # Last resort fallback
+    value = os.environ.get("AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME", "").strip()
+    if value:
+        return value
+    sys.stderr.write(
+        "post-provision: could not resolve deployer UPN. "
+        "Run `az login` or set PRINCIPAL_NAME.\n"
+    )
+    sys.exit(2)
+
+
 def _enable_pgvector() -> None:
     host = _require("AZURE_POSTGRES_HOST")
-    admin_user = _require("AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME")
+    admin_user = _resolve_deployer_upn()
 
     # Private-networking pre-flight: if the server FQDN is in the
     # `*.private.postgres.database.azure.com` zone the deployer machine
@@ -273,7 +320,9 @@ def _ensure_search_index(*, dry_run: bool, client_factory=None) -> str:
     )
     dimensions_raw = os.environ.get("AZURE_OPENAI_EMBEDDING_DIMENSIONS", "").strip()
     try:
-        dimensions = int(dimensions_raw) if dimensions_raw else DEFAULT_EMBEDDING_DIMENSIONS
+        dimensions = (
+            int(dimensions_raw) if dimensions_raw else DEFAULT_EMBEDDING_DIMENSIONS
+        )
     except ValueError:
         sys.stderr.write(
             f"post-provision: AZURE_OPENAI_EMBEDDING_DIMENSIONS={dimensions_raw!r} "
@@ -289,6 +338,7 @@ def _ensure_search_index(*, dry_run: bool, client_factory=None) -> str:
         return "dry-run"
 
     if client_factory is None:
+
         def client_factory():  # type: ignore[no-redef]
             return SearchIndexClient(
                 endpoint=endpoint, credential=DefaultAzureCredential()
@@ -467,12 +517,9 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
     )
 
     if client_factory is None:
+
         def client_factory():  # type: ignore[no-redef]
-            token = (
-                DefaultAzureCredential()
-                .get_token(SEARCH_DATA_PLANE_SCOPE)
-                .token
-            )
+            token = DefaultAzureCredential().get_token(SEARCH_DATA_PLANE_SCOPE).token
             return httpx.Client(
                 headers={
                     "Authorization": f"Bearer {token}",
@@ -488,7 +535,10 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
         # Order matters: the knowledge base references the source by name,
         # so the source PUT must land first. Both PUTs are create-or-update.
         for url, body in (
-            (f"{base}/knowledgesources('{knowledge_source_name}')", knowledge_source_body),
+            (
+                f"{base}/knowledgesources('{knowledge_source_name}')",
+                knowledge_source_body,
+            ),
             (f"{base}/knowledgebases('{knowledge_base_name}')", knowledge_base_body),
         ):
             response = client.put(url, params=params, json=body)

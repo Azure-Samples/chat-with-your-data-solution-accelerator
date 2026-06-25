@@ -221,13 +221,6 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
   ? split(deployer().userPrincipalName, '@')[0]
   : deployer().objectId
 
-@description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
-param principal object = {
-  id: '' // Principal ID
-  name: '' // Principal name
-  type: 'User' // Principal type ('User', 'Group', or 'ServicePrincipal')
-}
-
 @allowed(['User', 'ServicePrincipal'])
 @description('Optional. Principal type of the deploying user.')
 param deployingUserPrincipalType string = 'User'
@@ -286,7 +279,6 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     tags: tags
     createdBy: createdBy
-    principal: principal
     deployingUserPrincipalType: deployingUserPrincipalType
   }
 }
@@ -442,6 +434,9 @@ output AZURE_POSTGRES_NAME string = avmDeployment!.outputs.AZURE_POSTGRES_NAME
 
 @description('Entra admin principal name for the Postgres Flex server. Empty in cosmosdb mode.')
 output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = avmDeployment!.outputs.AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME
+
+@description('Deployer principal name registered as Postgres Entra admin (for post_provision.py). Empty in cosmosdb mode.')
+output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = avmDeployment!.outputs.AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME
 
 // --- Storage ---
 

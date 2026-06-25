@@ -207,13 +207,6 @@ param tags object = {}
 @description('Optional. Identifier of the user creating the deployment, recorded in the resource group tags.')
 param createdBy string?
 
-@description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
-param principal object = {
-  id: '' // Principal ID
-  name: '' // Principal name
-  type: 'User' // Principal type ('User', 'Group', or 'ServicePrincipal')
-}
-
 @allowed(['User', 'ServicePrincipal'])
 @description('Optional. Principal type of the deploying user.')
 param deployingUserPrincipalType string = 'User'
@@ -664,21 +657,6 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = {
   }
 }
 
-// // Model deployments (single loop for both existing and new paths)
-// @batchSize(1)
-// module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in defaultOpenAiDeployments: {
-//   name: take('module.model-deployment-${i}.${solutionName}', 64)
-//   scope: resourceGroup(subscription().subscriptionId, resourceGroup().name)
-//   params: {
-//     aiServicesAccountName: aiProject.outputs.name
-//     deploymentName: deployment.name
-//     modelName: deployment.model.name
-//     modelVersion: deployment.model.version
-//     skuName: deployment.sku.name
-//     skuCapacity: deployment.sku.capacity
-//   }
-// }]
-
 var speechServiceName = 'spch-${solutionSuffix}'
 module speechService './modules/ai/ai-services.bicep' = {
   name: take('module.ai-services.SpeechServices.${solutionName}', 64)
@@ -1021,16 +999,17 @@ module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (da
       [
         {
           objectId: userAssignedIdentity.outputs.principalId
-          principalName: 'id-${solutionSuffix}'
+          principalName: userAssignedIdentity.outputs.name
           principalType: 'ServicePrincipal'
         }
       ],
-      !empty(principal.id)
+      // Always add the deploying user so post_provision.py can connect
+      contains(deployer(), 'userPrincipalName')
         ? [
             {
-              objectId: principal.id
-              principalName: principal.name
-              principalType: principal.type
+              objectId: deployingUserPrincipalId
+              principalName: deployer().userPrincipalName
+              principalType: deployingUserPrincipalType
             }
           ]
         : []
@@ -1195,7 +1174,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
             { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.connectionName : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' && !empty(principal.id) ? principal.name : '' }
+            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : '' }
             { name: 'AZURE_SPEECH_SERVICE_NAME', value: speechService.outputs.name }
             { name: 'AZURE_SPEECH_SERVICE_REGION', value: azureAiServiceLocation }
             { name: 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', value: speechService.outputs.resourceId }
@@ -1299,7 +1278,7 @@ module functionApp './modules/compute/function-app.bicep' = {
         { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
         { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
         { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-        { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? principal.name : '' }
+        { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : '' }
         { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount!.outputs.name }
         { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
         { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
@@ -1539,8 +1518,11 @@ output AZURE_POSTGRES_ENDPOINT string = postgresLibpqUri
 @description('PostgreSQL Flexible Server resource name. Empty in CosmosDB mode.')
 output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
 
-@description('Configured Entra admin principal name for the Postgres Flex server (used as the `user` in AAD-token connections by the post-provision hook). Empty in CosmosDB mode.')
-output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? principal.name : ''
+@description('UAMI principal name used by the runtime apps to connect to Postgres. Empty in CosmosDB mode.')
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : ''
+
+@description('Deployer principal name registered as Postgres Entra admin (for post_provision.py). Empty in CosmosDB mode or when deployer has no UPN.')
+output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = databaseType == 'postgresql' && contains(deployer(), 'userPrincipalName') ? deployer().userPrincipalName : ''
 
 // --- Storage (blobs + queues + Function deployment package) ---
 
