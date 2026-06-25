@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "deploymentFlavor": {
-      "value": "${DEPLOYMENT_FLAVOR=avm}"
+      "value": "${DEPLOYMENT_FLAVOR=bicep}"
     },
     "solutionName": {
       "value": "${AZURE_ENV_NAME}"

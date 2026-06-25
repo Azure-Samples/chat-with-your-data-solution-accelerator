@@ -288,42 +288,42 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
 // Activated when deploymentFlavor = 'bicep'
 // ============================================================================
 
-// module bicepDeployment './bicep/main.bicep' = if (isBicep) {
-//   name: take('module.bicep.${solutionName}', 64)
-//   params: {
-//     solutionName: solutionName
-//     solutionUniqueText: solutionUniqueText
-//     location: location
-//     azureAiServiceLocation: azureAiServiceLocation
-//     databaseType: databaseType
-//     ingestionTrigger: ingestionTrigger
-//     gptModelName: gptModelName
-//     gptModelVersion: gptModelVersion
-//     gptModelDeploymentType: gptModelDeploymentType
-//     gptModelCapacity: gptModelCapacity
-//     reasoningModelName: reasoningModelName
-//     reasoningModelVersion: reasoningModelVersion
-//     reasoningModelDeploymentType: reasoningModelDeploymentType
-//     reasoningModelCapacity: reasoningModelCapacity
-//     embeddingModelName: embeddingModelName
-//     embeddingModelVersion: embeddingModelVersion
-//     embeddingModelDeploymentType: embeddingModelDeploymentType
-//     embeddingModelCapacity: embeddingModelCapacity
-//     azureOpenAiApiVersion: azureOpenAiApiVersion
-//     azureAiAgentApiVersion: azureAiAgentApiVersion
-//     searchKnowledgeBaseName: searchKnowledgeBaseName
-//     searchKnowledgeSourceName: searchKnowledgeSourceName
-//     searchKnowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
-//     containerRegistryEndpoint: containerRegistryEndpoint
-//     imageTag: imageTag
-//     hostingModel: hostingModel
-//     enableMonitoring: enableMonitoring
-//     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-//     tags: tags
-//     createdBy: createdBy
-//     deployingUserPrincipalType: deployingUserPrincipalType
-//   }
-// }
+module bicepDeployment './bicep/main.bicep' = if (isBicep) {
+  name: take('module.bicep.${solutionName}', 64)
+  params: {
+    solutionName: solutionName
+    solutionUniqueText: solutionUniqueText
+    location: location
+    azureAiServiceLocation: azureAiServiceLocation
+    databaseType: databaseType
+    ingestionTrigger: ingestionTrigger
+    gptModelName: gptModelName
+    gptModelVersion: gptModelVersion
+    gptModelDeploymentType: gptModelDeploymentType
+    gptModelCapacity: gptModelCapacity
+    reasoningModelName: reasoningModelName
+    reasoningModelVersion: reasoningModelVersion
+    reasoningModelDeploymentType: reasoningModelDeploymentType
+    reasoningModelCapacity: reasoningModelCapacity
+    embeddingModelName: embeddingModelName
+    embeddingModelVersion: embeddingModelVersion
+    embeddingModelDeploymentType: embeddingModelDeploymentType
+    embeddingModelCapacity: embeddingModelCapacity
+    azureOpenAiApiVersion: azureOpenAiApiVersion
+    azureAiAgentApiVersion: azureAiAgentApiVersion
+    searchKnowledgeBaseName: searchKnowledgeBaseName
+    searchKnowledgeSourceName: searchKnowledgeSourceName
+    searchKnowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    hostingModel: hostingModel
+    enableMonitoring: enableMonitoring
+    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    tags: tags
+    createdBy: createdBy
+    deployingUserPrincipalType: deployingUserPrincipalType
+  }
+}
 
 // ============================================================================
 // Outputs — Forwarded from whichever flavor was deployed
