@@ -927,6 +927,13 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
         // Search Index Data Reader — lets the Foundry Project (and Foundry IQ) query indexes through the connection.
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
       }
+      {
+        principalId: aiProject.outputs.projectPrincipalId
+        principalType: 'ServicePrincipal'
+        // Search Service Contributor — lets the Foundry Project (and Foundry IQ)
+        // manage indexes/indexers/skillsets through the Project-Search connection.
+        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+      }
     ]
     // Private endpoint into the `peps` subnet, group `searchService`,
     // bound to the search.windows.net DNS zone.
@@ -1051,6 +1058,23 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
   }
 }
 
+// Foundry Project RemoteTool connection for the KB MCP path (cosmosdb mode
+// only). This is what AZURE_AI_SEARCH_CONNECTION_NAME must resolve to: the
+// CognitiveSearch connection above 401s on the /knowledgebases/.../mcp path
+// (BUG-0025 / BUG-0059). Authenticates as the Project system identity
+// (ProjectManagedIdentity + search.azure.com audience); the Project MI holds
+// Search Service Contributor on the Search service.
+module aiProjectKbMcpConnection 'modules/ai-project-kb-mcp-connection.bicep' = if (databaseType == 'cosmosdb') {
+  name: take('module.ai-project-kb-mcp-connection.${solutionSuffix}', 64)
+  params: {
+    aiServicesAccountName: aiServicesName
+    projectName: aiProject.outputs.name
+    searchEndpoint: effectiveSearchEndpoint
+    knowledgeBaseName: searchKnowledgeBaseName
+    knowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
+  }
+}
+
 // ----------------------------------------------------------------------
 // Storage account. Triple-purpose:
 //   - WebJobsStorage / content share for the Function App.
@@ -1077,6 +1101,17 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    // BUG-0062: AVM storage defaults networkAcls.defaultAction to Deny.
+    // With private networking off (no private endpoints) that firewall
+    // blocks the Flex Consumption package upload and Event Grid queue
+    // delivery. Allow public access on the no-private-net profile; the
+    // private-networking profile keeps Deny (the private endpoints cover
+    // internal access). AzureServices bypass lets first-party services
+    // (Event Grid, the Function host) reach the account regardless.
+    networkAcls: {
+      defaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
+      bypass: 'AzureServices'
+    }
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
     managedIdentities: {
@@ -1843,9 +1878,9 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // The agent_framework orchestrator passes this as the KB MCP tool's
             // project_connection_id so Foundry IQ executes retrieval server-side
             // under the Project identity. Empty in postgresql mode (no connection).
-            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.name : '' }
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectKbMcpConnection!.outputs.name : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
+            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? 'id-${solutionSuffix}' : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
             // Speech token for the browser SDK. UAMI holds Cognitive
             // Services Speech User on the spch-* account; resource-id
@@ -1860,8 +1895,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // (RuntimeConfig.content_safety_enabled).
             { name: 'AZURE_CONTENT_SAFETY_ENABLED', value: 'true' }
             { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: cogContentSafety.outputs.endpoint }
-            // Default orchestrator (runtime-switchable per request)
-            { name: 'ORCHESTRATOR', value: 'agent_framework' }
+            // Default orchestrator (runtime-switchable per request). Key matches
+            // OrchestratorSettings (env_prefix CWYD_ORCHESTRATOR_ + field `name`).
+            // pgvector deployments must ground app-side via langgraph;
+            // agent_framework is the cosmosdb/Foundry-IQ default.
+            { name: 'CWYD_ORCHESTRATOR_NAME', value: databaseType == 'postgresql' ? 'langgraph' : 'agent_framework' }
             // Storage — the admin surface writes uploaded documents to the
             // blob container and enqueues each onto the doc-processing queue
             // for the ingestion pipeline; the files route streams blobs back
@@ -2125,6 +2163,13 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
       scaleAndConcurrency: {
         maximumInstanceCount: enableScalability ? 100 : 40
         instanceMemoryMB: 2048
+        // Keep the batch_push queue trigger warm (avoid Flex scale-from-zero cold-start on the first queued message).
+        alwaysReady: [
+          {
+            name: 'function:batch_push'
+            instanceCount: 1
+          }
+        ]
       }
     }
     siteConfig: {
@@ -2175,7 +2220,7 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
           { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
           { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-          { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? postgresAdminPrincipalName : '' }
+          { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? 'id-${solutionSuffix}' : '' }
           // Storage wiring used by batch_start / batch_push / add_url.
           { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
           { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
@@ -2247,40 +2292,12 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     managedIdentities: {
       systemAssigned: true
     }
-    eventSubscriptions: [
-      {
-        // Name retained (not 'blob-created-to-blob-events') so the
-        // destination repoint is an in-place update; renaming under
-        // azd incremental mode would orphan the prior subscription,
-        // leaving it to keep delivering to doc-processing.
-        name: 'blob-created-to-doc-processing'
-        // deliveryWithResourceIdentity (NOT plain destination) is required
-        // because storage has allowSharedKeyAccess=false. The system
-        // topic's system-assigned MI authenticates to Storage Queue.
-        deliveryWithResourceIdentity: {
-          identity: {
-            type: 'SystemAssigned'
-          }
-          destination: {
-            endpointType: 'StorageQueue'
-            properties: {
-              resourceId: effectiveStorageResourceId
-              queueName: blobEventsQueueName
-            }
-          }
-        }
-        filter: {
-          includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
-          subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
-          enableAdvancedFilteringOnArrays: true
-        }
-        eventDeliverySchema: 'EventGridSchema'
-        retryPolicy: {
-          maxDeliveryAttempts: 30
-          eventTimeToLiveInMinutes: 1440
-        }
-      }
-    ]
+    // The blob subscription is NOT nested here. It is created as a
+    // standalone sibling (blobCreatedSubscription, below) that dependsOn
+    // eventGridQueueSenderRole, so the topic system MI holds Storage Queue
+    // Data Message Sender BEFORE Event Grid runs its delivery-authorization
+    // preflight (BUG-0061). A nested subscription preflights inside this
+    // module, before the role exists, and fails on a fresh provision.
   }
 }
 
@@ -2301,6 +2318,62 @@ resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-
     principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
+}
+
+// Standalone subscription on the new system topic. Lifted out of the AVM
+// module's eventSubscriptions array (BUG-0061) so it can dependsOn
+// eventGridQueueSenderRole and only run its delivery-authorization
+// preflight AFTER the topic system MI is granted Storage Queue Data
+// Message Sender. The `parent` is an `existing` reference to the
+// AVM-created topic — the same mechanism the reuse path uses
+// (existingEventGridTopic → existingEventGridSubscription), because an AVM
+// module is not a resource symbol usable as `parent`.
+resource newEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-preview' existing = if (!useExistingEventGridTopic) {
+  name: eventGridSystemTopicName
+}
+
+resource blobCreatedSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (!useExistingEventGridTopic) {
+  parent: newEventGridTopic
+  // Name retained (not 'blob-created-to-blob-events') so the destination
+  // repoint is an in-place update; renaming under azd incremental mode
+  // would orphan the prior subscription, leaving it delivering to
+  // doc-processing.
+  name: 'blob-created-to-doc-processing'
+  properties: {
+    // deliveryWithResourceIdentity (NOT plain destination) is required
+    // because storage has allowSharedKeyAccess=false. The system topic's
+    // system-assigned MI authenticates to Storage Queue.
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'SystemAssigned'
+      }
+      destination: {
+        endpointType: 'StorageQueue'
+        properties: {
+          resourceId: effectiveStorageResourceId
+          queueName: blobEventsQueueName
+        }
+      }
+    }
+    filter: {
+      includedEventTypes: [ 'Microsoft.Storage.BlobCreated', 'Microsoft.Storage.BlobDeleted' ]
+      subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
+      enableAdvancedFilteringOnArrays: true
+    }
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
+  // Role-before-subscription: the queue-sender grant must land before the
+  // Event Grid delivery-authorization preflight runs (BUG-0061). Depend on
+  // the topic module too so the topic and its system MI exist (the `parent`
+  // existing-ref alone does not enforce module completion).
+  dependsOn: [
+    eventGridSystemTopic
+    eventGridQueueSenderRole
+  ]
 }
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on

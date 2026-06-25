@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "970355651748342363"
+      "templateHash": "6967738346959943522"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -857,6 +857,51 @@
         "principalType": "ServicePrincipal"
       },
       "dependsOn": [
+        "eventGridSystemTopic",
+        "storageAccount"
+      ]
+    },
+    "newEventGridTopic": {
+      "condition": "[not(variables('useExistingEventGridTopic'))]",
+      "existing": true,
+      "type": "Microsoft.EventGrid/systemTopics",
+      "apiVersion": "2024-12-15-preview",
+      "name": "[variables('eventGridSystemTopicName')]"
+    },
+    "blobCreatedSubscription": {
+      "condition": "[not(variables('useExistingEventGridTopic'))]",
+      "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+      "apiVersion": "2024-12-15-preview",
+      "name": "[format('{0}/{1}', variables('eventGridSystemTopicName'), 'blob-created-to-doc-processing')]",
+      "properties": {
+        "deliveryWithResourceIdentity": {
+          "identity": {
+            "type": "SystemAssigned"
+          },
+          "destination": {
+            "endpointType": "StorageQueue",
+            "properties": {
+              "resourceId": "[if(variables('useExistingStorage'), resourceId('Microsoft.Storage/storageAccounts', if(variables('useExistingStorage'), parameters('existingStorageName'), variables('storageAccountName'))), reference('storageAccount').outputs.resourceId.value)]",
+              "queueName": "[variables('blobEventsQueueName')]"
+            }
+          }
+        },
+        "filter": {
+          "includedEventTypes": [
+            "Microsoft.Storage.BlobCreated",
+            "Microsoft.Storage.BlobDeleted"
+          ],
+          "subjectBeginsWith": "[format('/blobServices/default/containers/{0}/', variables('documentsContainerName'))]",
+          "enableAdvancedFilteringOnArrays": true
+        },
+        "eventDeliverySchema": "EventGridSchema",
+        "retryPolicy": {
+          "maxDeliveryAttempts": 30,
+          "eventTimeToLiveInMinutes": 1440
+        }
+      },
+      "dependsOn": [
+        "eventGridQueueSenderRole",
         "eventGridSystemTopic",
         "storageAccount"
       ]
@@ -20619,6 +20664,11 @@
                 "principalId": "[reference('aiProject').outputs.projectPrincipalId.value]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionIdOrName": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
+              },
+              {
+                "principalId": "[reference('aiProject').outputs.projectPrincipalId.value]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionIdOrName": "7ca78c08-252a-4471-8644-bb5ff32d4ba0"
               }
             ]
           },
@@ -22779,6 +22829,123 @@
         "aiSearch"
       ]
     },
+    "aiProjectKbMcpConnection": {
+      "condition": "[equals(parameters('databaseType'), 'cosmosdb')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "[take(format('module.ai-project-kb-mcp-connection.{0}', variables('solutionSuffix')), 64)]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "aiServicesAccountName": {
+            "value": "[variables('aiServicesName')]"
+          },
+          "projectName": {
+            "value": "[reference('aiProject').outputs.name.value]"
+          },
+          "searchEndpoint": "[if(variables('useExistingSearch'), createObject('value', format('https://{0}.search.windows.net', parameters('existingSearchName'))), if(equals(parameters('databaseType'), 'cosmosdb'), createObject('value', reference('aiSearch').outputs.endpoint.value), createObject('value', '')))]",
+          "knowledgeBaseName": {
+            "value": "[parameters('searchKnowledgeBaseName')]"
+          },
+          "knowledgeBaseApiVersion": {
+            "value": "[parameters('searchKnowledgeBaseApiVersion')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.37.4.10188",
+              "templateHash": "2337064410045937266"
+            }
+          },
+          "parameters": {
+            "aiServicesAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. Name of the parent AI Services account."
+              }
+            },
+            "projectName": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. Name of the Foundry Project (sub-resource of the account)."
+              }
+            },
+            "searchEndpoint": {
+              "type": "string",
+              "metadata": {
+                "description": "Required. Azure AI Search endpoint, e.g. https://<svc>.search.windows.net (no trailing slash)."
+              }
+            },
+            "knowledgeBaseName": {
+              "type": "string",
+              "defaultValue": "cwyd-kb",
+              "metadata": {
+                "description": "Optional. Foundry IQ knowledge base name this connection fronts (matches SearchSettings.knowledge_base_name)."
+              }
+            },
+            "knowledgeBaseApiVersion": {
+              "type": "string",
+              "defaultValue": "2025-11-01-preview",
+              "metadata": {
+                "description": "Optional. KB MCP API version embedded in the connection target URL (matches SearchSettings.knowledge_base_api_version)."
+              }
+            },
+            "connectionName": {
+              "type": "string",
+              "defaultValue": "[format('{0}-mcp', parameters('knowledgeBaseName'))]",
+              "metadata": {
+                "description": "Optional. Friendly connection name. MUST match AZURE_AI_SEARCH_CONNECTION_NAME. Lower-case, 3-33 chars."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects/connections",
+              "apiVersion": "2025-04-01-preview",
+              "name": "[format('{0}/{1}/{2}', split(format('{0}/{1}', parameters('aiServicesAccountName'), parameters('projectName')), '/')[0], split(format('{0}/{1}', parameters('aiServicesAccountName'), parameters('projectName')), '/')[1], parameters('connectionName'))]",
+              "properties": {
+                "category": "RemoteTool",
+                "target": "[format('{0}/knowledgebases/{1}/mcp?api-version={2}', parameters('searchEndpoint'), parameters('knowledgeBaseName'), parameters('knowledgeBaseApiVersion'))]",
+                "authType": "ProjectManagedIdentity",
+                "useWorkspaceManagedIdentity": true,
+                "isSharedToAll": true,
+                "audience": "https://search.azure.com",
+                "metadata": {
+                  "ApiType": "Azure"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "metadata": {
+                "description": "Friendly name of the KB MCP connection. Flows to AZURE_AI_SEARCH_CONNECTION_NAME."
+              },
+              "value": "[parameters('connectionName')]"
+            },
+            "resourceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the KB MCP connection."
+              },
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts/projects/connections', split(format('{0}/{1}', parameters('aiServicesAccountName'), parameters('projectName')), '/')[0], split(format('{0}/{1}', parameters('aiServicesAccountName'), parameters('projectName')), '/')[1], parameters('connectionName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "aiProject",
+        "aiSearch"
+      ]
+    },
     "storageAccount": {
       "condition": "[not(variables('useExistingStorage'))]",
       "type": "Microsoft.Resources/deployments",
@@ -22816,6 +22983,12 @@
             "value": false
           },
           "publicNetworkAccess": "[if(parameters('enablePrivateNetworking'), createObject('value', 'Disabled'), createObject('value', 'Enabled'))]",
+          "networkAcls": {
+            "value": {
+              "defaultAction": "[if(parameters('enablePrivateNetworking'), 'Deny', 'Allow')]",
+              "bypass": "AzureServices"
+            }
+          },
           "minimumTlsVersion": {
             "value": "TLS1_2"
           },
@@ -30999,9 +31172,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').file)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').queue)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
         "logAnalyticsWorkspace",
         "userAssignedIdentity",
         "virtualNetwork"
@@ -48284,7 +48457,7 @@
                   "cpu": "[if(parameters('enableScalability'), '1.0', '0.5')]",
                   "memory": "[if(parameters('enableScalability'), '2.0Gi', '1.0Gi')]"
                 },
-                "env": "[union(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingOpenAi'), format('https://{0}.openai.azure.com/', parameters('existingOpenAiName')), reference('aiServices').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_REASONING_DEPLOYMENT', 'value', parameters('reasoningModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('useExistingCosmos'), reference('existingCosmos').documentEndpoint, if(equals(parameters('databaseType'), 'cosmosdb'), reference('cosmosDb').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('useExistingSearch'), format('https://{0}.search.windows.net', parameters('existingSearchName')), if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiSearch').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', 'value', parameters('searchKnowledgeBaseName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', 'value', parameters('searchKnowledgeSourceName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', 'value', parameters('searchKnowledgeBaseApiVersion')), createObject('name', 'AZURE_AI_SEARCH_CONNECTION_NAME', 'value', if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiProjectSearchConnection').outputs.name.value, '')), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.fqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), parameters('postgresAdminPrincipalName'), '')), createObject('name', 'AZURE_SPEECH_SERVICE_NAME', 'value', reference('speechService').outputs.name.value), createObject('name', 'AZURE_SPEECH_SERVICE_REGION', 'value', parameters('azureAiServiceLocation')), createObject('name', 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', 'value', reference('speechService').outputs.resourceId.value), createObject('name', 'AZURE_CONTENT_SAFETY_ENABLED', 'value', 'true'), createObject('name', 'AZURE_CONTENT_SAFETY_ENDPOINT', 'value', reference('cogContentSafety').outputs.endpoint.value), createObject('name', 'ORCHESTRATOR', 'value', 'agent_framework'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName')), createObject('name', 'AZURE_INGESTION_TRIGGER', 'value', parameters('ingestionTrigger'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'AZURE_APP_INSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
+                "env": "[union(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingOpenAi'), format('https://{0}.openai.azure.com/', parameters('existingOpenAiName')), reference('aiServices').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_REASONING_DEPLOYMENT', 'value', parameters('reasoningModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('useExistingCosmos'), reference('existingCosmos').documentEndpoint, if(equals(parameters('databaseType'), 'cosmosdb'), reference('cosmosDb').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('useExistingSearch'), format('https://{0}.search.windows.net', parameters('existingSearchName')), if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiSearch').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', 'value', parameters('searchKnowledgeBaseName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', 'value', parameters('searchKnowledgeSourceName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', 'value', parameters('searchKnowledgeBaseApiVersion')), createObject('name', 'AZURE_AI_SEARCH_CONNECTION_NAME', 'value', if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiProjectKbMcpConnection').outputs.name.value, '')), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.fqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('id-{0}', variables('solutionSuffix')), '')), createObject('name', 'AZURE_SPEECH_SERVICE_NAME', 'value', reference('speechService').outputs.name.value), createObject('name', 'AZURE_SPEECH_SERVICE_REGION', 'value', parameters('azureAiServiceLocation')), createObject('name', 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', 'value', reference('speechService').outputs.resourceId.value), createObject('name', 'AZURE_CONTENT_SAFETY_ENABLED', 'value', 'true'), createObject('name', 'AZURE_CONTENT_SAFETY_ENDPOINT', 'value', reference('cogContentSafety').outputs.endpoint.value), createObject('name', 'CWYD_ORCHESTRATOR_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), 'langgraph', 'agent_framework')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName')), createObject('name', 'AZURE_INGESTION_TRIGGER', 'value', parameters('ingestionTrigger'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'AZURE_APP_INSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
               }
             ]
           }
@@ -49819,7 +49992,7 @@
       },
       "dependsOn": [
         "aiProject",
-        "aiProjectSearchConnection",
+        "aiProjectKbMcpConnection",
         "aiSearch",
         "aiServices",
         "applicationInsights",
@@ -64060,14 +64233,20 @@
               },
               "scaleAndConcurrency": {
                 "maximumInstanceCount": "[if(parameters('enableScalability'), 100, 40)]",
-                "instanceMemoryMB": 2048
+                "instanceMemoryMB": 2048,
+                "alwaysReady": [
+                  {
+                    "name": "function:batch_push",
+                    "instanceCount": 1
+                  }
+                ]
               }
             }
           },
           "siteConfig": {
             "value": {
               "vnetRouteAllEnabled": "[parameters('enablePrivateNetworking')]",
-              "appSettings": "[union(createArray(createObject('name', 'AzureWebJobsStorage__accountName', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AzureWebJobsStorage__credential', 'value', 'managedidentity'), createObject('name', 'AzureWebJobsStorage__clientId', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'FUNCTIONS_EXTENSION_VERSION', 'value', '~4'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingOpenAi'), format('https://{0}.openai.azure.com/', parameters('existingOpenAiName')), reference('aiServices').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('useExistingCosmos'), reference('existingCosmos').documentEndpoint, if(equals(parameters('databaseType'), 'cosmosdb'), reference('cosmosDb').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('useExistingSearch'), format('https://{0}.search.windows.net', parameters('existingSearchName')), if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiSearch').outputs.endpoint.value, ''))), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.fqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), parameters('postgresAdminPrincipalName'), '')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
+              "appSettings": "[union(createArray(createObject('name', 'AzureWebJobsStorage__accountName', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AzureWebJobsStorage__credential', 'value', 'managedidentity'), createObject('name', 'AzureWebJobsStorage__clientId', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'FUNCTIONS_EXTENSION_VERSION', 'value', '~4'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingOpenAi'), format('https://{0}.openai.azure.com/', parameters('existingOpenAiName')), reference('aiServices').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('useExistingCosmos'), reference('existingCosmos').documentEndpoint, if(equals(parameters('databaseType'), 'cosmosdb'), reference('cosmosDb').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('useExistingSearch'), format('https://{0}.search.windows.net', parameters('existingSearchName')), if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiSearch').outputs.endpoint.value, ''))), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.fqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('id-{0}', variables('solutionSuffix')), '')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
             }
           }
         },
@@ -76778,38 +76957,6 @@
             "value": {
               "systemAssigned": true
             }
-          },
-          "eventSubscriptions": {
-            "value": [
-              {
-                "name": "blob-created-to-doc-processing",
-                "deliveryWithResourceIdentity": {
-                  "identity": {
-                    "type": "SystemAssigned"
-                  },
-                  "destination": {
-                    "endpointType": "StorageQueue",
-                    "properties": {
-                      "resourceId": "[if(variables('useExistingStorage'), resourceId('Microsoft.Storage/storageAccounts', if(variables('useExistingStorage'), parameters('existingStorageName'), variables('storageAccountName'))), reference('storageAccount').outputs.resourceId.value)]",
-                      "queueName": "[variables('blobEventsQueueName')]"
-                    }
-                  }
-                },
-                "filter": {
-                  "includedEventTypes": [
-                    "Microsoft.Storage.BlobCreated",
-                    "Microsoft.Storage.BlobDeleted"
-                  ],
-                  "subjectBeginsWith": "[format('/blobServices/default/containers/{0}/', variables('documentsContainerName'))]",
-                  "enableAdvancedFilteringOnArrays": true
-                },
-                "eventDeliverySchema": "EventGridSchema",
-                "retryPolicy": {
-                  "maxDeliveryAttempts": 30,
-                  "eventTimeToLiveInMinutes": 1440
-                }
-              }
-            ]
           }
         },
         "template": {

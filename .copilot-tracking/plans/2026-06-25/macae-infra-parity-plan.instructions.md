@@ -88,63 +88,72 @@ Make CWYD v2 deploy end-to-end with a single `azd up` (provision + build + deplo
 
 <!-- parallelizable: false -->
 
-* [ ] Step 3.1: A1 env — add `AZURE_AI_SERVICES_ENDPOINT` to backend env + function appSettings
+* [x] Step 3.1: A1 env — add `AZURE_AI_SERVICES_ENDPOINT` to backend env + function appSettings
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 240-262)
-* [ ] Step 3.2: A1 RBAC — grant UAMI `Cognitive Services User` on the AI Services / Foundry account
+* [x] Step 3.2: A1 RBAC — grant UAMI `Cognitive Services User` on the AI Services / Foundry account
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 264-284)
-* [ ] Step 3.3: A7 — set `AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME` to `id-${solutionSuffix}` on both runtimes
+* [x] Step 3.3: A7 — set `AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME` to `id-${solutionSuffix}` on both runtimes
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 286-306)
-* [ ] Step 3.4: A8 — rename `ORCHESTRATOR` → `CWYD_ORCHESTRATOR_NAME`, value databaseType-conditional
+* [x] Step 3.4: A8 — rename `ORCHESTRATOR` → `CWYD_ORCHESTRATOR_NAME`, value databaseType-conditional
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 308-332)
-* [ ] Step 3.5: A4 roles — grant the Foundry Project MI `Search Service Contributor` on the Search service
+  * Verified: backend `OrchestratorSettings` (settings.py) reads env_prefix `CWYD_ORCHESTRATOR_` field `name` (WI-05 closed).
+* [x] Step 3.5: A4 roles — grant the Foundry Project MI `Search Service Contributor` on the Search service
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 334-354)
 
-### [ ] Implementation Phase 4: KB MCP project connection (A4 connection)
+### [x] Implementation Phase 4: KB MCP project connection (A4 connection)
 
 <!-- parallelizable: false -->
 
-* [ ] Step 4.1: Declare the `cwyd-kb-mcp` RemoteTool project connection + resolve `AZURE_AI_SEARCH_CONNECTION_NAME` to it
+* [x] Step 4.1: Declare the `cwyd-kb-mcp` RemoteTool project connection + resolve `AZURE_AI_SEARCH_CONNECTION_NAME` to it
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 356-388)
+  * Unblocked by the WI-01 spike (.copilot-tracking/research/2026-06-25/wi-01-kb-mcp-connection-schema.md). New module `v2/infra/modules/ai-project-kb-mcp-connection.bicep` (`RemoteTool` + `ProjectManagedIdentity` + `audience` via `any(...)`); env re-pointed; `az bicep build` clean.
 
 ### [ ] Implementation Phase 5: Function host config (A2, A3)
 
 <!-- parallelizable: false -->
 
-* [ ] Step 5.1: A2 — add `alwaysReady` to `functionAppConfig.scaleAndConcurrency`
+* [x] Step 5.1: A2 — add `alwaysReady` to `functionAppConfig.scaleAndConcurrency`
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 390-412)
-* [ ] Step 5.2: A3 — wire queue `messageEncoding=none` (app setting or host.json)
+* [x] Step 5.2: A3 — wire queue `messageEncoding=none` (app setting or host.json)
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 414-436)
+  * Landed in `v2/src/functions/host.json` (`extensions.queues.messageEncoding = "none"`); 26 tests pass.
 
 ### [ ] Implementation Phase 6: Storage firewall + Event Grid ordering (A6, A5)
 
 <!-- parallelizable: false -->
 
-* [ ] Step 6.1: A6 — storage `networkAcls.defaultAction='Allow'` + `bypass='AzureServices'` for the no-private-net profile
+* [x] Step 6.1: A6 — storage `networkAcls.defaultAction='Allow'` + `bypass='AzureServices'` for the no-private-net profile
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 438-460)
-* [ ] Step 6.2: A5 — restructure Event Grid so the queue-sender role precedes the subscription preflight
+* [x] Step 6.2: A5 — restructure Event Grid so the queue-sender role precedes the subscription preflight
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 462-490)
+  * Standalone `blobCreatedSubscription` resource (parent = `newEventGridTopic` `existing` ref) `dependsOn` `eventGridQueueSenderRole`; mirrors the reuse-path pattern.
 
 ### [ ] Implementation Phase 7: Post-deploy sample-data upload (Scenario 3)
 
 <!-- parallelizable: false -->
 
-* [ ] Step 7.1: Choose + stage the curated sample-data set (PD-03)
+* [x] Step 7.1: Choose + stage the curated sample-data set (PD-03)
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 492-512)
-* [ ] Step 7.2: Add `v2/scripts/upload_sample_data.py` (blob upload + enqueue, idempotent) + test
+  * Allow-list over repo-root `data/` (no `v2/data/` folder, no committed binaries) — DD-08.
+* [x] Step 7.2: Add `v2/scripts/upload_sample_data.py` (blob upload + enqueue, idempotent) + test
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 514-544)
-* [ ] Step 7.3: Wire the `postdeploy` hook + `upload-sample-data.{sh,ps1}` wrappers in azure.yaml
+  * Reuses the real `BatchPushQueueMessage` contract; trigger-aware (suppresses enqueue under `event_grid`); 14 tests.
+* [x] Step 7.3: Wire the `postdeploy` hook + `upload-sample-data.{sh,ps1}` wrappers in azure.yaml
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 546-566)
 
 ### [ ] Implementation Phase 8: Validation
 
 <!-- parallelizable: false -->
 
-* [ ] Step 8.1: `az bicep build` clean + `azd provision --preview` (what-if) on both databaseType values
+* [x] Step 8.1: `az bicep build` clean + `azd provision --preview` (what-if) on both databaseType values
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 568-586)
-* [ ] Step 8.2: Run the v2 pytest + vitest suites covering the changed scripts/code
+  * `az bicep build` clean (exit 0). `azd provision --preview` DEFERRED to the operator (cloud op).
+* [x] Step 8.2: Run the v2 pytest + vitest suites covering the changed scripts/code
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 588-602)
+  * 2651 pytest passed (1 skipped); 607 vitest passed (46 files).
 * [ ] Step 8.3: End-to-end `azd up` smoke (cosmosdb + postgresql) — zero manual `az` follow-ups
   * Details: .copilot-tracking/details/2026-06-25/macae-infra-parity-details.md (Lines 604-624)
+  * DEFERRED to the operator (deploy op; closes BUG-0052/53/54/55/56/58/59/61/62/63/64/69/77/81 on cloud verify).
 
 ## Planning Log
 
