@@ -63,12 +63,12 @@ infra:
 #     prepackage:
 #       posix:
 #         shell: sh
-#         run: ./scripts/prepackage-function.sh
+#         run: ./infra/scripts/prepackage/prepackage-function.sh
 #         continueOnError: false
 #         interactive: false
 #       windows:
 #         shell: pwsh
-#         run: ./scripts/prepackage-function.ps1
+#         run: ./infra/scripts/prepackage/prepackage-function.ps1
 #         continueOnError: false
 #         interactive: false
 
@@ -76,11 +76,11 @@ hooks:
   postprovision:
     posix:
       shell: sh
-      run: ./scripts/post-provision.sh
+      run: ./infra/scripts/post-provision/post-provision.sh
       continueOnError: false
       interactive: true
     windows:
       shell: pwsh
-      run: ./scripts/post-provision.ps1
+      run: ./infra/scripts/post-provision/post-provision.ps1
       continueOnError: false
       interactive: true

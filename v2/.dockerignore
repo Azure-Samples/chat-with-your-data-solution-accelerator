@@ -28,10 +28,9 @@ htmlcov/
 .azure/
 build-functions/
 
-# Docs / infra / scripts (not needed in app images)
+# Docs / infra (not needed in app images)
 docs/
 infra/
-scripts/
 
 # CI helpers (not consumed by app images)
 docker/ci-entrypoint.sh

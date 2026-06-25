@@ -78,8 +78,7 @@ capability reason when the configured deployment does not match.
 v2/
 ├── docker/         # docker-compose + Dockerfiles for dev + CI validation
 ├── docs/           # plans, ADRs, env vars, extension guide
-├── infra/          # Bicep + azd templates (v2-specific)
-├── scripts/        # helper scripts (env parsing, smoke checks)
+├── infra/          # Bicep + azd templates (v2-specific) + helper scripts
 ├── src/
 │   ├── backend/    # FastAPI app, providers, orchestrators, routers
 │   └── functions/  # Azure Functions blueprints (RAG indexing pipeline)

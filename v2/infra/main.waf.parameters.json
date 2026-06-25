@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "deploymentFlavor": {
-      "value": "${DEPLOYMENT_FLAVOR=avm-waf}"
+      "value": "${DEPLOYMENT_FLAVOR=avm}"
     },
     "solutionName": {
       "value": "${AZURE_ENV_NAME}"
@@ -15,7 +15,7 @@
       "value": "${AZURE_AI_SERVICE_LOCATION}"
     },
     "databaseType": {
-      "value": "${DATABASE_TYPE=cosmosdb}"
+      "value": "${DATABASE_TYPE=postgresql}"
     },
     "gptModelName": {
       "value": "${AZURE_GPT_MODEL_NAME=gpt-5.1}"
@@ -60,13 +60,16 @@
       "value": "${AZURE_AI_AGENT_API_VERSION=2025-05-01}"
     },
     "containerRegistryEndpoint": {
-      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT}"
+      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT=testapreg.azurecr.io}"
     },
     "imageTag": {
-      "value": "${AZURE_IMAGE_TAG=latest}"
+      "value": "${AZURE_IMAGE_TAG=cwyd}"
     },
     "hostingModel": {
       "value": "${AZURE_APP_SERVICE_HOSTING_MODEL=container}"
+    },
+    "existingLogAnalyticsWorkspaceId": {
+      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
     },
     "enableTelemetry": {
       "value": "${ENABLE_TELEMETRY=true}"
@@ -78,7 +81,7 @@
       "value": true
     },
     "enableRedundancy": {
-      "value": "${ENABLE_REDUNDANCY=true}"
+      "value": "${ENABLE_REDUNDANCY=false}"
     },
     "enablePrivateNetworking": {
       "value": true
@@ -91,16 +94,6 @@
     },
     "vmSize": {
       "value": "${AZURE_ENV_JUMPBOX_SIZE=Standard_D2s_v5}"
-    },
-    "existingLogAnalyticsWorkspaceId": {
-      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
-    },
-    "principal": {
-      "value": {
-        "id": "${PRINCIPAL_ID}",
-        "name": "${PRINCIPAL_NAME}",
-        "type": "${PRINCIPAL_TYPE=User}"
-      }
     }
   }
 }

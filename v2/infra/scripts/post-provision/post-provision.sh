@@ -2,7 +2,7 @@
 # Pillar: Stable Core
 # Phase:  1 (Infrastructure + Project Skeleton, task #19)
 #
-# Thin POSIX wrapper around v2/scripts/post_provision.py invoked by azd
+# Thin POSIX wrapper around v2/infra/scripts/post-provision/post_provision.py invoked by azd
 # via the `hooks.postprovision.posix` block in v2/azure.yaml. All logic
 # lives in the Python script so behaviour is identical across platforms.
 #

@@ -15,7 +15,7 @@
       "value": "${AZURE_AI_SERVICE_LOCATION}"
     },
     "databaseType": {
-      "value": "${DATABASE_TYPE=cosmosdb}"
+      "value": "${DATABASE_TYPE=postgresql}"
     },
     "gptModelName": {
       "value": "${AZURE_GPT_MODEL_NAME=gpt-5.1}"

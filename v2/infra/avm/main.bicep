@@ -582,7 +582,7 @@ module jumpboxVM './modules/compute/virtual-machine.bicep' = if (enablePrivateNe
 @batchSize(5)
 module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' = [
   for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
-    name: take('avm.res.network.private-dns-zone.${replace(zone, '.', '-')}.${solutionSuffix}', 64)
+    name: take('module.private-dns-zone.${split(zone, '.')[1]}.${solutionName}', 64)
     params: {
       name: zone
       tags: allTags
@@ -958,7 +958,7 @@ module storageAccount './modules/data/storage-account.bicep' = {
 // ============================================================================
 
 module cosmosDb './modules/data/cosmos-db-nosql.bicep' = if (databaseType == 'cosmosdb') {
-  name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
+  name: take('module.cosmos-db-nosql.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     location: location
@@ -1056,7 +1056,7 @@ module containerRegistry './modules/compute/container-registry.bicep' = {
 // ========== Container App Environment ========== //
 var containerAppsEnvName = 'cae-${solutionSuffix}'
 module containerAppsEnv './modules/compute/container-app-environment.bicep' = {
-  name: take('module.container-app-environment.${solutionSuffix}', 64)
+  name: take('module.container-app-environment.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     location: location
@@ -1067,27 +1067,6 @@ module containerAppsEnv './modules/compute/container-app-environment.bicep' = {
     enableMonitoring: enableMonitoring
     logAnalyticsWorkspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
     infrastructureSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.containerSubnetResourceId : null
-  }
-}
-
-// Existing reference to the deployed env so we can attach diagnostic
-// settings to it without round-tripping through a module output.
-resource containerAppsEnvResource 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
-  name: containerAppsEnvName
-  dependsOn: [ containerAppsEnv ]
-}
-
-resource containerAppsEnvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (enableMonitoring) {
-  name: 'send-to-log-analytics'
-  scope: containerAppsEnvResource
-  properties: {
-    workspaceId: logAnalyticsWorkspace!.outputs.resourceId
-    logs: [
-      {
-        categoryGroup: 'allLogs'
-        enabled: true
-      }
-    ]
   }
 }
 
@@ -1211,7 +1190,7 @@ module appServicePlan './modules/compute/app-service-plan.bicep' = {
 }
 
 module frontendContainerApp './modules/compute/container-app.bicep' = {
-  name: take('module.container-app-frontend.${solutionSuffix}', 64)
+  name: take('module.container-app-frontend.${solutionName}', 64)
   params: {
     name: 'ca-frontend-${solutionSuffix}'
     location: location

@@ -10,10 +10,14 @@ from pathlib import Path
 
 import pytest
 
-# The script lives in v2/scripts/, which is not on pythonpath. Load it
+# The script lives in v2/infra/scripts/post-provision/, which is not on pythonpath. Load it
 # directly with importlib so tests don't depend on PYTHONPATH munging.
 _SCRIPT_PATH = (
-    Path(__file__).resolve().parents[2] / "scripts" / "post_provision.py"
+    Path(__file__).resolve().parents[2]
+    / "infra"
+    / "scripts"
+    / "post-provision"
+    / "post_provision.py"
 )
 _spec = importlib.util.spec_from_file_location("_post_provision", _SCRIPT_PATH)
 assert _spec and _spec.loader
@@ -61,9 +65,7 @@ def test_ensure_search_index_skips_when_endpoint_missing(monkeypatch, capsys):
         sentinel["called"] = True
         raise AssertionError("client_factory should not be invoked")
 
-    result = post_provision._ensure_search_index(
-        dry_run=False, client_factory=factory
-    )
+    result = post_provision._ensure_search_index(dry_run=False, client_factory=factory)
 
     assert result == "skipped"
     assert sentinel["called"] is False
@@ -76,9 +78,7 @@ def test_ensure_search_index_dry_run_makes_no_calls(monkeypatch, capsys):
     def factory():
         raise AssertionError("dry-run must not build a client")
 
-    result = post_provision._ensure_search_index(
-        dry_run=True, client_factory=factory
-    )
+    result = post_provision._ensure_search_index(dry_run=True, client_factory=factory)
 
     out = capsys.readouterr().out
     assert result == "dry-run"
@@ -134,9 +134,7 @@ def test_ensure_search_index_propagates_unexpected_errors(monkeypatch):
 
     fake = _ExplodingClient(exists=False)
     with pytest.raises(_Boom):
-        post_provision._ensure_search_index(
-            dry_run=False, client_factory=lambda: fake
-        )
+        post_provision._ensure_search_index(dry_run=False, client_factory=lambda: fake)
     # close() still called from the finally block.
     assert fake.closed is True
 
@@ -242,9 +240,7 @@ def test_ensure_knowledge_base_dry_run_makes_no_calls(monkeypatch, capsys):
     def factory():
         raise AssertionError("dry-run must not build a client")
 
-    result = post_provision._ensure_knowledge_base(
-        dry_run=True, client_factory=factory
-    )
+    result = post_provision._ensure_knowledge_base(dry_run=True, client_factory=factory)
 
     out = capsys.readouterr().out
     assert result == "dry-run"
@@ -282,9 +278,7 @@ def test_ensure_knowledge_base_puts_source_then_base(monkeypatch):
     assert kb_put["params"] == {"api-version": "2025-11-01-preview"}
     # Bodies are wired from _build_knowledge_base_seed.
     assert ks_put["json"]["kind"] == "searchIndex"
-    assert (
-        ks_put["json"]["searchIndexParameters"]["searchIndexName"] == "cwyd-index"
-    )
+    assert ks_put["json"]["searchIndexParameters"]["searchIndexName"] == "cwyd-index"
     assert kb_put["json"]["knowledgeSources"] == [{"name": "cwyd-index-ks"}]
     aoai = kb_put["json"]["models"][0]["azureOpenAIParameters"]
     assert aoai["resourceUri"] == "https://aoai.example/"
@@ -320,9 +314,7 @@ def test_ensure_knowledge_base_is_idempotent(monkeypatch):
     assert [p["url"] for p in first.puts] == [p["url"] for p in second.puts]
 
 
-def test_main_dry_run_cosmosdb_skips_postgres_and_search_calls(
-    monkeypatch, capsys
-):
+def test_main_dry_run_cosmosdb_skips_postgres_and_search_calls(monkeypatch, capsys):
     monkeypatch.setenv("AZURE_DB_TYPE", "cosmosdb")
 
     rc = post_provision.main(["--dry-run"])

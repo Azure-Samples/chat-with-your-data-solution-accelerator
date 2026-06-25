@@ -332,7 +332,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
 // --- Identity / region / suffix ---
 
 @description('Lower-cased solution suffix used in every downstream resource name.')
-output AZURE_SOLUTION_SUFFIX string = isAvm ? avmDeployment!.outputs.AZURE_SOLUTION_SUFFIX : bicepDeployment!.outputs.AZURE_SOLUTION_SUFFIX
+output AZURE_SOLUTION_SUFFIX string = isAvm ? avmDeployment!.outputs.AZURE_SOLUTION_SUFFIX : avmDeployment!.outputs.AZURE_SOLUTION_SUFFIX
 
 @description('Resource group containing the deployment.')
 output AZURE_RESOURCE_GROUP string = resourceGroup().name
@@ -347,13 +347,13 @@ output AZURE_AI_SERVICE_LOCATION string = azureAiServiceLocation
 output AZURE_TENANT_ID string = subscription().tenantId
 
 @description('Client ID of the user-assigned managed identity shared by all v2 workloads.')
-output AZURE_UAMI_CLIENT_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI_CLIENT_ID : bicepDeployment!.outputs.AZURE_UAMI_CLIENT_ID
+output AZURE_UAMI_CLIENT_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI_CLIENT_ID : avmDeployment!.outputs.AZURE_UAMI_CLIENT_ID
 
 @description('Principal (object) ID of the user-assigned managed identity.')
-output AZURE_UAMI_PRINCIPAL_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI_PRINCIPAL_ID : bicepDeployment!.outputs.AZURE_UAMI_PRINCIPAL_ID
+output AZURE_UAMI_PRINCIPAL_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI_PRINCIPAL_ID : avmDeployment!.outputs.AZURE_UAMI_PRINCIPAL_ID
 
 @description('Resource ID of the user-assigned managed identity.')
-output AZURE_UAMI_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI_RESOURCE_ID : bicepDeployment!.outputs.AZURE_UAMI_RESOURCE_ID
+output AZURE_UAMI_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI_RESOURCE_ID : avmDeployment!.outputs.AZURE_UAMI_RESOURCE_ID
 
 // --- Database routing flag ---
 
@@ -361,124 +361,124 @@ output AZURE_UAMI_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_UAMI
 output AZURE_DB_TYPE string = databaseType
 
 @description('Logical name of the configured vector index store.')
-output AZURE_INDEX_STORE string = isAvm ? avmDeployment!.outputs.AZURE_INDEX_STORE : bicepDeployment!.outputs.AZURE_INDEX_STORE
+output AZURE_INDEX_STORE string = isAvm ? avmDeployment!.outputs.AZURE_INDEX_STORE : avmDeployment!.outputs.AZURE_INDEX_STORE
 
 // --- Foundry substrate ---
 
 @description('Unified AI Services endpoint.')
-output AZURE_AI_SERVICES_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_SERVICES_ENDPOINT : bicepDeployment!.outputs.AZURE_AI_SERVICES_ENDPOINT
+output AZURE_AI_SERVICES_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_SERVICES_ENDPOINT : avmDeployment!.outputs.AZURE_AI_SERVICES_ENDPOINT
 
 @description('Effective Azure OpenAI endpoint for chat + reasoning + embedding deployments.')
-output AZURE_OPENAI_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_ENDPOINT : bicepDeployment!.outputs.AZURE_OPENAI_ENDPOINT
+output AZURE_OPENAI_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_ENDPOINT : avmDeployment!.outputs.AZURE_OPENAI_ENDPOINT
 
 @description('Foundry Project endpoint. Required by the Microsoft Agent Framework SDK.')
-output AZURE_AI_PROJECT_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_PROJECT_ENDPOINT : bicepDeployment!.outputs.AZURE_AI_PROJECT_ENDPOINT
+output AZURE_AI_PROJECT_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_PROJECT_ENDPOINT : avmDeployment!.outputs.AZURE_AI_PROJECT_ENDPOINT
 
 @description('OpenAI-compatible API version pinned for the GPT + reasoning deployments.')
 output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
 
 @description('Azure AI Agents API version.')
-output AZURE_AI_AGENT_API_VERSION string = isAvm ? avmDeployment!.outputs.AZURE_AI_AGENT_API_VERSION : bicepDeployment!.outputs.AZURE_AI_AGENT_API_VERSION
+output AZURE_AI_AGENT_API_VERSION string = isAvm ? avmDeployment!.outputs.AZURE_AI_AGENT_API_VERSION : avmDeployment!.outputs.AZURE_AI_AGENT_API_VERSION
 
 @description('Deployment name of the chat-completions GPT model.')
 output AZURE_OPENAI_GPT_DEPLOYMENT string = gptModelName
 
 @description('Deployment name of the o-series reasoning model.')
-output AZURE_OPENAI_REASONING_DEPLOYMENT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_REASONING_DEPLOYMENT : bicepDeployment!.outputs.AZURE_OPENAI_REASONING_DEPLOYMENT
+output AZURE_OPENAI_REASONING_DEPLOYMENT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_REASONING_DEPLOYMENT : avmDeployment!.outputs.AZURE_OPENAI_REASONING_DEPLOYMENT
 
 @description('Deployment name of the embedding model.')
-output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT : bicepDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT : avmDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
 
 // --- Speech ---
 
 @description('Speech account name.')
-output AZURE_SPEECH_SERVICE_NAME string = isAvm ? avmDeployment!.outputs.AZURE_SPEECH_SERVICE_NAME : bicepDeployment!.outputs.AZURE_SPEECH_SERVICE_NAME
+output AZURE_SPEECH_SERVICE_NAME string = isAvm ? avmDeployment!.outputs.AZURE_SPEECH_SERVICE_NAME : avmDeployment!.outputs.AZURE_SPEECH_SERVICE_NAME
 
 @description('Speech account region.')
 output AZURE_SPEECH_SERVICE_REGION string = azureAiServiceLocation
 
 @description('Speech account ARM resource ID.')
-output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_SPEECH_ACCOUNT_RESOURCE_ID : bicepDeployment!.outputs.AZURE_SPEECH_ACCOUNT_RESOURCE_ID
+output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = isAvm ? avmDeployment!.outputs.AZURE_SPEECH_ACCOUNT_RESOURCE_ID : avmDeployment!.outputs.AZURE_SPEECH_ACCOUNT_RESOURCE_ID
 
 // --- Content Safety ---
 
 @description('Content Safety account endpoint.')
-output AZURE_CONTENT_SAFETY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTENT_SAFETY_ENDPOINT : bicepDeployment!.outputs.AZURE_CONTENT_SAFETY_ENDPOINT
+output AZURE_CONTENT_SAFETY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTENT_SAFETY_ENDPOINT : avmDeployment!.outputs.AZURE_CONTENT_SAFETY_ENDPOINT
 
 @description('Content Safety account name.')
-output AZURE_CONTENT_SAFETY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_CONTENT_SAFETY_NAME : bicepDeployment!.outputs.AZURE_CONTENT_SAFETY_NAME
+output AZURE_CONTENT_SAFETY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_CONTENT_SAFETY_NAME : avmDeployment!.outputs.AZURE_CONTENT_SAFETY_NAME
 
 // --- Azure AI Search (cosmosdb mode only) ---
 
 @description('AI Search service endpoint. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT : bicepDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT
+output AZURE_AI_SEARCH_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT : avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT
 
 @description('AI Search service name. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_NAME string = isAvm ? avmDeployment!.outputs.AZURE_AI_SEARCH_NAME : bicepDeployment!.outputs.AZURE_AI_SEARCH_NAME
+output AZURE_AI_SEARCH_NAME string = isAvm ? avmDeployment!.outputs.AZURE_AI_SEARCH_NAME : avmDeployment!.outputs.AZURE_AI_SEARCH_NAME
 
 // --- Cosmos DB (cosmosdb mode only) ---
 
 @description('Cosmos DB account endpoint. Empty in postgresql mode.')
-output AZURE_COSMOS_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_COSMOS_ENDPOINT : bicepDeployment!.outputs.AZURE_COSMOS_ENDPOINT
+output AZURE_COSMOS_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_COSMOS_ENDPOINT : avmDeployment!.outputs.AZURE_COSMOS_ENDPOINT
 
 @description('Cosmos DB account name. Empty in postgresql mode.')
-output AZURE_COSMOS_ACCOUNT_NAME string = isAvm ? avmDeployment!.outputs.AZURE_COSMOS_ACCOUNT_NAME : bicepDeployment!.outputs.AZURE_COSMOS_ACCOUNT_NAME
+output AZURE_COSMOS_ACCOUNT_NAME string = isAvm ? avmDeployment!.outputs.AZURE_COSMOS_ACCOUNT_NAME : avmDeployment!.outputs.AZURE_COSMOS_ACCOUNT_NAME
 
 // --- PostgreSQL (postgresql mode only) ---
 
 @description('PostgreSQL Flexible Server FQDN. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_HOST string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_HOST : bicepDeployment!.outputs.AZURE_POSTGRES_HOST
+output AZURE_POSTGRES_HOST string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_HOST : avmDeployment!.outputs.AZURE_POSTGRES_HOST
 
 @description('Full libpq connection URI. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_ENDPOINT : bicepDeployment!.outputs.AZURE_POSTGRES_ENDPOINT
+output AZURE_POSTGRES_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_ENDPOINT : avmDeployment!.outputs.AZURE_POSTGRES_ENDPOINT
 
 @description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_NAME string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_NAME : bicepDeployment!.outputs.AZURE_POSTGRES_NAME
+output AZURE_POSTGRES_NAME string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_NAME : avmDeployment!.outputs.AZURE_POSTGRES_NAME
 
 @description('Entra admin principal name for the Postgres Flex server. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME : bicepDeployment!.outputs.AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME : avmDeployment!.outputs.AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME
 
 @description('Deployer principal name registered as Postgres Entra admin (for post_provision.py). Empty in cosmosdb mode.')
-output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME : bicepDeployment!.outputs.AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME
+output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = isAvm ? avmDeployment!.outputs.AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME : avmDeployment!.outputs.AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME
 
 // --- Storage ---
 
 @description('Storage account name.')
-output AZURE_STORAGE_ACCOUNT_NAME string = isAvm ? avmDeployment!.outputs.AZURE_STORAGE_ACCOUNT_NAME : bicepDeployment!.outputs.AZURE_STORAGE_ACCOUNT_NAME
+output AZURE_STORAGE_ACCOUNT_NAME string = isAvm ? avmDeployment!.outputs.AZURE_STORAGE_ACCOUNT_NAME : avmDeployment!.outputs.AZURE_STORAGE_ACCOUNT_NAME
 
 @description('Primary blob endpoint.')
-output AZURE_STORAGE_BLOB_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_STORAGE_BLOB_ENDPOINT : bicepDeployment!.outputs.AZURE_STORAGE_BLOB_ENDPOINT
+output AZURE_STORAGE_BLOB_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_STORAGE_BLOB_ENDPOINT : avmDeployment!.outputs.AZURE_STORAGE_BLOB_ENDPOINT
 
 @description('Container holding documents to be indexed.')
-output AZURE_DOCUMENTS_CONTAINER string = isAvm ? avmDeployment!.outputs.AZURE_DOCUMENTS_CONTAINER : bicepDeployment!.outputs.AZURE_DOCUMENTS_CONTAINER
+output AZURE_DOCUMENTS_CONTAINER string = isAvm ? avmDeployment!.outputs.AZURE_DOCUMENTS_CONTAINER : avmDeployment!.outputs.AZURE_DOCUMENTS_CONTAINER
 
 @description('Storage Queue name for doc processing.')
-output AZURE_DOC_PROCESSING_QUEUE string = isAvm ? avmDeployment!.outputs.AZURE_DOC_PROCESSING_QUEUE : bicepDeployment!.outputs.AZURE_DOC_PROCESSING_QUEUE
+output AZURE_DOC_PROCESSING_QUEUE string = isAvm ? avmDeployment!.outputs.AZURE_DOC_PROCESSING_QUEUE : avmDeployment!.outputs.AZURE_DOC_PROCESSING_QUEUE
 
 @description('Ingestion trigger mode.')
-output AZURE_INGESTION_TRIGGER string = isAvm ? avmDeployment!.outputs.AZURE_INGESTION_TRIGGER : bicepDeployment!.outputs.AZURE_INGESTION_TRIGGER
+output AZURE_INGESTION_TRIGGER string = isAvm ? avmDeployment!.outputs.AZURE_INGESTION_TRIGGER : avmDeployment!.outputs.AZURE_INGESTION_TRIGGER
 
 // --- Hosting endpoints ---
 
 @description('Public URL of the backend Container App.')
-output AZURE_BACKEND_URL string = isAvm ? avmDeployment!.outputs.AZURE_BACKEND_URL : bicepDeployment!.outputs.AZURE_BACKEND_URL
+output AZURE_BACKEND_URL string = isAvm ? avmDeployment!.outputs.AZURE_BACKEND_URL : avmDeployment!.outputs.AZURE_BACKEND_URL
 
 @description('Public URL of the frontend Container App.')
-output AZURE_FRONTEND_URL string = isAvm ? avmDeployment!.outputs.AZURE_FRONTEND_URL : bicepDeployment!.outputs.AZURE_FRONTEND_URL
+output AZURE_FRONTEND_URL string = isAvm ? avmDeployment!.outputs.AZURE_FRONTEND_URL : avmDeployment!.outputs.AZURE_FRONTEND_URL
 
 @description('Public URL of the Function App.')
-output AZURE_FUNCTION_APP_URL string = isAvm ? avmDeployment!.outputs.AZURE_FUNCTION_APP_URL : bicepDeployment!.outputs.AZURE_FUNCTION_APP_URL
+output AZURE_FUNCTION_APP_URL string = isAvm ? avmDeployment!.outputs.AZURE_FUNCTION_APP_URL : avmDeployment!.outputs.AZURE_FUNCTION_APP_URL
 
 @description('Function App resource name.')
-output AZURE_FUNCTION_APP_NAME string = isAvm ? avmDeployment!.outputs.AZURE_FUNCTION_APP_NAME : bicepDeployment!.outputs.AZURE_FUNCTION_APP_NAME
+output AZURE_FUNCTION_APP_NAME string = isAvm ? avmDeployment!.outputs.AZURE_FUNCTION_APP_NAME : avmDeployment!.outputs.AZURE_FUNCTION_APP_NAME
 
 @description('Container Registry login server.')
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT : avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 
 @description('Container Registry resource name.')
-output AZURE_CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME
+output AZURE_CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME : avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME
 
 // --- Conditional: monitoring ---
 
 @description('Application Insights connection string. Empty when enableMonitoring=false.')
-output AZURE_APP_INSIGHTS_CONNECTION_STRING string = isAvm ? avmDeployment!.outputs.AZURE_APP_INSIGHTS_CONNECTION_STRING : bicepDeployment!.outputs.AZURE_APP_INSIGHTS_CONNECTION_STRING
+output AZURE_APP_INSIGHTS_CONNECTION_STRING string = isAvm ? avmDeployment!.outputs.AZURE_APP_INSIGHTS_CONNECTION_STRING : avmDeployment!.outputs.AZURE_APP_INSIGHTS_CONNECTION_STRING

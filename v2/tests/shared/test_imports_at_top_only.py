@@ -39,7 +39,7 @@ _V2_ROOT = Path(__file__).resolve().parents[2]
 
 # Subtrees under v2/ that get scanned. Full v2/ Python surface
 # (production + scripts + tests) is gated.
-_SCAN_ROOTS = ("src", "tests", "scripts")
+_SCAN_ROOTS = ("src", "tests", Path("infra") / "scripts")
 
 # Per-file exemption list. Empty by design -- Hard Rule #17 is absolute
 # with zero carve-outs. If you think you need to add an entry here, you
@@ -56,7 +56,12 @@ def _iter_v2_python_files() -> list[Path]:
             continue
         for path in root_dir.rglob("*.py"):
             parts = set(path.parts)
-            if "__pycache__" in parts or ".venv" in parts or "build" in parts or "node_modules" in parts:
+            if (
+                "__pycache__" in parts
+                or ".venv" in parts
+                or "build" in parts
+                or "node_modules" in parts
+            ):
                 continue
             files.append(path)
     return sorted(files)
@@ -135,9 +140,7 @@ def test_imports_at_module_top(py_file: Path) -> None:
         return
 
     rel = py_file.relative_to(_V2_ROOT)
-    formatted = "\n".join(
-        f"  line {lineno}: {reason}" for lineno, reason in findings
-    )
+    formatted = "\n".join(f"  line {lineno}: {reason}" for lineno, reason in findings)
     pytest.fail(
         f"{rel}: misplaced imports detected (Hard Rule #17 -- all imports at "
         f"module top, zero carve-outs):\n{formatted}\n\n"
@@ -155,11 +158,11 @@ def test_scan_actually_walked_files() -> None:
     because the test runs from an unexpected cwd in CI), the
     parametrised test would generate zero cases and quietly pass.
     """
-    assert _ALL_FILES, "no Python files discovered under v2/{src,scripts}"
+    assert _ALL_FILES, "no Python files discovered under v2/{src,infra/scripts}"
     rel_parts = {p.relative_to(_V2_ROOT).parts[0] for p in _ALL_FILES}
-    assert "src" in rel_parts, (
-        "no files found under v2/src/ -- path resolution likely broken"
-    )
-    assert "scripts" in rel_parts, (
-        "no files found under v2/scripts/ -- path resolution likely broken"
-    )
+    assert (
+        "src" in rel_parts
+    ), "no files found under v2/src/ -- path resolution likely broken"
+    assert (
+        "infra" in rel_parts
+    ), "no files found under v2/infra/scripts/ -- path resolution likely broken"
