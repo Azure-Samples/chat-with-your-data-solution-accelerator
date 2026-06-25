@@ -3,6 +3,7 @@
 // Description: Pure orchestrator for Agentic Applications for UDF
 //              All resource names are derived from params — no hardcoded names.
 //              This file only calls modules; no inline resource definitions.
+//              Supports WAF-aligned deployment via feature flags.
 // ============================================================================
 targetScope = 'resourceGroup'
 
@@ -60,12 +61,22 @@ param azureAiServiceLocation string
 // ===================== //
 
 @allowed([
-  'CosmosDB'
-  'PostgreSQL'
+  'cosmosdb'
+  'postgresql'
 ])
-@description('Required. Selects BOTH the chat-history backend AND the vector index store. cosmosdb: Cosmos DB + Azure AI Search. postgresql: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
-param databaseType string = 'CosmosDB'
+@description('Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
+param databaseType string = 'cosmosdb'
 
+// ===================== //
+// Ingestion trigger     //
+// ===================== //
+
+@allowed([
+  'direct_enqueue'
+  'event_grid'
+])
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
+param ingestionTrigger string = 'direct_enqueue'
 
 // ===================== //
 // AI model parameters   //
@@ -131,30 +142,44 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
-// CU-009a (2026-05-05): a previous Bicep param + container-app env
-// binding for the Foundry agent identity were removed. Per ADR 0008
-// (lazy-foundry-agent-bootstrap), agent identity is no longer an
-// operator-supplied env value -- the runtime resolves it lazily on
-// first request and persists the id in the chat-history database
-// (Cosmos in cosmosdb-mode, Postgres in postgresql-mode). Restoring
-// the env path would re-introduce dead-config drift; pin specific
-// agents through the registry-backed agents provider instead.
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
+// ============================================================================
+// Parameters — Compute
+// ============================================================================
+
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
+param containerRegistryEndpoint string = 'cwydcontainerreg.azurecr.io'
+
+@description('Optional. The image tag for the container images.')
+param imageTag string = 'latest'
+
+@description('Optional. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
+param hostingModel string = 'container'
 
 // ===================== //
 // WAF flags             //
 // ===================== //
 
+
+
 @description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.')
 param enableMonitoring bool = false
+@description('Optional. Enable/Disable usage telemetry for module.')
+param enableTelemetry bool = true
 
-@description('Optional. Higher SKUs and autoscaling on App Service Plan, Container Apps, Search, and PostgreSQL.')
-param enableScalability bool = false
 
-@description('Optional. Zone-redundant + paired-region failover on databases, App Service Plan, Container Apps, and Storage.')
-param enableRedundancy bool = false
 
-@description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. Wires the regional VNet (`modules/virtualNetwork.bicep`), private DNS zones, private endpoints for every data-plane resource, regional VNet integration for compute, and Bastion. Setting this to true is the WAF-aligned topology and requires no follow-up tasks; flipping it back to false re-enables public endpoints with default firewall rules.')
-param enablePrivateNetworking bool = false
+
+@description('Optional. Existing Log Analytics Workspace Resource ID.')
+param existingLogAnalyticsWorkspaceId string = ''
 
 // ===================== //
 // Tagging               //
@@ -168,21 +193,21 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
   ? split(deployer().userPrincipalName, '@')[0]
   : deployer().objectId
 
+@description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
+param principal object = {
+  id: '' // Principal ID
+  name: '' // Principal name
+  type: 'User' // Principal type ('User', 'Group', or 'ServicePrincipal')
+}
+
+@allowed(['User', 'ServicePrincipal'])
+@description('Optional. Principal type of the deploying user.')
+param deployingUserPrincipalType string = 'User'
+
 // ===================== //
 // Variables             //
 // ===================== //
 
-// NOTE: When enablePrivateNetworking=true, every data-plane resource
-// below is provisioned with publicNetworkAccess='Disabled', the VNet
-// + private DNS zones + private endpoints are wired in, and compute
-// (Container Apps, Function App) connects via regional VNet
-// integration. The flag is the supported WAF-aligned topology and
-// requires no follow-up work to enable.
-
-
-// 15-char solution suffix used in every resource name. Lowercased and stripped
-// of separators so it stays valid for resources with the strictest naming rules
-// (PostgreSQL, Storage Account).
 var solutionSuffix = toLower(trim(replace(
   replace(
     replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
@@ -192,159 +217,58 @@ var solutionSuffix = toLower(trim(replace(
   '*',
   '')))
 
+var deployingUserPrincipalId = deployer().objectId
+var docProcessingQueueName = 'doc-processing'
+var blobEventsQueueName = 'blob-events'
+var documentsContainerName = 'documents'
+var enablePrivateNetworking = false
+var enableScalability = false
+var enableRedundancy = false
+
 var allTags = union(
   {
     'azd-env-name': solutionName
     TemplateName: 'CWYD-v2'
-    Type: 'Non-WAF'
+    Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
     CreatedBy: createdBy
     DatabaseType: databaseType
   },
   tags
 )
 
-// ===================== //
-// Resources             //
-// ===================== //
-
-// Stamp the resource group with the solution tags so downstream tooling can
-// discover the deployment without parsing names.
-resource resourceGroupTags 'Microsoft.Resources/tags@2024-03-01' = {
-  name: 'default'
-  properties: {
-    tags: union(resourceGroup().tags ?? {}, allTags)
-  }
+// Region pairs list based on article in [Azure Database for MySQL Flexible Server - Azure Regions](https://learn.microsoft.com/azure/mysql/flexible-server/overview#azure-regions) for supported high availability regions for CosmosDB.
+var cosmosDbZoneRedundantHaRegionPairs = {
+  australiaeast: 'uksouth'
+  centralus: 'eastus2'
+  eastasia: 'southeastasia'
+  eastus: 'centralus'
+  eastus2: 'centralus'
+  japaneast: 'australiaeast'
+  northeurope: 'westeurope'
+  southeastasia: 'eastasia'
+  uksouth: 'westeurope'
+  westeurope: 'northeurope'
 }
+// Paired location calculated based on 'location' parameter. This location will be used by applicable resources if `enableScalability` is set to `true`
+var cosmosDbHaLocation = cosmosDbZoneRedundantHaRegionPairs[location]
 
-// managed-identity + RBAC + no Key Vault for app secrets.
-module userAssignedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
-  name: take('avm.res.managed-identity.user-assigned-identity.${solutionSuffix}', 64)
-  params: {
-    name: 'id-${solutionSuffix}'
-    location: location
-    tags: allTags
-    enableTelemetry: false
-  }
+// Replica regions list based on article in [Azure regions list](https://learn.microsoft.com/azure/reliability/regions-list) and [Enhance resilience by replicating your Log Analytics workspace across regions](https://learn.microsoft.com/azure/azure-monitor/logs/workspace-replication#supported-regions) for supported regions for Log Analytics Workspace.
+var replicaRegionPairs = {
+  australiaeast: 'australiasoutheast'
+  centralus: 'westus'
+  eastasia: 'japaneast'
+  eastus: 'centralus'
+  eastus2: 'centralus'
+  japaneast: 'eastasia'
+  northeurope: 'westeurope'
+  southeastasia: 'eastasia'
+  uksouth: 'westeurope'
+  westeurope: 'northeurope'
 }
+var replicaLocation = replicaRegionPairs[location]
 
-// ----------------------------------------------------------------------
-// Monitoring (conditional). Gated on enableMonitoring so non-WAF deploys
-// stay cheap. Log Analytics is the sink for Application Insights and for
-// every diagnostic setting wired by downstream modules.
-// ----------------------------------------------------------------------
-module logAnalyticsWorkspace 'br/public:avm/res/operational-insights/workspace:0.11.2' = if (enableMonitoring) {
-  name: take('avm.res.operational-insights.workspace.${solutionSuffix}', 64)
-  params: {
-    name: 'log-${solutionSuffix}'
-    location: location
-    tags: allTags
-    enableTelemetry: false
-    skuName: 'PerGB2018'
-    dataRetention: enableRedundancy ? 90 : 30
-  }
-}
 
-module applicationInsights 'br/public:avm/res/insights/component:0.6.0' = if (enableMonitoring) {
-  name: take('avm.res.insights.component.${solutionSuffix}', 64)
-  params: {
-    name: 'appi-${solutionSuffix}'
-    location: location
-    tags: allTags
-    enableTelemetry: false
-    workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-    applicationType: 'web'
-    kind: 'web'
-    disableLocalAuth: true
-  }
-}
 
-// ----------------------------------------------------------------------
-// Virtual network (conditional, dev_plan task #7). Wraps AVM
-// `network/virtual-network:0.7.0` + per-subnet NSGs. Address plan and
-// subnet roles documented in v2/infra/modules/virtualNetwork.bicep.
-//
-// `databaseType` is forwarded so the wrapper only allocates the
-// Postgres-delegated subnet in postgresql mode. Diagnostic logs are
-// piped to Log Analytics when monitoring is enabled, otherwise the
-// VNet ships without diagnostic settings (avoids a hard dependency on
-// the optional workspace).
-//
-// Downstream wiring (private DNS zones, private endpoints, regional
-// VNet integration on CAE / Web App / Function App, Bastion) lands in
-// dev_plan task #8 sub-units. This unit only stands up the network.
-// ----------------------------------------------------------------------
-module virtualNetwork 'modules/virtualNetwork.bicep' = if (enablePrivateNetworking) {
-  name: take('module.virtual-network.${solutionSuffix}', 64)
-  params: {
-    name: 'vnet-${solutionSuffix}'
-    location: location
-    tags: allTags
-    databaseType: databaseType
-    resourceSuffix: solutionSuffix
-    logAnalyticsWorkspaceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
-    enableTelemetry: false
-  }
-}
-
-// ----------------------------------------------------------------------
-// Private DNS zones (conditional, dev_plan task #8a). One AVM
-// `network/private-dns-zone:0.8.1` deployment per zone, linked to the
-// VNet from #7. Zone selection is driven by `databaseType` so we only
-// create zones we will actually wire to a private endpoint:
-//
-//   Always (when enablePrivateNetworking=true):
-//     0  cognitiveservices.azure.com   - AI Services account
-//     1  openai.azure.com              - OpenAI endpoint on AI Services
-//     2  services.ai.azure.com         - Foundry Project
-//     3  blob.<storage-suffix>         - Storage blob
-//     4  queue.<storage-suffix>        - Storage queue
-//     5  file.<storage-suffix>         - Storage file
-//
-//   cosmosdb mode only:
-//     6  documents.azure.com           - Cosmos DB
-//     7  search.windows.net            - AI Search
-//
-//   postgresql mode only:
-//     6  postgres.database.azure.com   - Postgres Flexible Server
-//                                        (used as `privateDnsZoneArmResourceId`
-//                                        on the AVM module, NOT a private
-//                                        endpoint - VNet-integrated Postgres
-//                                        Flex has no PE model)
-//
-// Index constants are exposed via `dnsZoneIndex` so PE wiring in #8b-#8f
-// stays readable. Indices >= 6 are mode-specific - the wrong mode reads
-// `null` from the array, which the consuming module deals with by simply
-// not deploying that PE in the wrong mode (gated by the same flag).
-// ----------------------------------------------------------------------
-
-var alwaysOnPrivateDnsZones = [
-  'privatelink.cognitiveservices.azure.com'
-  'privatelink.openai.azure.com'
-  'privatelink.services.ai.azure.com'
-  'privatelink.blob.${environment().suffixes.storage}'
-  'privatelink.queue.${environment().suffixes.storage}'
-  'privatelink.file.${environment().suffixes.storage}'
-]
-
-var cosmosModePrivateDnsZones = [
-  'privatelink.documents.azure.com'
-  'privatelink.search.windows.net'
-]
-
-var postgresModePrivateDnsZones = [
-  'privatelink.postgres.database.azure.com'
-]
-
-var privateDnsZones = concat(
-  alwaysOnPrivateDnsZones,
-  databaseType == 'PostgreSQL' ? postgresModePrivateDnsZones : cosmosModePrivateDnsZones
-)
-
-// Named index map so PE wiring in #8b-#8f reads as
-// `avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId`
-// instead of magic numbers. Postgres / Cosmos / Search share index 6+ but
-// the consuming PE blocks are themselves gated on databaseType, so a
-// cosmosdb-mode build will never read `dnsZoneIndex.postgres` and vice versa.
 var dnsZoneIndex = {
   cognitiveServices: 0
   openAI: 1
@@ -354,93 +278,169 @@ var dnsZoneIndex = {
   file: 5
   cosmosDb: 6
   search: 7
-  postgres: 6
+  postgres: 8
 }
 
-@batchSize(5)
-module avmPrivateDnsZones 'br/public:avm/res/network/private-dns-zone:0.8.1' = [
-  for (zone, i) in privateDnsZones: if (enablePrivateNetworking) {
-    name: take('avm.res.network.private-dns-zone.${replace(zone, '.', '-')}.${solutionSuffix}', 64)
-    params: {
-      name: zone
-      tags: allTags
-      enableTelemetry: false
-      virtualNetworkLinks: [
-        {
-          name: take('vnetlink-${solutionSuffix}-${replace(zone, '.', '-')}', 80)
-          virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
-          registrationEnabled: false
-        }
-      ]
+var defaultOpenAiDeployments = [
+  {
+    name: gptModelName
+    model: {
+      format: 'OpenAI'
+      name: gptModelName
+      version: gptModelVersion
+    }
+    sku: {
+      name: gptModelDeploymentType
+      capacity: gptModelCapacity
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  {
+    name: reasoningModelName
+    model: {
+      format: 'OpenAI'
+      name: reasoningModelName
+      version: reasoningModelVersion
+    }
+    sku: {
+      name: reasoningModelDeploymentType
+      capacity: reasoningModelCapacity
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  {
+    name: embeddingModelName
+    model: {
+      format: 'OpenAI'
+      name: embeddingModelName
+      version: embeddingModelVersion
+    }
+    sku: {
+      name: embeddingModelDeploymentType
+      capacity: embeddingModelCapacity
     }
   }
 ]
 
-// ----------------------------------------------------------------------
-// Azure Bastion (CONDITIONAL — enablePrivateNetworking only).
-//
-// Operator access path into the private network. No jumpbox VM by
-// design (per user decision): operators connect via the Azure portal's
-// browser-based Bastion experience to RDP/SSH any future jumpbox you
-// add later, or to use Bastion's `az network bastion tunnel` for kubectl
-// / psql forwarded ports through the deployer's az session.
-//
-// Standard SKU is required for IP-based connect (no target NIC needed)
-// and tunnelling. Lands in the dedicated /26 `AzureBastionSubnet` (Azure
-// requires that exact subnet name) defined in the VNet module.
-// ----------------------------------------------------------------------
-module bastion 'br/public:avm/res/network/bastion-host:0.8.2' = if (enablePrivateNetworking) {
-  name: take('avm.res.network.bastion-host.${solutionSuffix}', 64)
-  params: {
-    name: 'bas-${solutionSuffix}'
-    location: location
-    tags: allTags
-    enableTelemetry: false
-    skuName: 'Standard'
-    virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
-    publicIPAddressObject: {
-      name: 'pip-bas-${solutionSuffix}'
-      publicIPAllocationMethod: 'Static'
-      skuName: 'Standard'
-      skuTier: 'Regional'
-      tags: allTags
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
+// ===================== //
+// Resources             //
+// ===================== //
+
+resource resourceGroupTags 'Microsoft.Resources/tags@2025-04-01' = {
+  name: 'default'
+  properties: {
+    tags: union(resourceGroup().tags ?? {}, allTags)
   }
 }
 
-// ----------------------------------------------------------------------
-// Microsoft Foundry substrate. ONE Cognitive Services account of
-// kind='AIServices' with allowProjectManagement=true is the unified
-// surface for BOTH orchestrators:
-//   - Agent Framework binds via the Foundry Project endpoint.
-//   - LangGraph binds via the OpenAI-compatible endpoint on the same
-//     account (chat completions + embeddings).
-// Local auth is disabled; every caller authenticates with the UAMI via
-// the Cognitive Services OpenAI User + Azure AI User roles assigned
-// below.
-// ----------------------------------------------------------------------
-var aiServicesName = 'aisa-${solutionSuffix}'
-
-module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
-  name: take('avm.res.cognitive-services.account.${solutionSuffix}', 64)
+// ========== Managed Identity ========== //
+module userAssignedIdentity './modules/identity/managed-identity.bicep' = {
+  name: take('module.managed-identity.user-assigned-identity.${solutionName}', 64)
   params: {
-    name: aiServicesName
+    solutionName: solutionSuffix
+    location: location
+    tags: allTags
+
+  }
+}
+
+// ============================================================================
+// Module: Monitoring
+// ============================================================================
+
+var useExistingLogAnalytics = !empty(existingLogAnalyticsWorkspaceId)
+
+// Existing workspace reference (for cross-subscription support)
+resource existingLogAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-07-01' existing = if (useExistingLogAnalytics) {
+  name: split(existingLogAnalyticsWorkspaceId, '/')[8]
+  scope: resourceGroup(split(existingLogAnalyticsWorkspaceId, '/')[2], split(existingLogAnalyticsWorkspaceId, '/')[4])
+}
+
+module logAnalyticsWorkspace './modules/monitoring/log-analytics.bicep' = if (enableMonitoring && !useExistingLogAnalytics) {
+  name: take('module.log-analytics.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: allTags
+    enableTelemetry: enableTelemetry
+    retentionInDays:  30
+    publicNetworkAccessForIngestion: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccessForQuery: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    replicationLocation: replicaLocation
+
+    dataSources: enablePrivateNetworking
+      ? [
+          {
+            tags: tags
+            eventLogName: 'Application'
+            eventTypes: [
+              {
+                eventType: 'Error'
+              }
+              {
+                eventType: 'Warning'
+              }
+              {
+                eventType: 'Information'
+              }
+            ]
+            kind: 'WindowsEvent'
+            name: 'applicationEvent'
+          }
+          {
+            counterName: '% Processor Time'
+            instanceName: '*'
+            intervalSeconds: 60
+            kind: 'WindowsPerformanceCounter'
+            name: 'windowsPerfCounter1'
+            objectName: 'Processor'
+          }
+          {
+            kind: 'IISLogs'
+            name: 'sampleIISLog1'
+            state: 'OnPremiseEnabled'
+          }
+        ]
+      : null
+  }
+}
+
+// Resolve workspace resource ID and name — existing or new
+var logAnalyticsWorkspaceResourceId = useExistingLogAnalytics
+  ? existingLogAnalyticsWorkspace.id
+  : (enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : '')
+var logAnalyticsWorkspaceName = useExistingLogAnalytics
+  ? split(existingLogAnalyticsWorkspaceId, '/')[8]
+  : (enableMonitoring ? logAnalyticsWorkspace!.outputs.name : '')
+var monitoringDiagnosticSettings = enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
+
+module applicationInsights './modules/monitoring/app-insights.bicep' = if (enableMonitoring) {
+  name: take('module.app-insights.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: allTags
+    enableTelemetry: enableTelemetry
+    workspaceResourceId: logAnalyticsWorkspaceResourceId
+  }
+}
+
+// WAF-only networking resources were removed from vanilla deployment.
+
+var aiServicesName = 'oai-${solutionSuffix}'
+module aiServices './modules/ai/ai-services.bicep' = {
+  name: take('module.ai-services.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
+    namePrefix: 'oai'
     location: azureAiServiceLocation
     tags: allTags
-    enableTelemetry: false
+    enableTelemetry: enableTelemetry
     kind: 'AIServices'
     sku: 'S0'
-    customSubDomainName: aiServicesName
     allowProjectManagement: true
     disableLocalAuth: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled'
     managedIdentities: {
       systemAssigned: true
     }
@@ -451,52 +451,6 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
           }
         ]
       : []
-    // When `useExistingOpenAi` is true, all chat/reasoning/embedding
-    // deployments live on the reused v1 OpenAI account (see
-    // `existingOpenAi` block below) and the Foundry account itself runs
-    // with an empty deployments set; agents reach the model via the v1
-    // OAI endpoint exported as AZURE_OPENAI_ENDPOINT. Otherwise Foundry
-    // hosts the three deployments directly.
-    deployments: useExistingOpenAi ? [] : [
-      {
-        name: gptModelName
-        model: {
-          format: 'OpenAI'
-          name: gptModelName
-          version: gptModelVersion
-        }
-        sku: {
-          name: gptModelDeploymentType
-          capacity: gptModelCapacity
-        }
-        raiPolicyName: 'Microsoft.DefaultV2'
-      }
-      {
-        name: reasoningModelName
-        model: {
-          format: 'OpenAI'
-          name: reasoningModelName
-          version: reasoningModelVersion
-        }
-        sku: {
-          name: reasoningModelDeploymentType
-          capacity: reasoningModelCapacity
-        }
-        raiPolicyName: 'Microsoft.DefaultV2'
-      }
-      {
-        name: embeddingModelName
-        model: {
-          format: 'OpenAI'
-          name: embeddingModelName
-          version: embeddingModelVersion
-        }
-        sku: {
-          name: embeddingModelDeploymentType
-          capacity: embeddingModelCapacity
-        }
-      }
-    ]
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -511,314 +465,105 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
         roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
       }
     ]
-    // Private endpoint into the `peps` subnet with three DNS zone configs:
-    // cognitiveservices (account control plane), openai (model data plane),
-    // and services.ai.azure.com (Foundry Project + Agents data plane).
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-${aiServicesName}'
-            customNetworkInterfaceName: 'nic-${aiServicesName}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'account'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-                {
-                  name: 'openai'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.openAI]!.outputs.resourceId
-                }
-                {
-                  name: 'aiServicesProject'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.aiServicesProject]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpoints: []
   }
 }
 
-// ----------------------------------------------------------------------
-// EXISTING Azure OpenAI account reuse (when `existingOpenAiName` is
-// set). Single-tenant deployments place v2 alongside v1 in the same
-// resource group and reuse v1's OpenAI account rather than provisioning
-// a second one. The chat + reasoning deployments are added as child
-// resources of the reused account; the embedding deployment is assumed
-// to already exist on v1 (text-embedding-3-small). The v2 UAMI is
-// granted Cognitive Services OpenAI User at the account scope so the
-// backend + indexing pipeline can call inference.
-// ----------------------------------------------------------------------
-resource existingOpenAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (useExistingOpenAi) {
-  name: existingOpenAiName
-}
-
-resource existingOpenAiGptDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (useExistingOpenAi) {
-  parent: existingOpenAi
-  name: gptModelName
-  sku: {
-    name: gptModelDeploymentType
-    capacity: gptModelCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: gptModelName
-      version: gptModelVersion
-    }
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-}
-
-resource existingOpenAiReasoningDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (useExistingOpenAi) {
-  parent: existingOpenAi
-  name: reasoningModelName
-  sku: {
-    name: reasoningModelDeploymentType
-    capacity: reasoningModelCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: reasoningModelName
-      version: reasoningModelVersion
-    }
-    raiPolicyName: 'Microsoft.DefaultV2'
-  }
-  // Serialize deployment creation so the account's PATCH lock from the
-  // GPT deployment is released before the reasoning deployment starts.
-  dependsOn: [
-    existingOpenAiGptDeployment
-  ]
-}
-
-resource existingOpenAiUamiRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingOpenAi) {
-  name: guid(existingOpenAi!.id, userAssignedIdentity.name, '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
-  scope: existingOpenAi
-  properties: {
-    // Cognitive Services OpenAI User — grants inference on every
-    // deployment on the account (chat, reasoning, embedding).
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Effective OpenAI endpoint consumed by the backend and indexing
-// pipeline. When reusing v1 OAI, this points at the v1 account
-// (`https://<name>.openai.azure.com/`); otherwise it falls back to the
-// v2 Foundry account endpoint where the deployments live.
-var effectiveOpenAiEndpoint = useExistingOpenAi ? 'https://${existingOpenAiName}.openai.azure.com/' : aiServices.outputs.endpoint
-
-// Foundry Project — child of the AI Services account. Hosts agents
-// (Agent Framework orchestrator) and knowledge bases (Foundry IQ).
-//
-// NOTE on Foundry Tools (dev_plan task #9b): Document Intelligence and
-// Content Understanding are intentionally NOT deployed as separate
-// Cognitive Services accounts. The unified `kind=AIServices` account
-// above (with allowProjectManagement=true) exposes both APIs on the
-// same endpoint and bills under the same SKU. Code references them via
-// https://<account>.services.ai.azure.com/{documentintelligence|contentunderstanding}/...
-module aiProject 'modules/ai-project.bicep' = {
-  name: take('module.ai-project.${solutionSuffix}', 64)
+// Model deployments (single loop for both existing and new paths)
+@batchSize(1)
+module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in defaultOpenAiDeployments: {
+  name: take('module.model-deployment-${i}.${solutionName}', 64)
+  scope: resourceGroup(subscription().subscriptionId, resourceGroup().name)
   params: {
-    aiServicesAccountName: aiServicesName
-    projectName: 'proj-${solutionSuffix}'
+    aiServicesAccountName: aiServices.outputs.name
+    deploymentName: deployment.name
+    modelName: deployment.model.name
+    modelVersion: deployment.model.version
+    skuName: deployment.sku.name
+    skuCapacity: deployment.sku.capacity
+  }
+}]
+
+module aiProject './modules/ai/ai-foundry-project.bicep' = {
+  name: take('module.ai-foundry-project.${solutionName}', 64)
+  params: {
+    solutionName: solutionSuffix
     location: azureAiServiceLocation
     tags: allTags
-    uamiPrincipalId: userAssignedIdentity.outputs.principalId
+    enableTelemetry: enableTelemetry
+    publicNetworkAccess: enableMonitoring ? 'Disabled' : 'Enabled'
+    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
+    managedIdentities: {
+      systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
+    }
   }
   dependsOn: [
     aiServices
   ]
 }
 
-// ----------------------------------------------------------------------
-// Azure Speech (S1 / SPEECH-MVP — pulled forward from Phase 5 task #38).
-//
-// Standalone `Microsoft.CognitiveServices/accounts` of kind
-// `SpeechServices` powers the browser-side mic button on the chat
-// composer (v2/src/frontend/src/hooks/useSpeechRecognition.ts). The
-// backend `mint_speech_token()` helper (v2/src/backend/core/speech.py)
-// exchanges the UAMI's AAD token for a 10-minute Speech authorization
-// token via the regional `sts/v1.0/issueToken` endpoint, then the
-// browser SDK talks to Speech directly — no audio ever flows back
-// through this backend.
-//
-// Local auth disabled (Hard Rule #2 — no subscription keys, no Key
-// Vault). The UAMI gets `Cognitive Services Speech User`
-// (`f2dc8367-1007-4938-bd23-fe263f013447`) which is the data-plane
-// role required by the issueToken STS exchange.
-//
-// Always-on (no `if` gate). S0 SKU has no per-resource cost; charges
-// only on actual STT minutes.
-// ----------------------------------------------------------------------
 var speechServiceName = 'spch-${solutionSuffix}'
-
-module speechService 'br/public:avm/res/cognitive-services/account:0.13.0' = {
-  name: take('avm.res.cognitive-services.account.speech.${solutionSuffix}', 64)
+module speechService './modules/ai/ai-services.bicep' = {
+  name: take('module.ai-services.SpeechServices.${solutionName}', 64)
   params: {
-    name: speechServiceName
+    solutionName: solutionSuffix
+    namePrefix: 'spch'
     location: azureAiServiceLocation
     tags: allTags
-    enableTelemetry: false
+    enableTelemetry: enableTelemetry
     kind: 'SpeechServices'
-    sku: 'S0'
-    customSubDomainName: speechServiceName
-    disableLocalAuth: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
+    publicNetworkAccess: 'Enabled'
+    diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
         // Cognitive Services Speech User — data-plane role for STS
-        // issueToken + Speech recognition / synthesis.
         roleDefinitionIdOrName: 'f2dc8367-1007-4938-bd23-fe263f013447'
       }
     ]
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-${speechServiceName}'
-            customNetworkInterfaceName: 'nic-${speechServiceName}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'account'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpoints: []
   }
 }
 
-// ----------------------------------------------------------------------
-// Azure AI Content Safety.
-//
-// Standalone `Microsoft.CognitiveServices/accounts` of kind
-// `ContentSafety` powers the prompt-shielding guard layered on top
-// of the chat pipeline. The backend `ContentSafetyGuard`
-// (src/backend/core/tools/content_safety.py) screens inbound user
-// prompts via the AnalyzeText API; lifespan wiring in
-// src/backend/app.py constructs the async client behind the
-// `AZURE_CONTENT_SAFETY_ENABLED` + `AZURE_CONTENT_SAFETY_ENDPOINT`
-// gate and stashes it on `app.state.content_safety_client`. The
-// admin runtime toggle (`RuntimeConfig.content_safety_enabled`)
-// flips the guard off per-request without rebuilding the client.
-//
-// Local auth disabled (no subscription keys, no Key Vault). The
-// Cognitive Services User RBAC role assignment to the workload UAMI
-// is wired alongside the backend container app env-var bindings.
-//
-// Always-on (no `if` gate). S0 SKU has no per-resource baseline
-// cost; charges only on actual AnalyzeText calls.
-// ----------------------------------------------------------------------
 var contentSafetyServiceName = 'cs-${solutionSuffix}'
-
-module cogContentSafety 'br/public:avm/res/cognitive-services/account:0.13.0' = {
-  name: take('avm.res.cognitive-services.account.contentsafety.${solutionSuffix}', 64)
+module contentSafety './modules/ai/ai-services.bicep' = {
+  name: take('module.ai-services.ContentSafety.${solutionName}', 64)
   params: {
+    solutionName: solutionSuffix
+    namePrefix: 'cs'
     name: contentSafetyServiceName
     location: azureAiServiceLocation
     tags: allTags
     enableTelemetry: false
     kind: 'ContentSafety'
-    sku: 'S0'
     customSubDomainName: contentSafetyServiceName
     disableLocalAuth: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
+    publicNetworkAccess: 'Enabled'
+    diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
         // Cognitive Services User — data-plane role for the AnalyzeText
-        // call used by `ContentSafetyGuard.screen()`.
         roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
       }
     ]
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-${contentSafetyServiceName}'
-            customNetworkInterfaceName: 'nic-${contentSafetyServiceName}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'account'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'cognitiveservices'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpoints: []
   }
 }
 
-// ----------------------------------------------------------------------
-// Azure AI Search (CONDITIONAL — cosmosdb mode only).
-// In postgresql mode the index store is pgvector inside the Postgres
-// Flexible Server, so Search is not deployed at all. RBAC grants the
-// workload UAMI both data-plane (index read/write) and control-plane
-// (manage indexers from the Function App) access. The Foundry Project
-// connection to this Search service is wired in the next unit
-// (modules/ai-project-search-connection.bicep) so Foundry IQ knowledge
-// bases can resolve this Search service by friendly name.
-// ----------------------------------------------------------------------
-module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseType == 'CosmosDB' && !useExistingSearch) {
-  name: take('avm.res.search.search-service.${solutionSuffix}', 64)
+module aiSearch './modules/ai/ai-search.bicep' = if (databaseType == 'cosmosdb') {
+  name: take('module.ai-search.${solutionName}', 64)
   params: {
-    name: 'srch-${solutionSuffix}'
+    solutionName: solutionSuffix
     location: location
     tags: allTags
-    enableTelemetry: false
-    sku: enableScalability ? 'standard' : 'basic'
+    enableTelemetry: enableTelemetry
+    skuName: enableScalability ? 'standard' : 'basic'
     replicaCount: enableRedundancy ? 3 : 1
-    partitionCount: 1
-    semanticSearch: 'free'
-    disableLocalAuth: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
+    publicNetworkAccess: 'Enabled'
+    diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -833,7 +578,7 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
       }
       {
-        principalId: aiProject.outputs.projectPrincipalId
+        principalId: aiProject.outputs.projectIdentityPrincipalId
         principalType: 'ServicePrincipal'
         // Search Index Data Reader — lets the Foundry Project (and Foundry IQ) query indexes through the connection.
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
@@ -841,99 +586,33 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
     ]
     // Private endpoint into the `peps` subnet, group `searchService`,
     // bound to the search.windows.net DNS zone.
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-srch-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-srch-${solutionSuffix}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'searchService'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'search'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.search]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpoints: []
   }
 }
 
-// ----------------------------------------------------------------------
-// EXISTING Azure AI Search service reuse (when existingSearchName is
-// set). Adds the same RBAC role grants the new aiSearch module would,
-// but on the v1 service instead. v2 creates its own index name (e.g.
-// `cwyd-index`) inside the shared service alongside v1's index.
-// ----------------------------------------------------------------------
-resource existingSearch 'Microsoft.Search/searchServices@2024-06-01-preview' existing = if (databaseType == 'CosmosDB' && useExistingSearch) {
-  name: existingSearchName
-}
-
-resource existingSearchUamiIndexContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'CosmosDB' && useExistingSearch) {
-  name: guid(existingSearch!.id, userAssignedIdentity.name, '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
-  scope: existingSearch
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource existingSearchUamiServiceContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'CosmosDB' && useExistingSearch) {
-  name: guid(existingSearch!.id, userAssignedIdentity.name, '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
-  scope: existingSearch
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource existingSearchProjectIndexReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'CosmosDB' && useExistingSearch) {
-  name: guid(existingSearch!.id, aiProject.name, '1407120a-92aa-4202-b7e9-c0e197c71c8f')
-  scope: existingSearch
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '1407120a-92aa-4202-b7e9-c0e197c71c8f')
-    principalId: aiProject.outputs.projectPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-var effectiveSearchName = useExistingSearch ? existingSearchName : (databaseType == 'CosmosDB' ? aiSearch!.outputs.name : '')
-var effectiveSearchEndpoint = useExistingSearch ? 'https://${existingSearchName}.search.windows.net' : (databaseType == 'CosmosDB' ? aiSearch!.outputs.endpoint : '')
-
-// Foundry Project ↔ Search connection (cosmosdb mode only). Lets Foundry
-// IQ knowledge bases resolve this Search service by friendly name and
-// authenticate via the Project's system-assigned identity (no API keys).
-module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = if (databaseType == 'CosmosDB') {
-  name: take('module.ai-project-search-connection.${solutionSuffix}', 64)
+// Foundry Project ↔ Search connection (CosmosDB mode only).
+module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if (databaseType == 'cosmosdb') {
+  name: take('module.foundry-search-conn.${solutionName}', 64)
   params: {
-    aiServicesAccountName: aiServicesName
-    projectName: aiProject.outputs.name
-    searchServiceName: effectiveSearchName
+    solutionName: solutionSuffix
+    aiServicesAccountName: aiProject.outputs.name
+    projectName: aiProject.outputs.projectName
+    target: aiSearch!.outputs.endpoint
+    category: 'CognitiveSearch'
+    authType: 'AAD'
+    metadata: {
+      ApiType: 'Azure'
+      ResourceId: aiSearch!.outputs.resourceId
+      knowledgeBaseName: searchKnowledgeBaseName
+    }
   }
 }
 
-// ----------------------------------------------------------------------
-// Storage account. Triple-purpose:
-//   - WebJobsStorage / content share for the Function App.
-//   - Source bucket for uploaded documents (`documents` container).
-//   - Queue backbone for the indexing pipeline (one queue per trigger:
-//     batch_start, batch_push, add_url).
-// Storage account names must be 3-24 chars, lower-case alphanumeric.
-// We strip dashes from the suffix and fall back to a uniqueString-derived
-// short name when the solution suffix is too long.
-// ----------------------------------------------------------------------
 var storageAccountName = take(replace('st${solutionSuffix}', '-', ''), 24)
-var deploymentContainerName = 'deployment-package'
-
-module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!useExistingStorage) {
-  name: take('avm.res.storage.storage-account.${solutionSuffix}', 64)
+module storageAccount './modules/data/storage-account.bicep' = {
+  name: take('module.storage-account.${solutionName}', 64)
   params: {
-    name: storageAccountName
+    solutionName: solutionSuffix
     location: location
     tags: allTags
     enableTelemetry: false
@@ -942,42 +621,28 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
     accessTier: 'Hot'
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    minimumTlsVersion: 'TLS1_2'
-    supportsHttpsTrafficOnly: true
-    managedIdentities: {
-      systemAssigned: true
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
-    blobServices: {
-      containers: [
-        {
-          name: 'documents'
-          publicAccess: 'None'
-        }
-        {
-          name: 'config'
-          publicAccess: 'None'
-        }
-        {
-          // Flex Consumption Function App pulls its zipped runtime from
-          // this container via the UAMI assigned below. Created here so
-          // the function app deployment never has to provision storage.
-          name: deploymentContainerName
-          publicAccess: 'None'
-        }
-      ]
-    }
+    publicNetworkAccess: 'Enabled'
+    diagnosticSettings: monitoringDiagnosticSettings
+    containers: [
+      {
+        name: documentsContainerName
+        publicAccess: 'None'
+      }
+      {
+        name: 'config'
+        publicAccess: 'None'
+      }
+      {
+        name: 'deployment-package'
+        publicAccess: 'None'
+      }
+    ]
     queueServices: {
       queues: [
         { name: 'doc-processing' }
         { name: 'doc-processing-poison' }
+        { name: 'blob-events' }
+        { name: 'blob-events-poison' }
         { name: 'add-url' }
         { name: 'add-url-poison' }
       ]
@@ -1002,205 +667,26 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
         roleDefinitionIdOrName: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
       }
     ]
-    // Three private endpoints (blob, queue, file) into the `peps` subnet.
-    // Each binds to its matching private DNS zone so internal callers
-    // resolve `<account>.blob.<storage-suffix>` etc. to a private IP.
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-blob-${storageAccountName}'
-            customNetworkInterfaceName: 'nic-blob-${storageAccountName}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'blob'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'blob'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.blob]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-          {
-            name: 'pep-queue-${storageAccountName}'
-            customNetworkInterfaceName: 'nic-queue-${storageAccountName}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'queue'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'queue'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.queue]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-          {
-            name: 'pep-file-${storageAccountName}'
-            customNetworkInterfaceName: 'nic-file-${storageAccountName}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'file'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'file'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.file]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpoints: []
   }
 }
 
-// ----------------------------------------------------------------------
-// EXISTING Storage account reuse (when existingStorageName is set).
-// Creates missing blob containers + queues + UAMI role assignments on
-// v1's storage. PUT-on-PUT is idempotent for child resources, so this
-// safely co-exists with v1's own containers/queues. The parent symbol
-// `storageAccountExisting` is declared once later in this file (just
-// before flexDeploymentRole) and resolves to either the new or the v1
-// storage account based on useExistingStorage.
-// ----------------------------------------------------------------------
-resource existingStorageBlobServices 'Microsoft.Storage/storageAccounts/blobServices@2024-01-01' existing = if (useExistingStorage) {
-  parent: storageAccountExisting
-  name: 'default'
-}
+// ============================================================================
+// Module: Data
+// ============================================================================
 
-resource existingStorageDocumentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageBlobServices
-  name: 'documents'
-  properties: { publicAccess: 'None' }
-}
-
-resource existingStorageConfigContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageBlobServices
-  name: 'config'
-  properties: { publicAccess: 'None' }
-}
-
-resource existingStorageDeploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageBlobServices
-  name: deploymentContainerName
-  properties: { publicAccess: 'None' }
-}
-
-resource existingStorageQueueServices 'Microsoft.Storage/storageAccounts/queueServices@2024-01-01' existing = if (useExistingStorage) {
-  parent: storageAccountExisting
-  name: 'default'
-}
-
-resource existingStorageQueueDocProcessing 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageQueueServices
-  name: 'doc-processing'
-  properties: {}
-}
-
-resource existingStorageQueueDocProcessingPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageQueueServices
-  name: 'doc-processing-poison'
-  properties: {}
-}
-
-resource existingStorageQueueAddUrl 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageQueueServices
-  name: 'add-url'
-  properties: {}
-}
-
-resource existingStorageQueueAddUrlPoison 'Microsoft.Storage/storageAccounts/queueServices/queues@2024-01-01' = if (useExistingStorage) {
-  parent: existingStorageQueueServices
-  name: 'add-url-poison'
-  properties: {}
-}
-
-// Storage Blob Data Contributor — read/write uploaded documents
-resource existingStorageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingStorage) {
-  name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-  scope: storageAccountExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Queue Data Contributor — enqueue + consume indexing messages
-resource existingStorageQueueContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingStorage) {
-  name: guid(storageAccountExisting.id, userAssignedIdentity.name, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-  scope: storageAccountExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Storage Account Contributor — Function App host storage management
-resource existingStorageAccountContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingStorage) {
-  name: guid(storageAccountExisting.id, userAssignedIdentity.name, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
-  scope: storageAccountExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-var effectiveStorageName = useExistingStorage ? existingStorageName : storageAccount!.outputs.name
-var effectiveStorageResourceId = useExistingStorage ? storageAccountExisting.id : storageAccount!.outputs.resourceId
-var effectiveStorageBlobEndpoint = useExistingStorage ? storageAccountExisting.properties.primaryEndpoints.blob : storageAccount!.outputs.primaryBlobEndpoint
-
-// ----------------------------------------------------------------------
-// Cosmos DB (CONDITIONAL — cosmosdb mode only).
-// Stores chat history, one item per message. Partitioned on `userId`
-// for high-cardinality even distribution; query patterns are
-// "all messages for user X in conversation Y" so userId is the hot path.
-// AAD-only (disableLocalAuth) — workload UAMI gets the built-in
-// Cosmos DB Built-in Data Contributor role at data-plane scope.
-//
-// Capacity model: Serverless by default (cheap, scale-to-zero). When
-// enableRedundancy=true we switch to provisioned throughput so we can
-// turn on automatic failover + zone redundancy, which serverless
-// rejects.
-// ----------------------------------------------------------------------
-module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (databaseType == 'CosmosDB' && !useExistingCosmos) {
+module cosmosDb './modules/data/cosmos-db-mongo.bicep' = if (databaseType == 'cosmosdb') {
   name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
   params: {
-    name: 'cosno-${solutionSuffix}'
+    solutionName: solutionSuffix
     location: location
     tags: allTags
-    enableTelemetry: false
-    disableLocalAuthentication: true
+    enableTelemetry: enableTelemetry
+    databaseName: 'cwyd'
+    haLocation: cosmosDbHaLocation
     enableAutomaticFailover: enableRedundancy
     zoneRedundant: enableRedundancy
-    capabilitiesToAdd: enableRedundancy ? [] : [
-      'EnableServerless'
-    ]
-    networkRestrictions: {
-      publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
-    sqlDatabases: [
-      {
-        name: 'cwyd'
-        containers: [
-          {
-            name: 'conversations'
-            paths: [
-              '/userId'
-            ]
-          }
-        ]
-      }
-    ]
+    diagnosticSettings: monitoringDiagnosticSettings
     sqlRoleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -1208,137 +694,23 @@ module cosmosDb 'br/public:avm/res/document-db/database-account:0.19.0' = if (da
         roleDefinitionId: '00000000-0000-0000-0000-000000000002'
       }
     ]
-    // Private endpoint into the `peps` subnet, group `Sql` (the SQL/NoSQL
-    // API surface). Bound to the documents.azure.com private DNS zone.
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-cosno-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-cosno-${solutionSuffix}'
-            subnetResourceId: virtualNetwork!.outputs.pepsSubnetResourceId
-            service: 'Sql'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'CosmosDB'
-                  privateDnsZoneResourceId: avmPrivateDnsZones[dnsZoneIndex.cosmosDb]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpointSubnetId: ''
+    privateDnsZoneResourceIds: []
   }
 }
 
-// ----------------------------------------------------------------------
-// EXISTING Cosmos DB account reuse (when existingCosmosName is set).
-// Adds a new SQL database `cwyd` + container `conversations` on the v1
-// account, plus a UAMI SQL role assignment. v1's existing databases are
-// untouched.
-// ----------------------------------------------------------------------
-resource existingCosmos 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = if (databaseType == 'CosmosDB' && useExistingCosmos) {
-  name: existingCosmosName
-}
-
-resource existingCosmosCwydDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = if (databaseType == 'CosmosDB' && useExistingCosmos) {
-  parent: existingCosmos
-  name: 'cwyd'
-  properties: {
-    resource: {
-      id: 'cwyd'
-    }
-  }
-}
-
-resource existingCosmosConversations 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = if (databaseType == 'CosmosDB' && useExistingCosmos) {
-  parent: existingCosmosCwydDb
-  name: 'conversations'
-  properties: {
-    resource: {
-      id: 'conversations'
-      partitionKey: {
-        paths: [ '/userId' ]
-        kind: 'Hash'
-      }
-    }
-  }
-}
-
-resource existingCosmosUamiRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = if (databaseType == 'CosmosDB' && useExistingCosmos) {
-  parent: existingCosmos
-  name: guid(existingCosmos!.id, userAssignedIdentity.name, '00000000-0000-0000-0000-000000000002')
-  properties: {
-    roleDefinitionId: '${existingCosmos!.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
-    principalId: userAssignedIdentity.outputs.principalId
-    scope: existingCosmos!.id
-  }
-}
-
-var effectiveCosmosName = useExistingCosmos ? existingCosmosName : (databaseType == 'CosmosDB' ? cosmosDb!.outputs.name : '')
-var effectiveCosmosEndpoint = useExistingCosmos ? existingCosmos!.properties.documentEndpoint : (databaseType == 'CosmosDB' ? cosmosDb!.outputs.endpoint : '')
-
-// ----------------------------------------------------------------------
-// PostgreSQL Flexible Server + pgvector (CONDITIONAL — postgresql mode).
-// Single server hosts BOTH chat history (relational tables) AND the
-// vector index (pgvector extension). Auth is Entra-only — the workload
-// UAMI is the Entra admin, and the post-provision script
-// (`v2/scripts/post-provision.sh`, task #19) connects via `psql` with
-// the deployer's az token to:
-//   1. CREATE EXTENSION vector;
-//   2. Create the chat_history + document_chunks schema.
-//
-// `azure.extensions=VECTOR` in the configurations block adds vector to
-// the allow-list so step 1 succeeds. Without it, CREATE EXTENSION fails
-// even if the binary is installed.
-// ----------------------------------------------------------------------
-@description('Optional. Object ID of the Entra principal (user/group) to grant Postgres admin access to. Defaults to the deploying principal so the post-provision script can run schema-init via az AAD token.')
-param postgresAdminPrincipalId string = ''
-
-@description('Required when databaseType=postgresql. Display name (UPN, group name, or app name) of the Entra principal above. Surfaced in pg_hba and used by the post-provision script to log in over AAD. No default: a wrong value silently locks the deployer out of the new server.')
-param postgresAdminPrincipalName string = ''
-
-// P1.2 fail-fast guard: postgresAdminPrincipalName is REQUIRED when
-// databaseType=postgresql. Without it, the post-provision script
-// cannot acquire an AAD token for the deployer and the new server
-// becomes unreachable for schema init. Indexing past the end of an
-// empty array aborts ARM template expansion with a clear, named error
-// before any resource is provisioned, so the user sees the failure at
-// `azd provision` time rather than after the Postgres server stands
-// up. Cosmosdb mode is unaffected.
-#disable-next-line no-unused-vars
-var _validatePostgresAdminPrincipalName = (databaseType == 'PostgreSQL' && empty(postgresAdminPrincipalName))
-  ? array([])[0]
-  : ''
-
-@allowed([
-  'User'
-  'Group'
-  'ServicePrincipal'
-])
-@description('Optional. Type of the Entra principal above. Auto-detected from the deployer (User vs ServicePrincipal) when left at the default.')
-param postgresAdminPrincipalType string = contains(deployer(), 'userPrincipalName') ? 'User' : 'ServicePrincipal'
-
-module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15.3' = if (databaseType == 'PostgreSQL') {
-  name: take('avm.res.db-for-postgre-sql.flexible-server.${solutionSuffix}', 64)
+module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (databaseType == 'postgresql') {
+  name: take('module.postgre-sql.flexible-server.${solutionName}', 64)
   params: {
-    name: 'psql-${solutionSuffix}'
+    solutionName: solutionSuffix
     location: location
     tags: allTags
-    enableTelemetry: false
+    enableTelemetry: enableTelemetry
     skuName: enableScalability ? 'Standard_D4ds_v5' : 'Standard_B2s'
-    tier: enableScalability ? 'GeneralPurpose' : 'Burstable'
-    version: '16'
-    storageSizeGB: 32
+    skuTier: enableScalability ? 'GeneralPurpose' : 'Burstable'
     availabilityZone: enableRedundancy ? 1 : -1
     highAvailability: enableRedundancy ? 'ZoneRedundant' : 'Disabled'
     highAvailabilityZone: enableRedundancy ? 2 : -1
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    authConfig: {
-      activeDirectoryAuth: 'Enabled'
-      passwordAuth: 'Disabled'
-      tenantId: subscription().tenantId
-    }
     administrators: union(
       [
         {
@@ -1347,15 +719,15 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
           principalType: 'ServicePrincipal'
         }
       ],
-      empty(postgresAdminPrincipalId)
-        ? []
-        : [
+      !empty(principal.id)
+        ? [
             {
-              objectId: postgresAdminPrincipalId
-              principalName: postgresAdminPrincipalName
-              principalType: postgresAdminPrincipalType
+              objectId: principal.id
+              principalName: principal.name
+              principalType: principal.type
             }
           ]
+        : []
     )
     databases: [
       {
@@ -1371,100 +743,43 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
         source: 'user-override'
       }
     ]
-    firewallRules: enablePrivateNetworking
-      ? []
-      : [
-          {
-            // Allow connections from Azure-internal services (Function App,
-            // Container Apps) without enumerating egress IPs. Tightened by
-            // private endpoints when enablePrivateNetworking=true.
-            name: 'AllowAzureServices'
-            startIpAddress: '0.0.0.0'
-            endIpAddress: '0.0.0.0'
-          }
-        ]
-    // Postgres Flex private model = VNet integration via a delegated
-    // subnet (Microsoft.DBforPostgreSQL/flexibleServers), NOT a private
-    // endpoint. The DNS zone is bound at the server level, not in a PE
-    // group. Public access is mutually exclusive with delegation; the
-    // AVM module flips it off automatically when delegatedSubnetResourceId
-    // is set.
-    delegatedSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.postgresSubnetResourceId : null
-    privateDnsZoneArmResourceId: enablePrivateNetworking ? avmPrivateDnsZones[dnsZoneIndex.postgres]!.outputs.resourceId : null
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
+    publicNetworkAccess: 'Enabled'
+    enablePrivateNetworking: false
+    privateEndpointSubnetId: ''
+    privateDnsZoneResourceIds: []
+    diagnosticSettings: monitoringDiagnosticSettings
   }
 }
 
-// ----------------------------------------------------------------------
-// Container Apps Environment + backend Container App.
-// The backend (FastAPI + LangGraph/Agent Framework) runs here. ACA was
-// chosen over App Service for the backend because:
-//   - scale-to-zero (SSE workloads idle most of the time)
-//   - native UAMI-based ACR pull (no managed-identity glue code)
-//   - first-class HTTP/SSE streaming with no buffering
-// The Web App (frontend) lands in #15 on a separate App Service Plan,
-// matching the MACAE mixed-hosting pattern.
-//
-// Phase 1 deploys a placeholder image so the resources exist; the real
-// image is wired in azure.yaml `services.backend` once the backend
-// Dockerfile (v2/docker/Dockerfile.backend) ships in Phase 2.
-// ----------------------------------------------------------------------
-var containerAppsEnvName = 'cae-${solutionSuffix}'
-var backendAppName = 'ca-backend-${solutionSuffix}'
-var acaWorkloadProfileName = 'Consumption'
-// ACR name must be globally unique, 5-50 alphanumeric (no dashes).
-var containerRegistryName = take('cr${replace(solutionSuffix, '-', '')}', 50)
-
-// Single source of truth for the Postgres libpq URI so the output, the
-// backend ACA env, and the Function App appSettings can't drift.
-// Empty in cosmosdb mode (the `!` non-null operators are guarded by the
-// ternary -- evaluated only when `databaseType == 'PostgreSQL'`).
-// Hard Rule #11 (Bicep): hoist literals repeated 2+ times to a `var`.
-var postgresLibpqUri = databaseType == 'PostgreSQL'
-  ? 'postgresql://${postgresServer!.outputs.fqdn!}:5432/cwyd?sslmode=require'
-  : ''
-var indexStoreValue = databaseType == 'CosmosDB' ? 'AzureSearch' : 'pgvector'
-
-module containerAppsEnv 'br/public:avm/res/app/managed-environment:0.13.2' = {
-  name: take('avm.res.app.managed-environment.${solutionSuffix}', 64)
+// ========== Container Registry ========== //
+module containerRegistry './modules/compute/container-registry.bicep' = {
+  name: take('module.container-registry.${solutionName}', 64)
   params: {
-    name: containerAppsEnvName
+    solutionName: solutionSuffix
     location: location
     tags: allTags
-    enableTelemetry: false
+    enableTelemetry: enableTelemetry
+    sku: 'Basic'
+    publicNetworkAccess: 'Enabled'
+    networkRuleSetDefaultAction: 'Allow'
+    acrPullPrincipalIds: [userAssignedIdentity.outputs.principalId]
+  }
+}
+
+// ========== Container App Environment ========== //
+var containerAppsEnvName = 'cae-${solutionSuffix}'
+module containerAppsEnv './modules/compute/container-app-environment.bicep' = {
+  name: take('module.container-app-environment.${solutionSuffix}', 64)
+  params: {
+    solutionName: solutionSuffix
+    location: location
+    tags: allTags
+    enableTelemetry: enableTelemetry
     zoneRedundant: enableRedundancy
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    // Private mode: env joins the `containerapps` /23 subnet and ingress
-    // gets an internal IP only. The wildcard DNS zone below makes
-    // `<app>.<defaultDomain>` resolve to that internal IP from inside
-    // the VNet (frontend Web App, Function App, Bastion clients).
-    internal: enablePrivateNetworking
-    infrastructureSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.containerAppsSubnetResourceId : null
-    // Workload Profile Consumption (NOT classic Consumption). Required
-    // for full VNet integration in #7-#8 and to allow mixing Dedicated
-    // profiles (e.g. GPU) later without re-creating the env. Idle cost
-    // for the Consumption profile is the same as classic Consumption.
-    workloadProfiles: [
-      {
-        name: acaWorkloadProfileName
-        workloadProfileType: acaWorkloadProfileName
-      }
-    ]
-    // ACA env app logs: 'azure-monitor' destination routes logs through
-    // an explicit Microsoft.Insights/diagnosticSettings resource (added
-    // below when monitoring is on). Using 'log-analytics' here would
-    // require passing the workspace's primarySharedKey (a secure output),
-    // which Bicep disallows across conditional module references
-    // (BCP426). The AVM module does not expose `diagnosticSettings`.
-    appLogsConfiguration: {
-      destination: 'azure-monitor'
-    }
+    enablePrivateNetworking: false
+    enableMonitoring: enableMonitoring
+    logAnalyticsWorkspaceResourceId: logAnalyticsWorkspaceResourceId
+    infrastructureSubnetId: null
   }
 }
 
@@ -1489,91 +804,25 @@ resource containerAppsEnvDiag 'Microsoft.Insights/diagnosticSettings@2021-05-01-
   }
 }
 
-// Private DNS zone for the CAE internal default domain. The env emits
-// a per-deployment domain like `purpleforest-1234abcd.<region>.azurecontainerapps.io`;
-// in `internal: true` mode that domain only resolves publicly to a
-// 404 page and the real ingress is the env's static internal IP.
-// We register the zone as `<defaultDomain>` and put a single wildcard
-// A-record (`*`) pointing at the static IP, so any container app in
-// this env (backend now, more later) becomes reachable as
-// `<app>.<defaultDomain>` from inside the VNet without per-app records.
-module caeDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.1' = if (enablePrivateNetworking) {
-  name: take('avm.res.network.private-dns-zone.cae.${solutionSuffix}', 64)
-  params: {
-    name: containerAppsEnv.outputs.defaultDomain
-    location: 'global'
-    tags: allTags
-    enableTelemetry: false
-    a: [
-      {
-        name: '*'
-        ttl: 3600
-        aRecords: [
-          {
-            ipv4Address: containerAppsEnv.outputs.staticIp
-          }
-        ]
-      }
-    ]
-    virtualNetworkLinks: [
-      {
-        name: take('vnetlink-${solutionSuffix}-cae', 80)
-        virtualNetworkResourceId: virtualNetwork!.outputs.resourceId
-        registrationEnabled: false
-      }
-    ]
-  }
-}
 
-// Container Registry — azd pushes backend + function images here.
-// AcrPull is granted to the v2 UAMI so the Container App pulls without
-// admin credentials. Output `AZURE_CONTAINER_REGISTRY_ENDPOINT` is read
-// by `azd deploy` to discover the push target.
-module containerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' = {
-  name: take('avm.res.container-registry.registry.${solutionSuffix}', 64)
+var postgresLibpqUri = databaseType == 'postgresql'
+  ? 'postgresql://${postgresServer!.outputs.serverFqdn!}:5432/cwyd?sslmode=require'
+  : ''
+var indexStoreValue = databaseType == 'cosmosdb' ? 'AzureSearch' : 'pgvector'
+module backendContainerApp './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-api.${solutionSuffix}', 64)
   params: {
-    name: containerRegistryName
-    location: location
-    tags: allTags
-    enableTelemetry: false
-    acrSku: 'Basic'
-    acrAdminUserEnabled: false
-    publicNetworkAccess: 'Enabled'
-    networkRuleSetDefaultAction: 'Allow'
-    roleAssignments: [
-      {
-        principalId: userAssignedIdentity.outputs.principalId
-        roleDefinitionIdOrName: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
-        principalType: 'ServicePrincipal'
-      }
-    ]
-  }
-}
-
-module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
-  name: take('avm.res.app.container-app.backend.${solutionSuffix}', 64)
-  params: {
-    name: backendAppName
+    name: 'ca-backend-${solutionSuffix}'
     location: location
     tags: union(allTags, { 'azd-service-name': 'backend' })
-    enableTelemetry: false
+    enableTelemetry: enableTelemetry
     environmentResourceId: containerAppsEnv.outputs.resourceId
     managedIdentities: {
-      userAssignedResourceIds: [
-        userAssignedIdentity.outputs.resourceId
-      ]
+      systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     }
-    workloadProfileName: acaWorkloadProfileName
+    workloadProfileName: 'Consumption'
     ingressTargetPort: 8000
-    // In private mode the CAE itself is `internal: true`, so ingress
-    // can only be internal. Setting external=true would either fail
-    // ARM validation or silently produce an unroutable FQDN that the
-    // wildcard `caeDnsZone` A-record cannot intercept. Frontend +
-    // Function App reach the backend via `<app>.<defaultDomain>` resolved
-    // by the private DNS link inside the VNet.
-    ingressExternal: !enablePrivateNetworking
-    ingressAllowInsecure: false
-    ingressTransport: 'auto'
+    ingressExternal: true
     scaleSettings: {
       minReplicas: enableScalability ? 1 : 0
       maxReplicas: enableScalability ? 10 : 3
@@ -1581,418 +830,162 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'backend'
-        // Placeholder image. Replaced by `azd deploy` once the real
-        // backend Dockerfile ships in Phase 2 and is referenced from
-        // azure.yaml `services.backend`.
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        image: '${containerRegistryEndpoint}/rag-backend:${imageTag}'
+        // image: 'mcr.microsoft.com/k8se/quickstart:latest'
         resources: {
-          // AVM v0.22.1 declares `cpu: int | null`, but ACA accepts
-          // fractional CPU. `any()` bypasses the over-strict type so
-          // we can keep the cheaper 0.5-core default for non-scaled runs.
           cpu: any(enableScalability ? '1.0' : '0.5')
           memory: enableScalability ? '2.0Gi' : '1.0Gi'
         }
-        // App Insights env entry is included only when monitoring is on,
-        // so SDKs don't auto-init against an empty connection string.
-        env: union(
+        env: concat(
           [
-            // Identity + region
             { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
-            // Foundry endpoints (consumed by both orchestrators)
+            { name: 'AZURE_ENVIRONMENT', value: 'production' }
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-            { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
+            { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
-            // Foundry agent id is intentionally NOT bound here.
-            // CU-009a (2026-05-05) removed the env-var path; the
-            // runtime resolves CWYD + RAI agent ids lazily on first
-            // request and caches them in the chat-history DB (see
-            // ADR 0008 -- lazy-foundry-agent-bootstrap).
-            // Model deployment names
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
             { name: 'AZURE_OPENAI_REASONING_DEPLOYMENT', value: reasoningModelName }
             { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
-            // Database routing -- AppSettings.DatabaseSettings reads
-            // these to dispatch `databases.create(db_type, ...)` and
-            // `search.create(index_store, ...)` (Hard Rule #4). The
-            // endpoint vars per mode are conditionally non-empty in the
-            // Bicep outputs (lines ~1606-1661); binding both sides
-            // unconditionally lets one image deploy to either mode
-            // without rebuild. Pinned by Phase 4 hardening #32d.
             { name: 'AZURE_DB_TYPE', value: databaseType }
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
-            { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
-            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
+            { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
+            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
+            { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.connectionName : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'PostgreSQL' ? postgresAdminPrincipalName : '' }
-            // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
-            // Speech token for the browser SDK. UAMI holds Cognitive
-            // Services Speech User on the spch-* account; resource-id
-            // header is required by the STS issueToken exchange.
+            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' && !empty(principal.id) ? principal.name : '' }
             { name: 'AZURE_SPEECH_SERVICE_NAME', value: speechService.outputs.name }
             { name: 'AZURE_SPEECH_SERVICE_REGION', value: azureAiServiceLocation }
             { name: 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', value: speechService.outputs.resourceId }
-            // Content Safety — backend prompt-shielding guard. The
-            // Cognitive Services account is always deployed, so ENABLED
-            // is statically true at infra level; operators flip the guard
-            // OFF per-request via the admin runtime override
-            // (RuntimeConfig.content_safety_enabled).
             { name: 'AZURE_CONTENT_SAFETY_ENABLED', value: 'true' }
-            { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: cogContentSafety.outputs.endpoint }
-            // Default orchestrator (runtime-switchable per request)
+            { name: 'AZURE_CONTENT_SAFETY_ENDPOINT', value: contentSafety.outputs.endpoint }
             { name: 'ORCHESTRATOR', value: 'agent_framework' }
+            { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount.outputs.name }
+            { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
+            { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+            { name: 'AZURE_INGESTION_TRIGGER', value: ingestionTrigger }
           ],
           enableMonitoring
-            ? [
-                {
-                  name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-                  value: applicationInsights!.outputs.connectionString
-                }
-              ]
-            : []
+          ? [
+              { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: applicationInsights!.outputs.connectionString }
+            ]
+          : []
         )
       }
     ]
   }
 }
 
-// ----------------------------------------------------------------------
-// App Service Plan + frontend Web App.
-// Frontend (React/Vite static SPA served by an nginx container) runs on
-// App Service rather than ACA because:
-//   - Static SPA workload doesn't benefit from scale-to-zero (negligible
-//     cold-start matters more for the user-facing landing page).
-//   - App Service exposes a stable *.azurewebsites.net hostname suitable
-//     for branding / custom-domain CNAME.
-//   - Mixed hosting (ACA backend + App Service frontend) follows MACAE's
-//     reference layout for plug-and-play deployments.
-//
-// Phase 1 deploys a placeholder image; the real image is wired in
-// azure.yaml `services.frontend` once the frontend Dockerfile ships in
-// Phase 2.
-// ----------------------------------------------------------------------
-var appServicePlanName = 'asp-${solutionSuffix}'
-var frontendAppName = 'app-frontend-${solutionSuffix}'
-// SKU ladder hoisted per naming-stability rule §11:
-//   default            → B1 / 1 worker  (cheapest Linux container plan)
-//   enableScalability  → P1v3 / 1 worker (autoscale, faster cold start)
-//   enableRedundancy   → P1v3 / 3 workers + zoneRedundant (Premium v3 is
-//                        the minimum tier supporting AZ spread; B1 does
-//                        NOT support zone redundancy and would fail at
-//                        deploy time — the && guard below makes that
-//                        guarantee explicit, not coincidental).
-var appServicePlanSkuName = enableRedundancy || enableScalability ? 'P1v3' : 'B1'
-var appServicePlanSkuCapacity = enableRedundancy ? 3 : 1
-
-module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
-  name: take('avm.res.web.serverfarm.${solutionSuffix}', 64)
+module appServicePlan './modules/compute/app-service-plan.bicep' = {
+  name: take('module.app-service-plan.${solutionName}', 64)
   params: {
-    name: appServicePlanName
+    solutionName: solutionSuffix
     location: location
     tags: allTags
-    enableTelemetry: false
-    kind: 'linux'
-    reserved: true
-    skuName: appServicePlanSkuName
-    skuCapacity: appServicePlanSkuCapacity
-    zoneRedundant: enableRedundancy && appServicePlanSkuName == 'P1v3'
+    enableTelemetry: enableTelemetry
+    skuName: (enableScalability || enableRedundancy) ? 'P1v3' : 'B1'
+    skuCapacity: enableRedundancy ? 3 : 1
+    zoneRedundant: enableRedundancy
   }
 }
 
-module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
-  name: take('avm.res.web.site.frontend.${solutionSuffix}', 64)
+module frontendWebApp './modules/compute/app-service.bicep' = {
+  name: take('module.web.site.frontend.${solutionName}', 64)
   params: {
-    name: frontendAppName
+    solutionName: 'app-${solutionSuffix}'
     location: location
     tags: union(allTags, { 'azd-service-name': 'frontend' })
-    enableTelemetry: false
+    enableTelemetry: enableTelemetry
     kind: 'app,linux,container'
     serverFarmResourceId: appServicePlan.outputs.resourceId
-    httpsOnly: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    clientAffinityEnabled: false
-    // Regional VNet integration into the `web` /24 subnet (delegated to
-    // Microsoft.Web/serverFarms). Forces all egress through the VNet so
-    // the frontend can reach the backend on the CAE internal IP and the
-    // App Insights / storage private endpoints.
-    virtualNetworkSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.webSubnetResourceId : null
+    publicNetworkAccess: 'Enabled'
+    virtualNetworkSubnetId: null
     managedIdentities: {
-      userAssignedResourceIds: [
-        userAssignedIdentity.outputs.resourceId
-      ]
+      systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
-    siteConfig: {
-      // Placeholder image. Replaced by `azd deploy` once the real
-      // frontend Dockerfile ships in Phase 2 and is referenced from
-      // azure.yaml `services.frontend`.
-      linuxFxVersion: 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
-      ftpsState: 'FtpsOnly'
-      minTlsVersion: '1.2'
-      http20Enabled: true
-      vnetRouteAllEnabled: enablePrivateNetworking
-      // App Insights env entry is included only when monitoring is on,
-      // so SDKs don't auto-init against an empty connection string.
-      appSettings: union(
-        [
-          // VITE_BACKEND_URL is consumed by the Vite build step (see
-          // azd post-provision hook + frontend Dockerfile in Phase 2)
-          // via `azd env get-values`. It is set here for parity and
-          // diagnostics only — the running container does NOT read it,
-          // since the SPA is fully static once built.
-          {
-            name: 'VITE_BACKEND_URL'
-            value: 'https://${backendContainerApp.outputs.fqdn}'
-          }
-          // Tell App Service to pull the image from MCR (no ACR creds).
-          // (No AZURE_CLIENT_ID here — the SPA does not call Azure
-          // directly. All Azure calls go through the FastAPI backend per
-          // plug-and-play rule §4. UAMI on the site is for ACR pull only.)
-          { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
-        ],
-        enableMonitoring
-          ? [
-              {
-                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-                value: applicationInsights!.outputs.connectionString
-              }
-            ]
-          : []
-      )
-    }
+    diagnosticSettings: monitoringDiagnosticSettings
+    linuxFxVersion: 'DOCKER|${containerRegistryEndpoint}/rag-frontend:${imageTag}'
+    // linuxFxVersion: 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+    appSettings: union(
+      {
+        VITE_BACKEND_URL: 'https://${backendContainerApp.outputs.fqdn}'
+        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
+      },
+      enableMonitoring
+      ? {
+          APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights!.outputs.connectionString
+        }
+      : {}
+    )
+    vnetRouteAllEnabled: false
   }
 }
 
-// ----------------------------------------------------------------------
-// Function App (Flex Consumption) + Event Grid system topic.
-// The Function App hosts the modular RAG indexing pipeline:
-//   - batch_start  — list blobs in /documents/, enqueue per-blob messages
-//   - batch_push   — Storage Queue trigger; parse, chunk, embed, push to
-//                    the configured vector index (AI Search OR Postgres)
-//   - add_url      — HTTP trigger; fetch URL content, parse, embed
-// Event Grid system topic on the Storage Account fans out BlobCreated
-// notifications under /documents/ to the doc-processing queue, which
-// triggers batch_push.
-//
-// Flex Consumption (FC1) chosen over Premium because:
-//   - sub-second cold start, scale-to-zero (cheap when idle)
-//   - native AAD-only AzureWebJobsStorage (no shared keys)
-//   - built-in always-ready instance support if scale matters later
-//
-// Identity / no-keys posture: Storage has allowSharedKeyAccess=false,
-// so Event Grid → Storage Queue MUST use deliveryWithResourceIdentity
-// with the system topic's system-assigned MI, plus a Storage Queue Data
-// Message Sender role on that MI. AzureWebJobsStorage uses the function
-// app's UAMI via the `AzureWebJobsStorage__credential=managedidentity`
-// + `__clientId` pattern.
-// ----------------------------------------------------------------------
-var functionPlanName = 'plan-func-${solutionSuffix}'
-var functionAppName = 'func-${solutionSuffix}'
-var eventGridSystemTopicName = 'evgt-${solutionSuffix}'
-var functionsPlanSkuName = 'FC1'
-var functionsRuntimeName = 'python'
-var functionsRuntimeVersion = '3.11'
-var docProcessingQueueName = 'doc-processing'
-var documentsContainerName = 'documents'
-// Built-in role definition GUIDs used by this section.
-//   Storage Queue Data Message Sender — for Event Grid → Storage Queue
-//   Storage Blob Data Owner           — for AzureWebJobsStorage Flex pkg
-var storageQueueDataMessageSenderRoleId = 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
-var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
-
-module functionPlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
-  name: take('avm.res.web.serverfarm.func.${solutionSuffix}', 64)
+var functionName = 'func-${solutionSuffix}'
+module functionApp './modules/compute/function-app.bicep' = {
+  name: hostingModel == 'container' ? '${functionName}-docker' : functionName
   params: {
-    name: functionPlanName
-    location: location
-    tags: allTags
-    enableTelemetry: false
-    // `kind: 'functionapp'` (NOT 'linux') is the documented value for
-    // Linux Function App plans. `reserved: true` is what actually flips
-    // the Linux bit; `kind` is a hint used by the portal. The frontend
-    // App Service Plan above uses `kind: 'linux'` because it hosts a
-    // generic Web App, not a Function App.
-    kind: 'functionapp'
-    reserved: true
-    skuName: functionsPlanSkuName
-    skuCapacity: 0
-  }
-}
-
-module functionApp 'br/public:avm/res/web/site:0.22.0' = {
-  name: take('avm.res.web.site.func.${solutionSuffix}', 64)
-  params: {
-    name: functionAppName
+    name: hostingModel == 'container' ? '${functionName}-docker' : functionName
     location: location
     tags: union(allTags, { 'azd-service-name': 'function' })
-    enableTelemetry: false
-    kind: 'functionapp,linux'
-    serverFarmResourceId: functionPlan.outputs.resourceId
-    httpsOnly: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    clientAffinityEnabled: false
-    // Flex Consumption regional VNet integration into the `functions` /24
-    // subnet (delegated to Microsoft.Web/serverFarms). Required for the
-    // function host to reach storage / search / AI Services through their
-    // private endpoints.
-    virtualNetworkSubnetResourceId: enablePrivateNetworking ? virtualNetwork!.outputs.functionsSubnetResourceId : null
+    enableTelemetry: enableTelemetry
+    kind: hostingModel == 'container' ? 'functionapp,linux,container' : 'functionapp,linux'
+    serverFarmResourceId: appServicePlan.outputs.resourceId
     managedIdentities: {
-      userAssignedResourceIds: [
-        userAssignedIdentity.outputs.resourceId
-      ]
+      systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
-    // Flex Consumption-specific runtime + deployment storage. The package
-    // is pulled from the deployment-package container on the same storage
-    // account using the function's UAMI (UserAssignedIdentity auth).
-    functionAppConfig: {
-      deployment: {
-        storage: {
-          type: 'blobContainer'
-          value: '${effectiveStorageBlobEndpoint}${deploymentContainerName}'
-          authentication: {
-            type: 'UserAssignedIdentity'
-            userAssignedIdentityResourceId: userAssignedIdentity.outputs.resourceId
-          }
-        }
-      }
-      runtime: {
-        name: functionsRuntimeName
-        version: functionsRuntimeVersion
-      }
-      scaleAndConcurrency: {
-        maximumInstanceCount: enableScalability ? 100 : 40
-        instanceMemoryMB: 2048
-      }
-    }
-    siteConfig: {
-      // App Insights env entry is included only when monitoring is on,
-      // so the SDK doesn't auto-init against an empty connection string.
-      vnetRouteAllEnabled: enablePrivateNetworking
-      appSettings: union(
-        [
-          // AAD-only AzureWebJobsStorage — no connection string, UAMI auth.
-          { name: 'AzureWebJobsStorage__accountName', value: effectiveStorageName }
-          { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
-          { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentity.outputs.clientId }
-          // Functions runtime knobs.
-          // Flex Consumption rejects FUNCTIONS_WORKER_RUNTIME (and
-          // FUNCTIONS_EXTENSION_VERSION) as app settings; the runtime is
-          // declared in functionAppConfig.runtime instead. Keeping the
-          // version pin via FUNCTIONS_EXTENSION_VERSION is still accepted
-          // because the validator treats it as an override knob.
-          { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
-          // Identity + Foundry endpoints (mirrors backend env so the
-          // indexing pipeline can call the embedding model + write to
-          // the configured vector index).
-          { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
-          { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
-          { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
-          { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-          { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
-          { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
-          { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
-          // Database routing -- same flags the backend reads. The
-          // indexing pipeline writes vectors into AzureSearch (cosmosdb
-          // mode) or pgvector (postgresql mode), so it needs the
-          // active-mode endpoint(s). AZURE_COSMOS_ENDPOINT is also
-          // bound because DatabaseSettings cross-validates
-          // AZURE_DB_TYPE=cosmosdb against a non-empty endpoint at
-          // AppSettings() construction time; the function worker
-          // fails to start (Pydantic ValidationError during settings
-          // load) otherwise, even though the function host performs
-          // no chat-history writes.
-          { name: 'AZURE_DB_TYPE', value: databaseType }
-          { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
-          { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
-          { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
-          { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-          { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'PostgreSQL' ? postgresAdminPrincipalName : '' }
-          // Storage wiring used by batch_start / batch_push / add_url.
-          { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: effectiveStorageName }
-          { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
-          { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
-        ],
-        enableMonitoring
-          ? [
-              {
-                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-                value: applicationInsights!.outputs.connectionString
-              }
-            ]
-          : []
-      )
-    }
+    applicationInsightResourceId: enableMonitoring ? applicationInsights!.outputs.name : ''
+    storageAccountName: storageAccount.outputs.name
+    runtimeStack: 'python'
+    runtimeVersion: '3.11'
+    dockerFullImageName: hostingModel == 'container' ? '${containerRegistryEndpoint}/rag-functions:${imageTag}' : ''
+    virtualNetworkSubnetId: null
+    appSettings: concat(
+      [
+        { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+        { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
+        { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
+        { name: 'AZURE_ENVIRONMENT', value: 'production' }
+        { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
+        { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+        { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
+        { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
+        { name: 'AZURE_DB_TYPE', value: databaseType }
+        { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
+        { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
+        { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+        { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
+        { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? principal.name : '' }
+        { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount!.outputs.name }
+        { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
+        { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
+      ],
+      enableMonitoring
+        ? [
+            { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: applicationInsights!.outputs.connectionString }
+          ]
+        : []
+    )
   }
 }
 
-// Function App needs Storage Blob Data Owner on the deployment container
-// to upload its package via Flex Consumption's UserAssignedIdentity auth.
-// Scoped to the storage account because the AVM module assigns at the
-// account level (sub-scoping requires a separate inline child resource,
-// not worth it for a deployment-only role).
-// `existing` uses the *variable* (compile-time known), not the module
-// output (runtime-only) — required for roleAssignment scope/name to
-// satisfy BCP120.
-resource storageAccountExisting 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
-  // BCP334: take(...) returns string 0..24 chars; storage account name
-  // requires min 3. solutionSuffix is generated by MACAE pattern as 8+
-  // chars in main.bicep, so the actual value is always 10..24. Suppress
-  // the static-analysis warning rather than add a runtime guard.
-  #disable-next-line BCP334
-  name: useExistingStorage ? existingStorageName : storageAccountName
-  dependsOn: [ storageAccount ]
-}
-
-resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountExisting.id, userAssignedIdentity.name, storageBlobDataOwnerRoleId)
-  scope: storageAccountExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Event Grid system topic on the Storage Account. Single subscription
-// for now: BlobCreated under /documents/ → doc-processing queue. The
-// add_url path is HTTP-triggered, not blob-triggered, so it does not
-// need an Event Grid subscription. When reusing v1's storage that
-// already has a system topic, the AVM module is skipped and a sibling
-// `existingEventGridSubscription` resource adds our subscription to the
-// v1 topic (Azure permits only one system topic per source).
-module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
-  name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
+module eventGridSystemTopic './modules/data/event-grid.bicep' = {
+  name: take('modules.event-grid.system-topic.${solutionName}', 64)
   params: {
-    name: eventGridSystemTopicName
+    solutionName: solutionSuffix
     location: location
     tags: allTags
-    enableTelemetry: false
-    source: effectiveStorageResourceId
+    enableTelemetry: enableTelemetry
+    source: storageAccount!.outputs.resourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
-    managedIdentities: {
-      systemAssigned: true
-    }
     eventSubscriptions: [
       {
         name: 'blob-created-to-doc-processing'
-        // deliveryWithResourceIdentity (NOT plain destination) is required
-        // because storage has allowSharedKeyAccess=false. The system
-        // topic's system-assigned MI authenticates to Storage Queue.
         deliveryWithResourceIdentity: {
           identity: {
             type: 'SystemAssigned'
@@ -2000,13 +993,16 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
           destination: {
             endpointType: 'StorageQueue'
             properties: {
-              resourceId: effectiveStorageResourceId
-              queueName: docProcessingQueueName
+              resourceId: storageAccount!.outputs.resourceId
+              queueName: blobEventsQueueName
             }
           }
         }
         filter: {
-          includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
+          includedEventTypes: [
+            'Microsoft.Storage.BlobCreated'
+            'Microsoft.Storage.BlobDeleted'
+          ]
           subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
           enableAdvancedFilteringOnArrays: true
         }
@@ -2020,94 +1016,66 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
   }
 }
 
-// Grant the Event Grid system topic's system-assigned MI permission to
-// enqueue messages on the storage account's queues. Skipped when
-// reusing v1's topic (the existingEventGridSubscription below uses our
-// UAMI, which already gets Queue Data Contributor via
-// existingStorageQueueContributor above).
-resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!useExistingEventGridTopic) {
-  name: guid(storageAccountExisting.id, eventGridSystemTopicName, storageQueueDataMessageSenderRoleId)
-  scope: storageAccountExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataMessageSenderRoleId)
-    // managedIdentities.systemAssigned: true is set unconditionally on
-    // the topic above, so this output is always populated. The non-null
-    // assertion satisfies Bicep's nullable-output type without the
-    // empty-string fallback (which would fail the GUID min-length check).
-    principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
-    principalType: 'ServicePrincipal'
-  }
-}
+// ============================================================================
+// Cross-service system-assigned identity role assignments
+// (centralized via role-assignments.bicep — mirrors Oldinfra pattern)
+// ============================================================================
 
-// EXISTING Event Grid system topic reuse. Adds a new subscription on
-// v1's topic that routes BlobCreated events from the documents/ prefix
-// to our doc-processing queue. Delivery uses v2's UAMI (granted both
-// Queue Data Contributor on the storage account AND Queue Data Message
-// Sender on the specific queue \u2014 EG preflight validates the latter at
-// queue scope specifically).
-resource existingEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-preview' existing = if (useExistingEventGridTopic) {
-  name: existingEventGridTopicName
-}
-
-// Message Sender grant scoped to the storage account. EG's MI preflight
-// validator walks the storage account hierarchy when checking delivery
-// authorization for StorageQueue destinations; queue-scope alone is not
-// recognized by the synchronous validator. Account-scope is required.
-resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingEventGridTopic) {
-  name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
-  scope: storageAccountExisting
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
-    principalId: userAssignedIdentity.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
-  parent: existingEventGridTopic
-  name: 'cwyd2-blob-created-doc-processing'
-  properties: {
-    deliveryWithResourceIdentity: {
-      identity: {
-        type: 'UserAssigned'
-        userAssignedIdentity: userAssignedIdentity.outputs.resourceId
-      }
-      destination: {
-        endpointType: 'StorageQueue'
-        properties: {
-          resourceId: effectiveStorageResourceId
-          queueName: docProcessingQueueName
+var systemAssignedRoleAssignments = union(
+  databaseType == 'cosmosdb'
+    ? [
+        {
+          principalId: aiSearch.?outputs.identityPrincipalId
+          resourceId: storageAccount.outputs.resourceId
+          roleName: 'Storage Blob Data Contributor'
+          roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+          principalType: 'ServicePrincipal'
         }
-      }
+        {
+          principalId: aiSearch.?outputs.identityPrincipalId
+          resourceId: aiServices.outputs.resourceId
+          roleName: 'Cognitive Services User'
+          roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+          principalType: 'ServicePrincipal'
+        }
+        {
+          principalId: aiSearch.?outputs.identityPrincipalId
+          resourceId: aiServices.outputs.resourceId
+          roleName: 'Cognitive Services OpenAI User'
+          roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+          principalType: 'ServicePrincipal'
+        }
+      ]
+    : [],
+  [
+    {
+      principalId: aiServices.outputs.identityPrincipalId
+      resourceId: storageAccount.outputs.resourceId
+      roleName: 'Storage Blob Data Contributor'
+      roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+      principalType: 'ServicePrincipal'
     }
-    filter: {
-      includedEventTypes: [ 'Microsoft.Storage.BlobCreated' ]
-      subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
-      enableAdvancedFilteringOnArrays: true
+    {
+      principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
+      resourceId: storageAccount.outputs.resourceId
+      roleName: 'Storage Queue Data Message Sender'
+      roleDefinitionId: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
+      principalType: 'ServicePrincipal'
     }
-    eventDeliverySchema: 'EventGridSchema'
-    retryPolicy: {
-      maxDeliveryAttempts: 30
-      eventTimeToLiveInMinutes: 1440
-    }
-  }
-  dependsOn: [
-    existingStorageQueueDocProcessing
-    existingStorageQueueContributor
-    existingQueueMessageSenderRole
   ]
+)
+
+@description('Role assignments applied to system-assigned identities via AVM resource-role-assignment pattern. Objects: { principalId, resourceId, roleName, roleDefinitionId, principalType }.')
+module systemAssignedIdentityRoleAssignments './modules/identity/role-assignments.bicep' = {
+  name: take('module.resource-role-assignment.system-assigned', 64)
+  params: {
+    roleAssignments: systemAssignedRoleAssignments
+  }
 }
 
 // ===================== //
 // Outputs               //
 // ===================== //
-// Every AZURE_* output is consumed by either:
-//   - azd post-provision hooks (v2/scripts/post-provision.{sh,ps1}, #19)
-//   - the backend / function / frontend at build or run time
-//   - operator inspection via `azd env get-values`
-// Conditional outputs (cosmosdb-only / postgresql-only / monitoring-only)
-// emit empty strings when their gate is off so downstream consumers can
-// treat them as "not configured" without null-checks.
 
 // --- Identity / region / suffix ---
 
@@ -2140,7 +1108,7 @@ output AZURE_UAMI_RESOURCE_ID string = userAssignedIdentity.outputs.resourceId
 @description('Selected database engine for chat history + vector index (locked at deploy).')
 output AZURE_DB_TYPE string = databaseType
 
-@description('Logical name of the configured vector index store: "AzureSearch" (cosmosdb mode) or "pgvector" (postgresql mode).')
+@description('Logical name of the configured vector index store: "AzureSearch" (CosmosDB mode) or "pgvector" (PostgreSQL mode).')
 output AZURE_INDEX_STORE string = indexStoreValue
 
 // --- Foundry substrate ---
@@ -2149,7 +1117,7 @@ output AZURE_INDEX_STORE string = indexStoreValue
 output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
 
 @description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
-output AZURE_OPENAI_ENDPOINT string = effectiveOpenAiEndpoint
+output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.endpoint
 
 @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
 output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
@@ -2183,54 +1151,57 @@ output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = speechService.outputs.resourceI
 // --- Content Safety ---
 
 @description('Content Safety account endpoint. Backend reads via ContentSafetySettings.endpoint; lifespan gates client construction on this + AZURE_CONTENT_SAFETY_ENABLED.')
-output AZURE_CONTENT_SAFETY_ENDPOINT string = cogContentSafety.outputs.endpoint
+output AZURE_CONTENT_SAFETY_ENDPOINT string = contentSafety.outputs.endpoint
 
 @description('Content Safety account name (kind=ContentSafety). Diagnostic surface only — backend builds the client from the endpoint.')
-output AZURE_CONTENT_SAFETY_NAME string = cogContentSafety.outputs.name
+output AZURE_CONTENT_SAFETY_NAME string = contentSafety.outputs.name
 
-// --- Conditional: Azure AI Search (cosmosdb mode only) ---
+// --- Conditional: Azure AI Search (CosmosDB mode only) ---
 
-@description('AI Search service endpoint. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'CosmosDB' ? effectiveSearchEndpoint : ''
+@description('AI Search service endpoint. Empty in PostgreSQL mode.')
+output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : ''
 
-@description('AI Search service name. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_NAME string = databaseType == 'CosmosDB' ? effectiveSearchName : ''
+@description('AI Search service name. Empty in PostgreSQL mode.')
+output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? aiSearch!.outputs.name : ''
 
-// --- Conditional: Cosmos DB (cosmosdb mode only) ---
+// --- Conditional: Cosmos DB (CosmosDB mode only) ---
 
-@description('Cosmos DB account endpoint (DocumentEndpoint). Empty in postgresql mode.')
-output AZURE_COSMOS_ENDPOINT string = databaseType == 'CosmosDB' ? effectiveCosmosEndpoint : ''
+@description('Cosmos DB account endpoint (DocumentEndpoint). Empty in PostgreSQL mode.')
+output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : ''
 
-@description('Cosmos DB account name. Empty in postgresql mode.')
-output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'CosmosDB' ? effectiveCosmosName : ''
+@description('Cosmos DB account name. Empty in PostgreSQL mode.')
+output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : ''
 
-// --- Conditional: PostgreSQL Flexible Server (postgresql mode only) ---
+// --- Conditional: PostgreSQL Flexible Server (PostgreSQL mode only) ---
 
-@description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in cosmosdb mode.')
-output AZURE_POSTGRES_HOST string = databaseType == 'PostgreSQL' ? postgresServer!.outputs.fqdn! : ''
+@description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in CosmosDB mode.')
+output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.serverFqdn! : ''
 
-@description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in cosmosdb mode.')
+@description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in CosmosDB mode.')
 output AZURE_POSTGRES_ENDPOINT string = postgresLibpqUri
 
-@description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_NAME string = databaseType == 'PostgreSQL' ? postgresServer!.outputs.name : ''
+@description('PostgreSQL Flexible Server resource name. Empty in CosmosDB mode.')
+output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
 
-@description('Configured Entra admin principal name for the Postgres Flex server (used as the `user` in AAD-token connections by the post-provision hook). Empty in cosmosdb mode.')
-output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'PostgreSQL' ? postgresAdminPrincipalName : ''
+@description('Configured Entra admin principal name for the Postgres Flex server (used as the `user` in AAD-token connections by the post-provision hook). Empty in CosmosDB mode.')
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? principal.name : ''
 
 // --- Storage (blobs + queues + Function deployment package) ---
 
 @description('Storage account name (shared by RAG document store, indexing queues, and the Function App deployment package).')
-output AZURE_STORAGE_ACCOUNT_NAME string = effectiveStorageName
+output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount!.outputs.name
 
 @description('Primary blob endpoint of the shared storage account (https URL ending in /). Hostname follows the storage cloud-specific suffix.')
-output AZURE_STORAGE_BLOB_ENDPOINT string = effectiveStorageBlobEndpoint
+output AZURE_STORAGE_BLOB_ENDPOINT string = storageAccount!.outputs.blobEndpoint
 
 @description('Container holding documents to be indexed (Event Grid filter + batch_start source).')
 output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
 
 @description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
 output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
+
+@description('Ingestion trigger mode for the backend admin upload path: direct_enqueue (backend enqueues) or event_grid (Event Grid + blob_event Function own the push).')
+output AZURE_INGESTION_TRIGGER string = ingestionTrigger
 
 // --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
 
@@ -2241,7 +1212,7 @@ output AZURE_BACKEND_URL string = 'https://${backendContainerApp.outputs.fqdn}'
 output AZURE_FRONTEND_URL string = 'https://${frontendWebApp.outputs.defaultHostname}'
 
 @description('Public URL of the Function App hosting the indexing pipeline.')
-output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostname}'
+output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostName}'
 
 @description('Function App resource name (used by azd to deploy the function package).')
 output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
@@ -2256,14 +1227,3 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 @description('Application Insights connection string. Empty when enableMonitoring=false.')
 output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring ? applicationInsights!.outputs.connectionString : ''
-
-// --- Conditional: private networking (enablePrivateNetworking only) ---
-
-@description('VNet name. Empty when enablePrivateNetworking=false.')
-output AZURE_VNET_NAME string = enablePrivateNetworking ? virtualNetwork!.outputs.name : ''
-
-@description('VNet resource ID. Empty when enablePrivateNetworking=false.')
-output AZURE_VNET_RESOURCE_ID string = enablePrivateNetworking ? virtualNetwork!.outputs.resourceId : ''
-
-@description('Bastion host name (for `az network bastion tunnel`). Empty when enablePrivateNetworking=false.')
-output AZURE_BASTION_NAME string = enablePrivateNetworking ? bastion!.outputs.name : ''

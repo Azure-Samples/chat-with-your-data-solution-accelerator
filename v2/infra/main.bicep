@@ -296,39 +296,44 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
 // Activated when deploymentFlavor = 'bicep'
 // ============================================================================
 
-// module bicepDeployment './bicep/main.bicep' = if (isBicep) {
-//   name: take('module.bicep.${solutionName}', 64)
-//   params: {
-//     solutionName: solutionName
-//     solutionUniqueText: solutionUniqueText
-//     location: location
-//     tags: tags
-//     azureAiServiceLocation: azureAiServiceLocation
-//     deploymentType: deploymentType
-//     gptModelName: gptModelName
-//     gptModelVersion: gptModelVersion
-//     gptDeploymentCapacity: gptDeploymentCapacity
-//     embeddingModel: embeddingModel
-//     embeddingDeploymentCapacity: embeddingDeploymentCapacity
-//     azureOpenaiAPIVersion: azureOpenaiAPIVersion
-//     azureAiAgentApiVersion: azureAiAgentApiVersion
-//     imageTag: imageTag
-//     containerRegistryName: containerRegistryName
-//     backendRuntimeStack: backendRuntimeStack
-//     appServicePlanSku: appServicePlanSku
-//     useChatHistoryEnabled: useChatHistoryEnabled
-//     useUserAccessToken: useUserAccessToken
-//     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
-//     existingFoundryProjectResourceId: existingFoundryProjectResourceId
-//     deployingUserPrincipalType: deployingUserPrincipalType
-//     appTitlePrimary: appTitlePrimary
-//     appTitleSecondary: appTitleSecondary
-//     createFabricWorkspace: createFabricWorkspace
-//     azureFabricCapacityName: azureFabricCapacityName
-//     fabricCapacitySku: fabricCapacitySku
-//     fabricAdminMembers: fabricAdminMembers
-//   }
-// }
+module bicepDeployment './bicep/main.bicep' = if (isBicep) {
+  name: take('module.bicep.${solutionName}', 64)
+ params: {
+    solutionName: solutionName
+    solutionUniqueText: solutionUniqueText
+    location: location
+    azureAiServiceLocation: azureAiServiceLocation
+    databaseType: databaseType
+    ingestionTrigger: ingestionTrigger
+    gptModelName: gptModelName
+    gptModelVersion: gptModelVersion
+    gptModelDeploymentType: gptModelDeploymentType
+    gptModelCapacity: gptModelCapacity
+    reasoningModelName: reasoningModelName
+    reasoningModelVersion: reasoningModelVersion
+    reasoningModelDeploymentType: reasoningModelDeploymentType
+    reasoningModelCapacity: reasoningModelCapacity
+    embeddingModelName: embeddingModelName
+    embeddingModelVersion: embeddingModelVersion
+    embeddingModelDeploymentType: embeddingModelDeploymentType
+    embeddingModelCapacity: embeddingModelCapacity
+    azureOpenAiApiVersion: azureOpenAiApiVersion
+    azureAiAgentApiVersion: azureAiAgentApiVersion
+    searchKnowledgeBaseName: searchKnowledgeBaseName
+    searchKnowledgeSourceName: searchKnowledgeSourceName
+    searchKnowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
+    containerRegistryEndpoint: containerRegistryEndpoint
+    imageTag: imageTag
+    hostingModel: hostingModel
+    enableTelemetry: enableTelemetry
+    enableMonitoring: enableMonitoring
+    existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    tags: tags
+    createdBy: createdBy
+    principal: principal
+    deployingUserPrincipalType: deployingUserPrincipalType
+}
+ }
 
 // ============================================================================
 // Outputs — Coalesced from whichever flavor was deployed
