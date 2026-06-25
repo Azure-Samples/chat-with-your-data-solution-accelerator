@@ -3,7 +3,7 @@
  * Phase: 5 (FE bridge — dev_plan §4 task #24, FE half) +
  *        6 (visual polish — bubble layout, pulled forward for boss demo;
  *           H6 patch 2026-05-08: live "Thinking…" panel) +
- *        4 (MACAE re-skin — assistant runs as full-width prose with no
+ *        4 (reference-architecture re-skin — assistant runs as full-width prose with no
  *           bubble; user is a brand-tinted right-aligned chip; avatars
  *           use Fluent v9 icons; empty state uses Fluent Chat48 +
  *           Title2 "Start a conversation".) +

@@ -1,6 +1,6 @@
 /*
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin: tokens.css thinned to a
+ * Phase: 4 (frontend polish — reference-architecture re-skin: tokens.css thinned to a
  *          minimal global reset; all design tokens come from Fluent v9
  *          via <FluentProvider> in App.tsx so component CSS Modules can
  *          reference --colorNeutralBackground1, --spacingHorizontalM,

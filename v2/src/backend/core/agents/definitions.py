@@ -20,8 +20,8 @@ Field choices:
   value is the actual Azure OpenAI deployment name. Letting the
   definition pick `gpt_deployment` vs `reasoning_deployment` keeps
   the RAI agent on a cheaper model without inventing a per-agent env
-  var (MACAE adds `AZURE_OPENAI_RAI_DEPLOYMENT_NAME`; we collapse
-  that to a settings-attr indirection).
+  var (the reference architecture adds `AZURE_OPENAI_RAI_DEPLOYMENT_NAME`;
+  we collapse that to a settings-attr indirection).
 
 * `instructions` -- the system prompt. Foundry SDK uses the term
   `instructions`; we mirror it to avoid translation friction in the
@@ -34,9 +34,8 @@ Field choices:
 
 CGSA pattern attribution: frozen Pydantic settings/data model split
 (BaseModel for declarative data, BaseSettings for env-driven config).
-MACAE pattern attribution: TRUE/FALSE classifier prompt shape used by
-RAI_AGENT.instructions (adapted from common/utils/utils_af.py
-`create_RAI_agent`).
+Reference-architecture attribution: TRUE/FALSE classifier prompt shape
+used by RAI_AGENT.instructions.
 """
 
 from typing import Literal
@@ -151,10 +150,9 @@ CWYD_AGENT = AgentDefinition(
 )
 
 
-# MACAE pattern (common/utils/utils_af.py `create_RAI_agent`): a
-# dedicated Foundry agent acting as a TRUE/FALSE classifier on its
-# own deployment. Used by the RAI gate (CU-011b) to filter unsafe
-# prompts before they reach CWYD_AGENT.
+# Reference-architecture pattern: a dedicated Foundry agent acting as
+# a TRUE/FALSE classifier on its own deployment. Used by the RAI gate
+# (CU-011b) to filter unsafe prompts before they reach CWYD_AGENT.
 RAI_AGENT = AgentDefinition(
     name="rai",
     description=(

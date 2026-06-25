@@ -1,8 +1,8 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — reference-architecture re-skin)
  *
- * Coral Header. Mirrors MACAE's
+ * Coral Header. Mirrors the reference architecture's
  * `commonComponents/components/Header/Header.tsx`:
  *   - Left brand: a clickable <Avatar shape="square" color="neutral">
  *     wrapping the multi-agent brand mark that navigates back to the

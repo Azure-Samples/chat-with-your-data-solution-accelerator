@@ -21,7 +21,7 @@
  * Every `data-testid` + `aria-label` is preserved verbatim from
  * Phase 4.
  *
- * Phase 4 MACAE re-skin: rows render as MACAE-style `.tab` chips
+ * Phase 4 reference-architecture re-skin: rows render as reference-architecture-style `.tab` chips
  * (border-radius var(--borderRadiusMedium), hover
  * var(--colorSubtleBackgroundHover), selected with a 2px
  * var(--colorCompoundBrandStroke) left tick). The outer landmark

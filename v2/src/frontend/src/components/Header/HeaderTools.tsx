@@ -1,6 +1,6 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — reference-architecture re-skin)
  *
  * Header toolbar slot for the right side of <Header>. Owns the icon
  * buttons that wrap into the header chrome:
@@ -12,7 +12,7 @@
  *   - theme toggle    (delegates to ThemeProvider via useTheme())
  *
  * Uses Fluent v9 <Toolbar> + <ToolbarButton> + <ToolbarToggleButton>
- * (mirrors MACAE's HeaderTools): the toggle button natively manages
+ * (mirrors the reference architecture's header tools): the toggle button natively manages
  * `aria-pressed`, replacing our hand-rolled attribute on the previous
  * <button> implementation.
  *

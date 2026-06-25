@@ -7,7 +7,7 @@ Validates:
 
 * `AgentDefinition` is frozen and rejects unknown fields.
 * `CWYD_AGENT` and `RAI_AGENT` declare the required scenario data.
-* `RAI_AGENT.instructions` follows the MACAE TRUE/FALSE classifier
+* `RAI_AGENT.instructions` follows the reference-architecture TRUE/FALSE classifier
   shape (the resolver in CU-011a parses single-token responses).
 * `BUILTIN_AGENTS` is keyed by `definition.name` (the lazy resolver
   in CU-010c looks up by name).
@@ -257,8 +257,8 @@ def test_cwyd_default_body_drops_strict_in_domain_drag() -> None:
     assert "enough information" not in body
 
 
-def test_rai_agent_uses_macae_classifier_pattern() -> None:
-    """The MACAE-style RAI classifier returns exactly one token
+def test_rai_agent_uses_classifier_pattern() -> None:
+    """The reference-architecture-style RAI classifier returns exactly one token
     (`TRUE` or `FALSE`). The instructions must mention both tokens
     and instruct the model to emit one of them, otherwise the parser
     in CU-011a will mis-classify ambiguous outputs.

@@ -1,11 +1,11 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — reference-architecture re-skin)
  *
  * Tests for the Coral <Header> component. Same behavioural contract
  * as the prior <AppHeader> (preserved verbatim accessible names, the
  * `data-testid="app-header"` discriminator, the same callback wiring)
- * but the brand visuals are now MACAE-faithful: Microsoft 4-square
+ * but the brand visuals are now reference-architecture-faithful: Microsoft 4-square
  * logo + "<title> | <subtitle>" pattern.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -46,7 +46,7 @@ describe("Header", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: /chat with your data/i }),
     ).toBeInTheDocument();
-    // Default subtitle from MACAE pattern: "<title> | Solution Accelerator".
+    // Default subtitle from the reference-architecture pattern: "<title> | Solution Accelerator".
     expect(screen.getByText(/solution accelerator/i)).toBeInTheDocument();
     // The brand logo is now a multi-agent badge wrapped in a button that
     // returns to the home / chat view.

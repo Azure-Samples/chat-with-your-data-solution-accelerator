@@ -1,7 +1,7 @@
 /*
  * Pillar: Scenario Pack
  * Phase: 6 (frontend polish, pulled forward for boss demo) +
- *        4 (MACAE re-skin — rows use Fluent tokens + Coral .tab chip
+ *        4 (reference-architecture re-skin — rows use Fluent tokens + Coral .tab chip
  *           pattern; selected row gets a 2px brand left tick)
  *
  * Visual styling for HistoryPanel.tsx. The outer column primitive

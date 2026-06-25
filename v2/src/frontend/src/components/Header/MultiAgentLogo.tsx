@@ -1,11 +1,11 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — reference-architecture re-skin)
  *
  * Multi-agent brand mark as an inline SVG component. This is the
- * interlocking glyph the MACAE multi-agent experience renders for its
- * brand badge (adapted from MACAE's
- * `commonComponents/imports/ContosoLogo`). Used as the brand icon
+ * interlocking glyph the reference architecture's multi-agent experience renders for its
+ * brand badge (adapted from the reference architecture's logo
+ * component). Used as the brand icon
  * inside the header `<Avatar shape="square">`.
  *
  * Inline (not a static `.svg` import) so the mark fills with the Fluent

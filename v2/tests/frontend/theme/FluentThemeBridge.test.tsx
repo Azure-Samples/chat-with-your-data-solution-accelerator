@@ -1,6 +1,6 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — reference-architecture re-skin)
  *
  * Tests for FluentThemeBridge: verifies it (1) actually mounts a
  * Fluent v9 `<FluentProvider>` around its children (which carries a

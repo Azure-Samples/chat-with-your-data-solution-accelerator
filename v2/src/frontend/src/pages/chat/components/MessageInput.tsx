@@ -1,7 +1,7 @@
 /**
  * Pillar: Stable Core
  * Phase: 5 (FE bridge — dev_plan §4 task #24, FE half) +
- *        4 (MACAE re-skin — composer pill: Fluent <Button>/<ToggleButton>
+ *        4 (reference-architecture re-skin — composer pill: Fluent <Button>/<ToggleButton>
  *           replace hand-rolled SVG buttons; Send24Regular / Mic24Regular
  *           / MicOff24Regular replace inline SVG icons; surface uses
  *           Fluent tokens with a focus-ring border swap.)

@@ -1,7 +1,7 @@
 /*
  * Pillar: Stable Core
  * Phase: 6 (frontend polish, pulled forward for boss demo) +
- *        4 (MACAE re-skin — sidebar moved LEFT)
+ *        4 (reference-architecture re-skin — sidebar moved LEFT)
  *
  * Page layout for the chat shell. Header lives in App.tsx; this file
  * owns the body grid: optional history sidebar docked on the LEFT

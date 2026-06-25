@@ -18,8 +18,8 @@ Two parallel safety seams live in this module, by design:
    (not as fallbacks) -- Content Safety catches categorical harms
    with calibrated severity, the RAI agent catches jailbreaks /
    prompt-injection / policy-bypass attempts that the categorical
-   classifier misses (MACAE pattern -- `common/utils/utils_af.py`
-   `create_RAI_agent`, adapted; v2 collapses MACAE's per-RAI env var
+   classifier misses (reference-architecture pattern, adapted; v2
+   collapses the reference architecture's per-RAI env var
    `AZURE_OPENAI_RAI_DEPLOYMENT_NAME` into the
    `AgentDefinition.deployment_attr` indirection).
 
@@ -153,11 +153,11 @@ async def rai_check(
     verdict, so an outage surfaces as an error to the caller instead of
     masquerading as a policy block.
 
-    MACAE attribution: the TRUE/FALSE classifier prompt shape and the
-    dedicated-agent pattern are adapted from
-    `common/utils/utils_af.py::create_RAI_agent`. The classifier's
-    model deployment is selected via `AgentDefinition.deployment_attr`
-    instead of MACAE's per-RAI env var.
+    Reference-architecture attribution: the TRUE/FALSE classifier
+    prompt shape and the dedicated-agent pattern are adapted from the
+    reference architecture. The classifier's model deployment is
+    selected via `AgentDefinition.deployment_attr` instead of the
+    reference architecture's per-RAI env var.
     """
     if not text or not text.strip():
         return True

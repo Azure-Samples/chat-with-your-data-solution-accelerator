@@ -99,6 +99,16 @@ DEFAULT_KNOWLEDGE_BASE_API_VERSION = "2025-11-01-preview"
 # knowledgebases REST PUT). Distinct from the postgres AAD scope above.
 SEARCH_DATA_PLANE_SCOPE = "https://search.azure.com/.default"
 
+# OAuth scope for the Azure Resource Manager control plane. The KB-MCP
+# RemoteTool connection is created via an ARM PUT on the Foundry project,
+# so it uses the management scope -- distinct from the search data-plane
+# scope above (the connection lives on the project, not in the index).
+ARM_SCOPE = "https://management.azure.com/.default"
+# Control-plane api-version for the project `connections` PUT. Distinct from
+# the KB target-URL api-version (DEFAULT_KNOWLEDGE_BASE_API_VERSION) the
+# connection `target` embeds.
+KB_MCP_CONNECTION_API_VERSION = "2025-04-01-preview"
+
 # Outputs surfaced in the summary block. Kept in display order; missing
 # entries are skipped silently (e.g. cosmos vars in postgresql mode).
 SUMMARY_KEYS = (
@@ -504,6 +514,111 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
             close()
 
 
+def _ensure_kb_mcp_connection(*, dry_run: bool, client_factory=None) -> str:
+    """Create-or-update the Foundry project ``{kb}-mcp`` RemoteTool connection.
+
+    Points the project's MCP grounding at the knowledge base's ``/mcp``
+    endpoint using the project's managed identity, so
+    ``AZURE_AI_SEARCH_CONNECTION_NAME`` can reference the ``{kb}-mcp``
+    connection rather than the base search connection (which is the wrong
+    connection category for the knowledge-base MCP route).
+
+    Idempotent: the ARM ``connections`` PUT is create-or-update, so
+    re-running overwrites the connection in place. Returns one of:
+    ``"skipped"`` (no search endpoint or no project resource id --
+    postgresql mode), ``"dry-run"``, ``"ensured"``.
+
+    The connection name is ``f"{kb_name}-mcp"`` where ``kb_name`` comes from
+    ``AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME`` (the same variable
+    ``_ensure_knowledge_base`` reads), so it cannot drift from the Bicep env
+    wiring. The connection PUT is an ARM control-plane call (``ARM_SCOPE``),
+    distinct from the search data-plane scope the knowledge-base seed uses.
+    ``client_factory`` is a test seam -- production passes ``None`` and the
+    function builds an ``httpx.Client`` bearer-authed for the ARM control
+    plane.
+    """
+    search_endpoint = os.environ.get("AZURE_AI_SEARCH_ENDPOINT", "").strip()
+    project_resource_id = os.environ.get(
+        "AZURE_AI_PROJECT_RESOURCE_ID", ""
+    ).strip()
+    if not search_endpoint or not project_resource_id:
+        print(
+            "post-provision: AZURE_AI_SEARCH_ENDPOINT or "
+            "AZURE_AI_PROJECT_RESOURCE_ID not set; skipping KB-MCP connection"
+        )
+        return "skipped"
+
+    kb_name = (
+        os.environ.get("AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME", "").strip()
+        or DEFAULT_KNOWLEDGE_BASE_NAME
+    )
+    kb_api_version = (
+        os.environ.get("AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION", "").strip()
+        or DEFAULT_KNOWLEDGE_BASE_API_VERSION
+    )
+    connection_name = f"{kb_name}-mcp"
+    base = search_endpoint.rstrip("/")
+    target = f"{base}/knowledgebases/{kb_name}/mcp?api-version={kb_api_version}"
+    url = (
+        f"https://management.azure.com{project_resource_id}/connections/"
+        f"{connection_name}?api-version={KB_MCP_CONNECTION_API_VERSION}"
+    )
+
+    if dry_run:
+        print(
+            f"post-provision: [dry-run] would ensure KB-MCP connection "
+            f"{connection_name!r} via PUT {url}"
+        )
+        return "dry-run"
+
+    # Externally-owned ARM REST body, so a plain dict rather than a typed
+    # model (the Hard Rule #15 boundary carve-out, matching
+    # `_build_knowledge_base_seed`'s plain-dict precedent).
+    properties: dict[str, object] = {
+        "category": "RemoteTool",
+        "target": target,
+        "authType": "ProjectManagedIdentity",
+        "useWorkspaceManagedIdentity": True,
+        "isSharedToAll": True,
+        "audience": "https://search.azure.com",
+        "metadata": {"ApiType": "Azure"},
+    }
+    body: dict[str, object] = {"properties": properties}
+
+    if client_factory is None:
+        def client_factory():  # type: ignore[no-redef]
+            token = DefaultAzureCredential().get_token(ARM_SCOPE).token
+            return httpx.Client(
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                timeout=30.0,
+            )
+
+    client = client_factory()
+    try:
+        response = client.put(url, json=body)
+        try:
+            response.raise_for_status()
+        except Exception:  # noqa: BLE001 - surfaced + re-raised below
+            sys.stderr.write(
+                "post-provision: failed to ensure KB-MCP connection "
+                f"{connection_name!r} (status {response.status_code}).\n"
+                f"  body: {getattr(response, 'text', '')}\n"
+            )
+            raise
+        print(
+            f"post-provision: KB-MCP connection {connection_name!r} ready "
+            f"(target {target})"
+        )
+        return "ensured"
+    finally:
+        close = getattr(client, "close", None)
+        if callable(close):
+            close()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="post-provision",
@@ -539,6 +654,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     _ensure_search_index(dry_run=args.dry_run)
     _ensure_knowledge_base(dry_run=args.dry_run)
+    # The KB-MCP connection PUT is an ARM control-plane write requiring
+    # Microsoft.CognitiveServices/accounts/projects/connections/write on the
+    # Foundry account; the azd deploy principal already holds that right.
+    _ensure_kb_mcp_connection(dry_run=args.dry_run)
 
     _print_summary()
     return 0

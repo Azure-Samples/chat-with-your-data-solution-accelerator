@@ -115,7 +115,7 @@ services:
     project: ./src/frontend
     language: js
     host: appservice
-    # Build-from-source on App Service (MACAE pattern). host: appservice
+    # Build-from-source on App Service (reference-architecture pattern). host: appservice
     # does not support a `docker:` block -- pairing them is the root
     # cause of BUG-0081. The service-scoped prepackage hook runs
     # `npm ci && npm run build`, then stages a self-contained deploy

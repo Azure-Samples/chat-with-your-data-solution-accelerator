@@ -24,7 +24,7 @@
 //
 // References:
 //   v1 wrapper:                   infra/modules/virtualNetwork.bicep
-//   MACAE pattern (read-only):    Multi-Agent-Custom-Automation-Engine-Solution-Accelerator/infra/main.bicep
+//   reference-architecture pattern (read-only): infra/main.bicep
 //   CGSA pattern (read-only):     content-generation-solution-accelerator/infra/modules/virtualNetwork.bicep
 // =============================================================================
 

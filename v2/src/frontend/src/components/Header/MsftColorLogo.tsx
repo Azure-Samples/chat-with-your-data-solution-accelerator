@@ -1,9 +1,9 @@
 /**
  * Pillar: Stable Core
- * Phase: 4 (frontend polish — MACAE re-skin)
+ * Phase: 4 (frontend polish — reference-architecture re-skin)
  *
  * Microsoft 4-square color logo as an inline SVG component. Mirrors
- * MACAE's `commonComponents/components/Logos/MsftColor`. Used as the
+ * the reference architecture's color-logo component. Used as the
  * brand icon inside the header `<Avatar shape="square">`.
  *
  * Inline (not a static `.svg` import) so the logo participates in

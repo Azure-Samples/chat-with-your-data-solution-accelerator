@@ -1,7 +1,7 @@
 /*
  * Pillar: Stable Core
  * Phase: 6 (frontend polish, pulled forward for boss demo) +
- *        4 (MACAE re-skin — composer pill with focus-ring border swap.
+ *        4 (reference-architecture re-skin — composer pill with focus-ring border swap.
  *           Fluent <Button>/<ToggleButton> own their own pressed/hover
  *           states; this module just owns the row layout + pill chrome.)
  *

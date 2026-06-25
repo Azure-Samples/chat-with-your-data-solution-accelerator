@@ -6,8 +6,8 @@
  * non-component module so <HeaderTools> exports only its component
  * (React Fast Refresh requires component-only exports).
  *
- * Initials derivation mirrors MACAE's `components/auth/LoginButton`
- * (`getUserInitials`). The display name is read from the Easy Auth
+ * Initials derivation mirrors the reference architecture's login-button
+ * pattern (`getUserInitials`). The display name is read from the Easy Auth
  * claims resolved into `UserInfo`.
  */
 import type { UserInfo } from "@/models/auth";
@@ -47,8 +47,8 @@ export function resolveDisplayName(
 }
 
 /**
- * Up-to-two-letter initials from a display name (mirrors MACAE's
- * `getUserInitials`): first letters of the first two whitespace parts,
+ * Up-to-two-letter initials from a display name (mirrors the reference
+ * architecture's `getUserInitials`): first letters of the first two whitespace parts,
  * else the first letter of a single-part name; parenthetical segments
  * are stripped first. Returns "G" for an empty name.
  */

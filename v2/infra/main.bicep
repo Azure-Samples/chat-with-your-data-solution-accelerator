@@ -286,9 +286,8 @@ resource resourceGroupTags 'Microsoft.Resources/tags@2024-03-01' = {
 // User-Assigned Managed Identity used by every workload (backend Container
 // App, frontend Web App, Function App). All RBAC role assignments target
 // this single principal so there is one identity to audit and rotate.
-// Reference: Multi-Agent Custom Automation Engine (MACAE) sample
-// (github.com/microsoft/Multi-Agent-Custom-Automation-Engine-Solution-Accelerator):
-// managed-identity + RBAC + no Key Vault for app secrets.
+// Reference: reference-architecture pattern: managed-identity + RBAC +
+// no Key Vault for app secrets.
 module userAssignedIdentity 'br/public:avm/res/managed-identity/user-assigned-identity:0.4.1' = {
   name: take('avm.res.managed-identity.user-assigned-identity.${solutionSuffix}', 64)
   params: {
@@ -1058,23 +1057,6 @@ module aiProjectSearchConnection 'modules/ai-project-search-connection.bicep' = 
   }
 }
 
-// Foundry Project RemoteTool connection for the KB MCP path (cosmosdb mode
-// only). This is what AZURE_AI_SEARCH_CONNECTION_NAME must resolve to: the
-// CognitiveSearch connection above 401s on the /knowledgebases/.../mcp path
-// (BUG-0025 / BUG-0059). Authenticates as the Project system identity
-// (ProjectManagedIdentity + search.azure.com audience); the Project MI holds
-// Search Service Contributor on the Search service.
-module aiProjectKbMcpConnection 'modules/ai-project-kb-mcp-connection.bicep' = if (databaseType == 'cosmosdb') {
-  name: take('module.ai-project-kb-mcp-connection.${solutionSuffix}', 64)
-  params: {
-    aiServicesAccountName: aiServicesName
-    projectName: aiProject.outputs.name
-    searchEndpoint: effectiveSearchEndpoint
-    knowledgeBaseName: searchKnowledgeBaseName
-    knowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
-  }
-}
-
 // ----------------------------------------------------------------------
 // Storage account. Triple-purpose:
 //   - WebJobsStorage / content share for the Function App.
@@ -1593,7 +1575,7 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
 //   - native UAMI-based ACR pull (no managed-identity glue code)
 //   - first-class HTTP/SSE streaming with no buffering
 // The Web App (frontend) lands in #15 on a separate App Service Plan,
-// matching the MACAE mixed-hosting pattern.
+// matching the reference-architecture mixed-hosting pattern.
 //
 // Phase 1 deploys a placeholder image so the resources exist; the real
 // image is wired in azure.yaml `services.backend` once the backend
@@ -1773,7 +1755,7 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     // Authenticate the ACR image pull with the UAMI that holds AcrPull on
     // the registry (granted by the containerRegistry roleAssignments
     // above), so the Container App pulls without admin credentials
-    // (MACAE managed-identity pull pattern). `server` is the same
+    // (reference-architecture managed-identity pull pattern). `server` is the same
     // loginServer surfaced as AZURE_CONTAINER_REGISTRY_ENDPOINT; `identity`
     // is the UAMI resource id. Harmless while the placeholder public image
     // is in use (public pull ignores the credential) and active once the
@@ -1878,7 +1860,7 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // The agent_framework orchestrator passes this as the KB MCP tool's
             // project_connection_id so Foundry IQ executes retrieval server-side
             // under the Project identity. Empty in postgresql mode (no connection).
-            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectKbMcpConnection!.outputs.name : '' }
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? '${searchKnowledgeBaseName}-mcp' : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
             { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? 'id-${solutionSuffix}' : '' }
             // Speech (S1 / SPEECH-MVP) — backend mints a 10-min AAD-bearer
@@ -1946,7 +1928,7 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
 //     cold-start matters more for the user-facing landing page).
 //   - App Service exposes a stable *.azurewebsites.net hostname suitable
 //     for branding / custom-domain CNAME.
-//   - Mixed hosting (ACA backend + App Service frontend) follows MACAE's
+//   - Mixed hosting (ACA backend + App Service frontend) follows the reference architecture's
 //     reference layout for plug-and-play deployments.
 //
 // Phase 1 deploys a placeholder image; the real image is wired in
@@ -2011,7 +1993,7 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
         ]
       : []
     siteConfig: {
-      // Build-from-source App Service (MACAE pattern, BUG-0081 fix). azd
+      // Build-from-source App Service (reference-architecture pattern, BUG-0081 fix). azd
       // zip-deploys the Vite dist/ and the platform serves it via the
       // uvicorn appCommandLine below (frontend_app.py). The SPA reads the
       // backend URL at runtime from /config (fed by the BACKEND_API_URL
@@ -2028,7 +2010,7 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
         [
           // BACKEND_API_URL feeds the frontend_app.py /config endpoint,
           // which the SPA fetches once at boot to learn the backend URL
-          // at runtime (MACAE pattern). No build-time bake — the Vite
+          // at runtime (reference-architecture pattern). No build-time bake — the Vite
           // build runs before the provisioned backend FQDN is knowable.
           {
             name: 'BACKEND_API_URL'
@@ -2249,7 +2231,7 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
 // satisfy BCP120.
 resource storageAccountExisting 'Microsoft.Storage/storageAccounts@2024-01-01' existing = {
   // BCP334: take(...) returns string 0..24 chars; storage account name
-  // requires min 3. solutionSuffix is generated by MACAE pattern as 8+
+  // requires min 3. solutionSuffix is generated by reference-architecture pattern as 8+
   // chars in main.bicep, so the actual value is always 10..24. Suppress
   // the static-analysis warning rather than add a runtime guard.
   #disable-next-line BCP334
@@ -2494,6 +2476,9 @@ output AZURE_OPENAI_ENDPOINT string = effectiveOpenAiEndpoint
 
 @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
 output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
+
+@description('Foundry Project ARM resource id. Consumed by post_provision.py to seed the KB-MCP RemoteTool connection at the control plane.')
+output AZURE_AI_PROJECT_RESOURCE_ID string = aiProject.outputs.resourceId
 
 @description('OpenAI-compatible API version pinned for the GPT + reasoning deployments.')
 output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
