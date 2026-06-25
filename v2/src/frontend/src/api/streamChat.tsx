@@ -37,6 +37,7 @@
 import { StreamChannel } from "@/models/chat";
 import type { StreamEvent, StreamMessage } from "@/models/chat";
 import { userIdHeaders } from "@/api/auth";
+import { getBackendUrl } from "@/api/runtimeConfig";
 
 const KNOWN_CHANNELS: ReadonlySet<StreamChannel> = new Set(
   Object.values(StreamChannel),
@@ -57,15 +58,15 @@ const DEFAULT_BASE_DELAY_MS = 500;
 const CONVERSATION_EVENT = "conversation";
 
 /**
- * Absolute URL of the conversation endpoint. `VITE_BACKEND_URL` is read
- * at call time (empty string when unset) so the same build targets the
- * same-origin dev proxy and the deployed separate-origin backend
- * without a rebuild — matching the `documentHref` / `HistoryPanel` base
- * convention.
+ * Absolute URL of the conversation endpoint. The backend origin comes
+ * from the runtime `getBackendUrl()` seam (the `/config` `backendUrl`
+ * resolved at boot, falling back to build-time `VITE_BACKEND_URL`) so
+ * the same build targets the same-origin dev proxy and the deployed
+ * separate-origin backend without a rebuild — matching the
+ * `documentHref` / `HistoryPanel` base convention.
  */
 function conversationUrl(): string {
-  const base = (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
-  return `${base}${CONVERSATION_PATH}`;
+  return `${getBackendUrl()}${CONVERSATION_PATH}`;
 }
 
 export interface StreamChatOptions {

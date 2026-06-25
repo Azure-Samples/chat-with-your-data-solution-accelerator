@@ -24,6 +24,7 @@ import type {
   UploadResponse,
 } from "@/models/admin";
 import { userIdHeaders } from "@/api/auth";
+import { getBackendUrl } from "@/api/runtimeConfig";
 
 const ADMIN_STATUS_URL = "/api/admin/status";
 const ADMIN_CONFIG_URL = "/api/admin/config";
@@ -33,8 +34,10 @@ const ADMIN_DOCUMENTS_INGEST_URL = "/api/admin/documents/url";
 const ADMIN_DOCUMENTS_REPROCESS_URL = "/api/admin/documents/reprocess";
 
 /**
- * Absolute base for the backend API. `VITE_BACKEND_URL` is read at call
- * time (empty when unset) so one bundle serves both the local Vite proxy
+ * Absolute base for the backend API. Delegates to the runtime
+ * `getBackendUrl()` seam, which prefers the `/config` `backendUrl`
+ * (resolved at boot) and falls back to build-time `VITE_BACKEND_URL`
+ * (empty when unset) so one bundle serves both the local Vite proxy
  * (relative `/api/...`) and the deployed split-host topology, where the
  * frontend (App Service) and backend (Container App) are different
  * origins and an admin call must cross to the backend instead of hitting
@@ -42,7 +45,7 @@ const ADMIN_DOCUMENTS_REPROCESS_URL = "/api/admin/documents/reprocess";
  * `conversationHistory.tsx` and the `apiUrl()` seam in `HistoryPanel.tsx`.
  */
 function backendUrl(): string {
-  return (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
+  return getBackendUrl();
 }
 
 /** Join the backend base (trailing slash trimmed) with an API path. */

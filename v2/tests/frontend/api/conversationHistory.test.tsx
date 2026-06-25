@@ -12,6 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchConversation } from "@/api/conversationHistory";
 import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
+import { loadRuntimeConfig, resetRuntimeConfig } from "@/api/runtimeConfig";
 
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {
@@ -32,6 +33,7 @@ describe("fetchConversation", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    resetRuntimeConfig();
     // `fetchConversation` forwards the shared auth singleton; reset it.
     setUserId(null);
   });
@@ -74,6 +76,28 @@ describe("fetchConversation", () => {
     expect(url).toBe(
       "https://backend.example.com/api/history/conversations/conv-1",
     );
+  });
+
+  it("prefers the runtime /config backendUrl over the env fallback", async () => {
+    // The runtime origin from /config must win over build-time
+    // VITE_BACKEND_URL so the deployed split-host SPA crosses to the
+    // backend Container App resolved at boot.
+    vi.stubEnv("VITE_BACKEND_URL", "https://build-time.example.com");
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/config") {
+        return jsonResponse({ backendUrl: "https://runtime.example.com" });
+      }
+      return jsonResponse({ messages: [] });
+    });
+    await loadRuntimeConfig();
+    await fetchConversation("conv-1");
+    const detailCall = fetchMock.mock.calls.find(
+      ([callUrl]) =>
+        callUrl ===
+        "https://runtime.example.com/api/history/conversations/conv-1",
+    );
+    expect(detailCall).toBeDefined();
   });
 
   it("returns the resolved conversationId alongside the mapped messages", async () => {

@@ -8,9 +8,12 @@ catch-all route returns the requested file when it exists on disk and
 falls back to `index.html` for every other path, so client-side
 BrowserRouter deep links (for example `/admin/ingest`) and hard
 refreshes resolve to the SPA entry point instead of a 404. No nginx,
-no extra proxy. The dev profile keeps using Vite's HMR server
-unchanged; this module is only loaded by the `prod` stage of
-`docker/Dockerfile.frontend`.
+no extra proxy. It also exposes `GET /config`, which returns the
+backend base URL from the `BACKEND_API_URL` environment variable so the
+SPA learns the backend at runtime instead of baking it into the bundle.
+The dev profile keeps using Vite's HMR server unchanged; in production
+the App Service runs this module via uvicorn (see the `appCommandLine`
+on the frontend site in `v2/infra/main.bicep`).
 """
 
 import os
@@ -18,12 +21,35 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, ConfigDict, Field
 
 # `DIST_DIR` env var lets tests point at a fixture without rebuilding.
-# Default matches the path baked into Dockerfile.frontend prod stage.
-_DIST_DIR = Path(os.environ.get("DIST_DIR", "/usr/src/app/dist"))
+# Default resolves next to this module so it serves unchanged on App
+# Service (server + `dist/` co-located under the app root) and in the
+# Docker prod stage (both under `/usr/src/app`).
+_DIST_DIR = Path(os.environ.get("DIST_DIR", str(Path(__file__).resolve().parent / "dist")))
 
 app = FastAPI(title="cwyd-frontend")
+
+
+class FrontendConfig(BaseModel):
+    """Runtime config the SPA fetches once at boot from `GET /config`.
+
+    `backend_url` is the backend base URL (empty string when unset, as
+    in local dev), serialized to the wire as `backendUrl`. Serving it
+    from a runtime endpoint instead of a build-time constant means the
+    same built bundle works against any backend.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    backend_url: str = Field(default="", serialization_alias="backendUrl")
+
+
+@app.get("/config")
+def get_config() -> FrontendConfig:
+    """Return the backend base URL from the `BACKEND_API_URL` env var."""
+    return FrontendConfig(backend_url=os.environ.get("BACKEND_API_URL", ""))
 
 
 @app.get("/{full_path:path}")

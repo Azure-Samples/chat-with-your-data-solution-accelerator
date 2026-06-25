@@ -103,6 +103,12 @@
     },
     "existingOpenAiName": {
       "value": "${AZURE_ENV_EXISTING_OPENAI_NAME=}"
+    },
+    "backendContainerRegistryHostname": {
+      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT=}"
+    },
+    "backendContainerImageTag": {
+      "value": "${AZURE_ENV_IMAGE_TAG=latest}"
     }
   }
 }

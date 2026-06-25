@@ -18,6 +18,10 @@ bicep-errors.txt
 # Canonical Function deploy path is `azd deploy function` against `src/functions/` + `docker/Dockerfile.functions`.
 build-functions/
 
+# Frontend App Service deploy artifact, assembled by scripts/package_frontend.py
+# (server + requirements.txt + static dist/). Regenerated on every `azd package`.
+src/frontend/build-output/
+
 # Local-only docker compose overrides (e.g. host ~/.azure mount for AzureCliCredential)
 docker/docker-compose.override.yml
 

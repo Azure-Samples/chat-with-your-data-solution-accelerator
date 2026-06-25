@@ -592,6 +592,13 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
         // Azure AI User (Foundry Project data-plane)
         roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
       }
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Cognitive Services User -- data-plane access for DocumentIntelligence
+        // + Content Understanding calls against the AI Services account.
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+      }
     ]
     // Private endpoint into the `peps` subnet with three DNS zone configs:
     // cognitiveservices (account control plane), openai (model data plane),
@@ -1563,6 +1570,25 @@ var acaWorkloadProfileName = 'Consumption'
 // ACR name must be globally unique, 5-50 alphanumeric (no dashes).
 var containerRegistryName = take('cr${replace(solutionSuffix, '-', '')}', 50)
 
+// ----------------------------------------------------------------------
+// Backend image coordinates (azd-driven). On a clean first `azd up` the
+// AZURE_CONTAINER_REGISTRY_ENDPOINT output does not exist yet, so
+// `backendContainerRegistryHostname` is empty and the Container App boots
+// from a pullable public placeholder image so the first provision can
+// pull. `azd deploy` then builds + pushes the real image and the
+// deploy-time `azd-service-name: backend` tag swap patches the live
+// revision; later provisions compose the real ACR image reference from
+// these params.
+// ----------------------------------------------------------------------
+@description('Optional. Login server of the registry hosting the backend image (e.g. cr<suffix>.azurecr.io). Empty until the first provision publishes AZURE_CONTAINER_REGISTRY_ENDPOINT; empty selects a public placeholder image so the first provision can pull.')
+param backendContainerRegistryHostname string = ''
+
+@description('Optional. Repository (image) name of the backend container image within the registry.')
+param backendContainerImageName string = 'cwyd-backend'
+
+@description('Optional. Tag of the backend container image to deploy.')
+param backendContainerImageTag string = 'latest'
+
 // Single source of truth for the Postgres libpq URI so the output, the
 // backend ACA env, and the Function App appSettings can't drift.
 // Empty in cosmosdb mode (the `!` non-null operators are guarded by the
@@ -1682,6 +1708,10 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.12.1' 
     acrAdminUserEnabled: false
     publicNetworkAccess: 'Enabled'
     networkRuleSetDefaultAction: 'Allow'
+    // Basic-SKU ACR ships this policy disabled, which 401s the
+    // App Service / Container App managed-identity -> ACR token exchange
+    // even with correct AcrPull RBAC. Enable it durably.
+    azureADAuthenticationAsArmPolicyStatus: 'enabled'
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -1705,6 +1735,20 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
         userAssignedIdentity.outputs.resourceId
       ]
     }
+    // Authenticate the ACR image pull with the UAMI that holds AcrPull on
+    // the registry (granted by the containerRegistry roleAssignments
+    // above), so the Container App pulls without admin credentials
+    // (MACAE managed-identity pull pattern). `server` is the same
+    // loginServer surfaced as AZURE_CONTAINER_REGISTRY_ENDPOINT; `identity`
+    // is the UAMI resource id. Harmless while the placeholder public image
+    // is in use (public pull ignores the credential) and active once the
+    // real backend image is pushed to ACR.
+    registries: [
+      {
+        server: containerRegistry.outputs.loginServer
+        identity: userAssignedIdentity.outputs.resourceId
+      }
+    ]
     workloadProfileName: acaWorkloadProfileName
     ingressTargetPort: 8000
     // In private mode the CAE itself is `internal: true`, so ingress
@@ -1723,10 +1767,17 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
     containers: [
       {
         name: 'backend'
-        // Placeholder image. Replaced by `azd deploy` once the real
-        // backend Dockerfile ships in Phase 2 and is referenced from
-        // azure.yaml `services.backend`.
-        image: 'mcr.microsoft.com/k8se/quickstart:latest'
+        // When `backendContainerRegistryHostname` is empty (clean first
+        // provision -- the AZURE_CONTAINER_REGISTRY_ENDPOINT output does
+        // not exist yet) the container boots from a pullable public
+        // placeholder so provisioning succeeds before any image is
+        // pushed. Once the real backend image is built + pushed, azd's
+        // deploy-time `azd-service-name: backend` tag swap patches the
+        // live revision, and subsequent provisions compose the real ACR
+        // image reference from the backendContainerImage* params.
+        image: empty(backendContainerRegistryHostname)
+          ? 'mcr.microsoft.com/k8se/quickstart:latest'
+          : '${backendContainerRegistryHostname}/${backendContainerImageName}:${backendContainerImageTag}'
         resources: {
           // AVM v0.22.1 declares `cpu: int | null`, but ACA accepts
           // fractional CPU. `any()` bypasses the over-strict type so
@@ -1754,6 +1805,9 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // Foundry endpoints (consumed by both orchestrators)
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
             { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
+            // AI Services / Foundry account endpoint -- the data-plane base
+            // for DocumentIntelligence + Content Understanding calls.
+            { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiServices.outputs.endpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
             // Foundry agent id is intentionally NOT bound here.
@@ -1896,7 +1950,7 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
     location: location
     tags: union(allTags, { 'azd-service-name': 'frontend' })
     enableTelemetry: false
-    kind: 'app,linux,container'
+    kind: 'app,linux'
     serverFarmResourceId: appServicePlan.outputs.resourceId
     httpsOnly: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
@@ -1919,10 +1973,13 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
         ]
       : []
     siteConfig: {
-      // Placeholder image. Replaced by `azd deploy` once the real
-      // frontend Dockerfile ships in Phase 2 and is referenced from
-      // azure.yaml `services.frontend`.
-      linuxFxVersion: 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
+      // Build-from-source App Service (MACAE pattern, BUG-0081 fix). azd
+      // zip-deploys the Vite dist/ and the platform serves it via the
+      // uvicorn appCommandLine below (frontend_app.py). The SPA reads the
+      // backend URL at runtime from /config (fed by the BACKEND_API_URL
+      // app setting below), so nothing is baked at build time.
+      linuxFxVersion: 'PYTHON|3.11'
+      appCommandLine: 'uvicorn frontend_app:app --host 0.0.0.0 --port 8000'
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
       http20Enabled: true
@@ -1931,19 +1988,17 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
       // so SDKs don't auto-init against an empty connection string.
       appSettings: union(
         [
-          // VITE_BACKEND_URL is consumed by the Vite build step (see
-          // azd post-provision hook + frontend Dockerfile in Phase 2)
-          // via `azd env get-values`. It is set here for parity and
-          // diagnostics only — the running container does NOT read it,
-          // since the SPA is fully static once built.
+          // BACKEND_API_URL feeds the frontend_app.py /config endpoint,
+          // which the SPA fetches once at boot to learn the backend URL
+          // at runtime (MACAE pattern). No build-time bake — the Vite
+          // build runs before the provisioned backend FQDN is knowable.
           {
-            name: 'VITE_BACKEND_URL'
+            name: 'BACKEND_API_URL'
             value: 'https://${backendContainerApp.outputs.fqdn}'
           }
-          // Tell App Service to pull the image from MCR (no ACR creds).
-          // (No AZURE_CLIENT_ID here — the SPA does not call Azure
+          // No AZURE_CLIENT_ID here — the SPA does not call Azure
           // directly. All Azure calls go through the FastAPI backend per
-          // plug-and-play rule §4. UAMI on the site is for ACR pull only.)
+          // plug-and-play rule §4.
           { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
         ],
         enableMonitoring
@@ -2100,6 +2155,9 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
           { name: 'AZURE_ENVIRONMENT', value: 'production' }
           { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
           { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
+          // AI Services / Foundry account endpoint -- the data-plane base
+          // for DocumentIntelligence + Content Understanding calls.
+          { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiServices.outputs.endpoint }
           { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
           { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
           // Database routing -- same flags the backend reads. The

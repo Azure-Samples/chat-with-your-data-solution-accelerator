@@ -15,22 +15,25 @@
  * backend.
  */
 import { userIdHeaders } from "@/api/auth";
+import { getBackendUrl } from "@/api/runtimeConfig";
 import type { SpeechConfigPayload } from "@/models/speech";
 
 const SPEECH_URL = "/api/speech";
 
 /**
- * Absolute base for the backend API. `VITE_BACKEND_URL` is read at call
- * time (empty when unset) so one bundle serves both the local Vite proxy
- * (relative `/api/...`) and the deployed split-host topology, where the
- * frontend (App Service) and backend (Container App) are different origins.
- * Without this, a relative `/api/speech` resolves against the frontend host
- * and hits the SPA catch-all (`index.html`, 200), so the JSON parse throws
- * and the mic button never gets a token (BUG-0070). Mirrors the
- * `backendUrl()` / `apiUrl()` seam in `admin.tsx` / `conversationHistory.tsx`.
+ * Absolute base for the backend API. The backend origin comes from the
+ * runtime `getBackendUrl()` seam (the `/config` `backendUrl` resolved at
+ * boot, falling back to build-time `VITE_BACKEND_URL`) so one bundle
+ * serves both the local Vite proxy (relative `/api/...`) and the deployed
+ * split-host topology, where the frontend (App Service) and backend
+ * (Container App) are different origins. Without this, a relative
+ * `/api/speech` resolves against the frontend host and hits the SPA
+ * catch-all (`index.html`, 200), so the JSON parse throws and the mic
+ * button never gets a token (BUG-0070). Mirrors the `backendUrl()` /
+ * `apiUrl()` seam in `admin.tsx` / `conversationHistory.tsx`.
  */
 function backendUrl(): string {
-  return (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
+  return getBackendUrl();
 }
 
 /** Join the backend base (trailing slash trimmed) with an API path. */

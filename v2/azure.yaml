@@ -107,22 +107,39 @@ services:
     docker:
       path: ../../docker/Dockerfile.backend
       context: ../..
+      # Build the backend image in ACR (remote) instead of the local
+      # Docker daemon, so `azd deploy` works without a local Docker
+      # install and pushes straight to the registry the UAMI pulls from.
+      remoteBuild: true
   frontend:
     project: ./src/frontend
     language: js
     host: appservice
-    docker:
-      path: ../../docker/Dockerfile.frontend
-      context: ../..
-      target: prod
-      # Vite bakes the backend URL into the static bundle at build time.
-      # AZURE_BACKEND_URL is a Bicep output of the backend Container App
-      # (see v2/infra/main.bicep -> output azureBackendUrl). azd resolves
-      # ${AZURE_BACKEND_URL} from the active azd env before invoking
-      # `docker build`, so the bundle ships pointing at the right
-      # backend without a separate runtime config fetch.
-      buildArgs:
-        - VITE_BACKEND_URL=${AZURE_BACKEND_URL}
+    # Build-from-source on App Service (MACAE pattern). host: appservice
+    # does not support a `docker:` block -- pairing them is the root
+    # cause of BUG-0081. The service-scoped prepackage hook runs
+    # `npm ci && npm run build`, then stages a self-contained deploy
+    # artifact at ./build-output (the App Service start command
+    # `uvicorn frontend_app:app` needs the server + requirements.txt
+    # beside the static dist/, which the Vite output alone lacks -- see
+    # v2/scripts/package_frontend.py for the layout contract). azd
+    # zip-deploys ./build-output to the Python App Service; the SPA reads
+    # the backend URL at runtime from the /config endpoint fed by the
+    # BACKEND_API_URL app setting -- no build-time bake. The hook is
+    # service-scoped so it also fires on a targeted `azd deploy frontend`.
+    dist: ./build-output
+    hooks:
+      prepackage:
+        posix:
+          shell: sh
+          run: ../../scripts/package-frontend.sh
+          continueOnError: false
+          interactive: false
+        windows:
+          shell: pwsh
+          run: ../../scripts/package-frontend.ps1
+          continueOnError: false
+          interactive: false
   function:
     project: ./build-functions
     language: py

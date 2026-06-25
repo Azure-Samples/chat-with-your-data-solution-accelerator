@@ -8,6 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSpeechConfig } from "@/api/speech";
 import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
+import { loadRuntimeConfig, resetRuntimeConfig } from "@/api/runtimeConfig";
 
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {
@@ -28,6 +29,7 @@ describe("getSpeechConfig", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    resetRuntimeConfig();
     // getSpeechConfig forwards the shared auth singleton; reset it.
     setUserId(null);
   });
@@ -66,6 +68,32 @@ describe("getSpeechConfig", () => {
 
     const [url] = fetchMock.mock.calls[0] as [string];
     expect(url).toBe("https://backend.example.com/api/speech");
+  });
+
+  it("prefers the runtime /config backendUrl over the env fallback", async () => {
+    // The runtime origin from /config must win over build-time
+    // VITE_BACKEND_URL so the deployed split-host SPA mints its Speech
+    // token from the backend Container App resolved at boot.
+    vi.stubEnv("VITE_BACKEND_URL", "https://build-time.example.com");
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/config") {
+        return jsonResponse({ backendUrl: "https://runtime.example.com" });
+      }
+      return jsonResponse({
+        token: "spch-token",
+        region: "eastus2",
+        languages: ["en-US"],
+      });
+    });
+
+    await loadRuntimeConfig();
+    await getSpeechConfig();
+
+    const speechCall = fetchMock.mock.calls.find(
+      ([callUrl]) => callUrl === "https://runtime.example.com/api/speech",
+    );
+    expect(speechCall).toBeDefined();
   });
 
   it("returns the typed payload on 200", async () => {

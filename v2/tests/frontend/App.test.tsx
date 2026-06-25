@@ -5,6 +5,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
+import { resetRuntimeConfig } from "@/api/runtimeConfig";
 
 describe("App", () => {
   const originalFetch = globalThis.fetch;
@@ -20,6 +21,7 @@ describe("App", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    resetRuntimeConfig();
     vi.restoreAllMocks();
   });
 
@@ -48,6 +50,32 @@ describe("App", () => {
       // Scope to the health element -- the history panel also renders
       // an alert when its own /api/history calls fail.
       expect(screen.getByTestId("health")).toHaveTextContent(/HTTP 503/);
+    });
+  });
+
+  it("loads /config at boot and targets the resolved backend for health", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/config") {
+        return new Response(
+          JSON.stringify({ backendUrl: "https://backend.example.com" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ status: "ok" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://backend.example.com/api/health",
+        expect.anything(),
+      );
     });
   });
 });

@@ -11,13 +11,16 @@
  * the returned `{ conversationId, messages }` to drive a `LoadConversation`
  * dispatch on `<ChatProvider>`'s reducer.
  *
- * `VITE_BACKEND_URL` is read at call time (empty when unset) so a single
- * build targets both the same-origin dev proxy and the deployed
- * separate-origin backend without a rebuild — matching the
- * `streamChat` / `documentHref` / `HistoryPanel` base convention.
+ * The backend origin comes from the runtime `getBackendUrl()` seam
+ * (the `/config` `backendUrl` resolved at boot, falling back to
+ * build-time `VITE_BACKEND_URL`) so a single build targets both the
+ * same-origin dev proxy and the deployed separate-origin backend
+ * without a rebuild — matching the `streamChat` / `documentHref` /
+ * `HistoryPanel` base convention.
  */
 import type { ChatMessage, Citation, MessageRole } from "@/models/chat";
 import { userIdHeaders } from "@/api/auth";
+import { getBackendUrl } from "@/api/runtimeConfig";
 
 /** Result of {@link fetchConversation}: the resolved id + rehydrated transcript. */
 export interface LoadedConversation {
@@ -44,7 +47,7 @@ interface ConversationDetailWire {
 }
 
 function backendUrl(): string {
-  return (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? "";
+  return getBackendUrl();
 }
 
 function asMessageRole(role: string): MessageRole | null {

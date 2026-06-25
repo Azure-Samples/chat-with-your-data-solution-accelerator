@@ -12,6 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { streamChat } from "@/api/streamChat";
 import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
+import { loadRuntimeConfig, resetRuntimeConfig } from "@/api/runtimeConfig";
 import type { StreamEvent } from "@/models/chat";
 
 const enc = new TextEncoder();
@@ -51,6 +52,7 @@ describe("streamChat", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+    resetRuntimeConfig();
     // `streamChat` forwards the shared auth singleton; reset it.
     setUserId(null);
   });
@@ -495,5 +497,28 @@ describe("streamChat", () => {
     await collect(streamChat([]));
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://backend.example.com/api/conversation");
+  });
+
+  it("prefers the runtime /config backendUrl over the env fallback", async () => {
+    // The runtime origin from /config must win over build-time
+    // VITE_BACKEND_URL so the deployed split-host SPA streams from the
+    // backend Container App resolved at boot.
+    vi.stubEnv("VITE_BACKEND_URL", "https://build-time.example.com");
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url === "/config") {
+        return new Response(
+          JSON.stringify({ backendUrl: "https://runtime.example.com" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return sseResponse([]);
+    });
+    await loadRuntimeConfig();
+    await collect(streamChat([]));
+    const conversationCall = fetchMock.mock.calls.find(
+      ([callUrl]) => callUrl === "https://runtime.example.com/api/conversation",
+    );
+    expect(conversationCall).toBeDefined();
   });
 });
