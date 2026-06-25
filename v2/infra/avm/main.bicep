@@ -205,9 +205,7 @@ param existingLogAnalyticsWorkspaceId string = ''
 param tags object = {}
 
 @description('Optional. Identifier of the user creating the deployment, recorded in the resource group tags.')
-param createdBy string = contains(deployer(), 'userPrincipalName')
-  ? split(deployer().userPrincipalName, '@')[0]
-  : deployer().objectId
+param createdBy string?
 
 @description('Optional. Principal object for user or service principal to assign application roles. Format: {"id":"<object-id>", "name":"<name-or-upn>", "type":"User|Group|ServicePrincipal"}')
 param principal object = {
@@ -606,36 +604,29 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
   }
 ]
 
-var aiServicesName = 'oai-${solutionSuffix}'
-module aiServices './modules/ai/ai-services.bicep' = {
-  name: take('module.ai-services.${solutionName}', 64)
+module aiProject './modules/ai/ai-foundry-project.bicep' = {
+  name: take('module.ai-foundry-project.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    namePrefix: 'oai'
     location: azureAiServiceLocation
     tags: allTags
     enableTelemetry: enableTelemetry
-    kind: 'AIServices'
-    sku: 'S0'
-    allowProjectManagement: true
     disableLocalAuth: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    managedIdentities: {
-      systemAssigned: true
-    }
-    diagnosticSettings: enableMonitoring
-      ? [
-          {
-            workspaceResourceId: logAnalyticsWorkspace!.outputs.resourceId
-          }
-        ]
-      : []
+    diagnosticSettings: monitoringDiagnosticSettings
+    deployments: defaultOpenAiDeployments
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
         // Cognitive Services OpenAI User
         roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+      }
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Cognitive Services User — Document Intelligence data-plane access
+        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
       }
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -647,8 +638,8 @@ module aiServices './modules/ai/ai-services.bicep' = {
     privateEndpoints: enablePrivateNetworking
       ? [
           {
-            name: 'pep-${aiServicesName}'
-            customNetworkInterfaceName: 'nic-${aiServicesName}'
+            name: 'pep-aif-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-aif-${solutionSuffix}'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'account'
             privateDnsZoneGroup: {
@@ -673,38 +664,20 @@ module aiServices './modules/ai/ai-services.bicep' = {
   }
 }
 
-// Model deployments (single loop for both existing and new paths)
-@batchSize(1)
-module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in defaultOpenAiDeployments: {
-  name: take('module.model-deployment-${i}.${solutionName}', 64)
-  scope: resourceGroup(subscription().subscriptionId, resourceGroup().name)
-  params: {
-    aiServicesAccountName: aiServices.outputs.name
-    deploymentName: deployment.name
-    modelName: deployment.model.name
-    modelVersion: deployment.model.version
-    skuName: deployment.sku.name
-    skuCapacity: deployment.sku.capacity
-  }
-}]
-
-module aiProject './modules/ai/ai-foundry-project.bicep' = {
-  name: take('module.ai-foundry-project.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: azureAiServiceLocation
-    tags: allTags
-    enableTelemetry: enableTelemetry
-    publicNetworkAccess: enableMonitoring ? 'Disabled' : 'Enabled'
-    diagnosticSettings: enableMonitoring ? [{ workspaceResourceId: logAnalyticsWorkspaceResourceId }] : null
-    managedIdentities: {
-      systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
-    }
-  }
-  dependsOn: [
-    aiServices
-  ]
-}
+// // Model deployments (single loop for both existing and new paths)
+// @batchSize(1)
+// module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in defaultOpenAiDeployments: {
+//   name: take('module.model-deployment-${i}.${solutionName}', 64)
+//   scope: resourceGroup(subscription().subscriptionId, resourceGroup().name)
+//   params: {
+//     aiServicesAccountName: aiProject.outputs.name
+//     deploymentName: deployment.name
+//     modelName: deployment.model.name
+//     modelVersion: deployment.model.version
+//     skuName: deployment.sku.name
+//     skuCapacity: deployment.sku.capacity
+//   }
+// }]
 
 var speechServiceName = 'spch-${solutionSuffix}'
 module speechService './modules/ai/ai-services.bicep' = {
@@ -821,6 +794,36 @@ module aiSearch './modules/ai/ai-search.bicep' = if (databaseType == 'cosmosdb')
         // Search Index Data Reader — lets the Foundry Project (and Foundry IQ) query indexes through the connection.
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
       }
+      {
+        principalId: aiProject.outputs.projectIdentityPrincipalId
+        principalType: 'ServicePrincipal'
+        // Search Index Data Contributor — Foundry Project identity needs data-plane write for KB MCP endpoint.
+        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+      }
+      {
+        principalId: aiProject.outputs.projectIdentityPrincipalId
+        principalType: 'ServicePrincipal'
+        // Search Service Contributor — Foundry Project identity for KB management.
+        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+      }
+      {
+        principalId: aiProject.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Search Index Data Contributor — AI Services account identity for MCP auth.
+        roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+      }
+      {
+        principalId: aiProject.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Search Index Data Reader — AI Services account identity.
+        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+      }
+      {
+        principalId: aiProject.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Search Service Contributor — AI Services account identity for KB management.
+        roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+      }
     ]
     // Private endpoint into the `peps` subnet, group `searchService`,
     // bound to the search.windows.net DNS zone.
@@ -855,6 +858,7 @@ module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if
     target: aiSearch!.outputs.endpoint
     category: 'CognitiveSearch'
     authType: 'AAD'
+    useWorkspaceManagedIdentity: true
     metadata: {
       ApiType: 'Azure'
       ResourceId: aiSearch!.outputs.resourceId
@@ -975,7 +979,7 @@ module storageAccount './modules/data/storage-account.bicep' = {
 // Module: Data
 // ============================================================================
 
-module cosmosDb './modules/data/cosmos-db-mongo.bicep' = if (databaseType == 'cosmosdb') {
+module cosmosDb './modules/data/cosmos-db-nosql.bicep' = if (databaseType == 'cosmosdb') {
   name: take('avm.res.document-db.database-account.${solutionSuffix}', 64)
   params: {
     solutionName: solutionSuffix
@@ -1175,7 +1179,8 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
             { name: 'AZURE_ENVIRONMENT', value: 'production' }
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-            { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+            { name: 'AZURE_OPENAI_ENDPOINT', value: aiProject.outputs.endpoint }
+            { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiProject.outputs.endpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
@@ -1220,8 +1225,8 @@ module appServicePlan './modules/compute/app-service-plan.bicep' = {
     location: location
     tags: allTags
     enableTelemetry: enableTelemetry
-    skuName: (enableScalability || enableRedundancy) ? 'P1v3' : 'B1'
-    skuCapacity: enableRedundancy ? 3 : 1
+    skuName: (enableScalability || enableRedundancy) ? 'P1v3' : 'B3'
+    skuCapacity: enableRedundancy ? 3 : 2
     zoneRedundant: enableRedundancy
   }
 }
@@ -1273,6 +1278,7 @@ module functionApp './modules/compute/function-app.bicep' = {
     }
     applicationInsightResourceId: enableMonitoring ? applicationInsights!.outputs.name : ''
     storageAccountName: storageAccount.outputs.name
+    userAssignedIdentityClientId: userAssignedIdentity.outputs.clientId
     runtimeStack: 'python'
     runtimeVersion: '3.11'
     dockerFullImageName: hostingModel == 'container' ? '${containerRegistryEndpoint}/rag-functions:${imageTag}' : ''
@@ -1284,7 +1290,8 @@ module functionApp './modules/compute/function-app.bicep' = {
         { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
         { name: 'AZURE_ENVIRONMENT', value: 'production' }
         { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-        { name: 'AZURE_OPENAI_ENDPOINT', value: aiServices.outputs.endpoint }
+        { name: 'AZURE_OPENAI_ENDPOINT', value: aiProject.outputs.endpoint }
+        { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiProject.outputs.endpoint }
         { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
         { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
         { name: 'AZURE_DB_TYPE', value: databaseType }
@@ -1315,6 +1322,7 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
     enableTelemetry: enableTelemetry
     source: storageAccount!.outputs.resourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
+    storageAccountName: storageAccount!.outputs.name
     eventSubscriptions: [
       {
         name: 'blob-created-to-doc-processing'
@@ -1365,14 +1373,14 @@ var systemAssignedRoleAssignments = union(
         }
         {
           principalId: aiSearch.?outputs.identityPrincipalId
-          resourceId: aiServices.outputs.resourceId
+          resourceId: aiProject.outputs.resourceId
           roleName: 'Cognitive Services User'
           roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
           principalType: 'ServicePrincipal'
         }
         {
           principalId: aiSearch.?outputs.identityPrincipalId
-          resourceId: aiServices.outputs.resourceId
+          resourceId: aiProject.outputs.resourceId
           roleName: 'Cognitive Services OpenAI User'
           roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
           principalType: 'ServicePrincipal'
@@ -1381,17 +1389,33 @@ var systemAssignedRoleAssignments = union(
     : [],
   [
     {
-      principalId: aiServices.outputs.identityPrincipalId
+      principalId: aiProject.outputs.projectIdentityPrincipalId
       resourceId: storageAccount.outputs.resourceId
       roleName: 'Storage Blob Data Contributor'
       roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
       principalType: 'ServicePrincipal'
     }
+    // Function App SI needs blob/queue/account roles for the host lock lease
+    // and queue trigger bindings (allowSharedKeyAccess=false forces identity auth)
     {
-      principalId: eventGridSystemTopic!.outputs.systemAssignedMIPrincipalId!
+      principalId: functionApp.outputs.principalId
       resourceId: storageAccount.outputs.resourceId
-      roleName: 'Storage Queue Data Message Sender'
-      roleDefinitionId: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
+      roleName: 'Storage Blob Data Owner'
+      roleDefinitionId: 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+      principalType: 'ServicePrincipal'
+    }
+    {
+      principalId: functionApp.outputs.principalId
+      resourceId: storageAccount.outputs.resourceId
+      roleName: 'Storage Queue Data Contributor'
+      roleDefinitionId: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+      principalType: 'ServicePrincipal'
+    }
+    {
+      principalId: functionApp.outputs.principalId
+      resourceId: storageAccount.outputs.resourceId
+      roleName: 'Storage Account Contributor'
+      roleDefinitionId: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
       principalType: 'ServicePrincipal'
     }
   ]
@@ -1446,10 +1470,10 @@ output AZURE_INDEX_STORE string = indexStoreValue
 // --- Foundry substrate ---
 
 @description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
-output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
+output AZURE_AI_SERVICES_ENDPOINT string = aiProject.outputs.endpoint
 
 @description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
-output AZURE_OPENAI_ENDPOINT string = aiServices.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = aiProject.outputs.endpoint
 
 @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
 output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint

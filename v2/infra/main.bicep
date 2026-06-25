@@ -331,174 +331,145 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
 // }
 
 // ============================================================================
-// Outputs — Coalesced from whichever flavor was deployed
+// Outputs — Forwarded from whichever flavor was deployed
 // ============================================================================
 
-// @description('Solution suffix used for naming resources.')
-// output SOLUTION_NAME string = isAvm ? avmDeployment!.outputs.SOLUTION_NAME : bicepDeployment!.outputs.SOLUTION_NAME
+// --- Identity / region / suffix ---
 
-// @description('Lower-cased solution suffix used in every downstream resource name.')
-// output AZURE_SOLUTION_SUFFIX string = solutionSuffix
+@description('Lower-cased solution suffix used in every downstream resource name.')
+output AZURE_SOLUTION_SUFFIX string = avmDeployment!.outputs.AZURE_SOLUTION_SUFFIX
 
-// @description('Resource group containing the deployment.')
-// output AZURE_RESOURCE_GROUP string = resourceGroup().name
+@description('Resource group containing the deployment.')
+output AZURE_RESOURCE_GROUP string = resourceGroup().name
 
-// @description('Location of the non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres).')
-// output AZURE_LOCATION string = location
+@description('Location of the non-AI resources.')
+output AZURE_LOCATION string = location
 
-// @description('Location of the AI Services account + model deployments (independent of AZURE_LOCATION).')
-// output AZURE_AI_SERVICE_LOCATION string = azureAiServiceLocation
+@description('Location of the AI Services account + model deployments.')
+output AZURE_AI_SERVICE_LOCATION string = azureAiServiceLocation
 
-// @description('Tenant ID for the deployment subscription.')
-// output AZURE_TENANT_ID string = subscription().tenantId
+@description('Tenant ID for the deployment subscription.')
+output AZURE_TENANT_ID string = subscription().tenantId
 
-// @description('Client ID of the user-assigned managed identity shared by all v2 workloads.')
-// output AZURE_UAMI_CLIENT_ID string = userAssignedIdentity.outputs.clientId
+@description('Client ID of the user-assigned managed identity shared by all v2 workloads.')
+output AZURE_UAMI_CLIENT_ID string = avmDeployment!.outputs.AZURE_UAMI_CLIENT_ID
 
-// @description('Principal (object) ID of the user-assigned managed identity.')
-// output AZURE_UAMI_PRINCIPAL_ID string = userAssignedIdentity.outputs.principalId
+@description('Principal (object) ID of the user-assigned managed identity.')
+output AZURE_UAMI_PRINCIPAL_ID string = avmDeployment!.outputs.AZURE_UAMI_PRINCIPAL_ID
 
-// @description('Resource ID of the user-assigned managed identity.')
-// output AZURE_UAMI_RESOURCE_ID string = userAssignedIdentity.outputs.resourceId
+@description('Resource ID of the user-assigned managed identity.')
+output AZURE_UAMI_RESOURCE_ID string = avmDeployment!.outputs.AZURE_UAMI_RESOURCE_ID
 
-// // --- Database routing flag (mirrored as env on every workload) ---
-
-// @description('Selected database engine for chat history + vector index (locked at deploy).')
-// output AZURE_DB_TYPE string = databaseType
-
-// @description('Logical name of the configured vector index store: "AzureSearch" (cosmosdb mode) or "pgvector" (postgresql mode).')
-// output AZURE_INDEX_STORE string = indexStoreValue
-
-// // --- Foundry substrate ---
-
-// @description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
-// output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
-
-// @description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
-// output AZURE_OPENAI_ENDPOINT string = effectiveOpenAiEndpoint
-
-// @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
-// output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
-
-// @description('OpenAI-compatible API version pinned for the GPT + reasoning deployments.')
-// output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
-
-// @description('Azure AI Agents API version pinned for the Foundry Project endpoint.')
-// output AZURE_AI_AGENT_API_VERSION string = azureAiAgentApiVersion
-
-// @description('Deployment name of the chat-completions GPT model.')
-// output AZURE_OPENAI_GPT_DEPLOYMENT string = gptModelName
-
-// @description('Deployment name of the o-series reasoning model (output flows on the SSE `reasoning` channel).')
-// output AZURE_OPENAI_REASONING_DEPLOYMENT string = reasoningModelName
-
-// @description('Deployment name of the embedding model used by the indexing pipeline.')
-// output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = embeddingModelName
-
-// // --- Speech (S1 / SPEECH-MVP) ---
-
-// @description('Speech account name (kind=SpeechServices). Backend reads via SpeechSettings.service_name; not used directly by the SDK.')
-// output AZURE_SPEECH_SERVICE_NAME string = speechService.outputs.name
-
-// @description('Speech account region. Browser SDK passes this to SpeechConfig.fromAuthorizationToken(token, region) and the backend uses it to build the regional sts/v1.0/issueToken URL.')
-// output AZURE_SPEECH_SERVICE_REGION string = azureAiServiceLocation
-
-// @description('Speech account ARM resource id. Required as the x-ms-cognitiveservices-resource-id header on the AAD-bearer STS issueToken POST.')
-// output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = speechService.outputs.resourceId
-
-// // --- Content Safety ---
-
-// @description('Content Safety account endpoint. Backend reads via ContentSafetySettings.endpoint; lifespan gates client construction on this + AZURE_CONTENT_SAFETY_ENABLED.')
-// output AZURE_CONTENT_SAFETY_ENDPOINT string = cogContentSafety.outputs.endpoint
-
-// @description('Content Safety account name (kind=ContentSafety). Diagnostic surface only — backend builds the client from the endpoint.')
-// output AZURE_CONTENT_SAFETY_NAME string = cogContentSafety.outputs.name
-
-// // --- Conditional: Azure AI Search (cosmosdb mode only) ---
-
-// @description('AI Search service endpoint. Empty in postgresql mode.')
-// output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveSearchEndpoint : ''
-
-// @description('AI Search service name. Empty in postgresql mode.')
-// output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? effectiveSearchName : ''
-
-// // --- Conditional: Cosmos DB (cosmosdb mode only) ---
-
-// @description('Cosmos DB account endpoint (DocumentEndpoint). Empty in postgresql mode.')
-// output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveCosmosEndpoint : ''
-
-// @description('Cosmos DB account name. Empty in postgresql mode.')
-// output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? effectiveCosmosName : ''
-
-// // --- Conditional: PostgreSQL Flexible Server (postgresql mode only) ---
-
-// @description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in cosmosdb mode.')
-// output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.fqdn! : ''
-
-// @description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in cosmosdb mode.')
-// output AZURE_POSTGRES_ENDPOINT string = postgresLibpqUri
-
-// @description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
-// output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
-
-// @description('Configured Entra admin principal name for the Postgres Flex server (used as the `user` in AAD-token connections by the post-provision hook). Empty in cosmosdb mode.')
-// output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? postgresAdminPrincipalName : ''
-
-// // --- Storage (blobs + queues + Function deployment package) ---
-
-// @description('Storage account name (shared by RAG document store, indexing queues, and the Function App deployment package).')
-// output AZURE_STORAGE_ACCOUNT_NAME string = effectiveStorageName
-
-// @description('Primary blob endpoint of the shared storage account (https URL ending in /). Hostname follows the storage cloud-specific suffix.')
-// output AZURE_STORAGE_BLOB_ENDPOINT string = effectiveStorageBlobEndpoint
-
-// @description('Container holding documents to be indexed (Event Grid filter + batch_start source).')
-// output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
-
-// @description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
-// output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
-
-// // --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
-
-// @description('Public URL of the backend Container App (FastAPI + LangGraph/Agent Framework).')
-// output AZURE_BACKEND_URL string = 'https://${backendContainerApp.outputs.fqdn}'
-
-// @description('Public URL of the frontend Web App (React/Vite SPA). Backend CORS must allow this origin.')
-// output AZURE_FRONTEND_URL string = 'https://${frontendWebApp.outputs.defaultHostname}'
-
-// @description('Public URL of the Function App hosting the indexing pipeline.')
-// output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostname}'
-
-// @description('Function App resource name (used by azd to deploy the function package).')
-// output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
-
-// @description('Container Registry login server (e.g. cr<SUFFIX>.azurecr.io). `azd deploy` reads this to discover the push target for backend + function images.')
-// output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
-
-// @description('Container Registry resource name. Diagnostic surface only — azd uses the login server above.')
-// output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
-
-// // --- Conditional: monitoring ---
-
-// @description('Application Insights connection string. Empty when enableMonitoring=false.')
-// output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring ? applicationInsights!.outputs.connectionString : ''
-
-// // --- Conditional: private networking (enablePrivateNetworking only) ---
-
-// @description('VNet name. Empty when enablePrivateNetworking=false.')
-// output AZURE_VNET_NAME string = enablePrivateNetworking ? virtualNetwork!.outputs.name : ''
-
-// @description('VNet resource ID. Empty when enablePrivateNetworking=false.')
-// output AZURE_VNET_RESOURCE_ID string = enablePrivateNetworking ? virtualNetwork!.outputs.resourceId : ''
-
-// @description('Bastion host name (for `az network bastion tunnel`). Empty when enablePrivateNetworking=false.')
-// output AZURE_BASTION_NAME string = enablePrivateNetworking ? bastion!.outputs.name : ''
+// --- Database routing flag ---
 
 @description('Selected database engine for chat history + vector index (locked at deploy).')
 output AZURE_DB_TYPE string = databaseType
 
-@description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in cosmosdb mode.')
-output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? avmDeployment!.outputs.AZURE_POSTGRES_HOST : ''
+@description('Logical name of the configured vector index store.')
+output AZURE_INDEX_STORE string = avmDeployment!.outputs.AZURE_INDEX_STORE
 
-@description('AI Search service endpoint. Empty in PostgreSQL mode.')
-output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT : ''
+// --- Foundry substrate ---
+
+@description('Unified AI Services endpoint.')
+output AZURE_AI_SERVICES_ENDPOINT string = avmDeployment!.outputs.AZURE_AI_SERVICES_ENDPOINT
+
+@description('Effective Azure OpenAI endpoint for chat + reasoning + embedding deployments.')
+output AZURE_OPENAI_ENDPOINT string = avmDeployment!.outputs.AZURE_OPENAI_ENDPOINT
+
+@description('Foundry Project endpoint. Required by the Microsoft Agent Framework SDK.')
+output AZURE_AI_PROJECT_ENDPOINT string = avmDeployment!.outputs.AZURE_AI_PROJECT_ENDPOINT
+
+@description('OpenAI-compatible API version pinned for the GPT + reasoning deployments.')
+output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
+
+@description('Azure AI Agents API version.')
+output AZURE_AI_AGENT_API_VERSION string = avmDeployment!.outputs.AZURE_AI_AGENT_API_VERSION
+
+@description('Deployment name of the chat-completions GPT model.')
+output AZURE_OPENAI_GPT_DEPLOYMENT string = gptModelName
+
+@description('Deployment name of the o-series reasoning model.')
+output AZURE_OPENAI_REASONING_DEPLOYMENT string = avmDeployment!.outputs.AZURE_OPENAI_REASONING_DEPLOYMENT
+
+@description('Deployment name of the embedding model.')
+output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = avmDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+
+// --- Speech ---
+
+@description('Speech account name.')
+output AZURE_SPEECH_SERVICE_NAME string = avmDeployment!.outputs.AZURE_SPEECH_SERVICE_NAME
+
+@description('Speech account region.')
+output AZURE_SPEECH_SERVICE_REGION string = azureAiServiceLocation
+
+@description('Speech account ARM resource ID.')
+output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = avmDeployment!.outputs.AZURE_SPEECH_ACCOUNT_RESOURCE_ID
+
+// --- Content Safety ---
+
+@description('Content Safety account endpoint.')
+output AZURE_CONTENT_SAFETY_ENDPOINT string = avmDeployment!.outputs.AZURE_CONTENT_SAFETY_ENDPOINT
+
+@description('Content Safety account name.')
+output AZURE_CONTENT_SAFETY_NAME string = avmDeployment!.outputs.AZURE_CONTENT_SAFETY_NAME
+
+// --- Azure AI Search (cosmosdb mode only) ---
+
+@description('AI Search service endpoint. Empty in postgresql mode.')
+output AZURE_AI_SEARCH_ENDPOINT string = avmDeployment!.outputs.AZURE_AI_SEARCH_ENDPOINT
+
+@description('AI Search service name. Empty in postgresql mode.')
+output AZURE_AI_SEARCH_NAME string = avmDeployment!.outputs.AZURE_AI_SEARCH_NAME
+
+// --- Cosmos DB (cosmosdb mode only) ---
+
+@description('Cosmos DB account endpoint. Empty in postgresql mode.')
+output AZURE_COSMOS_ENDPOINT string = avmDeployment!.outputs.AZURE_COSMOS_ENDPOINT
+
+@description('Cosmos DB account name. Empty in postgresql mode.')
+output AZURE_COSMOS_ACCOUNT_NAME string = avmDeployment!.outputs.AZURE_COSMOS_ACCOUNT_NAME
+
+// --- PostgreSQL (postgresql mode only) ---
+
+@description('PostgreSQL Flexible Server FQDN. Empty in cosmosdb mode.')
+output AZURE_POSTGRES_HOST string = avmDeployment!.outputs.AZURE_POSTGRES_HOST
+
+@description('Full libpq connection URI. Empty in cosmosdb mode.')
+output AZURE_POSTGRES_ENDPOINT string = avmDeployment!.outputs.AZURE_POSTGRES_ENDPOINT
+
+@description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
+output AZURE_POSTGRES_NAME string = avmDeployment!.outputs.AZURE_POSTGRES_NAME
+
+@description('Entra admin principal name for the Postgres Flex server. Empty in cosmosdb mode.')
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = avmDeployment!.outputs.AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME
+
+// --- Storage ---
+
+@description('Storage account name.')
+output AZURE_STORAGE_ACCOUNT_NAME string = avmDeployment!.outputs.AZURE_STORAGE_ACCOUNT_NAME
+
+@description('Primary blob endpoint.')
+output AZURE_STORAGE_BLOB_ENDPOINT string = avmDeployment!.outputs.AZURE_STORAGE_BLOB_ENDPOINT
+
+@description('Container holding documents to be indexed.')
+output AZURE_DOCUMENTS_CONTAINER string = avmDeployment!.outputs.AZURE_DOCUMENTS_CONTAINER
+
+@description('Storage Queue name for doc processing.')
+output AZURE_DOC_PROCESSING_QUEUE string = avmDeployment!.outputs.AZURE_DOC_PROCESSING_QUEUE
+
+@description('Ingestion trigger mode.')
+output AZURE_INGESTION_TRIGGER string = avmDeployment!.outputs.AZURE_INGESTION_TRIGGER
+
+// --- Hosting endpoints ---
+
+@description('Public URL of the backend Container App.')
+output AZURE_BACKEND_URL string = avmDeployment!.outputs.AZURE_BACKEND_URL
+
+@description('Public URL of the frontend Web App.')
+output AZURE_FRONTEND_URL string = avmDeployment!.outputs.AZURE_FRONTEND_URL
+
+@description('Public URL of the Function App.')
+output AZURE_FUNCTION_APP_URL string = avmDeployment!.outputs.AZURE_FUNCTION_APP_URL
+
+@description('Function App resource name.')
+output AZURE_FUNCTION_APP_NAME string = avmDeployment!.outputs.AZURE_FUNCTION_APP_NAME

@@ -40,9 +40,16 @@ param identity object = { type: 'SystemAssigned' }
 @allowed(['Allow', 'Deny'])
 param networkAclsDefaultAction string = 'Allow'
 
+@description('Optional. Array of deployments about cognitive service accounts to create.')
+param deployments array?
+
 // --- WAF: Monitoring ---
 @description('Optional. Diagnostic settings for the resource.')
 param diagnosticSettings array?
+
+import { privateEndpointSingleServiceType } from 'br/public:avm/utl/types/avm-common-types:0.5.1'
+@description('Optional. Configuration details for private endpoints. For security reasons, it is recommended to use private endpoints whenever possible.')
+param privateEndpoints privateEndpointSingleServiceType[]?
 
 // --- WAF: Telemetry ---
 @description('Optional. Enable/Disable usage telemetry for module.')
@@ -78,10 +85,10 @@ module aiServicesAccount 'br/public:avm/res/cognitive-services/account:0.14.2' =
     publicNetworkAccess: publicNetworkAccess
     managedIdentities: managedIdentities
     diagnosticSettings: diagnosticSettings
-    deployments: []
+    deployments: deployments
     roleAssignments: roleAssignments
     // Private endpoints deployed separately to avoid AccountProvisioningStateInvalid
-    privateEndpoints: []
+    privateEndpoints: privateEndpoints
   }
 }
 

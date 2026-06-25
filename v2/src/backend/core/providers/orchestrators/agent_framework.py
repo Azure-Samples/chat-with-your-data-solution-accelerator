@@ -63,6 +63,7 @@ from agent_framework import (
     ToolTypes,
 )
 from azure.ai.projects.models import MCPTool
+from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
 from backend.core.agents.definitions import CWYD_AGENT
@@ -152,6 +153,10 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         self._kb_name = search_settings.knowledge_base_name
         self._kb_api_version = search_settings.knowledge_base_api_version
         self._connection_name = search_settings.connection_name
+        # Credential for acquiring search data-plane bearer tokens so
+        # the MCPTool can authenticate directly (bypasses the project
+        # connection's isSharedToAll limitation).
+        self._credential: AsyncTokenCredential | None = _extras.get("credential")  # type: ignore[assignment]
         # Sampling knobs carry the effective admin-configured values the
         # router forwards (`openai_temperature` / `openai_max_tokens`),
         # falling back to the `settings.openai` env defaults when a caller
@@ -180,14 +185,14 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         *,
         settings_override: dict[str, Any] | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
-        # Build the KB retrieval tool only when a Knowledge Base is
-        # configured. The tool is authenticated server-side via the
-        # project search connection (`project_connection_id`), so there
-        # is no per-request bearer to mint and no caller-owned HTTP
-        # client to manage -- the Responses API runs the MCP call under
-        # the connection's identity. The dict form (`.as_dict()`) is the
-        # wire shape the runtime agent forwards to the Responses API.
-        kb_tool = self._build_kb_tool()
+        # Build the KB retrieval tool. When a credential is available,
+        # acquire a fresh bearer token for the search data-plane and
+        # pass it directly in the MCPTool headers so the Responses API
+        # can authenticate to the search MCP endpoint without relying
+        # on the project connection's identity (which requires
+        # isSharedToAll=true -- a property the platform currently
+        # ignores for CognitiveSearch connections).
+        kb_tool = await self._build_kb_tool_async()
         extra_tools: list[ToolTypes] | None = (
             [kb_tool.as_dict()] if kb_tool is not None else None
         )
@@ -212,9 +217,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             )
             if query:
                 embedding = await self.llm.embed([query])
-                query_vector = (
-                    embedding.vectors[0] if embedding.vectors else None
-                )
+                query_vector = embedding.vectors[0] if embedding.vectors else None
                 sources = await self._search.search(
                     query,
                     top_k=self._search_top_k,
@@ -360,9 +363,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             )
 
         if answer:
-            yield OrchestratorEvent(
-                channel=OrchestratorChannel.ANSWER, content=answer
-            )
+            yield OrchestratorEvent(channel=OrchestratorChannel.ANSWER, content=answer)
         elif not saw_any_content:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.ERROR,
@@ -380,18 +381,21 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _build_kb_tool(self) -> MCPTool | None:
+    async def _build_kb_tool_async(self) -> MCPTool | None:
         """Build the Foundry IQ Knowledge Base retrieval tool.
 
         Returns a server-side `MCPTool` bound to the KB's managed MCP
-        endpoint and the project search connection, or `None` when the
-        KB is unconfigured (empty Search endpoint, knowledge-base name,
-        or connection name -- e.g. a pgvector deployment, where
-        `agent_framework` is rejected upstream rather than reaching this
-        path). The tool carries `project_connection_id` so the Responses
-        API authenticates the retrieval call server-side under the
-        connection's identity; the caller serializes it via `.as_dict()`
-        before attaching it to the runtime agent.
+        endpoint, or `None` when the KB is unconfigured. Authentication
+        is handled by acquiring a bearer token from the UAMI credential
+        and passing it via the MCPTool's `headers` dict.
+
+        When ``project_connection_id`` is set, the Foundry Responses
+        runtime uses the connection's credentials but also strips query
+        parameters from ``server_url`` (platform behaviour as of
+        2025-06). Without ``project_connection_id``, the runtime
+        forwards the full URL **and** custom headers -- so we pass both
+        ``api-version`` and ``Authorization`` in ``headers`` and include
+        ``api-version`` in the query string as a safety net.
         """
         endpoint = self._search_endpoint.rstrip("/")
         if not endpoint or not self._kb_name or not self._connection_name:
@@ -400,12 +404,33 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
             f"{endpoint}/knowledgebases/{self._kb_name}/mcp"
             f"?api-version={self._kb_api_version}"
         )
+        # Authenticate directly via headers -- bypasses the broken
+        # project_connection_id path (isSharedToAll:false blocks
+        # credential sharing) and preserves query params in the URL.
+        headers: dict[str, str] = {
+            "api-version": self._kb_api_version,
+        }
+        if self._credential is not None:
+            try:
+                token = await self._credential.get_token(
+                    "https://search.azure.com/.default"
+                )
+                headers["Authorization"] = f"Bearer {token.token}"
+            except Exception:
+                logger.warning(
+                    "Failed to acquire search bearer token for KB MCP tool.",
+                    exc_info=True,
+                )
+                return None
+        else:
+            logger.warning("No credential available for KB MCP tool.")
+            return None
         return MCPTool(
             server_label=self._kb_name,
             server_url=url,
             require_approval="never",
             allowed_tools=[KB_RETRIEVE_TOOL_NAME],
-            project_connection_id=self._connection_name,
+            headers=headers,
         )
 
     @staticmethod

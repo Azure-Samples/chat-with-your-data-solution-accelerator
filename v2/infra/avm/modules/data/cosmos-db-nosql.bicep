@@ -66,6 +66,9 @@ param haLocation string = ''
 @description('Optional. Managed identities for the resource.')
 param managedIdentities object = { systemAssigned: true }
 
+@description('Optional. Configurations for Azure Cosmos DB for NoSQL native role-based access control assignments.')
+param sqlRoleAssignments array = []
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -88,7 +91,7 @@ module cosmosAccount 'br/public:avm/res/document-db/database-account:0.19.0' = {
         }]
       }
     ]
-    sqlRoleAssignments: []
+    sqlRoleAssignments: sqlRoleAssignments
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     networkRestrictions: {
       networkAclBypass: 'None'
