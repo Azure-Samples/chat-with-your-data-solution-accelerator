@@ -16,6 +16,11 @@ from backend.core.agents.definitions import (
     compose_cwyd_instructions,
     resolve_cwyd_instructions,
 )
+from backend.core.agents.presets import (
+    DEFAULT_ASSISTANT_TYPE,
+    DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
+    DEFAULT_POST_ANSWERING_PROMPT,
+)
 from backend.core.types import RuntimeConfig
 from backend.models.admin import AdminConfig
 from backend.services.admin import (
@@ -152,9 +157,13 @@ def test_resolve_effective_config_cold_start_returns_env_defaults() -> None:
     assert effective.content_safety_enabled is True
     # Prompt fields have code-constant defaults (no env source).
     assert effective.cwyd_agent_instructions == CWYD_AGENT.instructions
-    assert effective.post_answering_prompt == ""
+    assert effective.ai_assistant_type is DEFAULT_ASSISTANT_TYPE
+    assert effective.post_answering_prompt == DEFAULT_POST_ANSWERING_PROMPT
     assert effective.post_answering_enabled is False
-    assert effective.post_answering_filter_message == ""
+    assert (
+        effective.post_answering_filter_message
+        == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
+    )
 
 
 def test_resolve_effective_config_all_none_overrides_match_cold_start() -> None:

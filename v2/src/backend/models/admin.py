@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core.agents.presets import AssistantType
 from backend.core.providers.search.base import SourceListing
 from backend.core.types import RuntimeConfig
 
@@ -65,6 +66,7 @@ class AdminConfig(BaseModel):
     log_level: str
     content_safety_enabled: bool
     cwyd_agent_instructions: str
+    ai_assistant_type: AssistantType
     post_answering_prompt: str
     post_answering_enabled: bool
     post_answering_filter_message: str
@@ -314,6 +316,11 @@ class EffectiveAdminConfig(BaseModel):
 
     values: AdminConfig
     sources: dict[str, ConfigSource]
+    #: Read-only ``{assistant_type: persona body}`` map (ADR 0030) the
+    #: frontend dropdown loads into the answering-prompt field on
+    #: selection. Not an override-able field -- pure reference data, so
+    #: it carries no ``ConfigSource`` provenance entry.
+    assistant_type_presets: dict[str, str]
     updated_at: str | None = None
     updated_by: str | None = None
 

@@ -17,7 +17,13 @@ from functions.add_url.blueprint import bp as add_url_bp
 from functions.batch_push.blueprint import bp as batch_push_bp
 from functions.batch_start.blueprint import bp as batch_start_bp
 from functions.blob_event.blueprint import bp as blob_event_bp
+from functions.core.telemetry import configure_telemetry
 from functions.search_skill.blueprint import bp as search_skill_bp
+
+# Wire Azure Monitor export before registering functions (no-op when the
+# App Insights connection string is absent). Logic lives in
+# functions.core.telemetry so this module stays a thin registration surface.
+configure_telemetry()
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 app.register_functions(batch_start_bp)

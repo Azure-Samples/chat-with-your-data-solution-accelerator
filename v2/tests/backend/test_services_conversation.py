@@ -11,6 +11,10 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import Request
 
+from backend.core.agents.presets import (
+    DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
+    DEFAULT_POST_ANSWERING_PROMPT,
+)
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.tools.post_prompt import DEFAULT_FILTER_MESSAGE, PostPromptValidator
@@ -315,19 +319,29 @@ def test_build_post_prompt_validator_returns_none_when_enabled_is_false() -> Non
     assert build_post_prompt_validator(_stub_llm(), overrides) is None
 
 
-def test_build_post_prompt_validator_returns_none_when_prompt_missing() -> None:
+def test_build_post_prompt_validator_uses_default_prompt_when_override_missing() -> None:
+    # Enabling without an override prompt now uses the populated JSON
+    # default (ADR 0030) so enabling the feature actually validates.
+    llm = _stub_llm()
     overrides = _make_overrides(post_answering_enabled=True)
 
-    assert build_post_prompt_validator(_stub_llm(), overrides) is None
+    validator = build_post_prompt_validator(llm, overrides)
+
+    assert isinstance(validator, PostPromptValidator)
+    assert validator._validation_prompt == DEFAULT_POST_ANSWERING_PROMPT
+    assert validator._filter_message == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
 
 
-def test_build_post_prompt_validator_returns_none_when_prompt_whitespace() -> None:
+def test_build_post_prompt_validator_uses_default_prompt_when_override_whitespace() -> None:
     overrides = _make_overrides(
         post_answering_enabled=True,
         post_answering_prompt="   \n\t  ",
     )
 
-    assert build_post_prompt_validator(_stub_llm(), overrides) is None
+    validator = build_post_prompt_validator(_stub_llm(), overrides)
+
+    assert isinstance(validator, PostPromptValidator)
+    assert validator._validation_prompt == DEFAULT_POST_ANSWERING_PROMPT
 
 
 def test_build_post_prompt_validator_uses_default_filter_when_override_blank() -> None:
@@ -342,7 +356,7 @@ def test_build_post_prompt_validator_uses_default_filter_when_override_blank() -
     assert isinstance(validator, PostPromptValidator)
     assert validator._llm is llm
     assert validator._validation_prompt == "Check: {question} / {answer} / {sources}"
-    assert validator._filter_message == DEFAULT_FILTER_MESSAGE
+    assert validator._filter_message == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
 
 
 def test_build_post_prompt_validator_honors_custom_filter_message() -> None:
@@ -370,7 +384,7 @@ def test_build_post_prompt_validator_treats_empty_filter_as_default() -> None:
     validator = build_post_prompt_validator(llm, overrides)
 
     assert isinstance(validator, PostPromptValidator)
-    assert validator._filter_message == DEFAULT_FILTER_MESSAGE
+    assert validator._filter_message == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
 
 
 # ---------------------------------------------------------------------------

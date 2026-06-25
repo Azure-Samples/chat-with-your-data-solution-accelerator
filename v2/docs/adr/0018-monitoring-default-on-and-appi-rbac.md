@@ -71,6 +71,34 @@ Both gaps point at the same root cause: **monitoring was treated as an optional 
 4. **Move to system-assigned managed identity per compute resource for AppI ingestion.** Rejected for the same reason ADR 0002 rejected SAMI: it makes pre-provisioning RBAC awkward and breaks the single-identity audit story.
 5. **Enable Diagnostic Settings on every resource (already in Bicep behind `enableMonitoring`) but no AppI component.** Rejected: diagnostic logs to LAW give you resource-plane traces (deploy events, throttling, RBAC denials) but not application-level stack traces from the function worker. The empty-body 500 is an application-tier crash; only AppI sees it.
 
+## Amendment 1 (2026-06-23) — per-workload App Insights env-var names (BUG-0055)
+
+The original wire-shape bound `APPLICATIONINSIGHTS_CONNECTION_STRING` onto **both**
+the backend Container App and the Function App. In the cloud this left the backend
+emitting **zero** telemetry: the backend ACA container has no host-level App
+Insights agent, so its Python lifespan must call `configure_azure_monitor` with the
+connection string read from `ObservabilitySettings` — and that settings class uses
+`env_prefix="AZURE_"`, so it reads `AZURE_APP_INSIGHTS_CONNECTION_STRING`, never the
+standard name. The container only ever received the standard name, so the typed
+setting stayed empty and the exporter never initialized. (The original ADR's
+"function host's built-in instrumentation handles the worker-process traces"
+assumption in *Out of scope* is why the backend's distinct requirement was missed.)
+
+Resolution — the two workloads bind **different** env-var names by design:
+
+- **Backend Container App** → `AZURE_APP_INSIGHTS_CONNECTION_STRING` (matches the
+  Python `configure_azure_monitor` read path; the typed setting honors only the
+  `AZURE_`-prefixed name).
+- **Function App** → `APPLICATIONINSIGHTS_CONNECTION_STRING` (the Functions host
+  reads the standard name natively).
+
+Both still source the value from `applicationInsights!.outputs.connectionString`
+under the `enableMonitoring` ternary, so the no-Key-Vault / Bicep-output invariant
+is unchanged. The `test_appinsights_connection_string_bound_to_workload`
+drift-guard is now parametrized per workload to assert the correct name for each.
+This durable fix takes effect on the next `azd provision`; the **function half** of
+BUG-0055 (app-level OTel export from the function worker) remains open.
+
 ## References
 
 - [`v2/infra/main.bicep`](../../infra/main.bicep) — `enableMonitoring` param (line 195), `logAnalyticsWorkspace` + `applicationInsights` modules (lines 287–321), `disableLocalAuth: true` (line 320), backend env wiring (lines 1702–1703 + 1816–1817), function env wiring (lines 1980–1986). New `appiMonitoringRole` lands near the `flexDeploymentRole` block (~line 2005).

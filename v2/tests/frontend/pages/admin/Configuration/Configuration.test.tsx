@@ -8,13 +8,14 @@
  * typed client surface without hitting the network.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import {
   Configuration,
 } from "@/pages/admin/Configuration/Configuration";
 import {
   AdminApiError,
   getAdminConfig,
+  getAssistantTypePresets,
   patchAdminConfig,
   resetAdminConfig,
 } from "@/api/admin";
@@ -28,12 +29,14 @@ vi.mock("@/api/admin", async (importOriginal) => {
   return {
     ...actual,
     getAdminConfig: vi.fn(),
+    getAssistantTypePresets: vi.fn(),
     patchAdminConfig: vi.fn(),
     resetAdminConfig: vi.fn(),
   };
 });
 
 const getMock = vi.mocked(getAdminConfig);
+const presetsMock = vi.mocked(getAssistantTypePresets);
 const patchMock = vi.mocked(patchAdminConfig);
 const resetMock = vi.mocked(resetAdminConfig);
 
@@ -46,6 +49,7 @@ const CONFIG_FIXTURE: AdminConfig = {
   log_level: "INFO",
   content_safety_enabled: false,
   cwyd_agent_instructions: "You are the Chat With Your Data assistant.",
+  ai_assistant_type: "default",
   post_answering_prompt: "",
   post_answering_enabled: false,
   post_answering_filter_message: "",
@@ -66,6 +70,7 @@ const RUNTIME_FIXTURE: RuntimeConfig = {
   log_level: null,
   content_safety_enabled: null,
   cwyd_agent_instructions: null,
+  ai_assistant_type: null,
   post_answering_prompt: null,
   post_answering_enabled: null,
   post_answering_filter_message: null,
@@ -73,8 +78,20 @@ const RUNTIME_FIXTURE: RuntimeConfig = {
   updated_by: "admin-user-id",
 };
 
+// The static `{ assistantType: personaBody }` map the dropdown uses to
+// repopulate the System prompt textarea. `default` matches
+// `CONFIG_FIXTURE.cwyd_agent_instructions` so re-selecting it is a
+// round-trip; `contract assistant` is distinct so a switch is visible.
+const PRESETS_FIXTURE = {
+  default: "You are the Chat With Your Data assistant.",
+  "contract assistant": "You are an AI Contract Assistant.",
+  "employee assistant": "You are an AI HR Assistant.",
+};
+
 beforeEach(() => {
   getMock.mockReset();
+  presetsMock.mockReset();
+  presetsMock.mockResolvedValue(PRESETS_FIXTURE);
   patchMock.mockReset();
   resetMock.mockReset();
 });
@@ -120,6 +137,7 @@ describe("Configuration -- initial load", () => {
       "search_top_k",
       "log_level",
       "content_safety_enabled",
+      "ai_assistant_type",
       "cwyd_agent_instructions",
       "post_answering_enabled",
       "post_answering_prompt",
@@ -190,6 +208,47 @@ describe("Configuration -- initial load", () => {
       Array.from(logLevelSelect.options).map((option) => option.value),
     ).toEqual(["DEBUG", "INFO", "WARNING", "ERROR"]);
     expect(logLevelSelect.value).toBe("INFO");
+  });
+
+  it("renders the assistant type field as a dropdown of the known presets", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const assistantSelect = screen.getByTestId(
+      "config-input-ai_assistant_type",
+    ) as HTMLSelectElement;
+    expect(assistantSelect.tagName).toBe("SELECT");
+    expect(
+      Array.from(assistantSelect.options).map((option) => option.value),
+    ).toEqual(["default", "contract assistant", "employee assistant"]);
+    expect(assistantSelect.value).toBe("default");
+  });
+
+  it("defaults the assistant type dropdown to 'default' when the server omits the field", async () => {
+    // Simulate a backend that predates the Assistant-type presets and
+    // therefore returns a config with no `ai_assistant_type`. The
+    // dropdown must still land on the default preset, never an empty
+    // phantom option.
+    const staleConfig: AdminConfig = { ...CONFIG_FIXTURE };
+    delete (staleConfig as { ai_assistant_type?: string }).ai_assistant_type;
+    getMock.mockResolvedValueOnce(staleConfig);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const assistantSelect = screen.getByTestId(
+      "config-input-ai_assistant_type",
+    ) as HTMLSelectElement;
+    expect(assistantSelect.value).toBe("default");
+    expect(
+      Array.from(assistantSelect.options).map((option) => option.value),
+    ).toEqual(["default", "contract assistant", "employee assistant"]);
   });
 
   it("renders human-readable labels without the internal config-key suffix", async () => {
@@ -879,6 +938,137 @@ describe("Configuration -- system prompt (folded from PromptEditor)", () => {
   });
 });
 
+describe("Configuration -- assistant type presets", () => {
+  it("renders the assistant type select seeded with the server value and the three preset options", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    const select = screen.getByTestId(
+      "config-input-ai_assistant_type",
+    ) as HTMLSelectElement;
+    expect(select.value).toBe("default");
+    const optionValues = Array.from(select.querySelectorAll("option")).map(
+      (option) => option.value,
+    );
+    expect(optionValues).toEqual([
+      "default",
+      "contract assistant",
+      "employee assistant",
+    ]);
+  });
+
+  it("loads the selected preset body into the System prompt when the assistant type changes", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    // Presets ride the mount load (Promise.all with getAdminConfig), so
+    // by the time the form renders the dropdown change can repopulate
+    // the textarea from the in-state preset map.
+    fireEvent.change(screen.getByTestId("config-input-ai_assistant_type"), {
+      target: { value: "contract assistant" },
+    });
+
+    expect(
+      (
+        screen.getByTestId(
+          "config-input-ai_assistant_type",
+        ) as HTMLSelectElement
+      ).value,
+    ).toBe("contract assistant");
+    expect(
+      (
+        screen.getByTestId(
+          "config-input-cwyd_agent_instructions",
+        ) as HTMLTextAreaElement
+      ).value,
+    ).toBe(PRESETS_FIXTURE["contract assistant"]);
+  });
+
+  it("PATCHes both ai_assistant_type and the loaded prompt when the type is switched and saved", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+    patchMock.mockResolvedValueOnce(RUNTIME_FIXTURE);
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    fireEvent.change(screen.getByTestId("config-input-ai_assistant_type"), {
+      target: { value: "contract assistant" },
+    });
+    fireEvent.click(screen.getByTestId("config-save-button"));
+
+    await waitFor(() => {
+      expect(patchMock).toHaveBeenCalledTimes(1);
+    });
+    expect(patchMock).toHaveBeenCalledWith({
+      ai_assistant_type: "contract assistant",
+      cwyd_agent_instructions: PRESETS_FIXTURE["contract assistant"],
+    });
+  });
+});
+
+describe("Configuration -- field tooltips", () => {
+  const ALL_FIELD_KEYS = [
+    "ai_assistant_type",
+    "cwyd_agent_instructions",
+    "orchestrator_name",
+    "openai_temperature",
+    "openai_max_tokens",
+    "search_use_semantic_search",
+    "search_top_k",
+    "log_level",
+    "content_safety_enabled",
+    "post_answering_enabled",
+    "post_answering_prompt",
+    "post_answering_filter_message",
+  ];
+
+  it("renders an info tooltip affordance on every configuration field", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    for (const key of ALL_FIELD_KEYS) {
+      const field = screen.getByTestId(`config-field-${key}`);
+      // The info tooltip trigger is the only <button> inside a field row.
+      expect(within(field).getByRole("button")).toBeInTheDocument();
+    }
+  });
+
+  it("reveals the field's tooltip text on hover (not click)", async () => {
+    getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
+
+    render(<Configuration />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("config-form")).toBeInTheDocument();
+    });
+    // Tooltip content is portaled in only while visible, so it is absent
+    // until the pointer hovers the info trigger.
+    expect(
+      screen.queryByText(/Choose which persona preset/i),
+    ).not.toBeInTheDocument();
+    const field = screen.getByTestId("config-field-ai_assistant_type");
+    fireEvent.pointerEnter(within(field).getByRole("button"));
+    expect(
+      await screen.findByText(/Choose which persona preset/i),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("Configuration -- reset to default", () => {
   const DEFAULTS_RUNTIME: RuntimeConfig = {
     orchestrator_name: null,
@@ -889,6 +1079,7 @@ describe("Configuration -- reset to default", () => {
     log_level: null,
     content_safety_enabled: null,
     cwyd_agent_instructions: null,
+    ai_assistant_type: null,
     post_answering_prompt: null,
     post_answering_enabled: null,
     post_answering_filter_message: null,
