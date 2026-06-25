@@ -60,12 +60,22 @@ param azureAiServiceLocation string
 // ===================== //
 
 @allowed([
-  'CosmosDB'
-  'PostgreSQL'
+  'cosmosdb'
+  'postgresql'
 ])
-@description('Required. Selects BOTH the chat-history backend AND the vector index store. cosmosdb: Cosmos DB + Azure AI Search. postgresql: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
-param databaseType string = 'CosmosDB'
+@description('Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
+param databaseType string = 'cosmosdb'
 
+// ===================== //
+// Ingestion trigger     //
+// ===================== //
+
+@allowed([
+  'direct_enqueue'
+  'event_grid'
+])
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
+param ingestionTrigger string = 'direct_enqueue'
 
 // ===================== //
 // AI model parameters   //
@@ -131,18 +141,34 @@ param azureOpenAiApiVersion string = '2025-01-01-preview'
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
-// CU-009a (2026-05-05): a previous Bicep param + container-app env
-// binding for the Foundry agent identity were removed. Per ADR 0008
-// (lazy-foundry-agent-bootstrap), agent identity is no longer an
-// operator-supplied env value -- the runtime resolves it lazily on
-// first request and persists the id in the chat-history database
-// (Cosmos in cosmosdb-mode, Postgres in postgresql-mode). Restoring
-// the env path would re-introduce dead-config drift; pin specific
-// agents through the registry-backed agents provider instead.
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
+param searchKnowledgeBaseName string = 'cwyd-kb'
+
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
+param searchKnowledgeSourceName string = 'cwyd-index-ks'
+
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
+param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
+// ============================================================================
+// Parameters — Compute
+// ============================================================================
+
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
+param containerRegistryEndpoint string = 'cwydcontainerreg.azurecr.io'
+
+@description('Optional. The image tag for the container images.')
+param imageTag string = 'latest'
+
+@description('Optional. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
+param hostingModel string = 'container'
 
 // ===================== //
 // WAF flags             //
 // ===================== //
+
+@description('Optional. Enable/Disable usage telemetry for module.')
+param enableTelemetry bool = true
 
 @description('Optional. Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.')
 param enableMonitoring bool = false
@@ -156,6 +182,20 @@ param enableRedundancy bool = false
 @description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. Wires the regional VNet (`modules/virtualNetwork.bicep`), private DNS zones, private endpoints for every data-plane resource, regional VNet integration for compute, and Bastion. Setting this to true is the WAF-aligned topology and requires no follow-up tasks; flipping it back to false re-enables public endpoints with default firewall rules.')
 param enablePrivateNetworking bool = false
 
+@secure()
+@description('Optional. VM admin username (AVM-WAF only, when private networking is enabled).')
+param vmAdminUsername string?
+
+@secure()
+@description('Optional. VM admin password (AVM-WAF only, when private networking is enabled).')
+param vmAdminPassword string?
+
+@description('Optional. VM size for jumpbox (AVM-WAF only). Defaults to Standard_D2s_v5.')
+param vmSize string = 'Standard_D2s_v5'
+
+@description('Optional. Existing Log Analytics Workspace Resource ID.')
+param existingLogAnalyticsWorkspaceId string = ''
+
 // ===================== //
 // Tagging               //
 // ===================== //
@@ -164,25 +204,16 @@ param enablePrivateNetworking bool = false
 param tags object = {}
 
 @description('Optional. Identifier of the user creating the deployment, recorded in the resource group tags.')
-param createdBy string = contains(deployer(), 'userPrincipalName')
-  ? split(deployer().userPrincipalName, '@')[0]
-  : deployer().objectId
+param createdBy string?
+
+@allowed(['User', 'ServicePrincipal'])
+@description('Optional. Principal type of the deploying user.')
+param deployingUserPrincipalType string = 'User'
 
 // ===================== //
 // Variables             //
 // ===================== //
 
-// NOTE: When enablePrivateNetworking=true, every data-plane resource
-// below is provisioned with publicNetworkAccess='Disabled', the VNet
-// + private DNS zones + private endpoints are wired in, and compute
-// (Container Apps, Function App) connects via regional VNet
-// integration. The flag is the supported WAF-aligned topology and
-// requires no follow-up work to enable.
-
-
-// 15-char solution suffix used in every resource name. Lowercased and stripped
-// of separators so it stays valid for resources with the strictest naming rules
-// (PostgreSQL, Storage Account).
 var solutionSuffix = toLower(trim(replace(
   replace(
     replace(replace(replace(replace('${solutionName}${solutionUniqueText}', '-', ''), '_', ''), '.', ''), '/', ''),
@@ -192,11 +223,16 @@ var solutionSuffix = toLower(trim(replace(
   '*',
   '')))
 
+var deployingUserPrincipalId = deployer().objectId
+var docProcessingQueueName = 'doc-processing'
+var blobEventsQueueName = 'blob-events'
+var documentsContainerName = 'documents'
+
 var allTags = union(
   {
     'azd-env-name': solutionName
     TemplateName: 'CWYD-v2'
-    Type: 'Non-WAF'
+    Type: enablePrivateNetworking ? 'WAF' : 'Non-WAF'
     CreatedBy: createdBy
     DatabaseType: databaseType
   },
@@ -734,7 +770,7 @@ module speechService 'br/public:avm/res/cognitive-services/account:0.13.0' = {
 // ----------------------------------------------------------------------
 var contentSafetyServiceName = 'cs-${solutionSuffix}'
 
-module cogContentSafety 'br/public:avm/res/cognitive-services/account:0.13.0' = {
+module contentSafety 'br/public:avm/res/cognitive-services/account:0.13.0' = {
   name: take('avm.res.cognitive-services.account.contentsafety.${solutionSuffix}', 64)
   params: {
     name: contentSafetyServiceName
@@ -2140,16 +2176,16 @@ output AZURE_UAMI_RESOURCE_ID string = userAssignedIdentity.outputs.resourceId
 @description('Selected database engine for chat history + vector index (locked at deploy).')
 output AZURE_DB_TYPE string = databaseType
 
-@description('Logical name of the configured vector index store: "AzureSearch" (cosmosdb mode) or "pgvector" (postgresql mode).')
+@description('Logical name of the configured vector index store: "AzureSearch" (CosmosDB mode) or "pgvector" (PostgreSQL mode).')
 output AZURE_INDEX_STORE string = indexStoreValue
 
 // --- Foundry substrate ---
 
 @description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
-output AZURE_AI_SERVICES_ENDPOINT string = aiServices.outputs.endpoint
+output AZURE_AI_SERVICES_ENDPOINT string = aiProject.outputs.endpoint
 
 @description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
-output AZURE_OPENAI_ENDPOINT string = effectiveOpenAiEndpoint
+output AZURE_OPENAI_ENDPOINT string = aiProject.outputs.endpoint
 
 @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
 output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
@@ -2183,48 +2219,51 @@ output AZURE_SPEECH_ACCOUNT_RESOURCE_ID string = speechService.outputs.resourceI
 // --- Content Safety ---
 
 @description('Content Safety account endpoint. Backend reads via ContentSafetySettings.endpoint; lifespan gates client construction on this + AZURE_CONTENT_SAFETY_ENABLED.')
-output AZURE_CONTENT_SAFETY_ENDPOINT string = cogContentSafety.outputs.endpoint
+output AZURE_CONTENT_SAFETY_ENDPOINT string = contentSafety.outputs.endpoint
 
 @description('Content Safety account name (kind=ContentSafety). Diagnostic surface only — backend builds the client from the endpoint.')
-output AZURE_CONTENT_SAFETY_NAME string = cogContentSafety.outputs.name
+output AZURE_CONTENT_SAFETY_NAME string = contentSafety.outputs.name
 
-// --- Conditional: Azure AI Search (cosmosdb mode only) ---
+// --- Conditional: Azure AI Search (CosmosDB mode only) ---
 
-@description('AI Search service endpoint. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'CosmosDB' ? effectiveSearchEndpoint : ''
+@description('AI Search service endpoint. Empty in PostgreSQL mode.')
+output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : ''
 
-@description('AI Search service name. Empty in postgresql mode.')
-output AZURE_AI_SEARCH_NAME string = databaseType == 'CosmosDB' ? effectiveSearchName : ''
+@description('AI Search service name. Empty in PostgreSQL mode.')
+output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? aiSearch!.outputs.name : ''
 
-// --- Conditional: Cosmos DB (cosmosdb mode only) ---
+// --- Conditional: Cosmos DB (CosmosDB mode only) ---
 
-@description('Cosmos DB account endpoint (DocumentEndpoint). Empty in postgresql mode.')
-output AZURE_COSMOS_ENDPOINT string = databaseType == 'CosmosDB' ? effectiveCosmosEndpoint : ''
+@description('Cosmos DB account endpoint (DocumentEndpoint). Empty in PostgreSQL mode.')
+output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : ''
 
-@description('Cosmos DB account name. Empty in postgresql mode.')
-output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'CosmosDB' ? effectiveCosmosName : ''
+@description('Cosmos DB account name. Empty in PostgreSQL mode.')
+output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : ''
 
-// --- Conditional: PostgreSQL Flexible Server (postgresql mode only) ---
+// --- Conditional: PostgreSQL Flexible Server (PostgreSQL mode only) ---
 
-@description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in cosmosdb mode.')
-output AZURE_POSTGRES_HOST string = databaseType == 'PostgreSQL' ? postgresServer!.outputs.fqdn! : ''
+@description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in CosmosDB mode.')
+output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.serverFqdn! : ''
 
-@description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in cosmosdb mode.')
+@description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in CosmosDB mode.')
 output AZURE_POSTGRES_ENDPOINT string = postgresLibpqUri
 
-@description('PostgreSQL Flexible Server resource name. Empty in cosmosdb mode.')
-output AZURE_POSTGRES_NAME string = databaseType == 'PostgreSQL' ? postgresServer!.outputs.name : ''
+@description('PostgreSQL Flexible Server resource name. Empty in CosmosDB mode.')
+output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
 
-@description('Configured Entra admin principal name for the Postgres Flex server (used as the `user` in AAD-token connections by the post-provision hook). Empty in cosmosdb mode.')
-output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'PostgreSQL' ? postgresAdminPrincipalName : ''
+@description('UAMI principal name used by the runtime apps to connect to Postgres. Empty in CosmosDB mode.')
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : ''
+
+@description('Deployer principal name registered as Postgres Entra admin (for post_provision.py). Empty in CosmosDB mode or when deployer has no UPN.')
+output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = databaseType == 'postgresql' && contains(deployer(), 'userPrincipalName') ? deployer().userPrincipalName : ''
 
 // --- Storage (blobs + queues + Function deployment package) ---
 
 @description('Storage account name (shared by RAG document store, indexing queues, and the Function App deployment package).')
-output AZURE_STORAGE_ACCOUNT_NAME string = effectiveStorageName
+output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount!.outputs.name
 
 @description('Primary blob endpoint of the shared storage account (https URL ending in /). Hostname follows the storage cloud-specific suffix.')
-output AZURE_STORAGE_BLOB_ENDPOINT string = effectiveStorageBlobEndpoint
+output AZURE_STORAGE_BLOB_ENDPOINT string = storageAccount!.outputs.blobEndpoint
 
 @description('Container holding documents to be indexed (Event Grid filter + batch_start source).')
 output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
@@ -2232,16 +2271,19 @@ output AZURE_DOCUMENTS_CONTAINER string = documentsContainerName
 @description('Storage Queue name fed by Event Grid BlobCreated and consumed by the batch_push Function blueprint.')
 output AZURE_DOC_PROCESSING_QUEUE string = docProcessingQueueName
 
+@description('Ingestion trigger mode for the backend admin upload path: direct_enqueue (backend enqueues) or event_grid (Event Grid + blob_event Function own the push).')
+output AZURE_INGESTION_TRIGGER string = ingestionTrigger
+
 // --- Hosting endpoints (consumed by azd hooks, Vite build, smoke tests) ---
 
 @description('Public URL of the backend Container App (FastAPI + LangGraph/Agent Framework).')
 output AZURE_BACKEND_URL string = 'https://${backendContainerApp.outputs.fqdn}'
 
-@description('Public URL of the frontend Web App (React/Vite SPA). Backend CORS must allow this origin.')
-output AZURE_FRONTEND_URL string = 'https://${frontendWebApp.outputs.defaultHostname}'
+@description('Public URL of the frontend Container App (React/Vite SPA proxy). Backend CORS must allow this origin.')
+output AZURE_FRONTEND_URL string = 'https://${frontendContainerApp.outputs.fqdn}'
 
 @description('Public URL of the Function App hosting the indexing pipeline.')
-output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostname}'
+output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostName}'
 
 @description('Function App resource name (used by azd to deploy the function package).')
 output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
@@ -2257,13 +2299,3 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 @description('Application Insights connection string. Empty when enableMonitoring=false.')
 output AZURE_APP_INSIGHTS_CONNECTION_STRING string = enableMonitoring ? applicationInsights!.outputs.connectionString : ''
 
-// --- Conditional: private networking (enablePrivateNetworking only) ---
-
-@description('VNet name. Empty when enablePrivateNetworking=false.')
-output AZURE_VNET_NAME string = enablePrivateNetworking ? virtualNetwork!.outputs.name : ''
-
-@description('VNet resource ID. Empty when enablePrivateNetworking=false.')
-output AZURE_VNET_RESOURCE_ID string = enablePrivateNetworking ? virtualNetwork!.outputs.resourceId : ''
-
-@description('Bastion host name (for `az network bastion tunnel`). Empty when enablePrivateNetworking=false.')
-output AZURE_BASTION_NAME string = enablePrivateNetworking ? bastion!.outputs.name : ''

@@ -34,7 +34,7 @@ infra:
 # Services — bound to Bicep resources by the `azd-service-name` tag in
 # v2/infra/main.bicep:
 #   - backend  → Container App  (tag 'backend',  L1120)
-#   - frontend → App Service    (tag 'frontend', L1240)
+#   - frontend → Container App  (tag 'frontend', L1213)
 #   - function → Function App   (tag 'function', L1366)
 # Each service uses its own Dockerfile under v2/docker/. `azd deploy`
 # builds the image, pushes to the Bicep-deployed ACR, and updates the
@@ -52,13 +52,10 @@ infra:
 #   frontend:
 #     project: ./src/frontend
 #     language: js
-#     host: appservice
+#     host: containerapp
 #     docker:
 #       path: ../../docker/Dockerfile.frontend
 #       context: ../..
-#       target: prod
-#       buildArgs:
-#         VITE_BACKEND_URL: ${AZURE_BACKEND_URL}
 #   function:
 #     project: ./build-functions
 #     language: py

@@ -1210,35 +1210,44 @@ module appServicePlan './modules/compute/app-service-plan.bicep' = {
   }
 }
 
-module frontendWebApp './modules/compute/app-service.bicep' = {
-  name: take('module.web.site.frontend.${solutionName}', 64)
+module frontendContainerApp './modules/compute/container-app.bicep' = {
+  name: take('module.container-app-frontend.${solutionSuffix}', 64)
   params: {
-    solutionName: 'app-${solutionSuffix}'
+    name: 'ca-frontend-${solutionSuffix}'
     location: location
     tags: union(allTags, { 'azd-service-name': 'frontend' })
     enableTelemetry: enableTelemetry
-    kind: 'app,linux,container'
-    serverFarmResourceId: appServicePlan.outputs.resourceId
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
-    virtualNetworkSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.webserverfarmSubnetResourceId : null
+    environmentResourceId: containerAppsEnv.outputs.resourceId
     managedIdentities: {
       systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     }
-    diagnosticSettings: monitoringDiagnosticSettings
-    linuxFxVersion: 'DOCKER|${containerRegistryEndpoint}/rag-frontend:${imageTag}'
-    // linuxFxVersion: 'DOCKER|mcr.microsoft.com/appsvc/staticsite:latest'
-    appSettings: union(
+    workloadProfileName: 'Consumption'
+    ingressTargetPort: 80
+    ingressExternal: !enablePrivateNetworking
+    scaleSettings: {
+      minReplicas: 1
+      maxReplicas: enableScalability ? 5 : 3
+    }
+    containers: [
       {
-        VITE_BACKEND_URL: 'https://${backendContainerApp.outputs.fqdn}'
-        WEBSITES_ENABLE_APP_SERVICE_STORAGE: 'false'
-      },
-      enableMonitoring
-      ? {
-          APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights!.outputs.connectionString
+        name: 'frontend'
+        image: '${containerRegistryEndpoint}/rag-frontend:${imageTag}'
+        resources: {
+          cpu: any('0.5')
+          memory: '1.0Gi'
         }
-      : {}
-    )
-    vnetRouteAllEnabled: enablePrivateNetworking
+        env: concat(
+          [
+            { name: 'VITE_BACKEND_URL', value: 'https://${backendContainerApp.outputs.fqdn}' }
+          ],
+          enableMonitoring
+          ? [
+              { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: applicationInsights!.outputs.connectionString }
+            ]
+          : []
+        )
+      }
+    ]
   }
 }
 
@@ -1546,8 +1555,8 @@ output AZURE_INGESTION_TRIGGER string = ingestionTrigger
 @description('Public URL of the backend Container App (FastAPI + LangGraph/Agent Framework).')
 output AZURE_BACKEND_URL string = 'https://${backendContainerApp.outputs.fqdn}'
 
-@description('Public URL of the frontend Web App (React/Vite SPA). Backend CORS must allow this origin.')
-output AZURE_FRONTEND_URL string = 'https://${frontendWebApp.outputs.defaultHostname}'
+@description('Public URL of the frontend Container App (React/Vite SPA proxy). Backend CORS must allow this origin.')
+output AZURE_FRONTEND_URL string = 'https://${frontendContainerApp.outputs.fqdn}'
 
 @description('Public URL of the Function App hosting the indexing pipeline.')
 output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHostName}'
