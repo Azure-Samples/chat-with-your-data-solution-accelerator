@@ -1149,8 +1149,15 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
       {
         principalId: userAssignedIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
-        // Storage Queue Data Contributor (enqueue + consume indexing messages)
+        // Storage Queue Data Contributor (read + consume indexing messages)
         roleDefinitionIdOrName: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+      }
+      {
+        principalId: userAssignedIdentity.outputs.principalId
+        principalType: 'ServicePrincipal'
+        // Storage Queue Data Message Sender (add/action — required for
+        // Event Grid UAMI-based delivery to the blob-events queue)
+        roleDefinitionIdOrName: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
       }
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -2033,12 +2040,14 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
 //   - native AAD-only AzureWebJobsStorage (no shared keys)
 //   - built-in always-ready instance support if scale matters later
 //
-// Identity posture: Event Grid → Storage Queue uses plain destination
-// (shared-key delivery) for now. MI-based delivery
-// (deliveryWithResourceIdentity) can be added as a post-deployment
-// hardening step. AzureWebJobsStorage uses the function app's UAMI
-// via the `AzureWebJobsStorage__credential=managedidentity` +
-// `__clientId` pattern.
+// Identity posture: Event Grid → Storage Queue uses UAMI-based delivery
+// (deliveryWithResourceIdentity) with the project UAMI. The UAMI already
+// holds Storage Queue Data Contributor on the account (assigned early in
+// the template). Using UAMI avoids the Entra propagation race that
+// affects SystemAssigned MI (where the topic MI is created at the same
+// time as the subscription). AzureWebJobsStorage uses the function
+// app's UAMI via the `AzureWebJobsStorage__credential=managedidentity`
+// + `__clientId` pattern.
 // ----------------------------------------------------------------------
 var functionPlanName = 'plan-func-${solutionSuffix}'
 var functionAppName = 'func-${solutionSuffix}'
@@ -2226,14 +2235,15 @@ resource flexDeploymentRole 'Microsoft.Authorization/roleAssignments@2022-04-01'
 // BlobCreated / BlobDeleted under /documents/ → blob-events queue, which
 // the blob_event queue trigger translates into the right action (create
 // → doc-processing ingestion envelope consumed by batch_push; delete →
-// de-index) (ADR 0028). Plain destination (shared-key delivery) is used
-// for now — MI-based delivery (deliveryWithResourceIdentity) can be
-// added as a post-deployment hardening step once the Entra propagation
-// race is addressed.
-// When reusing v1's storage that already has a system topic, the AVM
-// module is skipped and a sibling `existingEventGridSubscription`
-// resource adds our subscription to the v1 topic (Azure permits only
-// one system topic per source).
+// de-index) (ADR 0028). A queue destination --
+// not an Event Grid AzureFunction trigger -- keeps managed-identity
+// delivery and deploys at provision time (the queue exists; a function
+// would not yet). The add_url path is HTTP-triggered, not
+// blob-triggered, so it needs no subscription. When reusing v1's
+// storage that already has a system topic, the AVM module is skipped
+// and a sibling `existingEventGridSubscription` resource adds our
+// subscription to the v1 topic (Azure permits only one system topic
+// per source).
 module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = if (!useExistingEventGridTopic) {
   name: take('avm.res.event-grid.system-topic.${solutionSuffix}', 64)
   params: {
@@ -2243,14 +2253,32 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
     enableTelemetry: false
     source: effectiveStorageResourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
+    managedIdentities: {
+      userAssignedResourceIds: [
+        userAssignedIdentity.outputs.resourceId
+      ]
+    }
     eventSubscriptions: [
       {
+        // Name retained (not 'blob-created-to-blob-events') so the
+        // destination repoint is an in-place update; renaming under
+        // azd incremental mode would orphan the prior subscription,
+        // leaving it to keep delivering to doc-processing.
         name: 'blob-created-to-doc-processing'
-        destination: {
-          endpointType: 'StorageQueue'
-          properties: {
-            resourceId: effectiveStorageResourceId
-            queueName: blobEventsQueueName
+        // deliveryWithResourceIdentity with UAMI avoids the Entra
+        // propagation race that SystemAssigned MI suffers from (the
+        // UAMI + its role are created early in the template).
+        deliveryWithResourceIdentity: {
+          identity: {
+            type: 'UserAssigned'
+            userAssignedIdentity: userAssignedIdentity.outputs.resourceId
+          }
+          destination: {
+            endpointType: 'StorageQueue'
+            properties: {
+              resourceId: effectiveStorageResourceId
+              queueName: blobEventsQueueName
+            }
           }
         }
         filter: {
@@ -2269,21 +2297,51 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.4' = 
 }
 
 // EXISTING Event Grid system topic reuse. Adds a new subscription on
-// v1's topic. Uses plain destination (shared-key delivery) matching the
-// new-topic path. MI-based delivery can be added post-deployment.
+// v1's topic that routes BlobCreated / BlobDeleted events from the
+// documents/ prefix to our blob-events queue (the blob_event trigger
+// translates a create to doc-processing and a delete to a de-index).
+// Delivery uses v2's UAMI (granted both
+// Queue Data Contributor on the storage account AND Queue Data Message
+// Sender on the specific queue \u2014 EG preflight validates the latter at
+// queue scope specifically).
 resource existingEventGridTopic 'Microsoft.EventGrid/systemTopics@2024-12-15-preview' existing = if (useExistingEventGridTopic) {
   name: existingEventGridTopicName
 }
 
+// Message Sender grant scoped to the storage account. EG's MI preflight
+// validator walks the storage account hierarchy when checking delivery
+// authorization for StorageQueue destinations; queue-scope alone is not
+// recognized by the synchronous validator. Account-scope is required.
+resource existingQueueMessageSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingEventGridTopic) {
+  name: guid(storageAccountExisting.id, userAssignedIdentity.name, 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+  scope: storageAccountExisting
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
+    )
+    principalId: userAssignedIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2024-12-15-preview' = if (useExistingEventGridTopic) {
   parent: existingEventGridTopic
+  // Name retained (see the new-topic subscription above): an in-place
+  // destination repoint, not a rename that would orphan the prior sub.
   name: 'cwyd2-blob-created-doc-processing'
   properties: {
-    destination: {
-      endpointType: 'StorageQueue'
-      properties: {
-        resourceId: effectiveStorageResourceId
-        queueName: blobEventsQueueName
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'UserAssigned'
+        userAssignedIdentity: userAssignedIdentity.outputs.resourceId
+      }
+      destination: {
+        endpointType: 'StorageQueue'
+        properties: {
+          resourceId: effectiveStorageResourceId
+          queueName: blobEventsQueueName
+        }
       }
     }
     filter: {
@@ -2300,6 +2358,7 @@ resource existingEventGridSubscription 'Microsoft.EventGrid/systemTopics/eventSu
   dependsOn: [
     existingStorageQueueBlobEvents
     existingStorageQueueContributor
+    existingQueueMessageSenderRole
   ]
 }
 
