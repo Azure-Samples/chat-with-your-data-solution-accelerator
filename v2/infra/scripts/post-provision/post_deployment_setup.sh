@@ -92,6 +92,8 @@ if [ -n "$SERVER_FQDN" ]; then
     export AZURE_POSTGRES_HOST="$SERVER_FQDN"
     export AZURE_POSTGRES_NAME="$SERVER_NAME"
     export AZURE_DB_TYPE="postgresql"
+    # Clear any stale CosmosDB-mode vars from previous runs
+    export AZURE_AI_SEARCH_ENDPOINT=""
     echo "✓ Discovered PostgreSQL: ${SERVER_NAME} (${SERVER_FQDN})"
 
     # --- WAF / Private Networking handling ---

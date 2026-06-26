@@ -345,6 +345,7 @@ var aiModelDeployments = [
       name: embeddingModelDeploymentType
       capacity: embeddingModelCapacity
     }
+    raiPolicyName: 'Microsoft.DefaultV2'
   }
 ]
 
@@ -644,32 +645,14 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIPro
     disableLocalAuth: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
-    roleAssignments: [
-      {
-        principalId: userAssignedIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        // Cognitive Services OpenAI User
-        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-      }
-      {
-        principalId: userAssignedIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        // Cognitive Services User — Document Intelligence data-plane access
-        roleDefinitionIdOrName: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-      }
-      {
-        principalId: userAssignedIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        // Azure AI User (Foundry Project data-plane)
-        roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
-      }
-    ]
+    roleAssignments: []
     privateEndpoints: []
   }
 }
 
 // ========== AI outputs (ternary: existing vs new) ========== //
 var aiFoundryEndpoint = useExistingAIProject ? existingAIProject!.outputs.endpoint : aiProject!.outputs.endpoint
+var aiCognitiveServicesEndpoint = useExistingAIProject ? existingAIProject!.outputs.cognitiveServicesEndpoint : aiProject!.outputs.cognitiveServicesEndpoint
 var projectEndpoint = useExistingAIProject ? existingAIProject!.outputs.projectEndpoint : aiProject!.outputs.projectEndpoint
 var aiFoundryResourceId = useExistingAIProject ? existingAIProject!.outputs.resourceId : aiProject!.outputs.resourceId
 var aiProjectPrincipalId = useExistingAIProject ? existingAIProject!.outputs.projectIdentityPrincipalId : aiProject!.outputs.projectIdentityPrincipalId
@@ -1209,7 +1192,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_ENVIRONMENT', value: 'production' }
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
             { name: 'AZURE_OPENAI_ENDPOINT', value: aiFoundryEndpoint }
-            { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiFoundryEndpoint }
+            { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiCognitiveServicesEndpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
@@ -1328,7 +1311,7 @@ module functionApp './modules/compute/function-app.bicep' = {
         { name: 'AZURE_ENVIRONMENT', value: 'production' }
         { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
         { name: 'AZURE_OPENAI_ENDPOINT', value: aiFoundryEndpoint }
-        { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiFoundryEndpoint }
+        { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiCognitiveServicesEndpoint }
         { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
         { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
         { name: 'AZURE_DB_TYPE', value: databaseType }
@@ -1455,6 +1438,27 @@ var systemAssignedRoleAssignments = union(
       roleDefinitionId: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
       principalType: 'ServicePrincipal'
     }
+    {
+      principalId: userAssignedIdentity.outputs.principalId
+      resourceId: aiFoundryResourceId
+      roleName: 'Cognitive Services OpenAI User'
+      roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+      principalType: 'ServicePrincipal'
+    }
+    {
+      principalId: userAssignedIdentity.outputs.principalId
+      resourceId: aiFoundryResourceId
+      roleName: 'Cognitive Services User'
+      roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+      principalType: 'ServicePrincipal'
+    }
+    {
+      principalId: userAssignedIdentity.outputs.principalId
+      resourceId: aiFoundryResourceId
+      roleName: 'Azure AI User'
+      roleDefinitionId: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+      principalType: 'ServicePrincipal'
+    }
   ]
 )
 
@@ -1506,8 +1510,8 @@ output AZURE_INDEX_STORE string = indexStoreValue
 
 // --- Foundry substrate ---
 
-@description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
-output AZURE_AI_SERVICES_ENDPOINT string = aiFoundryEndpoint
+@description('Unified AI Services (Cognitive Services) endpoint. Used by Document Intelligence and other non-OpenAI AI Services APIs.')
+output AZURE_AI_SERVICES_ENDPOINT string = aiCognitiveServicesEndpoint
 
 @description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
 output AZURE_OPENAI_ENDPOINT string = aiFoundryEndpoint

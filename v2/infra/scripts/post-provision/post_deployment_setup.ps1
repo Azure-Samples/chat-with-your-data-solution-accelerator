@@ -112,6 +112,8 @@ try {
         $env:AZURE_POSTGRES_HOST = $ServerFqdn
         $env:AZURE_POSTGRES_NAME = $ServerName
         $env:AZURE_DB_TYPE = "postgresql"
+        # Clear any stale CosmosDB-mode vars from previous runs
+        $env:AZURE_AI_SEARCH_ENDPOINT = ""
         Write-Host "[OK] Discovered PostgreSQL: $ServerName ($ServerFqdn)"
 
         # --- WAF / Private Networking handling ---

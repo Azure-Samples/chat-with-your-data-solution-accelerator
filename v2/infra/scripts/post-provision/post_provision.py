@@ -587,8 +587,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(f"post-provision: AZURE_DB_TYPE={db_type!r}; skipping postgres setup")
 
-    _ensure_search_index(dry_run=args.dry_run)
-    _ensure_knowledge_base(dry_run=args.dry_run)
+    # AI Search index + Foundry IQ knowledge base are only relevant in
+    # cosmosdb mode (PostgreSQL mode uses pgvector for vector indexing).
+    if db_type != "postgresql":
+        _ensure_search_index(dry_run=args.dry_run)
+        _ensure_knowledge_base(dry_run=args.dry_run)
+    else:
+        print("post-provision: PostgreSQL mode; skipping search index & knowledge base")
 
     _print_summary()
     return 0
