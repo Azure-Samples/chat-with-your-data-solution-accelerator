@@ -16,11 +16,11 @@ param tags object = {}
 @description('Resource ID of the App Service Plan.')
 param serverFarmResourceId string
 
-@description('Resource ID of the storage account for function app.')
-param storageAccountResourceId string
-
 @description('Name of the storage account.')
 param storageAccountName string
+
+@description('Client ID of the user-assigned managed identity used for identity-based AzureWebJobsStorage access.')
+param userAssignedIdentityClientId string = ''
 
 @description('Optional. Managed identity configuration for the resource.')
 param identity object = { type: 'SystemAssigned' }
@@ -37,18 +37,36 @@ param runtimeStack string = 'python'
 @description('Runtime version.')
 param runtimeVersion string = '3.11'
 
+@description('Resource kind for the site. Use functionapp,linux for code/zip or functionapp,linux,container for a container image.')
+param kind string = 'functionapp,linux'
+
+@description('Optional. Full docker image reference (registry/repo:tag) for container-hosted function apps. When set, the app runs from this image instead of a code/zip package.')
+param dockerFullImageName string = ''
+
 // ============================================================================
 // Variables
 // ===========================================================================
-var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${listKeys(storageAccountResourceId, '2023-05-01').keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
-var linuxFxVersion = '${toUpper(runtimeStack)}|${runtimeVersion}'
+var useDocker = !empty(dockerFullImageName)
+var linuxFxVersion = useDocker ? 'DOCKER|${dockerFullImageName}' : '${toUpper(runtimeStack)}|${runtimeVersion}'
 
-var baseSettings = [
-  { name: 'AzureWebJobsStorage', value: storageConnectionString }
-  { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
-  { name: 'FUNCTIONS_WORKER_RUNTIME', value: toLower(runtimeStack) }
-  { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
-]
+// Identity-based AzureWebJobsStorage (no account keys): the host authenticates to
+// the storage account with the user-assigned managed identity. Code/zip-only
+// settings (worker runtime + run-from-package) are dropped in container mode:
+// the image provides the runtime and there is no zip package.
+var baseSettings = concat(
+  [
+    { name: 'AzureWebJobsStorage__accountName', value: storageAccountName }
+    { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
+    { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentityClientId }
+    { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+  ],
+  useDocker
+    ? []
+    : [
+        { name: 'FUNCTIONS_WORKER_RUNTIME', value: toLower(runtimeStack) }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
+      ]
+)
 
 var mergedSettings = concat(baseSettings, appSettings)
 
@@ -68,7 +86,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: name
   location: location
   tags: tags
-  kind: 'functionapp,linux'
+  kind: kind
   identity: identity
   properties: {
     serverFarmId: serverFarmResourceId

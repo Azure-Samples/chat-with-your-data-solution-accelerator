@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.43.8.12551",
-      "templateHash": "1314565015989423522"
+      "templateHash": "13606383098972388250"
     }
   },
   "parameters": {
@@ -338,9 +338,7 @@
       "acrPull": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
     },
     "cosmosDataContributorRoleId": "00000000-0000-0000-0000-000000000002",
-    "uamiName": "[format('id-{0}', variables('solutionSuffix'))]",
     "aiFoundryName": "[format('aif-{0}', variables('solutionSuffix'))]",
-    "aiFoundryProjectName": "[format('proj-{0}', variables('solutionSuffix'))]",
     "aiSearchName": "[format('srch-{0}', variables('solutionSuffix'))]",
     "storageName": "[take(format('st{0}', variables('solutionSuffix')), 24)]",
     "containerRegistryName": "[format('cr{0}', variables('solutionSuffix'))]",
@@ -349,47 +347,7 @@
     "speechServiceName": "[format('spch-{0}', variables('solutionSuffix'))]",
     "contentSafetyServiceName": "[format('cs-{0}', variables('solutionSuffix'))]",
     "functionName": "[format('func-{0}', variables('solutionSuffix'))]",
-    "uamiFoundryRoleIds": [
-      "[variables('roleIds').cognitiveServicesOpenAIUser]",
-      "[variables('roleIds').cognitiveServicesUser]",
-      "[variables('roleIds').azureAiUser]"
-    ],
-    "uamiStorageRoleIds": [
-      "[variables('roleIds').storageBlobDataContributor]",
-      "[variables('roleIds').storageQueueDataContributor]",
-      "[variables('roleIds').storageAccountContributor]"
-    ],
-    "functionStorageRoleIds": [
-      "[variables('roleIds').storageBlobDataOwner]",
-      "[variables('roleIds').storageQueueDataContributor]",
-      "[variables('roleIds').storageAccountContributor]"
-    ],
-    "uamiSearchRoleIds": [
-      "[variables('roleIds').searchIndexDataContributor]",
-      "[variables('roleIds').searchServiceContributor]"
-    ],
-    "projectSearchRoleIds": [
-      "[variables('roleIds').searchIndexDataReader]",
-      "[variables('roleIds').searchIndexDataContributor]",
-      "[variables('roleIds').searchServiceContributor]"
-    ],
-    "accountSearchRoleIds": [
-      "[variables('roleIds').searchIndexDataContributor]",
-      "[variables('roleIds').searchIndexDataReader]",
-      "[variables('roleIds').searchServiceContributor]"
-    ],
-    "searchFoundryRoleIds": [
-      "[variables('roleIds').cognitiveServicesUser]",
-      "[variables('roleIds').cognitiveServicesOpenAIUser]"
-    ],
-    "deployerFoundryRoleIds": [
-      "[variables('roleIds').cognitiveServicesUser]",
-      "[variables('roleIds').azureAiUser]"
-    ],
-    "deployerSearchRoleIds": [
-      "[variables('roleIds').searchIndexDataContributor]",
-      "[variables('roleIds').searchServiceContributor]"
-    ]
+    "functionAppName": "[if(equals(parameters('hostingModel'), 'container'), format('{0}-docker', variables('functionName')), variables('functionName'))]"
   },
   "resources": {
     "resourceGroupTags": {
@@ -408,387 +366,6 @@
       "subscriptionId": "[split(parameters('existingLogAnalyticsWorkspaceId'), '/')[2]]",
       "resourceGroup": "[split(parameters('existingLogAnalyticsWorkspaceId'), '/')[4]]",
       "name": "[split(parameters('existingLogAnalyticsWorkspaceId'), '/')[8]]"
-    },
-    "storageAccountResource": {
-      "existing": true,
-      "type": "Microsoft.Storage/storageAccounts",
-      "apiVersion": "2025-08-01",
-      "name": "[variables('storageName')]"
-    },
-    "storageQueueService": {
-      "type": "Microsoft.Storage/storageAccounts/queueServices",
-      "apiVersion": "2025-08-01",
-      "name": "[format('{0}/{1}', variables('storageName'), 'default')]",
-      "dependsOn": [
-        "storageAccount"
-      ]
-    },
-    "storageQueues": {
-      "copy": {
-        "name": "storageQueues",
-        "count": "[length(variables('storageQueueNames'))]"
-      },
-      "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
-      "apiVersion": "2025-08-01",
-      "name": "[format('{0}/{1}/{2}', variables('storageName'), 'default', variables('storageQueueNames')[copyIndex()])]",
-      "dependsOn": [
-        "storageQueueService"
-      ]
-    },
-    "uamiResource": {
-      "existing": true,
-      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-      "apiVersion": "2023-01-31",
-      "name": "[variables('uamiName')]"
-    },
-    "aiFoundryAccountResource": {
-      "existing": true,
-      "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2025-12-01",
-      "name": "[variables('aiFoundryName')]"
-    },
-    "aiFoundryProjectResource": {
-      "existing": true,
-      "type": "Microsoft.CognitiveServices/accounts/projects",
-      "apiVersion": "2025-12-01",
-      "name": "[format('{0}/{1}', variables('aiFoundryName'), variables('aiFoundryProjectName'))]"
-    },
-    "speechServiceResource": {
-      "existing": true,
-      "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2025-12-01",
-      "name": "[variables('speechServiceName')]"
-    },
-    "contentSafetyResource": {
-      "existing": true,
-      "type": "Microsoft.CognitiveServices/accounts",
-      "apiVersion": "2025-12-01",
-      "name": "[variables('contentSafetyServiceName')]"
-    },
-    "searchServiceResource": {
-      "condition": "[variables('isCosmos')]",
-      "existing": true,
-      "type": "Microsoft.Search/searchServices",
-      "apiVersion": "2025-05-01",
-      "name": "[variables('aiSearchName')]"
-    },
-    "containerRegistryResource": {
-      "existing": true,
-      "type": "Microsoft.ContainerRegistry/registries",
-      "apiVersion": "2025-04-01",
-      "name": "[variables('containerRegistryName')]"
-    },
-    "functionAppResource": {
-      "existing": true,
-      "type": "Microsoft.Web/sites",
-      "apiVersion": "2024-04-01",
-      "name": "[variables('functionName')]"
-    },
-    "uamiFoundryRoleAssignments": {
-      "copy": {
-        "name": "uamiFoundryRoleAssignments",
-        "count": "[length(variables('uamiFoundryRoleIds'))]"
-      },
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('uamiFoundryRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('uamiFoundryRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiProject",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "uamiSpeechRoleAssignment": {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('speechServiceName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('speechServiceName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('roleIds').cognitiveServicesSpeechUser)]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').cognitiveServicesSpeechUser)]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "speechService",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "uamiContentSafetyRoleAssignment": {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyServiceName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('contentSafetyServiceName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('roleIds').cognitiveServicesUser)]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').cognitiveServicesUser)]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "contentSafety",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "uamiAcrPullRoleAssignment": {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName'))]",
-      "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', variables('containerRegistryName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('roleIds').acrPull)]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').acrPull)]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "containerRegistry",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "uamiStorageRoleAssignments": {
-      "copy": {
-        "name": "uamiStorageRoleAssignments",
-        "count": "[length(variables('uamiStorageRoleIds'))]"
-      },
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('uamiStorageRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('uamiStorageRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "storageAccount",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "projectStorageRoleAssignment": {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiFoundryName'), variables('aiFoundryProjectName')), variables('roleIds').storageBlobDataContributor)]",
-      "properties": {
-        "principalId": "[reference('aiFoundryProjectResource', '2025-12-01', 'full').identity.principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').storageBlobDataContributor)]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiFoundryProjectResource",
-        "aiProject",
-        "storageAccount"
-      ]
-    },
-    "functionStorageRoleAssignments": {
-      "copy": {
-        "name": "functionStorageRoleAssignments",
-        "count": "[length(variables('functionStorageRoleIds'))]"
-      },
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), resourceId('Microsoft.Web/sites', variables('functionName')), variables('functionStorageRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('functionAppResource', '2024-04-01', 'full').identity.principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('functionStorageRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "functionApp",
-        "functionAppResource",
-        "storageAccount"
-      ]
-    },
-    "uamiSearchRoleAssignments": {
-      "copy": {
-        "name": "uamiSearchRoleAssignments",
-        "count": "[length(variables('uamiSearchRoleIds'))]"
-      },
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
-      "name": "[guid(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('uamiSearchRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('uamiSearchRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiSearch",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "projectSearchRoleAssignments": {
-      "copy": {
-        "name": "projectSearchRoleAssignments",
-        "count": "[length(variables('projectSearchRoleIds'))]"
-      },
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
-      "name": "[guid(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), resourceId('Microsoft.CognitiveServices/accounts/projects', variables('aiFoundryName'), variables('aiFoundryProjectName')), variables('projectSearchRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('aiFoundryProjectResource', '2025-12-01', 'full').identity.principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('projectSearchRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiFoundryProjectResource",
-        "aiProject",
-        "aiSearch"
-      ]
-    },
-    "accountSearchRoleAssignments": {
-      "copy": {
-        "name": "accountSearchRoleAssignments",
-        "count": "[length(variables('accountSearchRoleIds'))]"
-      },
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
-      "name": "[guid(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName')), variables('accountSearchRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('aiFoundryAccountResource', '2025-12-01', 'full').identity.principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('accountSearchRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiFoundryAccountResource",
-        "aiProject",
-        "aiSearch"
-      ]
-    },
-    "searchStorageRoleAssignment": {
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), variables('roleIds').storageBlobDataContributor)]",
-      "properties": {
-        "principalId": "[reference('searchServiceResource', '2025-05-01', 'full').identity.principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').storageBlobDataContributor)]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiSearch",
-        "searchServiceResource",
-        "storageAccount"
-      ]
-    },
-    "searchFoundryRoleAssignments": {
-      "copy": {
-        "name": "searchFoundryRoleAssignments",
-        "count": "[length(variables('searchFoundryRoleIds'))]"
-      },
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName')), resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), variables('searchFoundryRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[reference('searchServiceResource', '2025-05-01', 'full').identity.principalId]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('searchFoundryRoleIds')[copyIndex()])]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "aiProject",
-        "aiSearch",
-        "searchServiceResource"
-      ]
-    },
-    "cosmosAccountResource": {
-      "condition": "[variables('isCosmos')]",
-      "existing": true,
-      "type": "Microsoft.DocumentDB/databaseAccounts",
-      "apiVersion": "2025-10-15",
-      "name": "[variables('cosmosDbName')]"
-    },
-    "cosmosDataContributorRoleDefinition": {
-      "condition": "[variables('isCosmos')]",
-      "existing": true,
-      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions",
-      "apiVersion": "2025-10-15",
-      "name": "[format('{0}/{1}', variables('cosmosDbName'), variables('cosmosDataContributorRoleId'))]"
-    },
-    "uamiCosmosSqlRoleAssignment": {
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
-      "apiVersion": "2025-10-15",
-      "name": "[format('{0}/{1}', variables('cosmosDbName'), guid(variables('cosmosDbName'), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('uamiName')), variables('cosmosDataContributorRoleId')))]",
-      "properties": {
-        "principalId": "[reference('uamiResource').principalId]",
-        "roleDefinitionId": "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', variables('cosmosDbName'), variables('cosmosDataContributorRoleId'))]",
-        "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('cosmosDbName'))]"
-      },
-      "dependsOn": [
-        "cosmosDb",
-        "uamiResource",
-        "userAssignedIdentity"
-      ]
-    },
-    "deployerFoundryRoleAssignments": {
-      "copy": {
-        "name": "deployerFoundryRoleAssignments",
-        "count": "[length(variables('deployerFoundryRoleIds'))]"
-      },
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName'))]",
-      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', variables('aiFoundryName')), variables('deployingUserPrincipalId'), variables('deployerFoundryRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[variables('deployingUserPrincipalId')]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('deployerFoundryRoleIds')[copyIndex()])]",
-        "principalType": "[parameters('deployingUserPrincipalType')]"
-      },
-      "dependsOn": [
-        "aiProject"
-      ]
-    },
-    "deployerSearchRoleAssignments": {
-      "copy": {
-        "name": "deployerSearchRoleAssignments",
-        "count": "[length(variables('deployerSearchRoleIds'))]"
-      },
-      "condition": "[variables('isCosmos')]",
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Search/searchServices', variables('aiSearchName'))]",
-      "name": "[guid(resourceId('Microsoft.Search/searchServices', variables('aiSearchName')), variables('deployingUserPrincipalId'), variables('deployerSearchRoleIds')[copyIndex()])]",
-      "properties": {
-        "principalId": "[variables('deployingUserPrincipalId')]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('deployerSearchRoleIds')[copyIndex()])]",
-        "principalType": "[parameters('deployingUserPrincipalType')]"
-      },
-      "dependsOn": [
-        "aiSearch"
-      ]
-    },
-    "deployerStorageRoleAssignment": {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2022-04-01",
-      "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]",
-      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('storageName')), variables('deployingUserPrincipalId'), variables('roleIds').storageBlobDataContributor)]",
-      "properties": {
-        "principalId": "[variables('deployingUserPrincipalId')]",
-        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('roleIds').storageBlobDataContributor)]",
-        "principalType": "[parameters('deployingUserPrincipalType')]"
-      },
-      "dependsOn": [
-        "storageAccount"
-      ]
     },
     "userAssignedIdentity": {
       "type": "Microsoft.Resources/deployments",
@@ -2554,7 +2131,7 @@
             "value": false
           },
           "allowSharedKeyAccess": {
-            "value": true
+            "value": false
           },
           "containers": {
             "value": [
@@ -2571,6 +2148,9 @@
                 "publicAccess": "None"
               }
             ]
+          },
+          "queues": {
+            "value": "[variables('storageQueueNames')]"
           }
         },
         "template": {
@@ -2580,7 +2160,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "6675847713889307044"
+              "templateHash": "2468142010748627117"
             }
           },
           "parameters": {
@@ -2668,6 +2248,13 @@
                 "description": "Blob containers to create."
               }
             },
+            "queues": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Storage queues to create (names). Empty = no queue service."
+              }
+            },
             "identity": {
               "type": "object",
               "defaultValue": {
@@ -2732,6 +2319,27 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('name'), 'default')]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('queues')))]",
+              "type": "Microsoft.Storage/storageAccounts/queueServices",
+              "apiVersion": "2025-08-01",
+              "name": "[format('{0}/{1}', parameters('name'), 'default')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('name'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "storageQueues",
+                "count": "[length(parameters('queues'))]"
+              },
+              "type": "Microsoft.Storage/storageAccounts/queueServices/queues",
+              "apiVersion": "2025-08-01",
+              "name": "[format('{0}/{1}/{2}', parameters('name'), 'default', parameters('queues')[copyIndex()])]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/queueServices', parameters('name'), 'default')]"
               ]
             }
           ],
@@ -4308,7 +3916,7 @@
         "mode": "Incremental",
         "parameters": {
           "name": {
-            "value": "[variables('functionName')]"
+            "value": "[variables('functionAppName')]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -4316,14 +3924,16 @@
           "tags": {
             "value": "[union(variables('allTags'), createObject('azd-service-name', 'function'))]"
           },
+          "kind": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', 'functionapp,linux,container'), createObject('value', 'functionapp,linux'))]",
+          "dockerFullImageName": "[if(equals(parameters('hostingModel'), 'container'), createObject('value', format('{0}/rag-functions:{1}', parameters('containerRegistryEndpoint'), parameters('imageTag'))), createObject('value', ''))]",
           "serverFarmResourceId": {
             "value": "[reference('appServicePlan').outputs.resourceId.value]"
           },
-          "storageAccountResourceId": {
-            "value": "[reference('storageAccount').outputs.resourceId.value]"
-          },
           "storageAccountName": {
             "value": "[reference('storageAccount').outputs.name.value]"
+          },
+          "userAssignedIdentityClientId": {
+            "value": "[reference('userAssignedIdentity').outputs.clientId.value]"
           },
           "identity": {
             "value": {
@@ -4350,7 +3960,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "13541504491126740665"
+              "templateHash": "832226698149738306"
             }
           },
           "parameters": {
@@ -4379,16 +3989,17 @@
                 "description": "Resource ID of the App Service Plan."
               }
             },
-            "storageAccountResourceId": {
-              "type": "string",
-              "metadata": {
-                "description": "Resource ID of the storage account for function app."
-              }
-            },
             "storageAccountName": {
               "type": "string",
               "metadata": {
                 "description": "Name of the storage account."
+              }
+            },
+            "userAssignedIdentityClientId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Client ID of the user-assigned managed identity used for identity-based AzureWebJobsStorage access."
               }
             },
             "identity": {
@@ -4427,10 +4038,34 @@
               "metadata": {
                 "description": "Runtime version."
               }
+            },
+            "kind": {
+              "type": "string",
+              "defaultValue": "functionapp,linux",
+              "metadata": {
+                "description": "Resource kind for the site. Use functionapp,linux for code/zip or functionapp,linux,container for a container image."
+              }
+            },
+            "dockerFullImageName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional. Full docker image reference (registry/repo:tag) for container-hosted function apps. When set, the app runs from this image instead of a code/zip package."
+              }
             }
           },
           "variables": {
-            "linuxFxVersion": "[format('{0}|{1}', toUpper(parameters('runtimeStack')), parameters('runtimeVersion'))]"
+            "useDocker": "[not(empty(parameters('dockerFullImageName')))]",
+            "linuxFxVersion": "[if(variables('useDocker'), format('DOCKER|{0}', parameters('dockerFullImageName')), format('{0}|{1}', toUpper(parameters('runtimeStack')), parameters('runtimeVersion')))]",
+            "baseSettings": "[concat(createArray(createObject('name', 'AzureWebJobsStorage__accountName', 'value', parameters('storageAccountName')), createObject('name', 'AzureWebJobsStorage__credential', 'value', 'managedidentity'), createObject('name', 'AzureWebJobsStorage__clientId', 'value', parameters('userAssignedIdentityClientId')), createObject('name', 'FUNCTIONS_EXTENSION_VERSION', 'value', '~4')), if(variables('useDocker'), createArray(), createArray(createObject('name', 'FUNCTIONS_WORKER_RUNTIME', 'value', toLower(parameters('runtimeStack'))), createObject('name', 'WEBSITE_RUN_FROM_PACKAGE', 'value', '1'))))]",
+            "mergedSettings": "[concat(variables('baseSettings'), parameters('appSettings'))]",
+            "defaultSiteConfig": {
+              "linuxFxVersion": "[variables('linuxFxVersion')]",
+              "ftpsState": "Disabled",
+              "minTlsVersion": "1.2",
+              "appSettings": "[variables('mergedSettings')]"
+            },
+            "effectiveSiteConfig": "[union(variables('defaultSiteConfig'), parameters('siteConfig'))]"
           },
           "resources": [
             {
@@ -4439,11 +4074,11 @@
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
-              "kind": "functionapp,linux",
+              "kind": "[parameters('kind')]",
               "identity": "[parameters('identity')]",
               "properties": {
                 "serverFarmId": "[parameters('serverFarmResourceId')]",
-                "siteConfig": "[union(createObject('linuxFxVersion', variables('linuxFxVersion'), 'ftpsState', 'Disabled', 'minTlsVersion', '1.2', 'appSettings', concat(createArray(createObject('name', 'AzureWebJobsStorage', 'value', format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys(parameters('storageAccountResourceId'), '2023-05-01').keys[0].value, environment().suffixes.storage)), createObject('name', 'FUNCTIONS_EXTENSION_VERSION', 'value', '~4'), createObject('name', 'FUNCTIONS_WORKER_RUNTIME', 'value', toLower(parameters('runtimeStack'))), createObject('name', 'WEBSITE_RUN_FROM_PACKAGE', 'value', '1')), parameters('appSettings'))), parameters('siteConfig'))]",
+                "siteConfig": "[variables('effectiveSiteConfig')]",
                 "httpsOnly": true
               }
             }
@@ -4516,15 +4151,28 @@
           "topicType": {
             "value": "Microsoft.Storage.StorageAccounts"
           },
+          "identity": {
+            "value": {
+              "type": "SystemAssigned"
+            }
+          },
+          "storageAccountName": {
+            "value": "[reference('storageAccount').outputs.name.value]"
+          },
           "eventSubscriptions": {
             "value": [
               {
                 "name": "blob-created-to-blob-events",
-                "destination": {
-                  "endpointType": "StorageQueue",
-                  "properties": {
-                    "resourceId": "[reference('storageAccount').outputs.resourceId.value]",
-                    "queueName": "[variables('blobEventsQueueName')]"
+                "deliveryWithResourceIdentity": {
+                  "identity": {
+                    "type": "SystemAssigned"
+                  },
+                  "destination": {
+                    "endpointType": "StorageQueue",
+                    "properties": {
+                      "resourceId": "[reference('storageAccount').outputs.resourceId.value]",
+                      "queueName": "[variables('blobEventsQueueName')]"
+                    }
                   }
                 },
                 "filter": {
@@ -4551,7 +4199,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.43.8.12551",
-              "templateHash": "2216613792018639479"
+              "templateHash": "17266479511572207397"
             }
           },
           "parameters": {
@@ -4608,6 +4256,13 @@
               "metadata": {
                 "description": "Optional. Managed identity configuration for the resource."
               }
+            },
+            "storageAccountName": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Name of the storage account used to scope the Storage Queue Data Message Sender role assignment. Required when eventSubscriptions use identity-based (deliveryWithResourceIdentity) delivery."
+              }
             }
           },
           "resources": [
@@ -4624,6 +4279,21 @@
               }
             },
             {
+              "condition": "[and(not(empty(parameters('storageAccountName'))), not(empty(parameters('eventSubscriptions'))))]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')]",
+              "properties": {
+                "principalId": "[reference(resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), '2025-07-15-preview', 'full').identity.principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.EventGrid/systemTopics', parameters('name'))]"
+              ]
+            },
+            {
               "copy": {
                 "name": "systemTopicSubscriptions",
                 "count": "[length(parameters('eventSubscriptions'))]"
@@ -4631,13 +4301,9 @@
               "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
               "apiVersion": "2025-07-15-preview",
               "name": "[format('{0}/{1}', parameters('name'), parameters('eventSubscriptions')[copyIndex()].name)]",
-              "properties": {
-                "destination": "[parameters('eventSubscriptions')[copyIndex()].destination]",
-                "filter": "[coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'filter'), createObject())]",
-                "eventDeliverySchema": "[coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'eventDeliverySchema'), 'EventGridSchema')]",
-                "retryPolicy": "[coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'retryPolicy'), createObject('maxDeliveryAttempts', 30, 'eventTimeToLiveInMinutes', 1440))]"
-              },
+              "properties": "[union(createObject('filter', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'filter'), createObject()), 'eventDeliverySchema', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'eventDeliverySchema'), 'EventGridSchema'), 'retryPolicy', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'retryPolicy'), createObject('maxDeliveryAttempts', 30, 'eventTimeToLiveInMinutes', 1440))), if(not(equals(tryGet(parameters('eventSubscriptions')[copyIndex()], 'deliveryWithResourceIdentity'), null())), createObject('deliveryWithResourceIdentity', parameters('eventSubscriptions')[copyIndex()].deliveryWithResourceIdentity), createObject('destination', parameters('eventSubscriptions')[copyIndex()].destination)))]",
               "dependsOn": [
+                "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'))]",
                 "[resourceId('Microsoft.EventGrid/systemTopics', parameters('name'))]"
               ]
             }
@@ -4662,14 +4328,312 @@
               "metadata": {
                 "description": "System-assigned principal ID (if enabled)."
               },
-              "value": "[if(coalesce(tryGet(parameters('identity'), 'systemAssigned'), false()), reference(resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), '2025-07-15-preview', 'full').identity.principalId, '')]"
+              "value": "[if(and(contains(parameters('identity'), 'type'), contains(parameters('identity').type, 'SystemAssigned')), reference(resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), '2025-07-15-preview', 'full').identity.principalId, '')]"
             }
           }
         }
       },
       "dependsOn": [
-        "storageAccount",
-        "storageQueues"
+        "storageAccount"
+      ]
+    },
+    "roleAssignments": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[take(format('module.role-assignments.{0}', parameters('solutionName')), 64)]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "isCosmos": {
+            "value": "[variables('isCosmos')]"
+          },
+          "aiFoundryName": {
+            "value": "[variables('aiFoundryName')]"
+          },
+          "speechServiceName": {
+            "value": "[variables('speechServiceName')]"
+          },
+          "contentSafetyServiceName": {
+            "value": "[variables('contentSafetyServiceName')]"
+          },
+          "containerRegistryName": {
+            "value": "[variables('containerRegistryName')]"
+          },
+          "storageName": {
+            "value": "[variables('storageName')]"
+          },
+          "aiSearchName": {
+            "value": "[variables('aiSearchName')]"
+          },
+          "cosmosDbName": {
+            "value": "[variables('cosmosDbName')]"
+          },
+          "foundryRoleAssignments": {
+            "value": "[union(createArray(createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser), createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').azureAiUser), createObject('principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').azureAiUser)), if(variables('isCosmos'), createArray(createObject('principalId', if(variables('isCosmos'), reference('aiSearch').outputs.identityPrincipalId.value, ''), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', if(variables('isCosmos'), reference('aiSearch').outputs.identityPrincipalId.value, ''), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser)), createArray()))]"
+          },
+          "speechRoleAssignments": {
+            "value": [
+              {
+                "principalId": "[reference('userAssignedIdentity').outputs.principalId.value]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[variables('roleIds').cognitiveServicesSpeechUser]"
+              }
+            ]
+          },
+          "contentSafetyRoleAssignments": {
+            "value": [
+              {
+                "principalId": "[reference('userAssignedIdentity').outputs.principalId.value]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[variables('roleIds').cognitiveServicesUser]"
+              }
+            ]
+          },
+          "registryRoleAssignments": {
+            "value": [
+              {
+                "principalId": "[reference('userAssignedIdentity').outputs.principalId.value]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[variables('roleIds').acrPull]"
+              }
+            ]
+          },
+          "storageRoleAssignments": {
+            "value": "[union(createArray(createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor), createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataContributor), createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageAccountContributor), createObject('principalId', reference('aiProject').outputs.projectIdentityPrincipalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor), createObject('principalId', reference('functionApp').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataOwner), createObject('principalId', reference('functionApp').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataContributor), createObject('principalId', reference('functionApp').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageAccountContributor), createObject('principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').storageBlobDataContributor)), if(variables('isCosmos'), createArray(createObject('principalId', if(variables('isCosmos'), reference('aiSearch').outputs.identityPrincipalId.value, ''), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor)), createArray()))]"
+          },
+          "searchRoleAssignments": "[if(variables('isCosmos'), createObject('value', createArray(createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchServiceContributor), createObject('principalId', reference('aiProject').outputs.projectIdentityPrincipalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataReader), createObject('principalId', reference('aiProject').outputs.projectIdentityPrincipalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', reference('aiProject').outputs.projectIdentityPrincipalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchServiceContributor), createObject('principalId', reference('aiProject').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', reference('aiProject').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataReader), createObject('principalId', reference('aiProject').outputs.principalId.value, 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchServiceContributor), createObject('principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', variables('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').searchServiceContributor))), createObject('value', createArray()))]",
+          "cosmosSqlRoleAssignments": "[if(variables('isCosmos'), createObject('value', createArray(createObject('principalId', reference('userAssignedIdentity').outputs.principalId.value, 'roleDefinitionId', variables('cosmosDataContributorRoleId')))), createObject('value', createArray()))]"
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "8740228370286457319"
+            }
+          },
+          "parameters": {
+            "isCosmos": {
+              "type": "bool",
+              "metadata": {
+                "description": "Whether the deployment targets Cosmos DB + AI Search (true) or PostgreSQL (false)."
+              }
+            },
+            "aiFoundryName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the AI Foundry (Cognitive Services) account."
+              }
+            },
+            "speechServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Speech service account."
+              }
+            },
+            "contentSafetyServiceName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Content Safety service account."
+              }
+            },
+            "containerRegistryName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Container Registry."
+              }
+            },
+            "storageName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Storage Account."
+              }
+            },
+            "aiSearchName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the AI Search service (cosmosdb mode only)."
+              }
+            },
+            "cosmosDbName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Cosmos DB account (cosmosdb mode only)."
+              }
+            },
+            "foundryRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Role assignments scoped to the AI Foundry account."
+              }
+            },
+            "speechRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Role assignments scoped to the Speech service."
+              }
+            },
+            "contentSafetyRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Role assignments scoped to the Content Safety service."
+              }
+            },
+            "registryRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Role assignments scoped to the Container Registry."
+              }
+            },
+            "storageRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Role assignments scoped to the Storage Account."
+              }
+            },
+            "searchRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Role assignments scoped to the AI Search service (cosmosdb mode only)."
+              }
+            },
+            "cosmosSqlRoleAssignments": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Cosmos DB SQL data-plane role assignments (cosmosdb mode only). Each item: { principalId, roleDefinitionId (Cosmos SQL role GUID) }."
+              }
+            }
+          },
+          "resources": [
+            {
+              "copy": {
+                "name": "foundryRoles",
+                "count": "[length(parameters('foundryRoleAssignments'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName')), parameters('foundryRoleAssignments')[copyIndex()].principalId, parameters('foundryRoleAssignments')[copyIndex()].roleDefinitionId)]",
+              "properties": {
+                "principalId": "[parameters('foundryRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('foundryRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "principalType": "[parameters('foundryRoleAssignments')[copyIndex()].principalType]"
+              }
+            },
+            {
+              "copy": {
+                "name": "speechRoles",
+                "count": "[length(parameters('speechRoleAssignments'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('speechServiceName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('speechServiceName')), parameters('speechRoleAssignments')[copyIndex()].principalId, parameters('speechRoleAssignments')[copyIndex()].roleDefinitionId)]",
+              "properties": {
+                "principalId": "[parameters('speechRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('speechRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "principalType": "[parameters('speechRoleAssignments')[copyIndex()].principalType]"
+              }
+            },
+            {
+              "copy": {
+                "name": "contentSafetyRoles",
+                "count": "[length(parameters('contentSafetyRoleAssignments'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('contentSafetyServiceName'))]",
+              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('contentSafetyServiceName')), parameters('contentSafetyRoleAssignments')[copyIndex()].principalId, parameters('contentSafetyRoleAssignments')[copyIndex()].roleDefinitionId)]",
+              "properties": {
+                "principalId": "[parameters('contentSafetyRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('contentSafetyRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "principalType": "[parameters('contentSafetyRoleAssignments')[copyIndex()].principalType]"
+              }
+            },
+            {
+              "copy": {
+                "name": "registryRoles",
+                "count": "[length(parameters('registryRoleAssignments'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
+              "name": "[guid(resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')), parameters('registryRoleAssignments')[copyIndex()].principalId, parameters('registryRoleAssignments')[copyIndex()].roleDefinitionId)]",
+              "properties": {
+                "principalId": "[parameters('registryRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('registryRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "principalType": "[parameters('registryRoleAssignments')[copyIndex()].principalType]"
+              }
+            },
+            {
+              "copy": {
+                "name": "storageRoles",
+                "count": "[length(parameters('storageRoleAssignments'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageName')), parameters('storageRoleAssignments')[copyIndex()].principalId, parameters('storageRoleAssignments')[copyIndex()].roleDefinitionId)]",
+              "properties": {
+                "principalId": "[parameters('storageRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('storageRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "principalType": "[parameters('storageRoleAssignments')[copyIndex()].principalType]"
+              }
+            },
+            {
+              "copy": {
+                "name": "searchRoles",
+                "count": "[length(parameters('searchRoleAssignments'))]"
+              },
+              "condition": "[parameters('isCosmos')]",
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Search/searchServices', parameters('aiSearchName'))]",
+              "name": "[guid(resourceId('Microsoft.Search/searchServices', parameters('aiSearchName')), parameters('searchRoleAssignments')[copyIndex()].principalId, parameters('searchRoleAssignments')[copyIndex()].roleDefinitionId)]",
+              "properties": {
+                "principalId": "[parameters('searchRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', parameters('searchRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "principalType": "[parameters('searchRoleAssignments')[copyIndex()].principalType]"
+              }
+            },
+            {
+              "copy": {
+                "name": "cosmosSqlRoles",
+                "count": "[length(parameters('cosmosSqlRoleAssignments'))]"
+              },
+              "condition": "[parameters('isCosmos')]",
+              "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
+              "apiVersion": "2025-10-15",
+              "name": "[format('{0}/{1}', parameters('cosmosDbName'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbName')), parameters('cosmosSqlRoleAssignments')[copyIndex()].principalId, parameters('cosmosSqlRoleAssignments')[copyIndex()].roleDefinitionId))]",
+              "properties": {
+                "principalId": "[parameters('cosmosSqlRoleAssignments')[copyIndex()].principalId]",
+                "roleDefinitionId": "[format('{0}/sqlRoleDefinitions/{1}', resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbName')), parameters('cosmosSqlRoleAssignments')[copyIndex()].roleDefinitionId)]",
+                "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbName'))]"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "aiProject",
+        "aiSearch",
+        "containerRegistry",
+        "contentSafety",
+        "functionApp",
+        "speechService",
+        "userAssignedIdentity"
       ]
     }
   },

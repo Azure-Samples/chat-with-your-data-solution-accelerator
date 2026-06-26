@@ -43,6 +43,9 @@ param containers array = [
   }
 ]
 
+@description('Storage queues to create (names). Empty = no queue service.')
+param queues array = []
+
 @description('Optional. Managed identity configuration for the resource.')
 param identity object = { type: 'SystemAssigned' }
 
@@ -91,6 +94,16 @@ resource blobContainers 'Microsoft.Storage/storageAccounts/blobServices/containe
   properties: {
     publicAccess: container.publicAccess
   }
+}]
+
+resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2025-08-01' = if (!empty(queues)) {
+  parent: storageAccount
+  name: 'default'
+}
+
+resource storageQueues 'Microsoft.Storage/storageAccounts/queueServices/queues@2025-08-01' = [for queueName in queues: {
+  parent: queueService
+  name: queueName
 }]
 
 // ============================================================================

@@ -3,7 +3,7 @@
 // Description: Functional twin of ./avm/main.bicep (Foundry-first v2) built from
 //              the local native-resource modules under ./modules/*.
 //              Frontend AND backend run on Azure Container Apps; the Functions
-//              host runs as a code/zip Linux Function App.
+//              host runs as a container image (or code/zip) Linux Function App.
 //              Pure orchestrator: this file calls modules and declares only the
 //              child resources / role assignments the native modules do not own
 //              (storage queues, RBAC, Cosmos data-plane role).
@@ -251,9 +251,7 @@ var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
 // Used by `existing` references whose .id must be calculable at the start of
 // deployment (role assignment / child-resource name + scope cannot depend on a
 // runtime module output). Ordering is enforced with explicit dependsOn.
-var uamiName = 'id-${solutionSuffix}'
 var aiFoundryName = 'aif-${solutionSuffix}'
-var aiFoundryProjectName = 'proj-${solutionSuffix}'
 var aiSearchName = 'srch-${solutionSuffix}'
 var storageName = take('st${solutionSuffix}', 24)
 var containerRegistryName = 'cr${solutionSuffix}'
@@ -417,9 +415,9 @@ module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if
 
 // ============================================================================
 // Module: Storage Account
-// allowSharedKeyAccess=true so the code/zip Function App host can authenticate
-// to AzureWebJobsStorage with the account key (key-based, per the native
-// function-app module).
+// allowSharedKeyAccess=false: all access is identity-based (managed identity).
+// The Function App host authenticates to AzureWebJobsStorage and the Event Grid
+// system topic delivers to the queue via managed identity (no account keys).
 // ============================================================================
 
 module storageAccount './modules/data/storage-account.bicep' = {
@@ -432,37 +430,15 @@ module storageAccount './modules/data/storage-account.bicep' = {
     skuName: 'Standard_LRS'
     accessTier: 'Hot'
     allowBlobPublicAccess: false
-    allowSharedKeyAccess: true
+    allowSharedKeyAccess: false
     containers: [
       { name: documentsContainerName, publicAccess: 'None' }
       { name: 'config', publicAccess: 'None' }
       { name: 'deployment-package', publicAccess: 'None' }
     ]
+    queues: storageQueueNames
   }
 }
-
-// Storage queues — the native storage-account module creates blob containers
-// only, so the v2 ingestion queues are declared here against the deployed
-// account (deterministic existing ref + explicit dependsOn for ordering).
-resource storageAccountResource 'Microsoft.Storage/storageAccounts@2025-08-01' existing = {
-  #disable-next-line BCP334
-  name: storageName
-}
-
-resource storageQueueService 'Microsoft.Storage/storageAccounts/queueServices@2025-08-01' = {
-  parent: storageAccountResource
-  name: 'default'
-  dependsOn: [
-    storageAccount
-  ]
-}
-
-resource storageQueues 'Microsoft.Storage/storageAccounts/queueServices/queues@2025-08-01' = [
-  for queueName in storageQueueNames: {
-    parent: storageQueueService
-    name: queueName
-  }
-]
 
 // ============================================================================
 // Module: Data (chat history + vector store)
@@ -611,7 +587,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
   }
 }
 
-// ========== App Service Plan (hosts the code/zip Function App) ========== //
+// ========== App Service Plan (hosts the Function App) ========== //
 module appServicePlan './modules/compute/app-service-plan.bicep' = {
   name: take('module.app-service-plan.${solutionName}', 64)
   params: {
@@ -667,7 +643,7 @@ module frontendContainerApp './modules/compute/container-app.bicep' = {
   }
 }
 
-// ========== Function App (code/zip, Linux) ========== //
+// ========== Function App (container image or code/zip, Linux) ========== //
 var functionAppSettings = concat(
   [
     { name: 'AZURE_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
@@ -696,15 +672,18 @@ var functionAppSettings = concat(
 )
 
 var functionName = 'func-${solutionSuffix}'
+var functionAppName = hostingModel == 'container' ? '${functionName}-docker' : functionName
 module functionApp './modules/compute/function-app.bicep' = {
   name: take('module.function-app.${solutionName}', 64)
   params: {
-    name: functionName
+    name: functionAppName
     location: location
     tags: union(allTags, { 'azd-service-name': 'function' })
+    kind: hostingModel == 'container' ? 'functionapp,linux,container' : 'functionapp,linux'
+    dockerFullImageName: hostingModel == 'container' ? '${containerRegistryEndpoint}/rag-functions:${imageTag}' : ''
     serverFarmResourceId: appServicePlan.outputs.resourceId
-    storageAccountResourceId: storageAccount.outputs.resourceId
     storageAccountName: storageAccount.outputs.name
+    userAssignedIdentityClientId: userAssignedIdentity.outputs.clientId
     identity: {
       type: 'SystemAssigned, UserAssigned'
       userAssignedIdentities: {
@@ -726,14 +705,21 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
     tags: allTags
     source: storageAccount.outputs.resourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
+    identity: { type: 'SystemAssigned' }
+    storageAccountName: storageAccount.outputs.name
     eventSubscriptions: [
       {
         name: 'blob-created-to-blob-events'
-        destination: {
-          endpointType: 'StorageQueue'
-          properties: {
-            resourceId: storageAccount.outputs.resourceId
-            queueName: blobEventsQueueName
+        deliveryWithResourceIdentity: {
+          identity: {
+            type: 'SystemAssigned'
+          }
+          destination: {
+            endpointType: 'StorageQueue'
+            properties: {
+              resourceId: storageAccount.outputs.resourceId
+              queueName: blobEventsQueueName
+            }
           }
         }
         filter: {
@@ -752,354 +738,113 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
       }
     ]
   }
-  dependsOn: [
-    storageQueues
-  ]
 }
 
 // ============================================================================
-// Role Assignments (native — the local resource modules do not own RBAC).
-// Mirrors avm/main.bicep. Existing references use DETERMINISTIC resource names
-// so the assignment name/scope are calculable at the start of deployment;
-// ordering against the creating modules is enforced with explicit dependsOn.
+// Role Assignments (centralized in modules/identity/role-assignments.bicep).
+// main.bicep builds typed arrays of { principalId, principalType, roleDefinitionId }
+// and the module loops them, scoping each assignment to its target resource.
+// Mirrors the avm flavor's array-driven role-assignments module.
 // ============================================================================
 
-resource uamiResource 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
-  name: uamiName
-}
+var uamiPrincipalId = userAssignedIdentity.outputs.principalId
+var foundryAccountPrincipalId = aiProject.outputs.principalId
+var foundryProjectPrincipalId = aiProject.outputs.projectIdentityPrincipalId
+var functionPrincipalId = functionApp.outputs.principalId
+var searchPrincipalId = isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
 
-resource aiFoundryAccountResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: aiFoundryName
-}
+var foundryRoleAssignmentItems = union(
+  [
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.azureAiUser }
+    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.cognitiveServicesUser }
+    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.azureAiUser }
+  ],
+  isCosmos
+    ? [
+        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
+        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
+      ]
+    : []
+)
 
-resource aiFoundryProjectResource 'Microsoft.CognitiveServices/accounts/projects@2025-12-01' existing = {
-  parent: aiFoundryAccountResource
-  name: aiFoundryProjectName
-}
-
-resource speechServiceResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: speechServiceName
-}
-
-resource contentSafetyResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: contentSafetyServiceName
-}
-
-resource searchServiceResource 'Microsoft.Search/searchServices@2025-05-01' existing = if (isCosmos) {
-  name: aiSearchName
-}
-
-resource containerRegistryResource 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
-  #disable-next-line BCP334
-  name: containerRegistryName
-}
-
-resource functionAppResource 'Microsoft.Web/sites@2024-04-01' existing = {
-  name: functionName
-}
-
-// ----- UAMI -> AI Foundry account -----
-var uamiFoundryRoleIds = [
-  roleIds.cognitiveServicesOpenAIUser
-  roleIds.cognitiveServicesUser
-  roleIds.azureAiUser
+var speechRoleAssignmentItems = [
+  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesSpeechUser }
 ]
-resource uamiFoundryRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in uamiFoundryRoleIds: {
-    name: guid(aiFoundryAccountResource.id, uamiResource.id, roleId)
-    scope: aiFoundryAccountResource
-    properties: {
-      principalId: uamiResource.properties.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      aiProject
-      userAssignedIdentity
+
+var contentSafetyRoleAssignmentItems = [
+  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
+]
+
+var registryRoleAssignmentItems = [
+  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.acrPull }
+]
+
+var storageRoleAssignmentItems = union(
+  [
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
+    { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataOwner }
+    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
+    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
+    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.storageBlobDataContributor }
+  ],
+  isCosmos
+    ? [
+        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+      ]
+    : []
+)
+
+var searchRoleAssignmentItems = isCosmos
+  ? [
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataReader }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
+      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataReader }
+      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
+      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.searchServiceContributor }
     ]
-  }
-]
+  : []
 
-// ----- UAMI -> Speech -----
-resource uamiSpeechRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(speechServiceResource.id, uamiResource.id, roleIds.cognitiveServicesSpeechUser)
-  scope: speechServiceResource
-  properties: {
-    principalId: uamiResource.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.cognitiveServicesSpeechUser)
-    principalType: 'ServicePrincipal'
+var cosmosSqlRoleAssignmentItems = isCosmos
+  ? [
+      { principalId: uamiPrincipalId, roleDefinitionId: cosmosDataContributorRoleId }
+    ]
+  : []
+
+module roleAssignments './modules/identity/role-assignments.bicep' = {
+  name: take('module.role-assignments.${solutionName}', 64)
+  params: {
+    isCosmos: isCosmos
+    aiFoundryName: aiFoundryName
+    speechServiceName: speechServiceName
+    contentSafetyServiceName: contentSafetyServiceName
+    containerRegistryName: containerRegistryName
+    storageName: storageName
+    aiSearchName: aiSearchName
+    cosmosDbName: cosmosDbName
+    foundryRoleAssignments: foundryRoleAssignmentItems
+    speechRoleAssignments: speechRoleAssignmentItems
+    contentSafetyRoleAssignments: contentSafetyRoleAssignmentItems
+    registryRoleAssignments: registryRoleAssignmentItems
+    storageRoleAssignments: storageRoleAssignmentItems
+    searchRoleAssignments: searchRoleAssignmentItems
+    cosmosSqlRoleAssignments: cosmosSqlRoleAssignmentItems
   }
   dependsOn: [
     speechService
-    userAssignedIdentity
-  ]
-}
-
-// ----- UAMI -> Content Safety -----
-resource uamiContentSafetyRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(contentSafetyResource.id, uamiResource.id, roleIds.cognitiveServicesUser)
-  scope: contentSafetyResource
-  properties: {
-    principalId: uamiResource.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.cognitiveServicesUser)
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
     contentSafety
-    userAssignedIdentity
-  ]
-}
-
-// ----- UAMI -> Container Registry (AcrPull) -----
-resource uamiAcrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(containerRegistryResource.id, uamiResource.id, roleIds.acrPull)
-  scope: containerRegistryResource
-  properties: {
-    principalId: uamiResource.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.acrPull)
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
     containerRegistry
-    userAssignedIdentity
   ]
 }
-
-// ----- UAMI -> Storage -----
-var uamiStorageRoleIds = [
-  roleIds.storageBlobDataContributor
-  roleIds.storageQueueDataContributor
-  roleIds.storageAccountContributor
-]
-resource uamiStorageRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in uamiStorageRoleIds: {
-    name: guid(storageAccountResource.id, uamiResource.id, roleId)
-    scope: storageAccountResource
-    properties: {
-      principalId: uamiResource.properties.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      storageAccount
-      userAssignedIdentity
-    ]
-  }
-]
-
-// ----- AI Project (project identity) -> Storage Blob Data Contributor -----
-resource projectStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountResource.id, aiFoundryProjectResource.id, roleIds.storageBlobDataContributor)
-  scope: storageAccountResource
-  properties: {
-    principalId: aiFoundryProjectResource.identity.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.storageBlobDataContributor)
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    storageAccount
-    aiProject
-  ]
-}
-
-// ----- Function App (system identity) -> Storage (host lock + queue triggers) -----
-var functionStorageRoleIds = [
-  roleIds.storageBlobDataOwner
-  roleIds.storageQueueDataContributor
-  roleIds.storageAccountContributor
-]
-resource functionStorageRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in functionStorageRoleIds: {
-    name: guid(storageAccountResource.id, functionAppResource.id, roleId)
-    scope: storageAccountResource
-    properties: {
-      principalId: functionAppResource.identity.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      storageAccount
-      functionApp
-    ]
-  }
-]
-
-// ----- UAMI -> AI Search (cosmosdb mode) -----
-var uamiSearchRoleIds = [
-  roleIds.searchIndexDataContributor
-  roleIds.searchServiceContributor
-]
-resource uamiSearchRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in uamiSearchRoleIds: if (isCosmos) {
-    name: guid(searchServiceResource.id, uamiResource.id, roleId)
-    scope: searchServiceResource
-    properties: {
-      principalId: uamiResource.properties.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      aiSearch
-      userAssignedIdentity
-    ]
-  }
-]
-
-// ----- AI Project (project identity) -> AI Search (cosmosdb mode) -----
-var projectSearchRoleIds = [
-  roleIds.searchIndexDataReader
-  roleIds.searchIndexDataContributor
-  roleIds.searchServiceContributor
-]
-resource projectSearchRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in projectSearchRoleIds: if (isCosmos) {
-    name: guid(searchServiceResource.id, aiFoundryProjectResource.id, roleId)
-    scope: searchServiceResource
-    properties: {
-      principalId: aiFoundryProjectResource.identity.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      aiSearch
-      aiProject
-    ]
-  }
-]
-
-// ----- AI Services account identity -> AI Search (cosmosdb mode) -----
-var accountSearchRoleIds = [
-  roleIds.searchIndexDataContributor
-  roleIds.searchIndexDataReader
-  roleIds.searchServiceContributor
-]
-resource accountSearchRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in accountSearchRoleIds: if (isCosmos) {
-    name: guid(searchServiceResource.id, aiFoundryAccountResource.id, roleId)
-    scope: searchServiceResource
-    properties: {
-      principalId: aiFoundryAccountResource.identity.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      aiSearch
-      aiProject
-    ]
-  }
-]
-
-// ----- AI Search identity -> Storage + AI Foundry (cosmosdb mode) -----
-resource searchStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (isCosmos) {
-  name: guid(storageAccountResource.id, searchServiceResource.id, roleIds.storageBlobDataContributor)
-  scope: storageAccountResource
-  properties: {
-    principalId: searchServiceResource!.identity.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.storageBlobDataContributor)
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    storageAccount
-    aiSearch
-  ]
-}
-
-var searchFoundryRoleIds = [
-  roleIds.cognitiveServicesUser
-  roleIds.cognitiveServicesOpenAIUser
-]
-resource searchFoundryRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in searchFoundryRoleIds: if (isCosmos) {
-    name: guid(aiFoundryAccountResource.id, searchServiceResource.id, roleId)
-    scope: aiFoundryAccountResource
-    properties: {
-      principalId: searchServiceResource!.identity.principalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: 'ServicePrincipal'
-    }
-    dependsOn: [
-      aiProject
-      aiSearch
-    ]
-  }
-]
-
-// ----- UAMI -> Cosmos DB (data-plane SQL role, cosmosdb mode) -----
-resource cosmosAccountResource 'Microsoft.DocumentDB/databaseAccounts@2025-10-15' existing = if (isCosmos) {
-  name: cosmosDbName
-}
-
-resource cosmosDataContributorRoleDefinition 'Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions@2025-10-15' existing = if (isCosmos) {
-  parent: cosmosAccountResource
-  name: cosmosDataContributorRoleId
-}
-
-resource uamiCosmosSqlRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-10-15' = if (isCosmos) {
-  parent: cosmosAccountResource
-  name: guid(cosmosDbName, uamiResource.id, cosmosDataContributorRoleId)
-  properties: {
-    principalId: uamiResource.properties.principalId
-    roleDefinitionId: cosmosDataContributorRoleDefinition.id
-    scope: cosmosAccountResource.id
-  }
-  dependsOn: [
-    cosmosDb
-    userAssignedIdentity
-  ]
-}
-
-// ----- Deploying user (Bicep-only convenience roles for post-provision) -----
-var deployerFoundryRoleIds = [
-  roleIds.cognitiveServicesUser
-  roleIds.azureAiUser
-]
-resource deployerFoundryRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in deployerFoundryRoleIds: {
-    name: guid(aiFoundryAccountResource.id, deployingUserPrincipalId, roleId)
-    scope: aiFoundryAccountResource
-    properties: {
-      principalId: deployingUserPrincipalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: deployingUserPrincipalType
-    }
-    dependsOn: [
-      aiProject
-    ]
-  }
-]
-
-var deployerSearchRoleIds = [
-  roleIds.searchIndexDataContributor
-  roleIds.searchServiceContributor
-]
-resource deployerSearchRoleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for roleId in deployerSearchRoleIds: if (isCosmos) {
-    name: guid(searchServiceResource.id, deployingUserPrincipalId, roleId)
-    scope: searchServiceResource
-    properties: {
-      principalId: deployingUserPrincipalId
-      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleId)
-      principalType: deployingUserPrincipalType
-    }
-    dependsOn: [
-      aiSearch
-    ]
-  }
-]
-
-resource deployerStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccountResource.id, deployingUserPrincipalId, roleIds.storageBlobDataContributor)
-  scope: storageAccountResource
-  properties: {
-    principalId: deployingUserPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIds.storageBlobDataContributor)
-    principalType: deployingUserPrincipalType
-  }
-  dependsOn: [
-    storageAccount
-  ]
-}
-
 // ===================== //
 // Outputs               //
 // ===================== //

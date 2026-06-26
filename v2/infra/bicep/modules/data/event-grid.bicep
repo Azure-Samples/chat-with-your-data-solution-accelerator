@@ -28,6 +28,9 @@ param eventSubscriptions array = []
 @description('Optional. Managed identity configuration for the resource.')
 param identity object = { type: 'SystemAssigned' }
 
+@description('Name of the storage account used to scope the Storage Queue Data Message Sender role assignment. Required when eventSubscriptions use identity-based (deliveryWithResourceIdentity) delivery.')
+param storageAccountName string = ''
+
 // ============================================================================
 // Resource
 // ============================================================================
@@ -43,21 +46,53 @@ resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2025-07-15-previ
 }
 
 // ============================================================================
+// Role assignment: grant the system topic's managed identity permission to
+// write to the destination Storage Queue. Required for identity-based
+// (deliveryWithResourceIdentity) delivery when the storage account has
+// shared-key access disabled. Scoped to the storage account.
+// ============================================================================
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = if (!empty(storageAccountName)) {
+  name: storageAccountName
+}
+
+resource eventGridQueueSenderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(storageAccountName) && !empty(eventSubscriptions)) {
+  name: guid(storageAccount.id, eventGridSystemTopic.id, 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+  scope: storageAccount
+  properties: {
+    principalId: eventGridSystemTopic.identity.principalId
+    // Storage Queue Data Message Sender
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ============================================================================
 // Event Subscriptions
+// Deployed AFTER the role assignment so the identity-based delivery
+// authorization preflight passes (mirrors the avm flavor's split pattern).
+// Each subscription uses identity-based delivery (deliveryWithResourceIdentity)
+// when provided, otherwise falls back to a plain destination.
 // ============================================================================
 resource systemTopicSubscriptions 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2025-07-15-preview' = [
   for sub in eventSubscriptions: {
     name: sub.name
     parent: eventGridSystemTopic
-    properties: {
-      destination: sub.destination
-      filter: sub.?filter ?? {}
-      eventDeliverySchema: sub.?eventDeliverySchema ?? 'EventGridSchema'
-      retryPolicy: sub.?retryPolicy ?? {
-        maxDeliveryAttempts: 30
-        eventTimeToLiveInMinutes: 1440
-      }
-    }
+    properties: union(
+      {
+        filter: sub.?filter ?? {}
+        eventDeliverySchema: sub.?eventDeliverySchema ?? 'EventGridSchema'
+        retryPolicy: sub.?retryPolicy ?? {
+          maxDeliveryAttempts: 30
+          eventTimeToLiveInMinutes: 1440
+        }
+      },
+      sub.?deliveryWithResourceIdentity != null
+        ? { deliveryWithResourceIdentity: sub.deliveryWithResourceIdentity }
+        : { destination: sub.destination }
+    )
+    dependsOn: [
+      eventGridQueueSenderRole
+    ]
   }
 ]
 
@@ -71,4 +106,4 @@ output name string = eventGridSystemTopic.name
 output resourceId string = eventGridSystemTopic.id
 
 @description('System-assigned principal ID (if enabled).')
-output systemAssignedMIPrincipalId string = (identity.?systemAssigned ?? false) ? eventGridSystemTopic.identity.principalId : ''
+output systemAssignedMIPrincipalId string = contains(identity, 'type') && contains(identity.type, 'SystemAssigned') ? eventGridSystemTopic.identity.principalId : ''
