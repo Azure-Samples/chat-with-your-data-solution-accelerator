@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "13039478703228858050"
+      "templateHash": "17242907172399655177"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -31055,9 +31055,9 @@
         }
       },
       "dependsOn": [
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').queue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').file)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').queue)]",
         "logAnalyticsWorkspace",
         "userAssignedIdentity",
         "virtualNetwork"
@@ -50662,7 +50662,7 @@
               "minTlsVersion": "1.2",
               "http20Enabled": true,
               "vnetRouteAllEnabled": "[parameters('enablePrivateNetworking')]",
-              "appSettings": "[union(createArray(createObject('name', 'BACKEND_API_URL', 'value', format('https://{0}', reference('backendContainerApp').outputs.fqdn.value)), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false')), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
+              "appSettings": "[union(createArray(createObject('name', 'BACKEND_API_URL', 'value', format('https://{0}', reference('backendContainerApp').outputs.fqdn.value)), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'SCM_DO_BUILD_DURING_DEPLOYMENT', 'value', 'true')), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
             }
           }
         },

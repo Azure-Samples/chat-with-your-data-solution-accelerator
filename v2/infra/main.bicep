@@ -2020,6 +2020,11 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
           // directly. All Azure calls go through the FastAPI backend per
           // plug-and-play rule §4.
           { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
+          // Run the Oryx build on deploy so the staged requirements.txt
+          // (fastapi + uvicorn) is pip-installed before the uvicorn
+          // appCommandLine runs. Without it the start command exits 127
+          // (uvicorn not found) and the container never boots.
+          { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
         ],
         enableMonitoring
           ? [
