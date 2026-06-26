@@ -73,14 +73,36 @@ infra:
 #         interactive: false
 
 hooks:
-  postprovision:
-    posix:
-      shell: sh
-      run: ./infra/scripts/post-provision/post-provision.sh
-      continueOnError: false
-      interactive: true
+  postdeploy:
     windows:
       shell: pwsh
-      run: ./infra/scripts/post-provision/post-provision.ps1
+      run: |
+        Write-Host ""
+        Write-Host "=============================================="
+        Write-Host " Deployment Complete - Post-Deployment Steps"
+        Write-Host "=============================================="
+        Write-Host ""
+        Write-Host "1. Login to Azure CLI (required for post-deployment script):" -ForegroundColor Yellow
+        Write-Host "   az login" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "2. Run the post-deployment setup script:" -ForegroundColor Yellow
+        Write-Host "   ./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+      continueOnError: false
+      interactive: true
+    posix:
+      shell: sh
+      run: |
+        echo ""
+        echo "=============================================="
+        echo " Deployment Complete - Post-Deployment Steps"
+        echo "=============================================="
+        echo ""
+        echo "1. Login to Azure CLI (required for post-deployment script):"
+        echo "   az login"
+        echo ""
+        echo "2. Run the post-deployment setup script:"
+        echo "   bash ./infra/scripts/post-provision/post_deployment_setup.sh \"$AZURE_RESOURCE_GROUP\""
+        echo ""
       continueOnError: false
       interactive: true

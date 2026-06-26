@@ -628,32 +628,45 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = {
         roleDefinitionIdOrName: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
       }
     ]
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-aif-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-aif-${solutionSuffix}'
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-            service: 'account'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'cognitiveservices'
-                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
-                }
-                {
-                  name: 'openai'
-                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
-                }
-                {
-                  name: 'aiServicesProject'
-                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiServicesProject]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
+    privateEndpoints: []
+  }
+}
+
+// ========== Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition ========== //
+module aiProjectPrivateEndpoint './modules/networking/private-endpoint.bicep' = if (enablePrivateNetworking) {
+  name: take('module.pe-ai-foundry.${solutionName}', 64)
+  dependsOn: [privateDnsZoneDeployments]
+  params: {
+    name: 'pep-aif-${solutionSuffix}'
+    location: location
+    tags: allTags
+    customNetworkInterfaceName: 'nic-aif-${solutionSuffix}'
+    subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
+    privateLinkServiceConnections: [
+      {
+        name: 'pep-aif-${solutionSuffix}-connection'
+        properties: {
+          privateLinkServiceId: aiProject!.outputs.resourceId
+          groupIds: ['account']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          name: 'cognitiveservices'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.cognitiveServices]!.outputs.resourceId
+        }
+        {
+          name: 'openai'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.openAI]!.outputs.resourceId
+        }
+        {
+          name: 'aiServicesProject'
+          privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.aiServicesProject]!.outputs.resourceId
+        }
+      ]
+    }
   }
 }
 
@@ -1039,22 +1052,21 @@ module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (da
 }
 
 // ========== Container Registry ========== //
-module containerRegistry './modules/compute/container-registry.bicep' = {
-  name: take('module.container-registry.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: location
-    tags: allTags
-    enableTelemetry: enableTelemetry
-    sku: 'Basic'
-    publicNetworkAccess: 'Enabled'
-    networkRuleSetDefaultAction: 'Allow'
-    acrPullPrincipalIds: [userAssignedIdentity.outputs.principalId]
-  }
-}
+// module containerRegistry './modules/compute/container-registry.bicep' = {
+//   name: take('module.container-registry.${solutionName}', 64)
+//   params: {
+//     solutionName: solutionSuffix
+//     location: location
+//     tags: allTags
+//     enableTelemetry: enableTelemetry
+//     sku: 'Basic'
+//     publicNetworkAccess: 'Enabled'
+//     networkRuleSetDefaultAction: 'Allow'
+//     acrPullPrincipalIds: [userAssignedIdentity.outputs.principalId]
+//   }
+// }
 
 // ========== Container App Environment ========== //
-var containerAppsEnvName = 'cae-${solutionSuffix}'
 module containerAppsEnv './modules/compute/container-app-environment.bicep' = {
   name: take('module.container-app-environment.${solutionName}', 64)
   params: {
@@ -1063,7 +1075,6 @@ module containerAppsEnv './modules/compute/container-app-environment.bicep' = {
     tags: allTags
     enableTelemetry: enableTelemetry
     zoneRedundant: enableRedundancy
-    enablePrivateNetworking: enablePrivateNetworking
     enableMonitoring: enableMonitoring
     logAnalyticsWorkspaceResourceId: enableMonitoring ? logAnalyticsWorkspace!.outputs.resourceId : ''
     infrastructureSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.containerSubnetResourceId : null
@@ -1116,7 +1127,6 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
     }
     workloadProfileName: 'Consumption'
     ingressTargetPort: 8000
-    ingressExternal: !enablePrivateNetworking
     scaleSettings: {
       minReplicas: enableScalability ? 1 : 0
       maxReplicas: enableScalability ? 10 : 3
@@ -1202,7 +1212,6 @@ module frontendContainerApp './modules/compute/container-app.bicep' = {
     }
     workloadProfileName: 'Consumption'
     ingressTargetPort: 80
-    ingressExternal: !enablePrivateNetworking
     scaleSettings: {
       minReplicas: 1
       maxReplicas: enableScalability ? 5 : 3
@@ -1243,7 +1252,7 @@ module functionApp './modules/compute/function-app.bicep' = {
     managedIdentities: {
       systemAssigned: true, userAssignedResourceIds: [userAssignedIdentity.outputs.resourceId]
     }
-    applicationInsightResourceId: enableMonitoring ? applicationInsights!.outputs.name : ''
+    applicationInsightResourceId: enableMonitoring ? applicationInsights!.outputs.resourceId : ''
     storageAccountName: storageAccount.outputs.name
     userAssignedIdentityClientId: userAssignedIdentity.outputs.clientId
     runtimeStack: 'python'
@@ -1543,11 +1552,11 @@ output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHos
 @description('Function App resource name (used by azd to deploy the function package).')
 output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
 
-@description('Container Registry login server (e.g. cr<SUFFIX>.azurecr.io). `azd deploy` reads this to discover the push target for backend + function images.')
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+// @description('Container Registry login server (e.g. cr<SUFFIX>.azurecr.io). `azd deploy` reads this to discover the push target for backend + function images.')
+// output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
 
-@description('Container Registry resource name. Diagnostic surface only — azd uses the login server above.')
-output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+// @description('Container Registry resource name. Diagnostic surface only — azd uses the login server above.')
+// output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 // --- Conditional: monitoring ---
 

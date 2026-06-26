@@ -472,11 +472,11 @@ output AZURE_FUNCTION_APP_URL string = isAvm ? avmDeployment!.outputs.AZURE_FUNC
 @description('Function App resource name.')
 output AZURE_FUNCTION_APP_NAME string = isAvm ? avmDeployment!.outputs.AZURE_FUNCTION_APP_NAME : bicepDeployment!.outputs.AZURE_FUNCTION_APP_NAME
 
-@description('Container Registry login server.')
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
+// @description('Container Registry login server.')
+// output AZURE_CONTAINER_REGISTRY_ENDPOINT string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 
-@description('Container Registry resource name.')
-output AZURE_CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME
+// @description('Container Registry resource name.')
+// output AZURE_CONTAINER_REGISTRY_NAME string = isAvm ? avmDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME : bicepDeployment!.outputs.AZURE_CONTAINER_REGISTRY_NAME
 
 // --- Conditional: monitoring ---
 
