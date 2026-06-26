@@ -56,9 +56,9 @@ param location string
 @description('Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability.')
 param azureAiServiceLocation string
 
-// ===================== //
-// Database selection    //
-// ===================== //
+// ============================================================================
+// Parameters — Database & Ingestion
+// ============================================================================
 
 @allowed([
   'cosmosdb'
@@ -67,10 +67,6 @@ param azureAiServiceLocation string
 @description('Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
 param databaseType string = 'cosmosdb'
 
-// ===================== //
-// Ingestion trigger     //
-// ===================== //
-
 @allowed([
   'direct_enqueue'
   'event_grid'
@@ -78,9 +74,9 @@ param databaseType string = 'cosmosdb'
 @description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
 param ingestionTrigger string = 'direct_enqueue'
 
-// ===================== //
-// AI model parameters   //
-// ===================== //
+// ============================================================================
+// Parameters — AI Configuration
+// ============================================================================
 
 @minLength(1)
 @description('Optional. Primary chat model deployment name.')
@@ -164,9 +160,19 @@ param imageTag string = 'latest'
 @description('Optional. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
-// ===================== //
-// WAF flags             //
-// ===================== //
+// ============================================================================
+// Parameters — Existing Resources
+// ============================================================================
+
+@description('Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one.')
+param existingLogAnalyticsWorkspaceId string = ''
+
+@description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
+param existingFoundryProjectResourceId string = ''
+
+// ============================================================================
+// Parameters — WAF Flags
+// ============================================================================
 
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
@@ -183,6 +189,10 @@ param enableRedundancy bool = false
 @description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. Wires the regional VNet (`modules/virtualNetwork.bicep`), private DNS zones, private endpoints for every data-plane resource, regional VNet integration for compute, and Bastion. Setting this to true is the WAF-aligned topology and requires no follow-up tasks; flipping it back to false re-enables public endpoints with default firewall rules.')
 param enablePrivateNetworking bool = false
 
+// ============================================================================
+// Parameters — AVM-specific (ignored when deploymentFlavor = 'bicep')
+// ============================================================================
+
 @secure()
 @description('Optional. VM admin username (AVM-WAF only, when private networking is enabled).')
 param vmAdminUsername string?
@@ -193,9 +203,6 @@ param vmAdminPassword string?
 
 @description('Optional. VM size for jumpbox (AVM-WAF only). Defaults to Standard_D2s_v5.')
 param vmSize string = 'Standard_D2s_v5'
-
-@description('Optional. Existing Log Analytics Workspace Resource ID.')
-param existingLogAnalyticsWorkspaceId string = ''
 
 // ===================== //
 // Tagging               //
@@ -225,6 +232,8 @@ var solutionSuffix = toLower(trim(replace(
   '')))
 
 var deployingUserPrincipalId = deployer().objectId
+var useExistingAIProject = !empty(existingFoundryProjectResourceId)
+var isCosmos = databaseType == 'cosmosdb'
 var docProcessingQueueName = 'doc-processing'
 var blobEventsQueueName = 'blob-events'
 var documentsContainerName = 'documents'
@@ -298,7 +307,7 @@ var dnsZoneIndex = {
   postgres: 8
 }
 
-var defaultOpenAiDeployments = [
+var aiModelDeployments = [
   {
     name: gptModelName
     model: {
@@ -597,7 +606,35 @@ module privateDnsZoneDeployments './modules/networking/private-dns-zone.bicep' =
   }
 ]
 
-module aiProject './modules/ai/ai-foundry-project.bicep' = {
+// ============================================================================
+// Module: AI Services (conditional — skip if using existing project)
+// ============================================================================
+
+// ========== Existing AI Foundry reference (for cross-subscription support when using existing project) ========== //
+var aiFoundryResourceGroupName = useExistingAIProject
+  ? split(existingFoundryProjectResourceId, '/')[4]
+  : resourceGroup().name
+var aiFoundrySubscriptionId = useExistingAIProject
+  ? split(existingFoundryProjectResourceId, '/')[2]
+  : subscription().subscriptionId
+var aiFoundryResourceName = useExistingAIProject
+  ? split(existingFoundryProjectResourceId, '/')[8]
+  : aiProject!.outputs.name
+var aiProjectResourceName = useExistingAIProject
+  ? (length(split(existingFoundryProjectResourceId, '/')) > 10 ? split(existingFoundryProjectResourceId, '/')[10] : '')
+  : aiProject!.outputs.projectName
+
+// ========== Reference existing AI Foundry project (identity only) ========== //
+module existingAIProject './modules/ai/existing-project-setup.bicep' = if (useExistingAIProject) {
+  name: take('module.existing-project-setup.${solutionName}', 64)
+  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
+  params: {
+    name: aiFoundryResourceName
+    projectName: aiProjectResourceName
+  }
+}
+
+module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIProject) {
   name: take('module.ai-foundry-project.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -607,7 +644,6 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = {
     disableLocalAuth: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
-    deployments: defaultOpenAiDeployments
     roleAssignments: [
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -632,8 +668,31 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = {
   }
 }
 
+// ========== AI outputs (ternary: existing vs new) ========== //
+var aiFoundryEndpoint = useExistingAIProject ? existingAIProject!.outputs.endpoint : aiProject!.outputs.endpoint
+var projectEndpoint = useExistingAIProject ? existingAIProject!.outputs.projectEndpoint : aiProject!.outputs.projectEndpoint
+var aiFoundryResourceId = useExistingAIProject ? existingAIProject!.outputs.resourceId : aiProject!.outputs.resourceId
+var aiProjectPrincipalId = useExistingAIProject ? existingAIProject!.outputs.projectIdentityPrincipalId : aiProject!.outputs.projectIdentityPrincipalId
+var aiFoundryPrincipalId = useExistingAIProject ? existingAIProject!.outputs.principalId : aiProject!.outputs.principalId
+
+// ========== Model deployments (single loop for both existing and new paths) ========== //
+@batchSize(1)
+module model_deployments './modules/ai/ai-foundry-model-deployment.bicep' = [for (deployment, i) in aiModelDeployments: {
+  name: take('module.model-deployment-${i}.${solutionName}', 64)
+  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
+  params: {
+    aiServicesAccountName: aiFoundryResourceName
+    deploymentName: deployment.name
+    modelName: deployment.model.name
+    modelVersion: deployment.model.version
+    raiPolicyName: deployment.raiPolicyName
+    skuName: deployment.sku.name
+    skuCapacity: deployment.sku.capacity
+  }
+}]
+
 // ========== Separate PE for AI Foundry to avoid AccountProvisioningStateInvalid race condition ========== //
-module aiProjectPrivateEndpoint './modules/networking/private-endpoint.bicep' = if (enablePrivateNetworking) {
+module aiProjectPrivateEndpoint './modules/networking/private-endpoint.bicep' = if (!useExistingAIProject && enablePrivateNetworking) {
   name: take('module.pe-ai-foundry.${solutionName}', 64)
   dependsOn: [privateDnsZoneDeployments]
   params: {
@@ -646,7 +705,7 @@ module aiProjectPrivateEndpoint './modules/networking/private-endpoint.bicep' = 
       {
         name: 'pep-aif-${solutionSuffix}-connection'
         properties: {
-          privateLinkServiceId: aiProject!.outputs.resourceId
+          privateLinkServiceId: aiFoundryResourceId
           groupIds: ['account']
         }
       }
@@ -755,7 +814,7 @@ module contentSafety './modules/ai/ai-services.bicep' = {
   }
 }
 
-module aiSearch './modules/ai/ai-search.bicep' = if (databaseType == 'cosmosdb') {
+module aiSearch './modules/ai/ai-search.bicep' = if (isCosmos) {
   name: take('module.ai-search.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -780,37 +839,37 @@ module aiSearch './modules/ai/ai-search.bicep' = if (databaseType == 'cosmosdb')
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
       }
       {
-        principalId: aiProject.outputs.projectIdentityPrincipalId
+        principalId: aiProjectPrincipalId
         principalType: 'ServicePrincipal'
         // Search Index Data Reader — lets the Foundry Project (and Foundry IQ) query indexes through the connection.
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
       }
       {
-        principalId: aiProject.outputs.projectIdentityPrincipalId
+        principalId: aiProjectPrincipalId
         principalType: 'ServicePrincipal'
         // Search Index Data Contributor — Foundry Project identity needs data-plane write for KB MCP endpoint.
         roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
       }
       {
-        principalId: aiProject.outputs.projectIdentityPrincipalId
+        principalId: aiProjectPrincipalId
         principalType: 'ServicePrincipal'
         // Search Service Contributor — Foundry Project identity for KB management.
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
       }
       {
-        principalId: aiProject.outputs.principalId
+        principalId: aiFoundryPrincipalId
         principalType: 'ServicePrincipal'
         // Search Index Data Contributor — AI Services account identity for MCP auth.
         roleDefinitionIdOrName: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
       }
       {
-        principalId: aiProject.outputs.principalId
+        principalId: aiFoundryPrincipalId
         principalType: 'ServicePrincipal'
         // Search Index Data Reader — AI Services account identity.
         roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
       }
       {
-        principalId: aiProject.outputs.principalId
+        principalId: aiFoundryPrincipalId
         principalType: 'ServicePrincipal'
         // Search Service Contributor — AI Services account identity for KB management.
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
@@ -840,12 +899,12 @@ module aiSearch './modules/ai/ai-search.bicep' = if (databaseType == 'cosmosdb')
 }
 
 // Foundry Project ↔ Search connection (CosmosDB mode only).
-module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if (databaseType == 'cosmosdb') {
+module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if (isCosmos) {
   name: take('module.foundry-search-conn.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
-    aiServicesAccountName: aiProject.outputs.name
-    projectName: aiProject.outputs.projectName
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: aiProjectResourceName
     target: aiSearch!.outputs.endpoint
     category: 'CognitiveSearch'
     authType: 'AAD'
@@ -970,7 +1029,7 @@ module storageAccount './modules/data/storage-account.bicep' = {
 // Module: Data
 // ============================================================================
 
-module cosmosDb './modules/data/cosmos-db-nosql.bicep' = if (databaseType == 'cosmosdb') {
+module cosmosDb './modules/data/cosmos-db-nosql.bicep' = if (isCosmos) {
   name: take('module.cosmos-db-nosql.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -989,6 +1048,8 @@ module cosmosDb './modules/data/cosmos-db-nosql.bicep' = if (databaseType == 'co
         roleDefinitionId: '00000000-0000-0000-0000-000000000002'
       }
     ]
+    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    enablePrivateNetworking: enablePrivateNetworking
     privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
     privateDnsZoneResourceIds: enablePrivateNetworking ? [
       privateDnsZoneDeployments[dnsZoneIndex.cosmosDb]!.outputs.resourceId
@@ -996,7 +1057,7 @@ module cosmosDb './modules/data/cosmos-db-nosql.bicep' = if (databaseType == 'co
   }
 }
 
-module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (databaseType == 'postgresql') {
+module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (!isCosmos) {
   name: take('module.postgre-sql.flexible-server.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -1110,10 +1171,10 @@ module caeDnsZone './modules/networking/private-dns-zone.bicep' = if (enablePriv
   }
 }
 
-var postgresLibpqUri = databaseType == 'postgresql'
+var postgresLibpqUri = !isCosmos
   ? 'postgresql://${postgresServer!.outputs.serverFqdn!}:5432/cwyd?sslmode=require'
   : ''
-var indexStoreValue = databaseType == 'cosmosdb' ? 'AzureSearch' : 'pgvector'
+var indexStoreValue = isCosmos ? 'AzureSearch' : 'pgvector'
 module backendContainerApp './modules/compute/container-app.bicep' = {
   name: take('module.container-app-api.${solutionSuffix}', 64)
   params: {
@@ -1146,9 +1207,9 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
             { name: 'AZURE_ENVIRONMENT', value: 'production' }
-            { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-            { name: 'AZURE_OPENAI_ENDPOINT', value: aiProject.outputs.endpoint }
-            { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiProject.outputs.endpoint }
+            { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
+            { name: 'AZURE_OPENAI_ENDPOINT', value: aiFoundryEndpoint }
+            { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiFoundryEndpoint }
             { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
@@ -1156,14 +1217,14 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
             { name: 'AZURE_DB_TYPE', value: databaseType }
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
-            { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
-            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+            { name: 'AZURE_COSMOS_ENDPOINT', value: isCosmos ? cosmosDb!.outputs.endpoint : '' }
+            { name: 'AZURE_AI_SEARCH_ENDPOINT', value: isCosmos ? aiSearch!.outputs.endpoint : '' }
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', value: searchKnowledgeBaseName }
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', value: searchKnowledgeSourceName }
             { name: 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', value: searchKnowledgeBaseApiVersion }
-            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: databaseType == 'cosmosdb' ? aiProjectSearchConnection!.outputs.connectionName : '' }
+            { name: 'AZURE_AI_SEARCH_CONNECTION_NAME', value: isCosmos ? aiProjectSearchConnection!.outputs.connectionName : '' }
             { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : '' }
+            { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: !isCosmos ? userAssignedIdentity.outputs.name : '' }
             { name: 'AZURE_SPEECH_SERVICE_NAME', value: speechService.outputs.name }
             { name: 'AZURE_SPEECH_SERVICE_REGION', value: azureAiServiceLocation }
             { name: 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', value: speechService.outputs.resourceId }
@@ -1265,17 +1326,17 @@ module functionApp './modules/compute/function-app.bicep' = {
         { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
         { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
         { name: 'AZURE_ENVIRONMENT', value: 'production' }
-        { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-        { name: 'AZURE_OPENAI_ENDPOINT', value: aiProject.outputs.endpoint }
-        { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiProject.outputs.endpoint }
+        { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
+        { name: 'AZURE_OPENAI_ENDPOINT', value: aiFoundryEndpoint }
+        { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiFoundryEndpoint }
         { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
         { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
         { name: 'AZURE_DB_TYPE', value: databaseType }
         { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
-        { name: 'AZURE_COSMOS_ENDPOINT', value: databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : '' }
-        { name: 'AZURE_AI_SEARCH_ENDPOINT', value: databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : '' }
+        { name: 'AZURE_COSMOS_ENDPOINT', value: isCosmos ? cosmosDb!.outputs.endpoint : '' }
+        { name: 'AZURE_AI_SEARCH_ENDPOINT', value: isCosmos ? aiSearch!.outputs.endpoint : '' }
         { name: 'AZURE_POSTGRES_ENDPOINT', value: postgresLibpqUri }
-        { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : '' }
+        { name: 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', value: !isCosmos ? userAssignedIdentity.outputs.name : '' }
         { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount!.outputs.name }
         { name: 'AZURE_DOCUMENTS_CONTAINER', value: documentsContainerName }
         { name: 'AZURE_DOC_PROCESSING_QUEUE', value: docProcessingQueueName }
@@ -1338,7 +1399,7 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
 // ============================================================================
 
 var systemAssignedRoleAssignments = union(
-  databaseType == 'cosmosdb'
+  isCosmos
     ? [
         {
           principalId: aiSearch.?outputs.identityPrincipalId
@@ -1349,14 +1410,14 @@ var systemAssignedRoleAssignments = union(
         }
         {
           principalId: aiSearch.?outputs.identityPrincipalId
-          resourceId: aiProject.outputs.resourceId
+          resourceId: aiFoundryResourceId
           roleName: 'Cognitive Services User'
           roleDefinitionId: 'a97b65f3-24c7-4388-baec-2e87135dc908'
           principalType: 'ServicePrincipal'
         }
         {
           principalId: aiSearch.?outputs.identityPrincipalId
-          resourceId: aiProject.outputs.resourceId
+          resourceId: aiFoundryResourceId
           roleName: 'Cognitive Services OpenAI User'
           roleDefinitionId: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
           principalType: 'ServicePrincipal'
@@ -1365,7 +1426,7 @@ var systemAssignedRoleAssignments = union(
     : [],
   [
     {
-      principalId: aiProject.outputs.projectIdentityPrincipalId
+      principalId: aiProjectPrincipalId
       resourceId: storageAccount.outputs.resourceId
       roleName: 'Storage Blob Data Contributor'
       roleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
@@ -1446,13 +1507,13 @@ output AZURE_INDEX_STORE string = indexStoreValue
 // --- Foundry substrate ---
 
 @description('Unified AI Services endpoint. Used by both orchestrators (LangGraph via OpenAI-compatible path; Agent Framework via the project endpoint below).')
-output AZURE_AI_SERVICES_ENDPOINT string = aiProject.outputs.endpoint
+output AZURE_AI_SERVICES_ENDPOINT string = aiFoundryEndpoint
 
 @description('Effective Azure OpenAI endpoint backends call for chat + reasoning + embedding deployments. When `existingOpenAiName` is set this points at the reused v1 OpenAI account; otherwise it equals AZURE_AI_SERVICES_ENDPOINT (deployments live on the v2 Foundry account).')
-output AZURE_OPENAI_ENDPOINT string = aiProject.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = aiFoundryEndpoint
 
 @description('Foundry Project endpoint (https://<account>.services.ai.azure.com/api/projects/<project>). Required by the Microsoft Agent Framework SDK.')
-output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
+output AZURE_AI_PROJECT_ENDPOINT string = projectEndpoint
 
 @description('OpenAI-compatible API version pinned for the GPT + reasoning deployments.')
 output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
@@ -1491,35 +1552,35 @@ output AZURE_CONTENT_SAFETY_NAME string = contentSafety.outputs.name
 // --- Conditional: Azure AI Search (CosmosDB mode only) ---
 
 @description('AI Search service endpoint. Empty in PostgreSQL mode.')
-output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? aiSearch!.outputs.endpoint : ''
+output AZURE_AI_SEARCH_ENDPOINT string = isCosmos ? aiSearch!.outputs.endpoint : ''
 
 @description('AI Search service name. Empty in PostgreSQL mode.')
-output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? aiSearch!.outputs.name : ''
+output AZURE_AI_SEARCH_NAME string = isCosmos ? aiSearch!.outputs.name : ''
 
 // --- Conditional: Cosmos DB (CosmosDB mode only) ---
 
 @description('Cosmos DB account endpoint (DocumentEndpoint). Empty in PostgreSQL mode.')
-output AZURE_COSMOS_ENDPOINT string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.endpoint : ''
+output AZURE_COSMOS_ENDPOINT string = isCosmos ? cosmosDb!.outputs.endpoint : ''
 
 @description('Cosmos DB account name. Empty in PostgreSQL mode.')
-output AZURE_COSMOS_ACCOUNT_NAME string = databaseType == 'cosmosdb' ? cosmosDb!.outputs.name : ''
+output AZURE_COSMOS_ACCOUNT_NAME string = isCosmos ? cosmosDb!.outputs.name : ''
 
 // --- Conditional: PostgreSQL Flexible Server (PostgreSQL mode only) ---
 
 @description('PostgreSQL Flexible Server FQDN (clients add :5432 themselves). Empty in CosmosDB mode.')
-output AZURE_POSTGRES_HOST string = databaseType == 'postgresql' ? postgresServer!.outputs.serverFqdn! : ''
+output AZURE_POSTGRES_HOST string = !isCosmos ? postgresServer!.outputs.serverFqdn! : ''
 
 @description('Full libpq connection URI for the PostgreSQL Flexible Server (no credentials — the workload supplies an Entra token; the user comes from AZURE_UAMI_CLIENT_ID). Mirrors AZURE_COSMOS_ENDPOINT shape so AzurePostgresSettings reads one var. Empty in CosmosDB mode.')
 output AZURE_POSTGRES_ENDPOINT string = postgresLibpqUri
 
 @description('PostgreSQL Flexible Server resource name. Empty in CosmosDB mode.')
-output AZURE_POSTGRES_NAME string = databaseType == 'postgresql' ? postgresServer!.outputs.name : ''
+output AZURE_POSTGRES_NAME string = !isCosmos ? postgresServer!.outputs.name : ''
 
 @description('UAMI principal name used by the runtime apps to connect to Postgres. Empty in CosmosDB mode.')
-output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = databaseType == 'postgresql' ? userAssignedIdentity.outputs.name : ''
+output AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME string = !isCosmos ? userAssignedIdentity.outputs.name : ''
 
 @description('Deployer principal name registered as Postgres Entra admin (for post_provision.py). Empty in CosmosDB mode or when deployer has no UPN.')
-output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = databaseType == 'postgresql' && contains(deployer(), 'userPrincipalName') ? deployer().userPrincipalName : ''
+output AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME string = !isCosmos && contains(deployer(), 'userPrincipalName') ? deployer().userPrincipalName : ''
 
 // --- Storage (blobs + queues + Function deployment package) ---
 

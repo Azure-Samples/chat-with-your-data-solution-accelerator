@@ -63,6 +63,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 # Track resources that need public access restored
 # -------------------------------------------------------
 $RestorePgName = ""
+$RestoreSearchName = ""
 $ServerName = ""
 
 function Invoke-Cleanup {
@@ -75,13 +76,22 @@ function Invoke-Cleanup {
             --name "AllowPostDeploySetup" `
             --yes 2>$null | Out-Null
     }
-    # Restore public access to Disabled
+    # Restore public access to Disabled on PostgreSQL
     if ($RestorePgName) {
         Write-Host "[OK] Disabling public access on PostgreSQL '$RestorePgName'..."
         $null = az postgres flexible-server update --resource-group $ResourceGroupName `
             --name $RestorePgName --public-access Disabled 2>$null
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Failed to disable public access. Please disable manually."
+            Write-Warning "Failed to disable public access on PostgreSQL. Please disable manually."
+        }
+    }
+    # Restore public access to Disabled on AI Search
+    if ($RestoreSearchName) {
+        Write-Host "[OK] Disabling public access on AI Search '$RestoreSearchName'..."
+        $null = az search service update --resource-group $ResourceGroupName `
+            --name $RestoreSearchName --public-access disabled 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Failed to disable public access on AI Search. Please disable manually."
         }
     }
 }
@@ -161,12 +171,29 @@ try {
         Write-Host "[OK] No PostgreSQL found; assuming CosmosDB mode."
 
         # AI Search (CosmosDB mode only — PostgreSQL uses pgvector for indexing)
-        $SearchEndpoint = az search service list --resource-group $ResourceGroupName `
-            --query "[0].hostName" -o tsv 2>$null
-        if ($LASTEXITCODE -ne 0) { $SearchEndpoint = "" }
-        if ($SearchEndpoint) {
-            $env:AZURE_AI_SEARCH_ENDPOINT = "https://$SearchEndpoint"
-            Write-Host "[OK] Discovered AI Search: $SearchEndpoint"
+        $SearchName = az search service list --resource-group $ResourceGroupName `
+            --query "[0].name" -o tsv 2>$null
+        if ($LASTEXITCODE -ne 0) { $SearchName = "" }
+        if ($SearchName) {
+            $env:AZURE_AI_SEARCH_ENDPOINT = "https://$SearchName.search.windows.net"
+            Write-Host "[OK] Discovered AI Search: $SearchName"
+
+            # --- WAF / Private Networking handling for Search ---
+            $SearchPublicAccess = az search service show --resource-group $ResourceGroupName `
+                --name $SearchName --query "publicNetworkAccess" -o tsv 2>$null
+            if ($SearchPublicAccess -eq "disabled") {
+                Write-Host "AI Search has public access disabled (private networking detected)."
+                Write-Host "[OK] Temporarily enabling public access on AI Search '$SearchName'..."
+                $null = az search service update --resource-group $ResourceGroupName `
+                    --name $SearchName --public-access enabled 2>$null
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Failed to enable public access on AI Search."
+                    exit 1
+                }
+                $script:RestoreSearchName = $SearchName
+                Write-Host "Waiting for Search network change to propagate..."
+                Start-Sleep -Seconds 15
+            }
         }
     }
 

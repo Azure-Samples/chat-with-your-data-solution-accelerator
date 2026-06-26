@@ -68,9 +68,9 @@ param location string
 @description('Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability.')
 param azureAiServiceLocation string
 
-// ===================== //
-// Database selection    //
-// ===================== //
+// ============================================================================
+// Parameters — Database & Ingestion
+// ============================================================================
 
 @allowed([
   'cosmosdb'
@@ -79,10 +79,6 @@ param azureAiServiceLocation string
 @description('Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
 param databaseType string = 'cosmosdb'
 
-// ===================== //
-// Ingestion trigger     //
-// ===================== //
-
 @allowed([
   'direct_enqueue'
   'event_grid'
@@ -90,9 +86,9 @@ param databaseType string = 'cosmosdb'
 @description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
 param ingestionTrigger string = 'direct_enqueue'
 
-// ===================== //
-// AI model parameters   //
-// ===================== //
+// ============================================================================
+// Parameters — AI Configuration
+// ============================================================================
 
 @minLength(1)
 @description('Optional. Primary chat model deployment name.')
@@ -176,9 +172,19 @@ param imageTag string = 'latest'
 @description('Optional. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
 param hostingModel string = 'container'
 
-// ===================== //
-// WAF flags             //
-// ===================== //
+// ============================================================================
+// Parameters — Existing Resources
+// ============================================================================
+
+@description('Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one.')
+param existingLogAnalyticsWorkspaceId string = ''
+
+@description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
+param existingFoundryProjectResourceId string = ''
+
+// ============================================================================
+// Parameters — WAF Flags
+// ============================================================================
 
 @description('Optional. Enable/Disable usage telemetry for module.')
 param enableTelemetry bool = true
@@ -195,6 +201,10 @@ param enableRedundancy bool = false
 @description('Optional. Deploy a VNet, private endpoints, and disable public network access on data-plane resources. Wires the regional VNet (`modules/virtualNetwork.bicep`), private DNS zones, private endpoints for every data-plane resource, regional VNet integration for compute, and Bastion. Setting this to true is the WAF-aligned topology and requires no follow-up tasks; flipping it back to false re-enables public endpoints with default firewall rules.')
 param enablePrivateNetworking bool = false
 
+// ============================================================================
+// Parameters — AVM-specific (ignored when deploymentFlavor = 'bicep')
+// ============================================================================
+
 @secure()
 @description('Optional. VM admin username (AVM-WAF only, when private networking is enabled).')
 param vmAdminUsername string?
@@ -206,12 +216,9 @@ param vmAdminPassword string?
 @description('Optional. VM size for jumpbox (AVM-WAF only). Defaults to Standard_D2s_v5.')
 param vmSize string = 'Standard_D2s_v5'
 
-@description('Optional. Existing Log Analytics Workspace Resource ID.')
-param existingLogAnalyticsWorkspaceId string = ''
-
-// ===================== //
-// Tagging               //
-// ===================== //
+// ============================================================================
+// Parameters — Identity & Tagging
+// ============================================================================
 
 @description('Optional. Tags applied to every deployed resource.')
 param tags object = {}
@@ -222,7 +229,7 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
   : deployer().objectId
 
 @allowed(['User', 'ServicePrincipal'])
-@description('Optional. Principal type of the deploying user.')
+@description('Optional. Principal type of the deploying user. Use ServicePrincipal for CI/CD pipelines with OIDC.')
 param deployingUserPrincipalType string = 'User'
 
 // ============================================================================
@@ -277,6 +284,7 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     vmAdminPassword: vmAdminPassword
     vmSize: vmSize
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     tags: tags
     createdBy: createdBy
     deployingUserPrincipalType: deployingUserPrincipalType
@@ -328,8 +336,6 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
 // ============================================================================
 // Outputs — Forwarded from whichever flavor was deployed
 // ============================================================================
-
-// --- Identity / region / suffix ---
 
 @description('Lower-cased solution suffix used in every downstream resource name.')
 output AZURE_SOLUTION_SUFFIX string = isAvm ? avmDeployment!.outputs.AZURE_SOLUTION_SUFFIX : bicepDeployment!.outputs.AZURE_SOLUTION_SUFFIX

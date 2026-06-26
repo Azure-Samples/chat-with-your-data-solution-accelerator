@@ -70,6 +70,9 @@
     },
     "existingLogAnalyticsWorkspaceId": {
       "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+    },
+    "existingFoundryProjectResourceId": {
+      "value": "${AZURE_EXISTING_AIPROJECT_RESOURCE_ID}"
     }
   }
 }
