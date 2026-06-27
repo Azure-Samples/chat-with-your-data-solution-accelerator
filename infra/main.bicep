@@ -1016,7 +1016,7 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
             {
               principalId: managedIdentityModule.outputs.principalId
               principalType: 'ServicePrincipal'
-              roleDefinitionIdOrName: 'Key Vault Secrets User'
+              roleDefinitionIdOrName: '4633458b-17de-408a-b874-0445c86b69e6' // Key Vault Secrets User
             }
           ]
         : [],
@@ -1024,7 +1024,7 @@ module keyvault './modules/key-vault/vault/vault.bicep' = {
         ? [
             {
               principalId: principal.id
-              roleDefinitionIdOrName: 'Key Vault Secrets User'
+              roleDefinitionIdOrName: '4633458b-17de-408a-b874-0445c86b69e' // Key Vault Secrets User
             }
           ]
         : []
@@ -1817,7 +1817,7 @@ module storage './modules/storage/storage-account/storage-account.bicep' = {
       }
       {
         principalId: managedIdentityModule.outputs.principalId
-        roleDefinitionIdOrName: 'Storage File Data Privileged Contributor'
+        roleDefinitionIdOrName: '69566ab7-960f-475b-8e7c-b3118f30c6bd' // Storage File Data Privileged Contributor
         principalType: 'ServicePrincipal'
       }
     ]

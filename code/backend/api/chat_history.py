@@ -293,6 +293,7 @@ async def delete_conversation():
             await conversation_client.close()
 
     except Exception as e:
+        # Log the exception and return a generic error message
         logger.exception(f"Exception in /history/delete: {e}")
         return jsonify({"error": "Error while deleting conversation history"}), 500
 
