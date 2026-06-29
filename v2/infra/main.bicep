@@ -327,6 +327,7 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     hostingModel: hostingModel
     enableMonitoring: enableMonitoring
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
+    existingFoundryProjectResourceId: existingFoundryProjectResourceId
     tags: tags
     createdBy: createdBy
     deployingUserPrincipalType: deployingUserPrincipalType

@@ -25,7 +25,7 @@ param speechServiceName string
 param contentSafetyServiceName string
 
 @description('Name of the Container Registry.')
-param containerRegistryName string
+param containerRegistryName string = ''
 
 @description('Name of the Storage Account.')
 param storageName string
@@ -37,37 +37,126 @@ param aiSearchName string
 param cosmosDbName string
 
 // ============================================================================
-// Parameters — role assignment data (typed by scope)
-// Each item: { principalId: string, principalType: string, roleDefinitionId: string (GUID) }
+// Parameters — principal IDs (who receives the roles) + flags
 // ============================================================================
 
-@description('Role assignments scoped to the AI Foundry account.')
-param foundryRoleAssignments array = []
+@description('Whether the AI Foundry project is an existing (BYO) resource; when true, foundry-scoped roles are skipped.')
+param useExistingAIProject bool = false
 
-@description('Role assignments scoped to the Speech service.')
-param speechRoleAssignments array = []
+@description('Principal ID of the user-assigned managed identity.')
+param uamiPrincipalId string
 
-@description('Role assignments scoped to the Content Safety service.')
-param contentSafetyRoleAssignments array = []
+@description('Principal ID of the AI Foundry account managed identity.')
+param foundryAccountPrincipalId string = ''
 
-@description('Role assignments scoped to the Container Registry.')
-param registryRoleAssignments array = []
+@description('Principal ID of the AI Foundry project managed identity.')
+param foundryProjectPrincipalId string = ''
 
-@description('Role assignments scoped to the Storage Account.')
-param storageRoleAssignments array = []
+@description('Principal ID of the Function App system-assigned identity.')
+param functionPrincipalId string
 
-@description('Role assignments scoped to the AI Search service (cosmosdb mode only).')
-param searchRoleAssignments array = []
+@description('Principal ID of the AI Search service identity (cosmosdb mode only).')
+param searchPrincipalId string = ''
 
-@description('Cosmos DB SQL data-plane role assignments (cosmosdb mode only). Each item: { principalId, roleDefinitionId (Cosmos SQL role GUID) }.')
-param cosmosSqlRoleAssignments array = []
+@description('Object ID of the deploying user/principal.')
+param deployingUserPrincipalId string
+
+@description('Principal type of the deploying user (User or ServicePrincipal).')
+param deployingUserPrincipalType string = 'User'
+
+// ============================================================================
+// Variables — role definition GUIDs + typed role-assignment items per scope.
+// Centralized here so main.bicep owns no RBAC definitions; each loop below
+// consumes the matching array.
+// ============================================================================
+
+// ----- Role definition GUIDs (built-in roles) -----
+var roleIds = {
+  cognitiveServicesOpenAIUser: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+  cognitiveServicesUser: 'a97b65f3-24c7-4388-baec-2e87135dc908'
+  azureAiUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+  cognitiveServicesSpeechUser: 'f2dc8367-1007-4938-bd23-fe263f013447'
+  searchIndexDataReader: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
+  searchIndexDataContributor: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
+  searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+  storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  storageBlobDataOwner: 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+  storageQueueDataContributor: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+  storageAccountContributor: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+}
+var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
+
+var foundryRoleAssignments = useExistingAIProject ? [] : union(
+  [
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.azureAiUser }
+    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.cognitiveServicesUser }
+    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.azureAiUser }
+  ],
+  isCosmos
+    ? [
+        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
+        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
+      ]
+    : []
+)
+
+var speechRoleAssignments = [
+  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesSpeechUser }
+]
+
+var contentSafetyRoleAssignments = [
+  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
+]
+
+var registryRoleAssignments = []
+
+var storageRoleAssignments = union(
+  [
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
+    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
+    { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataOwner }
+    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
+    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
+    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.storageBlobDataContributor }
+  ],
+  isCosmos
+    ? [
+        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+      ]
+    : []
+)
+
+var searchRoleAssignments = isCosmos
+  ? [
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataReader }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
+      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataReader }
+      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
+      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.searchIndexDataContributor }
+      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.searchServiceContributor }
+    ]
+  : []
+
+var cosmosSqlRoleAssignments = isCosmos
+  ? [
+      { principalId: uamiPrincipalId, roleDefinitionId: cosmosDataContributorRoleId }
+    ]
+  : []
 
 // ============================================================================
 // Existing Resource References (deterministic names = calculable scopes)
 // ============================================================================
 
-resource aiFoundryAccountResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
-  name: aiFoundryName
+resource aiFoundryAccountResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = if (!empty(foundryRoleAssignments)) {
+  name: empty(aiFoundryName) ? 'placeholder' : aiFoundryName
 }
 
 resource speechServiceResource 'Microsoft.CognitiveServices/accounts@2025-12-01' existing = {
@@ -78,9 +167,9 @@ resource contentSafetyResource 'Microsoft.CognitiveServices/accounts@2025-12-01'
   name: contentSafetyServiceName
 }
 
-resource containerRegistryResource 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = {
+resource containerRegistryResource 'Microsoft.ContainerRegistry/registries@2025-04-01' existing = if (!empty(containerRegistryName)) {
   #disable-next-line BCP334
-  name: containerRegistryName
+  name: empty(containerRegistryName) ? 'placeholder' : containerRegistryName
 }
 
 resource storageAccountResource 'Microsoft.Storage/storageAccounts@2025-08-01' existing = {

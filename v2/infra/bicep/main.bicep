@@ -149,6 +149,9 @@ param enableMonitoring bool = false
 @description('Optional. Existing Log Analytics Workspace Resource ID. When set, the workspace is reused instead of deploying a new one.')
 param existingLogAnalyticsWorkspaceId string = ''
 
+@description('Optional. Existing AI Foundry project Resource ID. When set, that project (cross-subscription supported) is reused instead of deploying a new one.')
+param existingFoundryProjectResourceId string = ''
+
 // ===================== //
 // Tagging               //
 // ===================== //
@@ -230,31 +233,18 @@ var defaultOpenAiDeployments = [
   }
 ]
 
-// ----- Role definition GUIDs (built-in roles) -----
-var roleIds = {
-  cognitiveServicesOpenAIUser: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
-  cognitiveServicesUser: 'a97b65f3-24c7-4388-baec-2e87135dc908'
-  azureAiUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
-  cognitiveServicesSpeechUser: 'f2dc8367-1007-4938-bd23-fe263f013447'
-  searchIndexDataReader: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
-  searchIndexDataContributor: '8ebe5a00-799e-43f5-93ac-243d3dce84a7'
-  searchServiceContributor: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
-  storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-  storageBlobDataOwner: 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
-  storageQueueDataContributor: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
-  storageAccountContributor: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
-  acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
-}
-var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
-
 // ----- Deterministic resource names (mirror each module's naming rule) -----
 // Used by `existing` references whose .id must be calculable at the start of
 // deployment (role assignment / child-resource name + scope cannot depend on a
 // runtime module output). Ordering is enforced with explicit dependsOn.
-var aiFoundryName = 'aif-${solutionSuffix}'
+var useExistingAIProject = !empty(existingFoundryProjectResourceId)
+var aiFoundrySubscriptionId = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[2] : subscription().subscriptionId
+var aiFoundryResourceGroupName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[4] : resourceGroup().name
+var aiFoundryResourceName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[8] : 'aif-${solutionSuffix}'
+var aiProjectResourceName = useExistingAIProject ? split(existingFoundryProjectResourceId, '/')[10] : ''
+
 var aiSearchName = 'srch-${solutionSuffix}'
 var storageName = take('st${solutionSuffix}', 24)
-var containerRegistryName = 'cr${solutionSuffix}'
 var cosmosDbName = 'cosmos-${solutionSuffix}'
 
 // ===================== //
@@ -320,7 +310,16 @@ var appInsightsConnectionString = enableMonitoring ? applicationInsights!.output
 // Module: AI Foundry (account + project)
 // ============================================================================
 
-module aiProject './modules/ai/ai-foundry-project.bicep' = {
+module existingAIProject './modules/ai/existing-project-setup.bicep' = if (useExistingAIProject) {
+  name: take('module.existing-project-setup.${solutionName}', 64)
+  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
+  params: {
+    name: aiFoundryResourceName
+    projectName: aiProjectResourceName
+  }
+}
+
+module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIProject) {
   name: take('module.ai-foundry-project.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
@@ -331,14 +330,19 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = {
   }
 }
 
+var aiFoundryEndpoint = useExistingAIProject ? existingAIProject!.outputs.endpoint : aiProject!.outputs.endpoint
+var projectEndpoint = useExistingAIProject ? existingAIProject!.outputs.projectEndpoint : aiProject!.outputs.projectEndpoint
+var foundryProjectName = useExistingAIProject ? existingAIProject!.outputs.projectName : aiProject!.outputs.projectName
+
 // Model deployments — serial (@batchSize(1)) to avoid Cognitive Services
 // deployment throttling, since the native module owns a single deployment each.
 @batchSize(1)
 module aiModelDeployments './modules/ai/ai-foundry-model-deployment.bicep' = [
   for deployment in defaultOpenAiDeployments: {
     name: take('module.model-deployment.${deployment.name}.${solutionSuffix}', 64)
+    scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
     params: {
-      aiServicesAccountName: aiProject.outputs.name
+      aiServicesAccountName: aiFoundryResourceName
       deploymentName: deployment.name
       modelFormat: deployment.model.format
       modelName: deployment.model.name
@@ -397,10 +401,11 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isCosmos) {
 
 module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if (isCosmos) {
   name: take('module.foundry-search-conn.${solutionName}', 64)
+  scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
   params: {
     solutionName: solutionSuffix
-    aiServicesAccountName: aiProject.outputs.name
-    projectName: aiProject.outputs.projectName
+    aiServicesAccountName: aiFoundryResourceName
+    projectName: foundryProjectName
     target: aiSearch!.outputs.endpoint
     category: 'CognitiveSearch'
     authType: 'AAD'
@@ -489,17 +494,7 @@ module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (da
   }
 }
 
-// ========== Container Registry ========== //
-module containerRegistry './modules/compute/container-registry.bicep' = {
-  name: take('module.container-registry.${solutionName}', 64)
-  params: {
-    solutionName: solutionSuffix
-    location: location
-    tags: allTags
-    sku: 'Basic'
-    publicNetworkAccess: 'Enabled'
-  }
-}
+
 
 // ========== Container App Environment ========== //
 module containerAppsEnv './modules/compute/container-app-environment.bicep' = {
@@ -519,9 +514,9 @@ var backendContainerEnv = concat(
     { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
     { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
     { name: 'AZURE_ENVIRONMENT', value: 'production' }
-    { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-    { name: 'AZURE_OPENAI_ENDPOINT', value: aiProject.outputs.endpoint }
-    { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiProject.outputs.endpoint }
+    { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
+    { name: 'AZURE_OPENAI_ENDPOINT', value: aiFoundryEndpoint }
+    { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiFoundryEndpoint }
     { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
     { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
     { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
@@ -650,9 +645,9 @@ var functionAppSettings = concat(
     { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
     { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
     { name: 'AZURE_ENVIRONMENT', value: 'production' }
-    { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
-    { name: 'AZURE_OPENAI_ENDPOINT', value: aiProject.outputs.endpoint }
-    { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiProject.outputs.endpoint }
+    { name: 'AZURE_AI_PROJECT_ENDPOINT', value: projectEndpoint }
+    { name: 'AZURE_OPENAI_ENDPOINT', value: aiFoundryEndpoint }
+    { name: 'AZURE_AI_SERVICES_ENDPOINT', value: aiFoundryEndpoint }
     { name: 'AZURE_OPENAI_API_VERSION', value: azureOpenAiApiVersion }
     { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
     { name: 'AZURE_DB_TYPE', value: databaseType }
@@ -672,15 +667,15 @@ var functionAppSettings = concat(
 )
 
 var functionName = 'func-${solutionSuffix}'
-var functionAppName = hostingModel == 'container' ? '${functionName}-docker' : functionName
+var functionAppName = '${functionName}-docker'
 module functionApp './modules/compute/function-app.bicep' = {
   name: take('module.function-app.${solutionName}', 64)
   params: {
     name: functionAppName
     location: location
     tags: union(allTags, { 'azd-service-name': 'function' })
-    kind: hostingModel == 'container' ? 'functionapp,linux,container' : 'functionapp,linux'
-    dockerFullImageName: hostingModel == 'container' ? '${containerRegistryEndpoint}/rag-functions:${imageTag}' : ''
+    kind: 'functionapp,linux,container'
+    dockerFullImageName: '${containerRegistryEndpoint}/rag-functions:${imageTag}'
     serverFarmResourceId: appServicePlan.outputs.resourceId
     storageAccountName: storageAccount.outputs.name
     userAssignedIdentityClientId: userAssignedIdentity.outputs.clientId
@@ -748,101 +743,35 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
 // ============================================================================
 
 var uamiPrincipalId = userAssignedIdentity.outputs.principalId
-var foundryAccountPrincipalId = aiProject.outputs.principalId
-var foundryProjectPrincipalId = aiProject.outputs.projectIdentityPrincipalId
+var foundryAccountPrincipalId = useExistingAIProject ? existingAIProject!.outputs.principalId : aiProject!.outputs.principalId
+var foundryProjectPrincipalId = useExistingAIProject ? existingAIProject!.outputs.projectIdentityPrincipalId : aiProject!.outputs.projectIdentityPrincipalId
 var functionPrincipalId = functionApp.outputs.principalId
 var searchPrincipalId = isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
 
-var foundryRoleAssignmentItems = union(
-  [
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.azureAiUser }
-    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.cognitiveServicesUser }
-    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.azureAiUser }
-  ],
-  isCosmos
-    ? [
-        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
-        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
-      ]
-    : []
-)
-
-var speechRoleAssignmentItems = [
-  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesSpeechUser }
-]
-
-var contentSafetyRoleAssignmentItems = [
-  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
-]
-
-var registryRoleAssignmentItems = [
-  { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.acrPull }
-]
-
-var storageRoleAssignmentItems = union(
-  [
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
-    { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
-    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataOwner }
-    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
-    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
-    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.storageBlobDataContributor }
-  ],
-  isCosmos
-    ? [
-        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
-      ]
-    : []
-)
-
-var searchRoleAssignmentItems = isCosmos
-  ? [
-      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
-      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
-      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataReader }
-      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
-      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
-      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataContributor }
-      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchIndexDataReader }
-      { principalId: foundryAccountPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.searchServiceContributor }
-      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.searchIndexDataContributor }
-      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.searchServiceContributor }
-    ]
-  : []
-
-var cosmosSqlRoleAssignmentItems = isCosmos
-  ? [
-      { principalId: uamiPrincipalId, roleDefinitionId: cosmosDataContributorRoleId }
-    ]
-  : []
-
+// Role-assignment definitions (roleIds map + who-gets-what arrays) live in
+// ./modules/identity/role-assignments.bicep; main.bicep only supplies principals.
 module roleAssignments './modules/identity/role-assignments.bicep' = {
   name: take('module.role-assignments.${solutionName}', 64)
   params: {
     isCosmos: isCosmos
-    aiFoundryName: aiFoundryName
+    aiFoundryName: aiFoundryResourceName
     speechServiceName: speechServiceName
     contentSafetyServiceName: contentSafetyServiceName
-    containerRegistryName: containerRegistryName
     storageName: storageName
     aiSearchName: aiSearchName
     cosmosDbName: cosmosDbName
-    foundryRoleAssignments: foundryRoleAssignmentItems
-    speechRoleAssignments: speechRoleAssignmentItems
-    contentSafetyRoleAssignments: contentSafetyRoleAssignmentItems
-    registryRoleAssignments: registryRoleAssignmentItems
-    storageRoleAssignments: storageRoleAssignmentItems
-    searchRoleAssignments: searchRoleAssignmentItems
-    cosmosSqlRoleAssignments: cosmosSqlRoleAssignmentItems
+    useExistingAIProject: useExistingAIProject
+    uamiPrincipalId: uamiPrincipalId
+    foundryAccountPrincipalId: foundryAccountPrincipalId
+    foundryProjectPrincipalId: foundryProjectPrincipalId
+    functionPrincipalId: functionPrincipalId
+    searchPrincipalId: searchPrincipalId
+    deployingUserPrincipalId: deployingUserPrincipalId
+    deployingUserPrincipalType: deployingUserPrincipalType
   }
   dependsOn: [
     speechService
     contentSafety
-    containerRegistry
   ]
 }
 // ===================== //
@@ -880,13 +809,13 @@ output AZURE_DB_TYPE string = databaseType
 output AZURE_INDEX_STORE string = indexStoreValue
 
 @description('AI Services endpoint.')
-output AZURE_AI_SERVICES_ENDPOINT string = aiProject.outputs.endpoint
+output AZURE_AI_SERVICES_ENDPOINT string = aiFoundryEndpoint
 
 @description('Azure OpenAI endpoint.')
-output AZURE_OPENAI_ENDPOINT string = aiProject.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = aiFoundryEndpoint
 
 @description('AI Foundry project endpoint.')
-output AZURE_AI_PROJECT_ENDPOINT string = aiProject.outputs.projectEndpoint
+output AZURE_AI_PROJECT_ENDPOINT string = projectEndpoint
 
 @description('Azure OpenAI API version.')
 output AZURE_OPENAI_API_VERSION string = azureOpenAiApiVersion
@@ -971,12 +900,6 @@ output AZURE_FUNCTION_APP_URL string = 'https://${functionApp.outputs.defaultHos
 
 @description('Function App name.')
 output AZURE_FUNCTION_APP_NAME string = functionApp.outputs.name
-
-@description('Container registry login server.')
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
-
-@description('Container registry name.')
-output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
 
 @description('Application Insights connection string (empty when monitoring disabled).')
 output AZURE_APP_INSIGHTS_CONNECTION_STRING string = appInsightsConnectionString

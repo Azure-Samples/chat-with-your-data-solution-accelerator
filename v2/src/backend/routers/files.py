@@ -29,6 +29,7 @@ Status surface:
 """
 
 import mimetypes
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import Response
@@ -66,10 +67,18 @@ async def get_file(
         ) from exc
     # ``download_document`` already validated the filename (no control
     # characters), so it is safe to embed in the Content-Disposition
-    # header without risk of header injection.
+    # header without risk of header injection. HTTP headers are Latin-1
+    # encoded, so a non-ASCII (e.g. Hebrew) filename is carried via the
+    # RFC 5987 ``filename*`` parameter; a percent-stripped ASCII fallback
+    # keeps clients that ignore ``filename*`` working.
+    ascii_fallback = filename.encode("ascii", "replace").decode("ascii")
+    content_disposition = (
+        f'inline; filename="{ascii_fallback}"; '
+        f"filename*=UTF-8''{quote(filename)}"
+    )
     content_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     return Response(
         content=content,
         media_type=content_type,
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition},
     )

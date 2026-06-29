@@ -59,6 +59,9 @@ var baseSettings = concat(
     { name: 'AzureWebJobsStorage__credential', value: 'managedidentity' }
     { name: 'AzureWebJobsStorage__clientId', value: userAssignedIdentityClientId }
     { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
+    { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: string(useDocker ? false : true) }
+    { name: 'ENABLE_ORYX_BUILD', value: string(useDocker ? false : contains(kind, 'linux')) }
+    { name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', value: 'false' }
   ],
   useDocker
     ? []
