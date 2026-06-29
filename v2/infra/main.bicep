@@ -2226,10 +2226,14 @@ module functionApp 'br/public:avm/res/web/site:0.22.0' = {
       scaleAndConcurrency: {
         maximumInstanceCount: enableScalability ? 100 : 40
         instanceMemoryMB: 2048
-        // Keep the batch_push queue trigger warm (avoid Flex scale-from-zero cold-start on the first queued message).
+        // Keep the batch_push + blob_event queue triggers warm (avoid Flex scale-from-zero cold-start on the first queued message).
         alwaysReady: [
           {
             name: 'function:batch_push'
+            instanceCount: 1
+          }
+          {
+            name: 'function:blob_event'
             instanceCount: 1
           }
         ]

@@ -57,6 +57,6 @@ An encoding fact shapes the mechanism. The Azure Functions queue trigger expects
 
 ## Follow-ups
 
-- **`BUG-0056` encoding back-port (separate debt).** The live `AzureFunctionsJobHost__extensions__queues__messageEncoding = none` is still not in `host.json` / bicep. The `blob_event` queue trigger depends on it (same as `batch_push`) to read Event Grid's raw-JSON event from `blob-events`; the translator also tolerates a base64 body defensively, but the back-port remains tracked so a redeploy keeps both `batch_push` and `blob_event` decoding correctly.
+- **`BUG-0056` encoding back-port — landed in `host.json`.** `host.json` now sets `extensions.queues.messageEncoding = none`, so every deploy ships it and both `batch_push` and `blob_event` decode the raw-JSON event from their queues correctly; the translator additionally tolerates a base64 event body defensively. The live `AzureFunctionsJobHost__extensions__queues__messageEncoding = none` app-setting override (applied by hand under `BUG-0056`) is therefore redundant once the current package deploys, and no bicep app-setting parity is required because the package-level `host.json` is authoritative.
 - **`BUG-0053` (cloud scale-from-zero).** Tracked separately; gates cloud bulk-ingest end-to-end.
 - **`BUG-0058` (stale `build-functions/` artifact).** The function redeploy that ships `blob_event` must run `prepackage` first, or it will deploy a stale artifact without the new blueprint.

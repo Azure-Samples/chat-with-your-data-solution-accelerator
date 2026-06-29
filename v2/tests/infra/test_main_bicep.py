@@ -199,6 +199,24 @@ def test_function_app_settings_bind_required_phase4_settings(
     )
 
 
+def test_function_app_keeps_blob_event_always_ready(bicep_text: str) -> None:
+    """The Flex `alwaysReady` set must keep an always-ready instance for
+    `function:blob_event`.
+
+    `blob_event` is a queue trigger on the `blob-events` queue; without an
+    always-ready instance it carries the same Flex scale-from-zero loss that
+    BUG-0053 fixed for `function:batch_push`. The first BlobCreated event
+    after the function app idles to zero would otherwise be dropped before
+    a host instance spins up to drain the queue.
+    """
+    assert "'function:blob_event'" in bicep_text, (
+        "function:blob_event missing from the Flex alwaysReady set in "
+        "main.bicep. Add a { name: 'function:blob_event', instanceCount: 1 } "
+        "entry next to function:batch_push so the blob-events queue trigger "
+        "stays warm."
+    )
+
+
 # ---------------------------------------------------------------------------
 # ADR-0018: Monitoring Metrics Publisher RBAC for UAMI on AppI.
 #
