@@ -645,8 +645,6 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIPro
     disableLocalAuth: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
-    roleAssignments: []
-    privateEndpoints: []
   }
 }
 
@@ -712,12 +710,12 @@ module aiProjectPrivateEndpoint './modules/networking/private-endpoint.bicep' = 
   }
 }
 
-var speechServiceName = 'spch-${solutionSuffix}'
 module speechService './modules/ai/ai-services.bicep' = {
   name: take('module.ai-services.SpeechServices.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     namePrefix: 'spch'
+    customSubDomainName: 'spch${uniqueString(resourceGroup().id, solutionSuffix, 'SpeechServices')}'
     location: azureAiServiceLocation
     tags: allTags
     enableTelemetry: enableTelemetry
@@ -735,8 +733,8 @@ module speechService './modules/ai/ai-services.bicep' = {
     privateEndpoints: enablePrivateNetworking
       ? [
           {
-            name: 'pep-${speechServiceName}'
-            customNetworkInterfaceName: 'nic-${speechServiceName}'
+            name: 'pep-spch-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-spch-${solutionSuffix}'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'account'
             privateDnsZoneGroup: {
@@ -753,18 +751,16 @@ module speechService './modules/ai/ai-services.bicep' = {
   }
 }
 
-var contentSafetyServiceName = 'cs-${solutionSuffix}'
 module contentSafety './modules/ai/ai-services.bicep' = {
   name: take('module.ai-services.ContentSafety.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     namePrefix: 'cs'
-    name: contentSafetyServiceName
+    customSubDomainName: 'cs${uniqueString(resourceGroup().id, solutionSuffix, 'ContentSafety')}'
     location: azureAiServiceLocation
     tags: allTags
     enableTelemetry: false
     kind: 'ContentSafety'
-    customSubDomainName: contentSafetyServiceName
     disableLocalAuth: true
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
@@ -779,8 +775,8 @@ module contentSafety './modules/ai/ai-services.bicep' = {
     privateEndpoints: enablePrivateNetworking
       ? [
           {
-            name: 'pep-${contentSafetyServiceName}'
-            customNetworkInterfaceName: 'nic-${contentSafetyServiceName}'
+            name: 'pep-cs-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-cs-${solutionSuffix}'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'account'
             privateDnsZoneGroup: {
@@ -900,7 +896,6 @@ module aiProjectSearchConnection './modules/ai/ai-foundry-connection.bicep' = if
   }
 }
 
-var storageAccountName = take(replace('st${solutionSuffix}', '-', ''), 24)
 module storageAccount './modules/data/storage-account.bicep' = {
   name: take('module.storage-account.${solutionName}', 64)
   params: {
@@ -962,8 +957,8 @@ module storageAccount './modules/data/storage-account.bicep' = {
     privateEndpoints: enablePrivateNetworking
       ? [
           {
-            name: 'pep-blob-${storageAccountName}'
-            customNetworkInterfaceName: 'nic-blob-${storageAccountName}'
+            name: 'pep-blob-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-blob-${solutionSuffix}'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'blob'
             privateDnsZoneGroup: {
@@ -976,8 +971,8 @@ module storageAccount './modules/data/storage-account.bicep' = {
             }
           }
           {
-            name: 'pep-queue-${storageAccountName}'
-            customNetworkInterfaceName: 'nic-queue-${storageAccountName}'
+            name: 'pep-queue-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-queue-${solutionSuffix}'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'queue'
             privateDnsZoneGroup: {
@@ -990,8 +985,8 @@ module storageAccount './modules/data/storage-account.bicep' = {
             }
           }
           {
-            name: 'pep-file-${storageAccountName}'
-            customNetworkInterfaceName: 'nic-file-${storageAccountName}'
+            name: 'pep-file-${solutionSuffix}'
+            customNetworkInterfaceName: 'nic-file-${solutionSuffix}'
             subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
             service: 'file'
             privateDnsZoneGroup: {

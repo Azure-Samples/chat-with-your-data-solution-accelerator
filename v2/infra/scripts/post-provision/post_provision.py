@@ -595,7 +595,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print("post-provision: PostgreSQL mode; skipping search index & knowledge base")
 
-    _print_summary()
+    # _print_summary()
     return 0
 
 

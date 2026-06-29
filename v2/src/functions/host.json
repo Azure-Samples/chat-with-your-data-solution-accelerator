@@ -10,7 +10,10 @@
   },
   "extensions": {
     "queues": {
-      "messageEncoding": "none"
+      "messageEncoding": "none",
+      "maxPollingInterval": "00:00:05",
+      "visibilityTimeout": "00:00:30",
+      "batchSize": 16
     }
   },
   "extensionBundle": {
