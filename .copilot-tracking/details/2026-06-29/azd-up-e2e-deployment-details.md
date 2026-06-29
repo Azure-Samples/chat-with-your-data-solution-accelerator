@@ -371,6 +371,109 @@ Execute:
 Validation commands:
 * Live `azd up`, `az webapp show`, `az storage blob list`, `az storage queue` depth checks, browser exercise — all per Step 5.2.
 
+### Step 6.1: `searchServiceLocation` Bicep param (AI Search region override)
+
+Why: Step 5.2's `azd up` provisioned the entire v2 stack in `eastus2` EXCEPT `srch-cwyd2bh3kb` (Azure AI Search, standard SKU), which failed with `InsufficientResourcesAvailable` — `eastus2` is physically out of AI Search capacity (a capacity wall, not a raisable quota). User chose Option A: deploy AI Search in a capacity region (uksouth) while keeping the rest (incl. the proven OpenAI/AI-Services quota) in `eastus2`.
+
+Change (Configuration Layer pillar — operator-tunable infra knob):
+* `v2/infra/main.bicep`:
+  * Add `param searchServiceLocation string = ''` alongside the other location-ish params (near `existingSearchName` ~L108-120).
+  * Add `var effectiveSearchLocation = empty(searchServiceLocation) ? location : searchServiceLocation` next to `useExistingSearch` (~L122) — empty default ⇒ same region as today (backward compatible).
+  * In `module aiSearch` (L887-891), change `location: location` → `location: effectiveSearchLocation`.
+* `v2/infra/main.parameters.json`: add `"searchServiceLocation": { "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION=}" }` (mirrors the `${AZURE_ENV_EXISTING_SEARCH_NAME=}` empty-default pattern).
+* `v2/tests/infra/test_main_bicep.py`: add a grep-style test asserting (a) `param searchServiceLocation` is declared, (b) the `effectiveSearchLocation` ternary exists, (c) the `aiSearch` module binds `location: effectiveSearchLocation` (not `location: location`). Pillar/Phase header consistent with the file.
+
+Conventions: Hard Rule #11 (camelCase Bicep param), #16 (no process narrative in the bicep comment — describe the knob, not the incident), #18 (no env-specific region literal in tracked files — the region is supplied via the env var, default empty). Cross-region search is safe in the public profile (no private endpoints; `enablePrivateNetworking=false` gates the search PE out).
+
+Validation:
+* `az bicep build --file v2/infra/main.bicep` — EXIT 0.
+* `uv run python -m pytest tests/infra/test_main_bicep.py -q` — green.
+
+### Step 6.2: Set region env var + re-run `azd up`
+
+Execute (Task Implementor ops):
+* `azd env set AZURE_ENV_SEARCH_SERVICE_LOCATION uksouth` (uksouth = proven AI Search capacity; the old `srch-cwydcdbv23ane6` already runs there).
+* `azd up` from `v2/` (Set-Location chained so it can't drift to the repo-root v1 `azure.yaml`).
+* Confirm `srch-cwyd2bh3kb` provisions in uksouth and the full provision + 3-service deploy completes green.
+* Then proceed to the Step 5.2 end-to-end verification (seed ran, queues drained, frontend no auth wall, chat + admin work, health 200s).
+
+### Step 6.3: Grant the deployer principal storage data-plane roles (fix the seed `AuthorizationPermissionMismatch`)
+
+Why: Step 6.2's `azd up` deployed the whole stack green, but the post-deploy seed hook (`upload-sample-data.ps1` → `upload_sample_data.py`) failed with `AuthorizationPermissionMismatch` on `stcwyd2bh3kb`. Root cause (confirmed by reading `main.bicep`): the storage account `roleAssignments` grant the three storage roles **only to the UAMI** (`userAssignedIdentity.outputs.principalId`); the seed runs locally under the **deployer identity** (`DefaultAzureCredential` → the human/CI principal running `azd up`), which has **no** storage data-plane RBAC. There is no `deployer()`-based role assignment on the storage module today (only `postgresAdminPrincipalId` uses that pattern, for Postgres). This is an IaC defect, not a propagation race (the error is an RBAC denial, not a transient 404). A fresh default `azd up` therefore cannot seed sample data.
+
+Change (Configuration Layer pillar — deployer bootstrap RBAC; mirrors the existing UAMI grants + the `postgresAdminPrincipal*` deployer pattern already in the file):
+* `v2/infra/main.bicep`:
+  * Add, next to the existing `createdBy`/`deployer()` usage (~L239) or near the storage module, the deployer identity facts:
+    * `var deployerPrincipalId = deployer().objectId`
+    * `var deployerPrincipalType = contains(deployer(), 'userPrincipalName') ? 'User' : 'ServicePrincipal'` (same expression already used for `postgresAdminPrincipalType` at ~L1491 — keep it as a `var` so both can share or reuse it).
+  * In `module storageAccount` `roleAssignments` array (L1144-1166), append two entries:
+    * `{ principalId: deployerPrincipalId, principalType: deployerPrincipalType, roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' }` — Storage Blob Data Contributor (upload seed blobs).
+    * `{ principalId: deployerPrincipalId, principalType: deployerPrincipalType, roleDefinitionIdOrName: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a' }` — Storage Queue Data Message Sender (enqueue doc-processing messages from the seed). This GUID is already referenced for the Event Grid queue-sender grant, so it is not a new literal in the file.
+  * Add unconditionally (the deployer always seeds via the public endpoint in the default profile; the assignment is harmless when no seed runs). No process-narrative comment — describe what the grant is for (deployer seed), per Hard Rule #16.
+* `v2/tests/infra/test_main_bicep.py`: add a grep-style test asserting the `storageAccount` module slice contains a role assignment whose `principalId` is `deployerPrincipalId` for BOTH role GUIDs (Blob Data Contributor + Queue Data Message Sender), and that `deployerPrincipalId`/`deployerPrincipalType` vars are declared. Reuse the `_slice_module` helper (`module storageAccount ` → the next `module ` after it).
+
+Conventions: Hard Rule #1 (one unit — the deployer-RBAC grant + its test), #2 (test-first), #11 (camelCase `var`), #16 (no incident narrative in the bicep comment), #18 (no env-specific principal id — `deployer()` resolves at deploy time; nothing written to a tracked file).
+
+Validation:
+* `az bicep build --file v2/infra/main.bicep` — EXIT 0.
+* `uv run python -m pytest tests/infra/test_main_bicep.py -q` — green.
+* Then re-run `azd up` (or just re-invoke the seed once RBAC propagates): seed succeeds, `documents` blob count > 0, `doc-processing` drains, `doc-processing-poison` empty, search index document count > 0.
+
+Note (defect tracking): record this as a new `BUG-####` in `v2/docs/bugs.md` (deployer-identity storage RBAC seed failure) + a worklog entry in `v2/docs/worklog/2026-06-29.md` per Hard Rule #19. Task Implementor mode writes only under `.copilot-tracking/`, so the `bugs.md`/worklog updates are flagged here and performed by the implementer/user as an explicit out-of-scope step.
+
+### Step 6.4: Fix open-mode chat (`get_user_id` open-auth fallback)
+
+Discovered during Step 6.2/6.3 live validation: the deployed backend runs `environment=production` (correct, per config-defaults-dev-first — IaC flips it) AND has Easy Auth disabled (Step 3.1, "no auth wall"). `POST /api/conversation` consumes `UserIdDep` → `backend.dependencies.get_user_id`, which only falls back to the synthetic `_LOCAL_DEV_USER` when `settings.environment is Environment.LOCAL`. With no Easy Auth principal header in production it raises `401 "Missing client principal; Easy Auth header required."` — so open chat is broken. This is the exact analog of the Phase 2 admin-open fix (`requires_role` uses `allow_open = environment is LOCAL or not require_admin_auth`).
+
+Files / change:
+* `v2/src/backend/dependencies.py`: in `get_user_id`, widen the synthetic-user fallback to mirror `requires_role`. Replace the `if settings.environment is Environment.LOCAL:` guard with the open-auth condition `if settings.environment is Environment.LOCAL or not settings.require_admin_auth:` → `return _LOCAL_DEV_USER`. Keep the production-with-Easy-Auth path failing closed (401) only when auth is REQUIRED (`require_admin_auth=True`) and no/invalid principal is present. Update the docstring to describe the open-deployment fold (anonymous callers map to the synthetic partition when auth is open), per Hard Rule #16 (describe what the code is, no incident narrative). A forged/malformed principal id still 401s (the `_is_valid_principal_id` branch is unchanged).
+* `v2/tests/backend/test_dependencies.py` (or the existing `get_user_id` test module): add a test asserting that with `environment=production` + `require_admin_auth=False` + no principal header, `get_user_id` returns `_LOCAL_DEV_USER` (does NOT raise); and that with `environment=production` + `require_admin_auth=True` + no header it still raises 401. Reuse the existing fixture/stub pattern for `Request` + `settings`.
+
+Conventions: Hard Rule #1 (one unit — the `get_user_id` fallback widening + its test), #2 (test-first), #11 (`Environment` StrEnum comparison via `is`), #16 (docstring describes behavior, not the incident). Single back-fill allowed under Hard Rule #12 (the end-to-end "chat works" validation literally cannot proceed without it) — annotate in the planning log.
+
+Validation:
+* `uv run python -m pytest tests/backend/test_dependencies.py -q` — green.
+* Full backend suite stays green: `uv run python -m pytest -q` (no regression).
+* Redeploy backend: `azd deploy backend` (app-code-only change; no infra). Then `POST <backend>/api/conversation` with `{"messages":[{"role":"user","content":"<benefits question>"}]}` + `Accept: application/json` → 200 with a grounded answer + non-empty `citations` (proves index populated + open chat works).
+
+Note (defect tracking): record as a new `BUG-####` in `v2/docs/bugs.md` (open-mode chat 401 when Easy Auth disabled in production) + worklog entry, per Hard Rule #19 (flagged, out-of-scope for Task Implementor file-write boundary).
+
+### Step 6.5: Grant the deployer Search Index Data Reader + export AZURE_AI_SEARCH_INDEX to the seed
+
+Two robustness gaps found while validating the seed's index self-check (the system itself works — ingestion confirmed via drained queues + no poison; these only affect the seed's *verification* path):
+* Gap A — the `aiSearch` service has `disableLocalAuth: true` (RBAC-only data plane). The `aiSearch` module `roleAssignments` grant Search Index Data Contributor/Reader to the UAMI + AI Foundry project, but NOT to the deployer. The local seed (run under the deployer via `DefaultAzureCredential`) therefore gets `Forbidden` on every index-count poll and emits a false-negative FAIL banner even though ingestion succeeded.
+* Gap B — `AZURE_AI_SEARCH_INDEX` is empty in `azd env get-values`, so the postdeploy seed hook (which only verifies when BOTH `AZURE_AI_SEARCH_ENDPOINT` and `AZURE_AI_SEARCH_INDEX` are set) skips the index verify entirely on a real `azd up`. Index name is `cwyd-index`.
+
+Files / change:
+* `v2/infra/main.bicep`: in `module aiSearch` `roleAssignments` (~L919-944), append `{ principalId: deployerPrincipalId, principalType: deployerPrincipalType, roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f' }` — Search Index Data Reader (deployer reads index doc count during seed verify). Reuses the `deployerPrincipalId`/`deployerPrincipalType` vars added in Step 6.3 (no new literal).
+* `v2/infra/main.bicep`: ensure the search index name reaches the seed env. Prefer adding/confirming an `output AZURE_AI_SEARCH_INDEX string = '<resolved index name>'` (the index name the backend uses, `cwyd-index`) so azd exports it to the postdeploy hook env. If the index name is a param/var already, surface it as an output; otherwise add a stable `param searchIndexName string = 'cwyd-index'` consumed by both the backend container env and the new output (confirm naming with the existing backend `AZURE_AI_SEARCH_INDEX` env wiring before adding — avoid duplicating a source of truth).
+* `v2/tests/infra/test_main_bicep.py`: add a test asserting the `aiSearch` module slice grants `deployerPrincipalId` the Search Index Data Reader GUID, and that `AZURE_AI_SEARCH_INDEX` is exported as an output (or the index-name param is surfaced to the seed). Reuse `_slice_module`.
+
+Conventions: Hard Rule #1 (one unit — the deployer search-read grant + index-name export + test; if the output wiring is non-trivial, split into two turns: 6.5a grant, 6.5b output), #2 (test-first), #11 (camelCase), #16, #18 (no env-specific principal; `deployer()` resolves at deploy time).
+
+Validation:
+* `az bicep build --file v2/infra/main.bicep` — EXIT 0.
+* `uv run python -m pytest tests/infra/test_main_bicep.py -q` — green.
+* `azd provision` to apply; then `azd env get-values` shows `AZURE_AI_SEARCH_INDEX=cwyd-index`; re-run the seed → index-count verify passes (no `Forbidden`), FAIL banner gone.
+
+Note (defect tracking): record as new `BUG-####` rows in `v2/docs/bugs.md` (deployer search-read RBAC false-negative seed verify; `AZURE_AI_SEARCH_INDEX` not exported to seed) + worklog, per Hard Rule #19 (flagged, out-of-scope for the Task Implementor file-write boundary).
+
+### Step 6.6: Delete the old `cwydcdbv23ane6` resource set
+
+> Executes LAST — after Steps 6.4 and 6.5 are deployed green.
+
+
+User-consented destructive cleanup (answered "Yes — delete the old set"). Delete ONLY the `cwydcdbv23ane6`-suffixed resources (old v1-style set: incl. Key Vault, `-docker` apps, uksouth search, AI Foundry + project, OpenAI, Cognitive Services, Doc Intelligence, Speech, Event Grid, Cosmos, Storage, App Service Plan, managed identity). NEVER touch any `cwyd2bh3kb`-suffixed (current v2) resource.
+
+Execute:
+* Enumerate old-suffix resources, delete child/dependent resources before parents where ordering matters (AI Foundry project before account; apps before plan).
+* Do this AFTER Step 6.2 is green (working deploy first), per cleanup-before-next-step.
+* Soft-delete shells (Key Vault / Cognitive Services / OpenAI / AI Foundry) are harmless — they carry the old suffix and cannot collide with the new `cwyd2bh3kb` names; purge is optional and out of scope.
+
+Validation:
+* `az resource list -g <RESOURCE_GROUP> --query "[?contains(name,'cwydcdbv23ane6')]"` returns empty (or only soft-deleted shells).
+* `az resource list` confirms all `cwyd2bh3kb` resources remain intact.
+
 ## Dependencies
 
 * `azd >= 1.18.0 != 1.23.9`, Azure subscription with quota for the default profile.

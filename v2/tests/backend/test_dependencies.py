@@ -571,9 +571,12 @@ def test_get_content_safety_guard_returns_none_when_override_false_and_no_client
 #
 # Sibling of `requires_role`: reads `x-ms-client-principal-id` and
 # returns the caller's Entra object id. Falls back to "local-dev"
-# only when `settings.environment is Environment.LOCAL` so chat
-# history is exercisable in dev without forging Easy Auth headers;
-# production raises 401 on a missing header (fail-closed).
+# whenever auth is OPEN -- `settings.environment is Environment.LOCAL`
+# OR `not settings.require_admin_auth` (the deployment disabled the
+# auth wall) -- so chat history is exercisable in dev AND so an open
+# production deployment with Easy Auth disabled does not 401 anonymous
+# callers. Production WITH the wall on raises 401 on a missing header
+# (fail-closed).
 # ---------------------------------------------------------------------------
 
 
@@ -593,3 +596,31 @@ def test_get_user_id_raises_401_when_production_and_header_missing() -> None:
         get_user_id(request, _settings(Environment.PRODUCTION))
     assert exc_info.value.status_code == 401
     assert "Missing client principal" in exc_info.value.detail
+
+
+def test_get_user_id_falls_back_to_local_dev_when_open_auth_in_prod() -> None:
+    """Open deployment (Easy Auth disabled): production + the auth wall
+    off + no principal header folds anonymous callers into the synthetic
+    ``'local-dev'`` partition instead of failing closed -- the chat
+    endpoint must work when the deployment opted out of the auth wall.
+    """
+    request = _request({})
+    result = get_user_id(
+        request, _settings("production", require_admin_auth=False)
+    )
+    assert result == "local-dev"
+
+
+def test_get_user_id_raises_401_when_production_wall_on_and_header_missing() -> (
+    None
+):
+    """Wall on in production: a missing principal header still fails
+    closed with 401 -- the open-auth fold only relaxes the gate when the
+    deployment explicitly disabled the wall (``require_admin_auth=False``).
+    """
+    request = _request({})
+    with pytest.raises(HTTPException) as exc_info:
+        get_user_id(
+            request, _settings("production", require_admin_auth=True)
+        )
+    assert exc_info.value.status_code == 401

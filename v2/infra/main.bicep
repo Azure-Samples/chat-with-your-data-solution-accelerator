@@ -74,6 +74,9 @@ param location string
 @description('Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability.')
 param azureAiServiceLocation string
 
+@description('Optional. Azure region for the Azure AI Search service. Empty (default) co-locates Search with the non-AI resources (the location parameter). Set this to a different region when the primary region has no Azure AI Search capacity (InsufficientResourcesAvailable). Search is reachable cross-region in the public profile (no private endpoints).')
+param searchServiceLocation string = ''
+
 // ===================== //
 // Database selection    //
 // ===================== //
@@ -124,6 +127,8 @@ var useExistingCosmos = !empty(existingCosmosName)
 var useExistingStorage = !empty(existingStorageName)
 var useExistingEventGridTopic = !empty(existingEventGridTopicName)
 var useExistingOpenAi = !empty(existingOpenAiName)
+
+var effectiveSearchLocation = empty(searchServiceLocation) ? location : searchServiceLocation
 
 // ===================== //
 // AI model parameters   //
@@ -245,6 +250,10 @@ param createdBy string = contains(deployer(), 'userPrincipalName')
 // (Container Apps, Function App) connects via regional VNet
 // integration. The flag is the supported WAF-aligned topology and
 // requires no follow-up work to enable.
+
+// Deployer identity — used to grant the seed hook storage data-plane access.
+var deployerPrincipalId = deployer().objectId
+var deployerPrincipalType = contains(deployer(), 'userPrincipalName') ? 'User' : 'ServicePrincipal'
 
 
 // 15-char solution suffix used in every resource name. Lowercased and stripped
@@ -888,7 +897,7 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
   name: take('avm.res.search.search-service.${solutionSuffix}', 64)
   params: {
     name: 'srch-${solutionSuffix}'
-    location: location
+    location: effectiveSearchLocation
     tags: allTags
     enableTelemetry: false
     sku: enableScalability ? 'standard' : 'basic'
@@ -932,6 +941,12 @@ module aiSearch 'br/public:avm/res/search/search-service:0.12.0' = if (databaseT
         // Search Service Contributor — lets the Foundry Project (and Foundry IQ)
         // manage indexes/indexers/skillsets through the Project-Search connection.
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
+      }
+      {
+        principalId: deployerPrincipalId
+        principalType: deployerPrincipalType
+        // Search Index Data Reader — deployer reads the index document count during the post-deploy seed self-check (disableLocalAuth is on, so the data plane is RBAC-only).
+        roleDefinitionIdOrName: '1407120a-92aa-4202-b7e9-c0e197c71c8f'
       }
     ]
     // Private endpoint into the `peps` subnet, group `searchService`,
@@ -1153,6 +1168,18 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.32.0' = if (!
         principalType: 'ServicePrincipal'
         // Storage Account Contributor (Function App host storage management)
         roleDefinitionIdOrName: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
+      }
+      {
+        principalId: deployerPrincipalId
+        principalType: deployerPrincipalType
+        // Storage Blob Data Contributor (deployer seeds sample documents)
+        roleDefinitionIdOrName: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+      }
+      {
+        principalId: deployerPrincipalId
+        principalType: deployerPrincipalType
+        // Storage Queue Data Message Sender (deployer enqueues seed doc-processing messages)
+        roleDefinitionIdOrName: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
       }
     ]
     // Three private endpoints (blob, queue, file) into the `peps` subnet.

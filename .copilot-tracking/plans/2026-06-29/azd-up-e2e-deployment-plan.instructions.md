@@ -114,12 +114,29 @@ Make a default `azd up` plus the post-deploy seed yield a fully usable CWYD v2 �
 
 * [x] Step 5.1: Run local gates (pytest, bicep build, frontend build, AST gates)
   * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 343-350)
-* [ ] Step 5.2: Live `azd up` to Azure (prefer fresh resources) — exercise frontend → chat → admin → ingestion
+* [~] Step 5.2: Live `azd up` to Azure (fresh resources via cleared EXISTING_* pins) — provision succeeded for the whole v2 stack EXCEPT AI Search (eastus2 capacity); remediation moved to Phase 6. API-level e2e now PROVEN (Phase 6): `/api/health` = pass (foundry_iq + cosmosdb + AzureSearch), `POST /api/conversation` returns a grounded answer + 5 citations to the seeded PDFs. Remaining: browser/frontend check (no auth wall + chat + admin upload).
   * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 351-360)
 * [ ] Step 5.3: Clean up test artifacts; update bugs.md + worklog
   * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 361-366)
 * [ ] Step 5.4: Report blocking issues requiring follow-on planning
   * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 367-372)
+
+### [ ] Implementation Phase 6: AI Search regional-capacity remediation + RG cleanup (discovered in Step 5.2)
+
+<!-- parallelizable: false -->
+
+* [x] Step 6.1: Add a `searchServiceLocation` Bicep param (defaults to global `location` when empty) + wire the `aiSearch` module + `main.parameters.json` + `test_main_bicep.py` test + `az bicep build`
+  * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 373-399)
+* [x] Step 6.2: Set `AZURE_ENV_SEARCH_SERVICE_LOCATION` to a capacity region (uksouth); re-run `azd up`; verify AI Search provisions and the full v2 stack deploys green
+  * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 400-412)
+* [x] Step 6.3: Grant the deployer principal Storage Blob Data Contributor + Storage Queue Data Message Sender on the storage account (Bicep) so the post-deploy seed runs under the deployer identity (fixes the `AuthorizationPermissionMismatch` seed failure) + `test_main_bicep.py` test + `az bicep build`
+  * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 413-439)
+* [x] Step 6.4: Fix open-mode chat — `get_user_id` falls back to the synthetic user when auth is open (`not require_admin_auth`), not only when `environment is LOCAL`, so the deployed open backend (Easy Auth disabled) does not 401 the chat endpoint + `test_dependencies.py` test (CRITICAL blocker for "chat works, no auth wall"; mirrors the Phase 2 admin-open fix)
+  * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 452-478)
+* [~] Step 6.5: Grant the deployer principal Search Index Data Reader on the `aiSearch` module (Bicep) so the seed's index-population self-check works under the deployer identity (fixes the `Forbidden` count poll) + ensure `AZURE_AI_SEARCH_INDEX` reaches the postdeploy seed env + `test_main_bicep.py` test + `az bicep build` — 6.5a (deployer search-read grant) code landed + tested (32 infra pass, bicep EXIT 0); remaining: 6.5b (export `AZURE_AI_SEARCH_INDEX=cwyd-index`) + `azd provision` to apply
+  * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 479-505)
+* [ ] Step 6.6: Delete the leftover old `cwydcdbv23ane6` resource set (user-consented, destructive; old-suffix only) — executes LAST, after 6.4/6.5 are deployed green
+  * Details: .copilot-tracking/details/2026-06-29/azd-up-e2e-deployment-details.md (Lines 506-517)
 
 ## Planning Log
 

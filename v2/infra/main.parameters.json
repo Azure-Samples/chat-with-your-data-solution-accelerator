@@ -92,6 +92,9 @@
     "existingSearchName": {
       "value": "${AZURE_ENV_EXISTING_SEARCH_NAME=}"
     },
+    "searchServiceLocation": {
+      "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION=}"
+    },
     "existingCosmosName": {
       "value": "${AZURE_ENV_EXISTING_COSMOS_NAME=}"
     },

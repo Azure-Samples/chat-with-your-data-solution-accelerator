@@ -375,3 +375,183 @@ def test_main_bicep_outputs_knowledge_base_settings(
         "postprovision hook (post_provision.py) seeds a Foundry IQ knowledge "
         "base / knowledge source whose names match what the backend reads."
     )
+
+
+def test_search_service_location_param_declared(bicep_text: str) -> None:
+    """`searchServiceLocation` must be an optional, empty-default param.
+
+    The empty default co-locates Azure AI Search with `location`
+    (backward compatible). An operator sets it to a different region
+    when the primary region returns `InsufficientResourcesAvailable`
+    for Azure AI Search. Renaming or dropping it removes the only knob
+    that unblocks a capacity-constrained primary region.
+    """
+    assert "param searchServiceLocation string = ''" in bicep_text, (
+        "searchServiceLocation must be declared as `param searchServiceLocation "
+        "string = ''` (optional, empty default). It lets an operator place "
+        "Azure AI Search in a capacity region when the primary region is full."
+    )
+
+
+def test_search_service_location_has_location_fallback(bicep_text: str) -> None:
+    """The effective search location must fall back to `location` when empty.
+
+    `effectiveSearchLocation = empty(searchServiceLocation) ? location :
+    searchServiceLocation` keeps the default deploy single-region; only an
+    explicit override moves Search. Losing the ternary would force the
+    operator to always supply a region.
+    """
+    assert (
+        "var effectiveSearchLocation = empty(searchServiceLocation) "
+        "? location : searchServiceLocation" in bicep_text
+    ), (
+        "effectiveSearchLocation must be `empty(searchServiceLocation) ? "
+        "location : searchServiceLocation` so an empty override co-locates "
+        "Search with the non-AI resources."
+    )
+
+
+def test_ai_search_module_binds_effective_location(bicep_text: str) -> None:
+    """The `aiSearch` module must bind `location: effectiveSearchLocation`.
+
+    Binding the raw `location` param instead would ignore the
+    `searchServiceLocation` override and keep deploying Search into the
+    capacity-constrained primary region.
+    """
+    aisearch_module = _slice_module(
+        bicep_text,
+        "module aiSearch ",
+        "module aiProjectSearchConnection ",
+    )
+    assert "location: effectiveSearchLocation" in aisearch_module, (
+        "aiSearch module must bind `location: effectiveSearchLocation` so the "
+        "searchServiceLocation override takes effect."
+    )
+    assert "location: location" not in aisearch_module, (
+        "aiSearch module must not bind the raw `location` param -- that ignores "
+        "the searchServiceLocation override."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Deployer storage data-plane RBAC.
+#
+# The post-deploy seed hook uploads sample documents and enqueues
+# doc-processing messages while running locally under the deployer
+# identity (DefaultAzureCredential), not the workload UAMI. main.bicep
+# must therefore grant the deployer Storage Blob Data Contributor and
+# Storage Queue Data Message Sender on the storage account, in addition
+# to the UAMI grants the running workloads use.
+# ---------------------------------------------------------------------------
+
+_STORAGE_BLOB_DATA_CONTRIBUTOR_ROLE_ID = "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+_STORAGE_QUEUE_DATA_MESSAGE_SENDER_ROLE_ID = "c6a89b2d-59bc-44d0-9896-0f6e12d7b80a"
+
+
+@pytest.fixture(scope="module")
+def storage_account_slice(bicep_text: str) -> str:
+    """Bicep source between `module storageAccount` and the next module."""
+    return _slice_module(
+        bicep_text,
+        "module storageAccount ",
+        "module cosmosDb ",
+    )
+
+
+def test_bicep_declares_deployer_principal_vars(bicep_text: str) -> None:
+    """main.bicep must derive the deployer principal id + type from `deployer()`.
+
+    The seed hook runs under the deployer identity, so its object id and
+    principal type must be available to the storage role assignments.
+    `deployerPrincipalType` reuses the same auto-detect expression the
+    Postgres admin principal uses so a `User` deployer and a CI
+    `ServicePrincipal` both resolve correctly.
+    """
+    assert "var deployerPrincipalId = deployer().objectId" in bicep_text, (
+        "main.bicep must declare `var deployerPrincipalId = "
+        "deployer().objectId` so the storage role assignments can target the "
+        "principal running the seed hook."
+    )
+    assert (
+        "var deployerPrincipalType = contains(deployer(), 'userPrincipalName') "
+        "? 'User' : 'ServicePrincipal'" in bicep_text
+    ), (
+        "main.bicep must declare `deployerPrincipalType` with the "
+        "`contains(deployer(), 'userPrincipalName')` auto-detect expression "
+        "so a User deployer and a ServicePrincipal CI both resolve."
+    )
+
+
+def test_storage_account_grants_deployer_seed_roles(
+    storage_account_slice: str,
+) -> None:
+    """The storage module must grant the deployer the two seed-hook roles.
+
+    The seed hook uploads sample blobs (Storage Blob Data Contributor)
+    and enqueues doc-processing messages (Storage Queue Data Message
+    Sender) under the deployer identity. Both role assignments target
+    `deployerPrincipalId`, so the slice must reference that principal at
+    least twice -- once per role -- alongside both role GUIDs.
+    """
+    assert (
+        storage_account_slice.count("principalId: deployerPrincipalId") >= 2
+    ), (
+        "storageAccount roleAssignments must grant `deployerPrincipalId` at "
+        "least twice (Storage Blob Data Contributor + Storage Queue Data "
+        "Message Sender) so the seed hook can upload blobs and enqueue "
+        "messages under the deployer identity."
+    )
+    assert _STORAGE_BLOB_DATA_CONTRIBUTOR_ROLE_ID in storage_account_slice, (
+        "storageAccount roleAssignments must reference the Storage Blob Data "
+        f"Contributor role id '{_STORAGE_BLOB_DATA_CONTRIBUTOR_ROLE_ID}' for "
+        "the deployer seed grant."
+    )
+    assert _STORAGE_QUEUE_DATA_MESSAGE_SENDER_ROLE_ID in storage_account_slice, (
+        "storageAccount roleAssignments must reference the Storage Queue Data "
+        f"Message Sender role id '{_STORAGE_QUEUE_DATA_MESSAGE_SENDER_ROLE_ID}' "
+        "for the deployer seed grant."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Deployer AI Search data-plane RBAC.
+#
+# The post-deploy seed hook polls the index document count to verify
+# ingestion landed, running locally under the deployer identity. The
+# aiSearch service sets disableLocalAuth=true (RBAC-only data plane), so
+# main.bicep must grant the deployer Search Index Data Reader in addition
+# to the UAMI + Foundry-project grants the running workloads use.
+# ---------------------------------------------------------------------------
+
+_SEARCH_INDEX_DATA_READER_ROLE_ID = "1407120a-92aa-4202-b7e9-c0e197c71c8f"
+
+
+@pytest.fixture(scope="module")
+def aisearch_slice(bicep_text: str) -> str:
+    """Bicep source between `module aiSearch` and the next module."""
+    return _slice_module(
+        bicep_text,
+        "module aiSearch ",
+        "module aiProjectSearchConnection ",
+    )
+
+
+def test_aisearch_grants_deployer_index_read(aisearch_slice: str) -> None:
+    """The aiSearch module must grant the deployer Search Index Data Reader.
+
+    The seed hook polls the index document count under the deployer
+    identity; with `disableLocalAuth: true` the data plane is RBAC-only,
+    so the deployer needs Search Index Data Reader to read the count.
+    The Foundry-project grant uses the same role id, so the discriminator
+    is the presence of `deployerPrincipalId` in the aiSearch slice.
+    """
+    assert "principalId: deployerPrincipalId" in aisearch_slice, (
+        "aiSearch roleAssignments must grant `deployerPrincipalId` so the "
+        "seed hook can read the index document count under the deployer "
+        "identity."
+    )
+    assert _SEARCH_INDEX_DATA_READER_ROLE_ID in aisearch_slice, (
+        "aiSearch roleAssignments must reference the Search Index Data Reader "
+        f"role id '{_SEARCH_INDEX_DATA_READER_ROLE_ID}' for the deployer "
+        "seed-verify grant."
+    )

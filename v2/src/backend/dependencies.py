@@ -347,17 +347,21 @@ def get_user_id(request: Request, settings: SettingsDep) -> str:
     """Return the caller's user id from the Easy Auth principal-id header.
 
     Reads ``x-ms-client-principal-id`` (the user's Entra object id).
-    When the header is absent we fall back to ``"local-dev"`` **only**
-    when ``settings.environment == "local"`` so the chat-history
-    panel is exercisable end-to-end during development. In
-    ``production`` a missing header raises ``401 Unauthorized`` -- a
-    misconfigured Easy Auth must fail closed, never silently fold
-    every anonymous caller into the ``local-dev`` partition.
+    When the header is absent the caller folds into the synthetic
+    ``"local-dev"`` partition whenever auth is OPEN -- either the
+    runtime is ``local`` (dev exercises the chat-history panel without
+    forging Easy Auth claims) OR ``require_admin_auth`` is ``False``
+    (the deployment opted out of the auth wall, the MACAE-faithful
+    default, so anonymous callers share one tenant partition). When
+    auth is REQUIRED (``production`` with ``require_admin_auth=True``)
+    a missing header fails closed with ``401`` -- a misconfigured Easy
+    Auth must never silently fold every anonymous caller into the
+    shared partition.
 
-    Sibling of ``requires_role`` below: same Easy Auth surface, no
-    role gate. Routers that only need tenant isolation (chat history)
-    consume ``UserIdDep``; routers that need role enforcement (admin)
-    consume ``AdminUserIdDep``.
+    Sibling of ``requires_role`` below: same Easy Auth surface, same
+    open-posture toggle, no role gate. Routers that only need tenant
+    isolation (chat history) consume ``UserIdDep``; routers that need
+    role enforcement (admin) consume ``AdminUserIdDep``.
     """
     value = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
     if value:
@@ -367,7 +371,11 @@ def get_user_id(request: Request, settings: SettingsDep) -> str:
                 detail="Malformed client principal id.",
             )
         return value
-    if settings.environment is Environment.LOCAL:
+    allow_open_auth = (
+        settings.environment is Environment.LOCAL
+        or not settings.require_admin_auth
+    )
+    if allow_open_auth:
         return _LOCAL_DEV_USER
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

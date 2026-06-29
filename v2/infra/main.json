@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.37.4.10188",
-      "templateHash": "17242907172399655177"
+      "templateHash": "14906931037433749437"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -69,6 +69,13 @@
           ]
         },
         "description": "Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability."
+      }
+    },
+    "searchServiceLocation": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. Azure region for the Azure AI Search service. Empty (default) co-locates Search with the non-AI resources (the location parameter). Set this to a different region when the primary region has no Azure AI Search capacity (InsufficientResourcesAvailable). Search is reachable cross-region in the public profile (no private endpoints)."
       }
     },
     "databaseType": {
@@ -361,6 +368,9 @@
     "useExistingStorage": "[not(empty(parameters('existingStorageName')))]",
     "useExistingEventGridTopic": "[not(empty(parameters('existingEventGridTopicName')))]",
     "useExistingOpenAi": "[not(empty(parameters('existingOpenAiName')))]",
+    "effectiveSearchLocation": "[if(empty(parameters('searchServiceLocation')), parameters('location'), parameters('searchServiceLocation'))]",
+    "deployerPrincipalId": "[deployer().objectId]",
+    "deployerPrincipalType": "[if(contains(deployer(), 'userPrincipalName'), 'User', 'ServicePrincipal')]",
     "solutionSuffix": "[toLower(trim(replace(replace(replace(replace(replace(replace(format('{0}{1}', parameters('solutionName'), parameters('solutionUniqueText')), '-', ''), '_', ''), '.', ''), '/', ''), ' ', ''), '*', '')))]",
     "allTags": "[union(createObject('azd-env-name', parameters('solutionName'), 'TemplateName', 'CWYD-v2', 'Type', if(parameters('enablePrivateNetworking'), 'WAF', 'Non-WAF'), 'CreatedBy', parameters('createdBy'), 'DatabaseType', parameters('databaseType')), parameters('tags'))]",
     "alwaysOnPrivateDnsZones": [
@@ -15499,9 +15509,9 @@
         }
       },
       "dependsOn": [
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServicesProject)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').cognitiveServices)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').openAI)]",
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').aiServicesProject)]",
         "logAnalyticsWorkspace",
         "userAssignedIdentity",
         "virtualNetwork"
@@ -20622,7 +20632,7 @@
             "value": "[format('srch-{0}', variables('solutionSuffix'))]"
           },
           "location": {
-            "value": "[parameters('location')]"
+            "value": "[variables('effectiveSearchLocation')]"
           },
           "tags": {
             "value": "[variables('allTags')]"
@@ -20669,6 +20679,11 @@
                 "principalId": "[reference('aiProject').outputs.projectPrincipalId.value]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionIdOrName": "7ca78c08-252a-4471-8644-bb5ff32d4ba0"
+              },
+              {
+                "principalId": "[variables('deployerPrincipalId')]",
+                "principalType": "[variables('deployerPrincipalType')]",
+                "roleDefinitionIdOrName": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
               }
             ]
           },
@@ -22942,6 +22957,16 @@
                 "principalId": "[reference('userAssignedIdentity').outputs.principalId.value]",
                 "principalType": "ServicePrincipal",
                 "roleDefinitionIdOrName": "17d1049b-9a84-46fb-8f53-869881c3d3ab"
+              },
+              {
+                "principalId": "[variables('deployerPrincipalId')]",
+                "principalType": "[variables('deployerPrincipalType')]",
+                "roleDefinitionIdOrName": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+              },
+              {
+                "principalId": "[variables('deployerPrincipalId')]",
+                "principalType": "[variables('deployerPrincipalType')]",
+                "roleDefinitionIdOrName": "c6a89b2d-59bc-44d0-9896-0f6e12d7b80a"
               }
             ]
           },
@@ -31055,9 +31080,9 @@
         }
       },
       "dependsOn": [
+        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').queue)]",
         "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').file)]",
-        "[format('avmPrivateDnsZones[{0}]', variables('dnsZoneIndex').blob)]",
         "logAnalyticsWorkspace",
         "userAssignedIdentity",
         "virtualNetwork"
@@ -48340,7 +48365,7 @@
                   "cpu": "[if(parameters('enableScalability'), '1.0', '0.5')]",
                   "memory": "[if(parameters('enableScalability'), '2.0Gi', '1.0Gi')]"
                 },
-                "env": "[union(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingOpenAi'), format('https://{0}.openai.azure.com/', parameters('existingOpenAiName')), reference('aiServices').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_REASONING_DEPLOYMENT', 'value', parameters('reasoningModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('useExistingCosmos'), reference('existingCosmos').documentEndpoint, if(equals(parameters('databaseType'), 'cosmosdb'), reference('cosmosDb').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('useExistingSearch'), format('https://{0}.search.windows.net', parameters('existingSearchName')), if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiSearch').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', 'value', parameters('searchKnowledgeBaseName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', 'value', parameters('searchKnowledgeSourceName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', 'value', parameters('searchKnowledgeBaseApiVersion')), createObject('name', 'AZURE_AI_SEARCH_CONNECTION_NAME', 'value', if(equals(parameters('databaseType'), 'cosmosdb'), format('{0}-mcp', parameters('searchKnowledgeBaseName')), '')), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.fqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('id-{0}', variables('solutionSuffix')), '')), createObject('name', 'AZURE_SPEECH_SERVICE_NAME', 'value', reference('speechService').outputs.name.value), createObject('name', 'AZURE_SPEECH_SERVICE_REGION', 'value', parameters('azureAiServiceLocation')), createObject('name', 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', 'value', reference('speechService').outputs.resourceId.value), createObject('name', 'AZURE_CONTENT_SAFETY_ENABLED', 'value', 'true'), createObject('name', 'AZURE_CONTENT_SAFETY_ENDPOINT', 'value', reference('cogContentSafety').outputs.endpoint.value), createObject('name', 'CWYD_ORCHESTRATOR_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), 'langgraph', 'agent_framework')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName')), createObject('name', 'AZURE_INGESTION_TRIGGER', 'value', parameters('ingestionTrigger'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'AZURE_APP_INSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
+                "env": "[union(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_REQUIRE_ADMIN_AUTH', 'value', 'false'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', reference('aiProject').outputs.projectEndpoint.value), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingOpenAi'), format('https://{0}.openai.azure.com/', parameters('existingOpenAiName')), reference('aiServices').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', reference('aiServices').outputs.endpoint.value), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_REASONING_DEPLOYMENT', 'value', parameters('reasoningModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('useExistingCosmos'), reference('existingCosmos').documentEndpoint, if(equals(parameters('databaseType'), 'cosmosdb'), reference('cosmosDb').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('useExistingSearch'), format('https://{0}.search.windows.net', parameters('existingSearchName')), if(equals(parameters('databaseType'), 'cosmosdb'), reference('aiSearch').outputs.endpoint.value, ''))), createObject('name', 'AZURE_AI_SEARCH_INDEX', 'value', 'cwyd-index'), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', 'value', parameters('searchKnowledgeBaseName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', 'value', parameters('searchKnowledgeSourceName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', 'value', parameters('searchKnowledgeBaseApiVersion')), createObject('name', 'AZURE_AI_SEARCH_CONNECTION_NAME', 'value', if(equals(parameters('databaseType'), 'cosmosdb'), format('{0}-mcp', parameters('searchKnowledgeBaseName')), '')), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.fqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('id-{0}', variables('solutionSuffix')), '')), createObject('name', 'AZURE_SPEECH_SERVICE_NAME', 'value', reference('speechService').outputs.name.value), createObject('name', 'AZURE_SPEECH_SERVICE_REGION', 'value', parameters('azureAiServiceLocation')), createObject('name', 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', 'value', reference('speechService').outputs.resourceId.value), createObject('name', 'AZURE_CONTENT_SAFETY_ENABLED', 'value', 'true'), createObject('name', 'AZURE_CONTENT_SAFETY_ENDPOINT', 'value', reference('cogContentSafety').outputs.endpoint.value), createObject('name', 'CWYD_ORCHESTRATOR_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), 'langgraph', 'agent_framework')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', if(variables('useExistingStorage'), parameters('existingStorageName'), reference('storageAccount').outputs.name.value)), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName')), createObject('name', 'AZURE_INGESTION_TRIGGER', 'value', parameters('ingestionTrigger')), createObject('name', 'BACKEND_CORS_ORIGINS', 'value', format('https://app-frontend-{0}.azurewebsites.net', variables('solutionSuffix')))), if(parameters('enableMonitoring'), createArray(createObject('name', 'AZURE_APP_INSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
               }
             ]
           }
@@ -50654,6 +50679,22 @@
             }
           },
           "diagnosticSettings": "[if(parameters('enableMonitoring'), createObject('value', createArray(createObject('workspaceResourceId', reference('logAnalyticsWorkspace').outputs.resourceId.value))), createObject('value', createArray()))]",
+          "configs": {
+            "value": [
+              {
+                "name": "authsettingsV2",
+                "properties": {
+                  "globalValidation": {
+                    "requireAuthentication": false,
+                    "unauthenticatedClientAction": "AllowAnonymous"
+                  },
+                  "platform": {
+                    "enabled": false
+                  }
+                }
+              }
+            ]
+          },
           "siteConfig": {
             "value": {
               "linuxFxVersion": "PYTHON|3.11",
@@ -50662,7 +50703,7 @@
               "minTlsVersion": "1.2",
               "http20Enabled": true,
               "vnetRouteAllEnabled": "[parameters('enablePrivateNetworking')]",
-              "appSettings": "[union(createArray(createObject('name', 'BACKEND_API_URL', 'value', format('https://{0}', reference('backendContainerApp').outputs.fqdn.value)), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'SCM_DO_BUILD_DURING_DEPLOYMENT', 'value', 'true')), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
+              "appSettings": "[union(createArray(createObject('name', 'BACKEND_API_URL', 'value', format('https://{0}', reference('backendContainerApp').outputs.fqdn.value)), createObject('name', 'WEBSITES_ENABLE_APP_SERVICE_STORAGE', 'value', 'false'), createObject('name', 'SCM_DO_BUILD_DURING_DEPLOYMENT', 'value', 'true'), createObject('name', 'WEBSITES_PORT', 'value', '8000'), createObject('name', 'ENABLE_ORYX_BUILD', 'value', 'true')), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference('applicationInsights').outputs.connectionString.value)), createArray()))]"
             }
           }
         },
