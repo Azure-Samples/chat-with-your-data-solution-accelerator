@@ -333,6 +333,11 @@ module existingAIProject './modules/ai/existing-project-setup.bicep' = if (useEx
   params: {
     name: aiFoundryResourceName
     projectName: aiProjectResourceName
+    uamiPrincipalId: userAssignedIdentity.outputs.principalId
+    deployingUserPrincipalId: deployingUserPrincipalId
+    deployingUserPrincipalType: deployingUserPrincipalType
+    searchPrincipalId: isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
+    isCosmos: isCosmos
   }
 }
 

@@ -168,6 +168,34 @@ if [ -n "$GPT_DEPLOYMENT" ]; then
     echo "✓ Discovered GPT deployment: ${GPT_DEPLOYMENT}"
 fi
 
+# Fallback for BYO / cross-subscription Foundry: the OpenAI account and GPT
+# model live outside this resource group, so the in-RG lookups above find
+# nothing. Read the authoritative endpoint and deployment the backend
+# container app was deployed with.
+if [ -z "$AI_SERVICES_ENDPOINT" ] || [ -z "$GPT_DEPLOYMENT" ]; then
+    BACKEND_NAME=$(az containerapp list --resource-group "$RESOURCE_GROUP" \
+        --query "[?contains(name,'backend')] | [0].name" -o tsv 2>/dev/null || true)
+    if [ -n "$BACKEND_NAME" ]; then
+        if [ -z "$AI_SERVICES_ENDPOINT" ]; then
+            AI_SERVICES_ENDPOINT=$(az containerapp show --resource-group "$RESOURCE_GROUP" --name "$BACKEND_NAME" \
+                --query "properties.template.containers[0].env[?name=='AZURE_OPENAI_ENDPOINT'].value | [0]" -o tsv 2>/dev/null || true)
+            if [ -n "$AI_SERVICES_ENDPOINT" ]; then
+                export AZURE_AI_SERVICES_ENDPOINT="$AI_SERVICES_ENDPOINT"
+                export AZURE_OPENAI_ENDPOINT="$AI_SERVICES_ENDPOINT"
+                echo "✓ Discovered AI Services from backend app '${BACKEND_NAME}': ${AI_SERVICES_ENDPOINT}"
+            fi
+        fi
+        if [ -z "$GPT_DEPLOYMENT" ]; then
+            GPT_DEPLOYMENT=$(az containerapp show --resource-group "$RESOURCE_GROUP" --name "$BACKEND_NAME" \
+                --query "properties.template.containers[0].env[?name=='AZURE_OPENAI_GPT_DEPLOYMENT'].value | [0]" -o tsv 2>/dev/null || true)
+            if [ -n "$GPT_DEPLOYMENT" ]; then
+                export AZURE_OPENAI_GPT_DEPLOYMENT="$GPT_DEPLOYMENT"
+                echo "✓ Discovered GPT deployment from backend app '${BACKEND_NAME}': ${GPT_DEPLOYMENT}"
+            fi
+        fi
+    fi
+fi
+
 # Deployer UPN
 DEPLOYER_UPN=$(az ad signed-in-user show --query "userPrincipalName" -o tsv 2>/dev/null || true)
 if [ -n "$DEPLOYER_UPN" ]; then

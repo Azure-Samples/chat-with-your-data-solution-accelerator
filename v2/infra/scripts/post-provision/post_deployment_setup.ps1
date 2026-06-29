@@ -198,6 +198,37 @@ try {
         }
     }
 
+    # Fallback for BYO / cross-subscription Foundry: the OpenAI account and GPT
+    # model live outside this resource group, so the in-RG lookups above find
+    # nothing. Read the authoritative endpoint and deployment the backend
+    # container app was deployed with.
+    if (-not $AiServicesEndpoint -or -not $GptDeployment) {
+        $BackendName = az containerapp list --resource-group $ResourceGroupName `
+            --query "[?contains(name,'backend')] | [0].name" -o tsv 2>$null
+        if ($LASTEXITCODE -ne 0) { $BackendName = "" }
+        if ($BackendName) {
+            if (-not $AiServicesEndpoint) {
+                $AiServicesEndpoint = az containerapp show --resource-group $ResourceGroupName --name $BackendName `
+                    --query "properties.template.containers[0].env[?name=='AZURE_OPENAI_ENDPOINT'].value | [0]" -o tsv 2>$null
+                if ($LASTEXITCODE -ne 0) { $AiServicesEndpoint = "" }
+                if ($AiServicesEndpoint) {
+                    $env:AZURE_AI_SERVICES_ENDPOINT = $AiServicesEndpoint
+                    $env:AZURE_OPENAI_ENDPOINT = $AiServicesEndpoint
+                    Write-Host "[OK] Discovered AI Services from backend app '$BackendName': $AiServicesEndpoint"
+                }
+            }
+            if (-not $GptDeployment) {
+                $GptDeployment = az containerapp show --resource-group $ResourceGroupName --name $BackendName `
+                    --query "properties.template.containers[0].env[?name=='AZURE_OPENAI_GPT_DEPLOYMENT'].value | [0]" -o tsv 2>$null
+                if ($LASTEXITCODE -ne 0) { $GptDeployment = "" }
+                if ($GptDeployment) {
+                    $env:AZURE_OPENAI_GPT_DEPLOYMENT = $GptDeployment
+                    Write-Host "[OK] Discovered GPT deployment from backend app '$BackendName': $GptDeployment"
+                }
+            }
+        }
+    }
+
     # Deployer UPN
     $DeployerUpn = az ad signed-in-user show --query "userPrincipalName" -o tsv 2>$null
     if ($LASTEXITCODE -ne 0) { $DeployerUpn = "" }
