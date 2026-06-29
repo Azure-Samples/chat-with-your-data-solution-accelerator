@@ -82,15 +82,15 @@ Phases 1 and 2 touch disjoint file sets (backend vs frontend) and the SPA tolera
 * [x] Step 3.1: Retire the `auth_enforced` design rows and log the behavior change
   * Details: .copilot-tracking/details/2026-06-29/auth-enforced-removal-transparent-identity-details.md (Lines 141-161)
 
-### [ ] Implementation Phase 4: Validation
+### [x] Implementation Phase 4: Validation
 
 <!-- parallelizable: false -->
 
-* [ ] Step 4.1: Run full project validation
+* [x] Step 4.1: Run full project validation
   * Details: .copilot-tracking/details/2026-06-29/auth-enforced-removal-transparent-identity-details.md (Lines 166-173)
-* [ ] Step 4.2: Fix minor validation issues
+* [x] Step 4.2: Fix minor validation issues
   * Details: .copilot-tracking/details/2026-06-29/auth-enforced-removal-transparent-identity-details.md (Lines 174-177)
-* [ ] Step 4.3: Cloud verification (binding project directive) and report blocking issues
+* [x] Step 4.3: Cloud verification (binding project directive) and report blocking issues
   * Details: .copilot-tracking/details/2026-06-29/auth-enforced-removal-transparent-identity-details.md (Lines 178-186)
 
 ## Planning Log
