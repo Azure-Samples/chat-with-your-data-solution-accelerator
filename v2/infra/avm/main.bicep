@@ -291,7 +291,6 @@ var privateDnsZones = [
   'privatelink.queue.${environment().suffixes.storage}'
   'privatelink.file.${environment().suffixes.storage}'
   'privatelink.documents.azure.com'
-  'privatelink.search.windows.net'
   'privatelink.postgres.database.azure.com'
 ]
 
@@ -303,8 +302,7 @@ var dnsZoneIndex = {
   queue: 4
   file: 5
   cosmosDb: 6
-  search: 7
-  postgres: 8
+  postgres: 7
 }
 
 var aiModelDeployments = [
@@ -643,7 +641,6 @@ module aiProject './modules/ai/ai-foundry-project.bicep' = if (!useExistingAIPro
     tags: allTags
     enableTelemetry: enableTelemetry
     disableLocalAuth: true
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
   }
 }
@@ -802,7 +799,7 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isCosmos) {
     enableTelemetry: enableTelemetry
     skuName: enableScalability ? 'standard' : 'basic'
     replicaCount: enableRedundancy ? 3 : 1
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
       {
@@ -854,26 +851,6 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isCosmos) {
         roleDefinitionIdOrName: '7ca78c08-252a-4471-8644-bb5ff32d4ba0'
       }
     ]
-    // Private endpoint into the `peps` subnet, group `searchService`,
-    // bound to the search.windows.net DNS zone.
-    privateEndpoints: enablePrivateNetworking
-      ? [
-          {
-            name: 'pep-srch-${solutionSuffix}'
-            customNetworkInterfaceName: 'nic-srch-${solutionSuffix}'
-            subnetResourceId: virtualNetwork!.outputs.backendSubnetResourceId
-            service: 'searchService'
-            privateDnsZoneGroup: {
-              privateDnsZoneGroupConfigs: [
-                {
-                  name: 'search'
-                  privateDnsZoneResourceId: privateDnsZoneDeployments[dnsZoneIndex.search]!.outputs.resourceId
-                }
-              ]
-            }
-          }
-        ]
-      : []
   }
 }
 

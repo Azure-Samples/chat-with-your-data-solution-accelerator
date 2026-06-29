@@ -49,7 +49,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -W 2>/dev/null || pwd)"
 # Track resources that need public access restored
 # -------------------------------------------------------
 RESTORE_PG_NAME=""
-RESTORE_SEARCH_NAME=""
 SERVER_NAME=""
 
 cleanup() {
@@ -68,13 +67,6 @@ cleanup() {
         az postgres flexible-server update --resource-group "$RESOURCE_GROUP" \
             --name "$RESTORE_PG_NAME" --public-access Disabled > /dev/null 2>&1 \
             || echo "⚠ WARNING: Failed to disable public access on PostgreSQL. Please disable manually."
-    fi
-    # Restore public access to Disabled on AI Search
-    if [ -n "$RESTORE_SEARCH_NAME" ]; then
-        echo "✓ Disabling public access on AI Search '${RESTORE_SEARCH_NAME}'..."
-        az search service update --resource-group "$RESOURCE_GROUP" \
-            --name "$RESTORE_SEARCH_NAME" --public-access disabled > /dev/null 2>&1 \
-            || echo "⚠ WARNING: Failed to disable public access on AI Search. Please disable manually."
     fi
 }
 trap cleanup EXIT
@@ -152,20 +144,6 @@ else
     if [ -n "$SEARCH_NAME" ]; then
         export AZURE_AI_SEARCH_ENDPOINT="https://${SEARCH_NAME}.search.windows.net"
         echo "✓ Discovered AI Search: ${SEARCH_NAME}"
-
-        # --- WAF / Private Networking handling for Search ---
-        SEARCH_PUBLIC_ACCESS=$(az search service show --resource-group "$RESOURCE_GROUP" \
-            --name "$SEARCH_NAME" --query "publicNetworkAccess" -o tsv 2>/dev/null || true)
-        if [ "$SEARCH_PUBLIC_ACCESS" = "disabled" ]; then
-            echo "AI Search has public access disabled (private networking detected)."
-            echo "✓ Temporarily enabling public access on AI Search '${SEARCH_NAME}'..."
-            az search service update --resource-group "$RESOURCE_GROUP" \
-                --name "$SEARCH_NAME" --public-access enabled > /dev/null 2>&1 \
-                || { echo "✗ ERROR: Failed to enable public access on AI Search." >&2; exit 1; }
-            RESTORE_SEARCH_NAME="$SEARCH_NAME"
-            echo "Waiting for Search network change to propagate..."
-            sleep 15
-        fi
     fi
 fi
 
