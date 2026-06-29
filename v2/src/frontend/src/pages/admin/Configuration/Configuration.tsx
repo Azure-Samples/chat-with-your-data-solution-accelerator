@@ -1037,12 +1037,12 @@ export function Configuration(): JSX.Element {
                           {formatTimestamp(state.lastRuntime.updated_at)}
                         </span>
                       </p>
-                      <p className={styles.auditLine}>
+                      {/* <p className={styles.auditLine}>
                         Updated by:{" "}
                         <span className={styles.auditValue}>
                           {formatActor(state.lastRuntime.updated_by)}
                         </span>
-                      </p>
+                      </p> */}
                     </div>
                   ) : null}
 
