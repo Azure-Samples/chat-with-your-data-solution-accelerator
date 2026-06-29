@@ -166,18 +166,28 @@ def _claims(*role_pairs: tuple[str, str]) -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
-def _settings(environment: Environment | str = Environment.PRODUCTION) -> Any:
+def _settings(
+    environment: Environment | str = Environment.PRODUCTION,
+    require_admin_auth: bool = True,
+) -> Any:
     # Accept either an `Environment` member (preferred) or a raw
     # string (legacy callsites in this module) so the helper stays
     # stable as new tests are added. Strings are coerced to the
     # enum so `is Environment.LOCAL` dispatch in `requires_role`
     # works regardless of how the caller spelled the value.
+    #
+    # `require_admin_auth` defaults to True (NOT the production-code
+    # default of False) so the existing fail-closed production tests
+    # keep exercising the admin wall without edits; the open-by-default
+    # path passes `require_admin_auth=False` explicitly.
     coerced = (
         environment
         if isinstance(environment, Environment)
         else Environment(environment)
     )
-    return SimpleNamespace(environment=coerced)
+    return SimpleNamespace(
+        environment=coerced, require_admin_auth=require_admin_auth
+    )
 
 
 def _request(headers: dict[str, str] | None = None) -> Request:
@@ -315,6 +325,54 @@ def test_requires_role_factory_returns_distinct_callable_per_call() -> None:
     dep_a = requires_role("admin")
     dep_b = requires_role("admin")
     assert dep_a is not dep_b
+
+
+def test_requires_role_open_admin_returns_user_when_wall_off_in_prod() -> None:
+    """With the wall off in production, a missing claims blob no longer
+    fails closed -- the gate returns the open-admin synthetic user."""
+    dep = requires_role("admin")
+    request = _request({_PRINCIPAL_ID: "user-oid-open"})
+    result = dep(request, _settings("production", require_admin_auth=False))
+    assert result == "local-dev"
+
+
+def test_requires_role_wall_on_raises_401_without_claims_in_prod() -> None:
+    """With the wall on in production, a missing claims blob fails
+    closed with 401 (the existing fail-closed posture)."""
+    dep = requires_role("admin")
+    request = _request({_PRINCIPAL_ID: "user-oid-walled"})
+    with pytest.raises(HTTPException) as exc:
+        dep(request, _settings("production", require_admin_auth=True))
+    assert exc.value.status_code == 401
+
+
+def test_requires_role_open_admin_still_returns_principal_with_role() -> None:
+    """The toggle does not change the happy path: valid claims carrying
+    the role still return the principal id, not the synthetic user."""
+    dep = requires_role("admin")
+    request = _request(
+        {
+            _PRINCIPAL_ID: "user-oid-role",
+            _PRINCIPAL: _claims(("roles", "admin")),
+        }
+    )
+    result = dep(request, _settings("production", require_admin_auth=False))
+    assert result == "user-oid-role"
+
+
+def test_requires_role_open_admin_still_enforces_role_403() -> None:
+    """The toggle relaxes the auth wall, NOT role enforcement: present
+    claims without the role still raise 403 even with the wall off."""
+    dep = requires_role("admin")
+    request = _request(
+        {
+            _PRINCIPAL_ID: "user-oid-norole",
+            _PRINCIPAL: _claims(("roles", "reader")),
+        }
+    )
+    with pytest.raises(HTTPException) as exc:
+        dep(request, _settings("production", require_admin_auth=False))
+    assert exc.value.status_code == 403
 
 
 # ---------------------------------------------------------------------------

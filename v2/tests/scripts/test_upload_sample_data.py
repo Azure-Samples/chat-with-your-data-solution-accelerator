@@ -195,11 +195,16 @@ def test_resolve_selection_cli_and_env_skip_prompt() -> None:
     assert prompted == []
 
 
-def test_resolve_selection_non_tty_skips() -> None:
+def test_resolve_selection_non_tty_defaults() -> None:
     module = _load_module()
     msgs: list[str] = []
-    assert module.resolve_selection("", "", False, lambda _p: "1", msgs.append) == module.SeedScope.SKIP
+    assert module.resolve_selection("", "", False, lambda _p: "1", msgs.append) == module.AssistantType.DEFAULT
     assert any("non-interactive" in m for m in msgs)
+
+
+def test_resolve_selection_non_tty_none_token_opts_out() -> None:
+    module = _load_module()
+    assert module.resolve_selection("", "none", False, lambda _p: "1", lambda _m: None) == module.SeedScope.SKIP
 
 
 def test_resolve_selection_prompts_until_valid_when_tty() -> None:
@@ -254,6 +259,46 @@ def test_enqueue_ingest_message_sends_raw_json() -> None:
     payload = json.loads(sent[0])
     assert payload["container_name"] == "documents"
     assert payload["filename"] == "Benefit_Options.pdf"
+
+
+def test_wait_for_index_completion_passes_when_count_reaches_min() -> None:
+    module = _load_module()
+    counts = iter([0, 2, 5])
+    outputs: list[str] = []
+    slept: list[float] = []
+    result = module.wait_for_index_completion(
+        lambda: next(counts),
+        5,
+        100.0,
+        1.0,
+        slept.append,
+        lambda: 0.0,
+        outputs.append,
+    )
+    assert result is True
+    assert any("PASS" in m for m in outputs)
+    assert slept == [1.0, 1.0]
+
+
+def test_wait_for_index_completion_fails_on_timeout_with_remediation() -> None:
+    module = _load_module()
+    outputs: list[str] = []
+    slept: list[float] = []
+    clock = iter([0.0, 5.0, 10.0, 20.0])
+    result = module.wait_for_index_completion(
+        lambda: 0,
+        3,
+        15.0,
+        2.0,
+        slept.append,
+        lambda: next(clock),
+        outputs.append,
+    )
+    assert result is False
+    assert any("FAIL" in m for m in outputs)
+    assert any("doc-processing-poison" in m for m in outputs)
+    assert any("/api/health" in m for m in outputs)
+    assert slept == [2.0, 2.0]
 
 
 # --- main() ------------------------------------------------------------------

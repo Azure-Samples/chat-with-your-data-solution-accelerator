@@ -69,6 +69,10 @@ from backend.routers.admin import router as admin_router
 def _settings(
     *,
     environment: str = "local",
+    # Defaults True so the admin-wall gate tests (production + no claims ->
+    # 401) stay meaningful; the production code default is False (admin
+    # open by default). Tests that exercise the open posture pass False.
+    require_admin_auth: bool = True,
     orchestrator_name: str = "langgraph",
     db_type: str = "cosmosdb",
     index_store: str = "AzureSearch",
@@ -96,6 +100,7 @@ def _settings(
 ) -> Any:
     return NS(
         environment=environment,
+        require_admin_auth=require_admin_auth,
         orchestrator=NS(name=orchestrator_name),
         database=NS(
             db_type=db_type,

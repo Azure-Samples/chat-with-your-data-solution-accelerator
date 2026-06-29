@@ -1811,14 +1811,24 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_UAMI_CLIENT_ID', value: userAssignedIdentity.outputs.clientId }
             { name: 'AZURE_TENANT_ID', value: subscription().tenantId }
             // Runtime mode (AppSettings.environment). Pinned to 'production'
-            // on every cloud deploy so the admin auth gate fails closed: the
-            // local-dev bypass in backend.dependencies.requires_role returns
-            // the synthetic 'local-dev' admin ONLY when environment == 'local',
-            // so a deployed runtime must never fall back to the 'local' default
-            // (a missing Easy Auth claims blob would otherwise grant admin
-            // without authentication). Also makes GET /api/admin/status report
-            // the real environment.
+            // on every cloud deploy so the runtime reports the real
+            // environment (GET /api/admin/status) and DISABLES the local-dev
+            // identity bypass used by chat: backend.dependencies.get_user_id
+            // folds an anonymous caller into the synthetic 'local-dev'
+            // partition ONLY when environment == 'local', so a deployed
+            // runtime must never fall back to the 'local' default.
+            //
+            // This field no longer governs the admin auth WALL -- that is
+            // controlled separately by AZURE_REQUIRE_ADMIN_AUTH below.
             { name: 'AZURE_ENVIRONMENT', value: 'production' }
+            // Admin auth wall (AppSettings.require_admin_auth). 'false' (the
+            // MACAE-faithful default) leaves /api/admin/* reachable without
+            // Easy Auth claims. Set to 'true' to require Easy Auth admin-role
+            // claims on admin routes; backend.dependencies.requires_role then
+            // fails closed (401 without claims, 403 without the role). A
+            // present claims blob is always role-checked regardless of this
+            // value -- the flag relaxes the auth wall, never role enforcement.
+            { name: 'AZURE_REQUIRE_ADMIN_AUTH', value: 'false' }
             // Foundry endpoints (consumed by both orchestrators)
             { name: 'AZURE_AI_PROJECT_ENDPOINT', value: aiProject.outputs.projectEndpoint }
             { name: 'AZURE_OPENAI_ENDPOINT', value: effectiveOpenAiEndpoint }
@@ -1847,6 +1857,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
             { name: 'AZURE_COSMOS_ENDPOINT', value: effectiveCosmosEndpoint }
             { name: 'AZURE_AI_SEARCH_ENDPOINT', value: effectiveSearchEndpoint }
+            // Chat index name the azure_search provider reads/writes. Pinned
+            // explicitly so an infra rename can't silently diverge from the
+            // index post_provision.py creates (retrieval would break only at
+            // query time, not deploy time).
+            { name: 'AZURE_AI_SEARCH_INDEX', value: 'cwyd-index' }
             // Foundry IQ knowledge base config (agent_framework orchestrator).
             // The agent grounds on the KB via the Search MCP endpoint
             // ({search}/knowledgebases/{kb}/mcp?api-version=<ver>); the
@@ -1898,6 +1913,11 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // backend write the blob only and lets the Event Grid -> blob-events
             // -> blob_event Function own the push (no double-ingest).
             { name: 'AZURE_INGESTION_TRIGGER', value: ingestionTrigger }
+            // Allowed browser origin for the frontend App Service. Built
+            // inline from solutionSuffix (not a frontend module output) so
+            // there is no frontend<->backend dependency cycle; the backend
+            // CORSMiddleware allows this single origin with credentials.
+            { name: 'BACKEND_CORS_ORIGINS', value: 'https://app-frontend-${solutionSuffix}.azurewebsites.net' }
           ],
           enableMonitoring
             ? [
@@ -1992,6 +2012,25 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
           }
         ]
       : []
+    // Frontend Easy Auth declaratively disabled so the public profile
+    // serves the SPA anonymously (the FastAPI backend owns auth). Bicep
+    // owns this state, so a reprovision over a site that had an Easy Auth
+    // provider enabled out-of-band reconciles it back OFF. No identity
+    // providers, clientId, or issuer here — nothing env-specific.
+    configs: [
+      {
+        name: 'authsettingsV2'
+        properties: {
+          globalValidation: {
+            requireAuthentication: false
+            unauthenticatedClientAction: 'AllowAnonymous'
+          }
+          platform: {
+            enabled: false
+          }
+        }
+      }
+    ]
     siteConfig: {
       // Build-from-source App Service (reference-architecture pattern, BUG-0081 fix). azd
       // zip-deploys the Vite dist/ and the platform serves it via the
@@ -2025,6 +2064,13 @@ module frontendWebApp 'br/public:avm/res/web/site:0.22.0' = {
           // appCommandLine runs. Without it the start command exits 127
           // (uvicorn not found) and the container never boots.
           { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
+          // WEBSITES_PORT pins the platform probe to the uvicorn --port
+          // above so the front door health-checks the right port on a
+          // build-from-source (non-container) Linux app.
+          { name: 'WEBSITES_PORT', value: '8000' }
+          // ENABLE_ORYX_BUILD makes the Oryx build explicit alongside
+          // SCM_DO_BUILD_DURING_DEPLOYMENT.
+          { name: 'ENABLE_ORYX_BUILD', value: 'true' }
         ],
         enableMonitoring
           ? [

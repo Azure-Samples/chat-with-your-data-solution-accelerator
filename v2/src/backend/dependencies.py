@@ -439,15 +439,26 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
         principal_id = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
         claims_raw = request.headers.get(_PRINCIPAL_HEADER, "").strip()
 
-        # Local-dev bypass keys on the ABSENT CLAIMS blob -- the sole
-        # authority for the role check -- not on both headers being
+        # The admin gate relaxes to its open posture when EITHER the
+        # runtime is `local` (dev exercises the admin panel without
+        # forging Easy Auth claims) OR `require_admin_auth` is False (the
+        # deployment opted out of the admin wall -- the MACAE-faithful
+        # default). When neither holds, a missing or insufficient
+        # principal fails closed with 401. A present claims blob is
+        # always role-checked regardless of this toggle, so the flag
+        # relaxes the auth wall without ever bypassing role enforcement.
+        allow_open_admin = (
+            settings.environment is Environment.LOCAL
+            or not settings.require_admin_auth
+        )
+
+        # The open-admin bypass keys on the ABSENT CLAIMS blob -- the
+        # sole authority for the role check -- not on both headers being
         # absent. The SPA forwards a default principal-id on every call
         # (its shared `userIdHeaders()` seam), so the forgeable id header
         # may ride along with no claims and must not defeat the bypass.
-        # In any non-local environment a missing claims blob fails closed:
-        # the id header alone can never satisfy a role gate.
         if not claims_raw:
-            if settings.environment is Environment.LOCAL:
+            if allow_open_admin:
                 return _LOCAL_DEV_USER
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -472,11 +483,11 @@ def requires_role(role: str) -> Callable[[Request, AppSettings], str]:
             )
 
         # Prefer the dedicated principal-id header (parity with
-        # `history.get_user_id`); fall back to local-dev only when
-        # the header is absent in local environments.
+        # `history.get_user_id`); fall back to the open-admin user only
+        # when the header is absent and the gate is in its open posture.
         if principal_id:
             return principal_id
-        if settings.environment is Environment.LOCAL:
+        if allow_open_admin:
             return _LOCAL_DEV_USER
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

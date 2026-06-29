@@ -10,9 +10,10 @@ operator chooses which assistant scenario to seed -- ``default`` /
 assistant`` (contract documents) -- or ``all`` to seed every sample
 document. The scope is taken from ``--set``, then the
 ``AZURE_ENV_SAMPLE_DATA`` env override, then an interactive menu when the
-hook runs in a terminal; a non-interactive shell with no override skips
-the seed rather than blocking. Files resolve from the repo-root ``data/``
-folder; no binary documents are committed.
+hook runs in a terminal; a non-interactive shell with no override seeds
+the default PDF document set so chat grounds out-of-the-box (set
+``AZURE_ENV_SAMPLE_DATA=none`` to opt out). Files resolve from the
+repo-root ``data/`` folder; no binary documents are committed.
 
 Behaviour mirrors the admin upload path (``backend.services.ingestion``):
 each newly-uploaded blob is followed by an ingestion message on the
@@ -32,12 +33,14 @@ without touching Azure.
 import argparse
 import os
 import sys
+import time
 from collections.abc import Callable, Sequence
 from enum import StrEnum
 from pathlib import Path
 
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, HttpResponseError
 from azure.identity import DefaultAzureCredential
+from azure.search.documents import SearchClient
 from azure.storage.blob import BlobServiceClient, ContainerClient
 from azure.storage.queue import QueueClient
 
@@ -111,6 +114,21 @@ _ENV_QUEUE = "AZURE_DOC_PROCESSING_QUEUE"
 _ENV_BLOB_ENDPOINT = "AZURE_STORAGE_BLOB_ENDPOINT"
 _ENV_INGESTION_TRIGGER = "AZURE_INGESTION_TRIGGER"
 _ENV_SAMPLE_DATA = "AZURE_ENV_SAMPLE_DATA"
+
+# Azure AI Search outputs. When both are present the seed runs a bounded
+# post-enqueue poll that confirms the freshly seeded documents became
+# searchable; when either is absent the completion check is skipped.
+_ENV_SEARCH_ENDPOINT = "AZURE_AI_SEARCH_ENDPOINT"
+_ENV_SEARCH_INDEX = "AZURE_AI_SEARCH_INDEX"
+
+# Bounded index-completion poll. Ingestion runs asynchronously (the seed
+# enqueues and returns; batch_push indexes), so poll until the new documents
+# are searchable or the timeout owns the verdict.
+_INDEX_WAIT_TIMEOUT_S = 300.0
+_INDEX_WAIT_INTERVAL_S = 10.0
+
+# Loud rule that frames the post-seed PASS / FAIL verdict banner.
+_BANNER_RULE = "=" * 64
 
 _EXIT_MISSING_ENV = 2
 _EXIT_SDK_FAILURE = 6
@@ -203,10 +221,11 @@ def resolve_selection(
     if not is_tty:
         output_fn(
             "upload-sample-data: non-interactive shell and no AZURE_ENV_SAMPLE_DATA "
-            "override; skipping seed. Set AZURE_ENV_SAMPLE_DATA=all (or "
-            "default|contract|employee) to seed unattended."
+            "override; seeding the default PDF document set so chat grounds "
+            "out-of-the-box. Set AZURE_ENV_SAMPLE_DATA=none to opt out, or "
+            "default|contract|employee|all to choose a different scope."
         )
-        return SeedScope.SKIP
+        return AssistantType.DEFAULT
     return prompt_menu(prompt_fn, output_fn)
 
 
@@ -236,6 +255,50 @@ def enqueue_ingest_message(queue_client: QueueClient, container_name: str, filen
     queue_client.send_message(message.model_dump_json())
 
 
+def wait_for_index_completion(
+    count_fn: Callable[[], int],
+    expected_min: int,
+    timeout_s: float,
+    interval_s: float,
+    sleep_fn: Callable[[float], None],
+    monotonic_fn: Callable[[], float],
+    output_fn: Callable[[str], None],
+) -> bool:
+    """Poll the index until it holds ``expected_min`` documents or time runs out.
+
+    Returns ``True`` once ``count_fn()`` reports at least ``expected_min``
+    documents and prints a loud PASS banner. Returns ``False`` when
+    ``timeout_s`` elapses with the index still short, printing a loud FAIL
+    banner plus a remediation hint. All waiting and timing flow through the
+    injected ``sleep_fn`` / ``monotonic_fn`` so callers own the clock.
+    """
+    start = monotonic_fn()
+    while True:
+        count = count_fn()
+        if count >= expected_min:
+            output_fn(_BANNER_RULE)
+            output_fn(
+                f"upload-sample-data: PASS -- index reached {count} document(s) "
+                f"(expected at least {expected_min}); seeded documents are searchable."
+            )
+            output_fn(_BANNER_RULE)
+            return True
+        if monotonic_fn() - start >= timeout_s:
+            output_fn(_BANNER_RULE)
+            output_fn(
+                f"upload-sample-data: FAIL -- index holds {count} document(s) after "
+                f"{timeout_s:.0f}s; expected at least {expected_min}. The seed uploaded "
+                "and enqueued documents, but they are not searchable yet."
+            )
+            output_fn(
+                "  Remediation: inspect the 'doc-processing-poison' queue for failed "
+                "ingestion messages and check the function host '/api/health' endpoint."
+            )
+            output_fn(_BANNER_RULE)
+            return False
+        sleep_fn(interval_s)
+
+
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Seed sample documents and enqueue ingestion.")
     parser.add_argument(
@@ -261,6 +324,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     blob_endpoint_override = os.environ.get(_ENV_BLOB_ENDPOINT, "").strip()
     trigger = os.environ.get(_ENV_INGESTION_TRIGGER, "").strip() or IngestionTrigger.DIRECT_ENQUEUE
     enqueue = trigger == IngestionTrigger.DIRECT_ENQUEUE
+    search_endpoint = os.environ.get(_ENV_SEARCH_ENDPOINT, "").strip()
+    search_index = os.environ.get(_ENV_SEARCH_INDEX, "").strip()
 
     selection = resolve_selection(
         args.scope,
@@ -298,10 +363,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         credential=credential,
         message_encode_policy=None,
     )
+    search_client = None
+    if search_endpoint and search_index:
+        search_client = SearchClient(endpoint=search_endpoint, index_name=search_index, credential=credential)
+
+    last_known_count = 0
+
+    def _index_document_count() -> int:
+        """Return the live index document count, holding last-known on a transient poll error."""
+        nonlocal last_known_count
+        try:
+            last_known_count = search_client.get_document_count()
+        except (AzureError, HttpResponseError) as exc:
+            sys.stderr.write(
+                "upload-sample-data: index document-count poll failed; holding last-known "
+                f"count and retrying. Details: {exc}\n"
+            )
+        return last_known_count
 
     uploaded = 0
     skipped = 0
     try:
+        baseline = _index_document_count() if search_client is not None else 0
         for file_path in files:
             if upload_blob_if_absent(container_client, file_path):
                 uploaded += 1
@@ -311,6 +394,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 skipped += 1
                 print(f"upload-sample-data: {file_path.name} already present; skipping.")
+
+        if search_client is None:
+            print(
+                "upload-sample-data: AZURE_AI_SEARCH_ENDPOINT / AZURE_AI_SEARCH_INDEX not set; "
+                "skipping the post-seed index-completion check."
+            )
+        elif uploaded > 0:
+            wait_for_index_completion(
+                _index_document_count,
+                baseline + uploaded,
+                _INDEX_WAIT_TIMEOUT_S,
+                _INDEX_WAIT_INTERVAL_S,
+                time.sleep,
+                time.monotonic,
+                print,
+            )
     except AzureError as exc:
         sys.stderr.write(
             "upload-sample-data: storage operation failed; ensure the deployer identity has "
@@ -319,6 +418,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return _EXIT_SDK_FAILURE
     finally:
+        if search_client is not None:
+            search_client.close()
         queue_client.close()
         blob_service.close()
         credential.close()

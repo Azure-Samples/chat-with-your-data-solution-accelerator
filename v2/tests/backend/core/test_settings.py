@@ -128,6 +128,25 @@ def test_loads_from_env_postgresql_mode(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.search.endpoint == ""
 
 
+def test_require_admin_auth_defaults_to_false(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Admin routes are open by default -- the wall is opt-in."""
+    _set(monkeypatch, COSMOS_ENV)
+    settings = AppSettings()
+    assert settings.require_admin_auth is False
+
+
+def test_require_admin_auth_env_override_enables_wall(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`AZURE_REQUIRE_ADMIN_AUTH=true` flips the wall on."""
+    _set(monkeypatch, COSMOS_ENV)
+    monkeypatch.setenv("AZURE_REQUIRE_ADMIN_AUTH", "true")
+    settings = AppSettings()
+    assert settings.require_admin_auth is True
+
+
 def test_search_knowledge_base_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     _set(monkeypatch, COSMOS_ENV)
     settings = AppSettings()
