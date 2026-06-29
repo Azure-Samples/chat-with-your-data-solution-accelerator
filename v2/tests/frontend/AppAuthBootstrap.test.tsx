@@ -5,12 +5,11 @@
  * Vitest suite for the `AppShell` auth bootstrap. Drives the whole shell
  * through a URL-routed `fetch` mock (no module stubs) so the real
  * `useAuth` hook + `getUserInfo` run, and asserts the resolved-id
- * singleton the API clients forward reflects the `/.auth/me` lookup and
- * the `auth_enforced` flag carried on the `/api/health` payload. When
- * auth is enforced and `/.auth/me` returns no principal, the shell
- * renders the `<AuthBlocked>` screen in place of the routed view.
+ * singleton the API clients forward reflects the Easy Auth `/.auth/me`
+ * lookup: a principal yields the real object id, otherwise the default
+ * user id.
  */
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "@/App";
 import { DEFAULT_USER_ID, getUserId, setUserId } from "@/api/auth";
@@ -38,17 +37,10 @@ function principalPayload() {
 }
 
 /**
- * Route the shell's bootstrap calls by URL. `authEnforced` rides the
- * health payload; `signedIn` toggles whether `/.auth/me` returns a
- * principal (200) or no identity provider (401).
+ * Route the shell's bootstrap calls by URL. `signedIn` toggles whether
+ * `/.auth/me` returns a principal (200) or no identity provider (401).
  */
-function stubFetch({
-  authEnforced,
-  signedIn,
-}: {
-  authEnforced: boolean;
-  signedIn: boolean;
-}): void {
+function stubFetch({ signedIn }: { signedIn: boolean }): void {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = typeof input === "string" ? input : input.toString();
     if (url.includes("/.auth/me")) {
@@ -60,7 +52,6 @@ function stubFetch({
       return jsonResponse({
         status: "pass",
         version: "v2",
-        auth_enforced: authEnforced,
         checks: [],
       });
     }
@@ -87,44 +78,25 @@ describe("AppShell auth bootstrap", () => {
   });
 
   it("forwards the resolved object id once /.auth/me returns a principal", async () => {
-    stubFetch({ authEnforced: false, signedIn: true });
+    stubFetch({ signedIn: true });
     render(<App />);
     await waitFor(() => {
       expect(getUserId()).toBe(RESOLVED_OID);
     });
   });
 
-  it("forwards the resolved object id even when auth is enforced", async () => {
-    stubFetch({ authEnforced: true, signedIn: true });
-    render(<App />);
-    await waitFor(() => {
-      expect(getUserId()).toBe(RESOLVED_OID);
-    });
-  });
-
-  it("falls back to the default user when not signed in and auth is not enforced", async () => {
-    stubFetch({ authEnforced: false, signedIn: false });
+  it("falls back to the default user when no principal resolves", async () => {
+    stubFetch({ signedIn: false });
     render(<App />);
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalled();
     });
-    // No principal + not enforced -> the default partition id.
-    expect(getUserId()).toBe(DEFAULT_USER_ID);
-  });
-
-  it("forwards the default user when auth is enforced but no principal resolves", async () => {
-    stubFetch({ authEnforced: true, signedIn: false });
-    render(<App />);
-    await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalled();
-    });
-    // Blocked sessions never forward a bogus id; the shell makes no
-    // user-scoped calls while blocked (asserted via the UI at F11).
+    // No principal -> the default partition id.
     expect(getUserId()).toBe(DEFAULT_USER_ID);
   });
 
   it("queries the Easy Auth /.auth/me endpoint on the SPA origin", async () => {
-    stubFetch({ authEnforced: false, signedIn: true });
+    stubFetch({ signedIn: true });
     render(<App />);
     await waitFor(() => {
       expect(getUserId()).toBe(RESOLVED_OID);
@@ -138,29 +110,5 @@ describe("AppShell auth bootstrap", () => {
     expect(authMeCall).toBeDefined();
     // Resolved off the SPA origin, never prefixed with the backend URL.
     expect(String(authMeCall?.[0])).toBe("/.auth/me");
-  });
-
-  it("renders the blocked screen when auth is enforced but no principal resolves", async () => {
-    stubFetch({ authEnforced: true, signedIn: false });
-    render(<App />);
-    expect(await screen.findByTestId("auth-blocked")).toBeInTheDocument();
-  });
-
-  it("keeps the blocked screen hidden once a principal resolves under enforcement", async () => {
-    stubFetch({ authEnforced: true, signedIn: true });
-    render(<App />);
-    await waitFor(() => {
-      expect(getUserId()).toBe(RESOLVED_OID);
-    });
-    expect(screen.queryByTestId("auth-blocked")).toBeNull();
-  });
-
-  it("keeps the blocked screen hidden when auth is not enforced and no principal resolves", async () => {
-    stubFetch({ authEnforced: false, signedIn: false });
-    render(<App />);
-    await waitFor(() => {
-      expect(getUserId()).toBe(DEFAULT_USER_ID);
-    });
-    expect(screen.queryByTestId("auth-blocked")).toBeNull();
   });
 });

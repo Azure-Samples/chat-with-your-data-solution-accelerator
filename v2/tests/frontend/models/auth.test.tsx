@@ -19,12 +19,10 @@ describe("AuthPhase enum", () => {
   it("maps every member to its canonical string", () => {
     expect(AuthPhase.Loading).toBe("loading");
     expect(AuthPhase.Resolved).toBe("resolved");
-    expect(AuthPhase.Blocked).toBe("blocked");
   });
 
   it("exposes the full closed phase set via Object.values", () => {
     expect([...Object.values(AuthPhase)].sort()).toEqual([
-      "blocked",
       "loading",
       "resolved",
     ]);
@@ -36,9 +34,7 @@ describe("AuthPhase enum", () => {
   });
 
   it("produces a literal-union type covering every phase string", () => {
-    expectTypeOf<AuthPhase>().toEqualTypeOf<
-      "loading" | "resolved" | "blocked"
-    >();
+    expectTypeOf<AuthPhase>().toEqualTypeOf<"loading" | "resolved">();
   });
 });
 
@@ -73,12 +69,10 @@ describe("auth wire + domain shapes", () => {
     const state: AuthState = {
       userId: "00000000-0000-0000-0000-000000000000",
       userInfo: null,
-      authEnforced: false,
       phase: AuthPhase.Resolved,
     };
     expect(state.userId).toBe("00000000-0000-0000-0000-000000000000");
     expect(state.userInfo).toBeNull();
-    expect(state.authEnforced).toBe(false);
     expect(state.phase).toBe("resolved");
   });
 });

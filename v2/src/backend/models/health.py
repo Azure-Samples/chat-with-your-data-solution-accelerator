@@ -35,15 +35,10 @@ class HealthResponse(BaseModel):
     `status` is `pass` only when every required check passes. A single
     optional check failing yields `degraded`. A required check failing
     yields `fail`.
-
-    `auth_enforced` reports whether the deployment requires a signed-in
-    user (the admin wall is on), so the frontend can decide whether to
-    demand an Easy Auth principal or fall back to the default user.
     """
 
     status: OverallStatus
     version: str = "v2"
-    auth_enforced: bool = False
     checks: list[DependencyCheck] = Field(default_factory=list[DependencyCheck])
 
 

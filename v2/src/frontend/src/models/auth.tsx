@@ -42,14 +42,13 @@ export interface UserInfo {
 
 /**
  * Closed-set resolution lifecycle for the auth bootstrap. `Loading`
- * while `/.auth/me` is in flight; `Resolved` once a user id (real or
- * the default) is available; `Blocked` when auth is enforced but no
- * signed-in user could be resolved (the app shows an error screen).
+ * while `/.auth/me` is in flight; `Resolved` once a user id is
+ * available — the `/.auth/me` principal when signed in, otherwise the
+ * default user.
  */
 export const AuthPhase = {
   Loading: "loading",
   Resolved: "resolved",
-  Blocked: "blocked",
 } as const;
 export type AuthPhase = (typeof AuthPhase)[keyof typeof AuthPhase];
 
@@ -57,6 +56,5 @@ export type AuthPhase = (typeof AuthPhase)[keyof typeof AuthPhase];
 export interface AuthState {
   userId: string;
   userInfo: UserInfo | null;
-  authEnforced: boolean;
   phase: AuthPhase;
 }

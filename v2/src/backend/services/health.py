@@ -58,6 +58,5 @@ def run_health_checks(settings: AppSettings) -> HealthResponse:
     checks = [_check_foundry(settings), _check_database(settings), _check_search(settings)]
     return HealthResponse(
         status=_aggregate(checks),
-        auth_enforced=settings.require_admin_auth,
         checks=checks,
     )

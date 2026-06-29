@@ -37,7 +37,6 @@ describe("useAuth", () => {
     expect(result.current.auth).toEqual({
       userId: DEFAULT_USER_ID,
       userInfo: null,
-      authEnforced: false,
       phase: AuthPhase.Loading,
     });
   });
@@ -46,59 +45,27 @@ describe("useAuth", () => {
     const { result } = renderHook(() => useAuth());
 
     act(() => {
-      result.current.resolve(false, RESOLVED_USER);
+      result.current.resolve(RESOLVED_USER);
     });
 
     expect(result.current.auth).toEqual({
       userId: RESOLVED_OID,
       userInfo: RESOLVED_USER,
-      authEnforced: false,
       phase: AuthPhase.Resolved,
     });
     expect(getUserId()).toBe(RESOLVED_OID);
   });
 
-  it("resolves the signed-in user even when auth is enforced", () => {
+  it("falls back to the default user when no principal resolves", () => {
     const { result } = renderHook(() => useAuth());
 
     act(() => {
-      result.current.resolve(true, RESOLVED_USER);
-    });
-
-    expect(result.current.auth.phase).toBe(AuthPhase.Resolved);
-    expect(result.current.auth.authEnforced).toBe(true);
-    expect(result.current.auth.userId).toBe(RESOLVED_OID);
-    expect(getUserId()).toBe(RESOLVED_OID);
-  });
-
-  it("blocks when auth is enforced but no user resolved", () => {
-    const { result } = renderHook(() => useAuth());
-
-    act(() => {
-      result.current.resolve(true, null);
+      result.current.resolve(null);
     });
 
     expect(result.current.auth).toEqual({
       userId: DEFAULT_USER_ID,
       userInfo: null,
-      authEnforced: true,
-      phase: AuthPhase.Blocked,
-    });
-    // Blocked sessions forward the default id (the shell makes no calls).
-    expect(getUserId()).toBe(DEFAULT_USER_ID);
-  });
-
-  it("falls back to the default user when auth is not enforced", () => {
-    const { result } = renderHook(() => useAuth());
-
-    act(() => {
-      result.current.resolve(false, null);
-    });
-
-    expect(result.current.auth).toEqual({
-      userId: DEFAULT_USER_ID,
-      userInfo: null,
-      authEnforced: false,
       phase: AuthPhase.Resolved,
     });
     expect(getUserId()).toBe(DEFAULT_USER_ID);

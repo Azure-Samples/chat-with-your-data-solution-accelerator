@@ -16,13 +16,10 @@
  * runs a one-shot `getAdminStatus()`
  * probe: a 2xx surfaces the gated admin entry, any non-2xx (or
  * transport failure) keeps it hidden so non-admin sessions never see a
- * dead-end link. The same health response carries `auth_enforced`,
- * which `AppShell` pairs with the Easy Auth `/.auth/me` lookup (via
- * `useAuth`) to resolve the signed-in user — or the default user when
- * login is not enforced — so every API call forwards a per-user
- * `x-ms-client-principal-id`. When login is enforced but no user
- * resolves, the shell renders the `<AuthBlocked>` screen in place of
- * the routed view so no user-scoped call fires. `historyOpen`,
+ * dead-end link. Alongside the health probe, `AppShell` runs the Easy
+ * Auth `/.auth/me` lookup (via `useAuth`) to resolve the signed-in user
+ * — or the default user when no principal is present — so every API call
+ * forwards a per-user `x-ms-client-principal-id`. `historyOpen`,
  * `newChatNonce`, and
  * `adminAvailable` live here as the single source of truth feeding both
  * the header and the routed view; the admin entry maps to
@@ -38,7 +35,6 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { Header } from "./components/Header/Header";
-import { AuthBlocked } from "./components/AuthBlocked/AuthBlocked";
 import { CoralShellColumn } from "./components/CoralShell/CoralShellColumn";
 import { CoralShellRow } from "./components/CoralShell/CoralShellRow";
 import { ChatPage } from "./pages/chat/ChatPage";
@@ -50,7 +46,6 @@ import { getAdminStatus } from "./api/admin";
 import { getBackendUrl, loadRuntimeConfig } from "./api/runtimeConfig";
 import { getUserInfo } from "./api/auth";
 import { useAuth } from "./hooks/useAuth";
-import { AuthPhase } from "./models/auth";
 import { Section, SectionPath } from "./models/sections";
 import { FluentThemeBridge } from "./theme/FluentThemeBridge";
 import { ThemeProvider } from "./theme/themeContext";
@@ -91,23 +86,6 @@ async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   }
 }
 
-/**
- * Narrow the `auth_enforced` flag out of the untyped health payload.
- * The flag is absent on older / degraded responses, so anything that is
- * not a literal `true` is treated as "not enforced" — the shell then
- * falls back to the default user rather than blocking.
- */
-function readAuthEnforced(payload: unknown): boolean {
-  if (typeof payload !== "object" || payload === null) {
-    return false;
-  }
-  if (!("auth_enforced" in payload)) {
-    return false;
-  }
-  const value: unknown = payload.auth_enforced;
-  return value === true;
-}
-
 function AppShell(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -142,14 +120,11 @@ function AppShell(): JSX.Element {
         if (!cancelled) {
           setHealth(next);
         }
-        // auth_enforced rides the health payload (no separate auth route);
-        // pair it with the Easy Auth /.auth/me lookup to resolve the
-        // signed-in user, or fall back to the default when not enforced.
-        const authEnforced =
-          next.status === "ok" ? readAuthEnforced(next.payload) : false;
+        // Resolve identity from the Easy Auth /.auth/me lookup: a
+        // principal yields the real user id, otherwise the default user.
         const userInfo = await getUserInfo();
         if (!cancelled) {
-          resolve(authEnforced, userInfo);
+          resolve(userInfo);
         }
       });
     return () => {
@@ -176,16 +151,6 @@ function AppShell(): JSX.Element {
       cancelled = true;
     };
   }, []);
-
-  // Auth is enforced but no signed-in user resolved: replace the whole
-  // shell with the blocked screen so no user-scoped API call can fire.
-  if (auth.phase === AuthPhase.Blocked) {
-    return (
-      <CoralShellColumn>
-        <AuthBlocked />
-      </CoralShellColumn>
-    );
-  }
 
   return (
     <CoralShellColumn>

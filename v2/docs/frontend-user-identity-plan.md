@@ -14,6 +14,8 @@ This is the actionable, file-based checklist for **BUG-0046**. It tracks the wor
 
 Record progress by checking items off as each unit lands. The canonical defect record is [bugs.md](bugs.md) (`### BUG-0046`); the daily narrative is in [worklog/](worklog/). This file is the running task list that ties those together.
 
+> **Superseded in part (2026-06-29) — transparent identity.** The `auth_enforced` health signal and the `AuthBlocked` "Authentication Not Configured" screen described below were **removed** ([BUG-0091](bugs.md), [worklog/2026-06-29.md](worklog/2026-06-29.md)). The SPA now resolves identity purely from Azure Easy Auth `/.auth/me` (principal → real `userId`, else the `DEFAULT_USER_ID` guest user) and **never** reads `auth_enforced` or renders a blocked screen. The retired items are **D2** (auth-enforced signal source), **B1** (the `auth_enforced` health field), **F9** (the read-`auth_enforced` / mark-blocked bootstrap branch), **F10** (the blocked-screen component), and **F11** (rendering the blocked screen). Everything else — the per-user `x-ms-client-principal-id` header-forwarding work (D1, D3, F1–F8, F12) — is **unchanged and retained**. `require_admin_auth` / `get_user_id` / `requires_role` remain the orthogonal opt-in server-side admin-write gate.
+
 ## Context — the backend is already user-scoped; the gap is the frontend
 
 The backend already attributes every request to a user and enforces per-user ownership:
@@ -36,7 +38,7 @@ A browser-forwarded `x-ms-client-principal-id` is **not** a trust boundary — a
 | ID | Decision | Choice |
 |---|---|---|
 | D1 | Header injection mechanism | One `userIdHeaders()` helper, spread into each existing `fetch` call (four clients). |
-| D2 | Auth-enforced signal source | Fold `auth_enforced: bool` into the existing `GET /api/health` payload (`auth_enforced = settings.environment is Environment.PRODUCTION`); no new route. |
+| D2 | Auth-enforced signal source | Fold `auth_enforced: bool` into the existing `GET /api/health` payload (`auth_enforced = settings.environment is Environment.PRODUCTION`); no new route. **Retired 2026-06-29 ([BUG-0091](bugs.md))** — the `auth_enforced` signal was removed; the SPA resolves identity from `/.auth/me` alone (principal → real `userId`, else the `DEFAULT_USER_ID` guest user), with no enforced/blocked distinction. |
 | D3 | Default user when login not enforced | The frontend sends `00000000-0000-0000-0000-000000000000`; the backend keeps its `local-dev` fallback for header-absent direct calls. |
 | D4 | Tracking | `BUG-0046` in [bugs.md](bugs.md) + a worklog entry + this checklist doc. |
 | D5 | New modules (Hard Rule #10) | New `api/auth.tsx` (existing folder); auth context location to be confirmed before F8 (fold into `AppShell` state, or a new context module). No new backend module (D2 folds into health). |
@@ -72,7 +74,7 @@ A browser-forwarded `x-ms-client-principal-id` is **not** a trust boundary — a
 
 * [x] F8 — auth state machine (`hooks/useAuth.tsx`): owns `AuthState`, exposes `resolve(authEnforced, userInfo)` syncing the `api/auth.tsx` singleton; `renderHook` vitest. (Hard Rule #10: chose the existing `hooks/` folder over a new `src/auth/` Context — only the shell consumes it.)
 * [x] F9 — bootstrap effect in `App.tsx` `AppShell`: read `auth_enforced`, call `getUserInfo()`, set the resolved or default user, mark blocked when enforced but absent; vitest.
-* [x] F10 — blocked-screen component (Fluent v9 adaptation of the v1 "Authentication Not Configured" screen); vitest.
+* [x] F10 — blocked-screen component (Fluent v9 adaptation of the v1 "Authentication Not Configured" screen); vitest. **Retired 2026-06-29 ([BUG-0091](bugs.md))** — the `AuthBlocked` component was deleted; the SPA never blocks on identity (see the superseded note at the top of this doc).
 * [x] F11 — render the blocked screen in the shell when `authEnforced && !userId`; vitest.
 
 ### Phase 5 — Verify
