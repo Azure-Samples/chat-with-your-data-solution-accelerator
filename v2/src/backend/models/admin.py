@@ -211,7 +211,14 @@ class IngestUrlResponse(BaseModel):
         ),
     )
     ingestion_job_id: str = Field(
-        ..., description="Correlation id for cross-log tracing."
+        ...,
+        description=(
+            "Correlation id stamped on every downstream log line. Under "
+            "``DIRECT_ENQUEUE`` it is also the id carried by the enqueued "
+            "``BatchPushQueueMessage``; under ``EVENT_GRID`` nothing is "
+            "enqueued (``queued`` is False), so the id is informational -- "
+            "a log-tracing handle with no enqueued push job to correlate to."
+        ),
     )
     queued: bool = Field(
         ...,
@@ -249,7 +256,14 @@ class UploadResponse(BaseModel):
         ),
     )
     ingestion_job_id: str = Field(
-        ..., description="Correlation id for cross-log tracing."
+        ...,
+        description=(
+            "Correlation id stamped on every downstream log line. Under "
+            "``DIRECT_ENQUEUE`` it is also the id carried by the enqueued "
+            "``BatchPushQueueMessage``; under ``EVENT_GRID`` nothing is "
+            "enqueued (``queued`` is False), so the id is informational -- "
+            "a log-tracing handle with no enqueued push job to correlate to."
+        ),
     )
     queued: bool = Field(
         ...,
