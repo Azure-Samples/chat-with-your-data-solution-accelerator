@@ -1,27 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-# ========================================================================
-# Pillar:  Stable Core
-# Phase:   1 (Infrastructure + Project Skeleton)
-# Purpose: Azure Developer CLI manifest for CWYD v2. Drives `azd up` /
-#          `azd provision` / `azd deploy`.
-#
-#          The `parameters:` block uses azd's typed-prompt feature
-#          (CGSA pattern) so `azd up` asks the operator for the few
-#          decisions that cannot be defaulted safely:
-#            - databaseType (LOCKED at deploy: chat history + index store)
-#            - azureAiServiceLocation (model availability)
-#            - WAF flags (monitoring, scalability, redundancy, networking)
-#
-#          `services:` is intentionally empty in Phase 1. Backend,
-#          frontend, and functions are wired in their own units
-#          (tasks #14, #15, #16) once their Bicep modules emit the
-#          required outputs.
-# ========================================================================
-
 name: chat-with-your-data-v2
-# metadata:
-#   template: chat-with-your-data-v2@0.1.0
+metadata:
+  template: chat-with-your-data-v2@0.1.0
 requiredVersions:
   azd: ">= 1.18.0 != 1.23.9"
 
@@ -29,48 +10,6 @@ infra:
   provider: bicep
   path: infra
   module: main
-
-# ----------------------------------------------------------------------
-# Services — bound to Bicep resources by the `azd-service-name` tag in
-# v2/infra/main.bicep:
-#   - backend  → Container App  (tag 'backend',  L1120)
-#   - frontend → Container App  (tag 'frontend', L1213)
-#   - function → Function App   (tag 'function', L1366)
-# Each service uses its own Dockerfile under v2/docker/. `azd deploy`
-# builds the image, pushes to the Bicep-deployed ACR, and updates the
-# target resource. Debt #Q4 (Phase 3.5 QA remediation) — closes the
-# blocker that `azure.yaml` `services:` was empty.
-# ----------------------------------------------------------------------
-# services:
-#   backend:
-#     project: ./src/backend
-#     language: py
-#     host: containerapp
-#     docker:
-#       path: ../../docker/Dockerfile.backend
-#       context: ../..
-#   frontend:
-#     project: ./src/frontend
-#     language: js
-#     host: containerapp
-#     docker:
-#       path: ../../docker/Dockerfile.frontend
-#       context: ../..
-#   function:
-#     project: ./build-functions
-#     language: py
-#     host: function
-#     prepackage:
-#       posix:
-#         shell: sh
-#         run: ./infra/scripts/prepackage/prepackage-function.sh
-#         continueOnError: false
-#         interactive: false
-#       windows:
-#         shell: pwsh
-#         run: ./infra/scripts/prepackage/prepackage-function.ps1
-#         continueOnError: false
-#         interactive: false
 
 hooks:
   postdeploy:
