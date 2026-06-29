@@ -131,13 +131,25 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
       charset: db.?charset ?? 'UTF8'
       collation: db.?collation ?? 'en_US.utf8'
     }]
-    configurations: [for config in configurations: {
-      name: config.name
-      value: config.value
-      source: config.source
-    }]
+    // Configurations are deployed separately below — the AVM module runs
+    // privateEndpoints in parallel with the serial chain (databases →
+    // firewallRules → configurations). The PE mutates server network state,
+    // so configurations hit ServerIsBusy while the PE is still in progress.
+    configurations: []
   }
 }
+
+// Deploy configurations AFTER the full AVM module (including private
+// endpoints) has completed, avoiding the ServerIsBusy race.
+@batchSize(1)
+resource serverConfigurations 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = [for config in configurations: {
+  name: '${name}/${config.name}'
+  dependsOn: [postgresServer]
+  properties: {
+    value: config.value
+    source: config.source
+  }
+}]
 
 // ============================================================================
 // Outputs
