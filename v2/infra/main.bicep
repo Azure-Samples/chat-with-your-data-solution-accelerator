@@ -169,9 +169,6 @@ param containerRegistryEndpoint string = 'cwydcontainerreg.azurecr.io'
 @description('Optional. The image tag for the container images.')
 param imageTag string = 'latest'
 
-@description('Optional. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
-param hostingModel string = 'container'
-
 // ============================================================================
 // Parameters — Existing Resources
 // ============================================================================
@@ -274,7 +271,6 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     searchKnowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
     containerRegistryEndpoint: containerRegistryEndpoint
     imageTag: imageTag
-    hostingModel: hostingModel
     enableTelemetry: enableTelemetry
     enableMonitoring: enableMonitoring
     enableScalability: enableScalability
@@ -324,7 +320,6 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     searchKnowledgeBaseApiVersion: searchKnowledgeBaseApiVersion
     containerRegistryEndpoint: containerRegistryEndpoint
     imageTag: imageTag
-    hostingModel: hostingModel
     enableMonitoring: enableMonitoring
     existingLogAnalyticsWorkspaceId: existingLogAnalyticsWorkspaceId
     existingFoundryProjectResourceId: existingFoundryProjectResourceId

@@ -1,15 +1,8 @@
 // ============================================================================
-// main.bicep — Vanilla Bicep (Docker) flavor orchestrator
-// Description: Functional twin of ./avm/main.bicep (Foundry-first v2) built from
-//              the local native-resource modules under ./modules/*.
-//              Frontend AND backend run on Azure Container Apps; the Functions
-//              host runs as a container image (or code/zip) Linux Function App.
-//              Pure orchestrator: this file calls modules and declares only the
-//              child resources / role assignments the native modules do not own
-//              (storage queues, RBAC, Cosmos data-plane role).
-//              Scope: simple Docker deploy + optional monitoring. No private
-//              networking, scalability, redundancy, or VM/bastion (those live in
-//              the avm-waf flavor only).
+// main.bicep — Orchestrator
+// Description: Pure orchestrator for Chat With Your Data V2.
+//              All resource names are derived from params — no hardcoded names.
+//              This file only calls modules; no inline resource definitions.
 // ============================================================================
 targetScope = 'resourceGroup'
 
@@ -26,39 +19,63 @@ param solutionName string = 'cwyd'
 @description('Optional. Short unique suffix appended to global resource names. Defaults to a 5-char hash of subscription + RG + solution name.')
 param solutionUniqueText string = take(uniqueString(subscription().id, resourceGroup().name, solutionName), 5)
 
+@allowed([
+  'australiaeast'
+  'eastus2'
+  'japaneast'
+  'uksouth'
+])
 @metadata({ azd: { type: 'location' } })
-@description('Required. Azure region for non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres).')
+@description('Required. Azure region for non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres). Restricted to the 4 regions where ALL three redundancy guarantees hold simultaneously: PostgreSQL Flexible Server ZoneRedundant HA (3 AZs), Cosmos DB automatic failover with paired-region replicas, and Storage GZRS. Independent of azureAiServiceLocation, which selects the model-availability region. Source: https://learn.microsoft.com/azure/reliability/regions-list and https://learn.microsoft.com/azure/postgresql/flexible-server/overview#azure-regions')
 param location string
 
-@metadata({ azd: { type: 'location' } })
-@description('Required. Region for AI Services / Foundry deployments.')
+@allowed([
+  'australiaeast'
+  'canadaeast'
+  'eastus2'
+  'japaneast'
+  'koreacentral'
+  'polandcentral'
+  'swedencentral'
+  'switzerlandnorth'
+  'uaenorth'
+  'uksouth'
+  'westus3'
+])
+@metadata({
+  azd: {
+    type: 'location'
+    usageName: [
+      'OpenAI.GlobalStandard.gpt-5.1,150'
+      'OpenAI.GlobalStandard.o4-mini,50'
+      'OpenAI.Standard.text-embedding-3-large,100'
+    ]
+  }
+})
+@description('Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability.')
 param azureAiServiceLocation string
 
-// ===================== //
-// Database selection    //
-// ===================== //
+// ============================================================================
+// Parameters — Database & Ingestion
+// ============================================================================
 
 @allowed([
   'cosmosdb'
   'postgresql'
 ])
-@description('Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed).')
+@description('Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time.')
 param databaseType string = 'cosmosdb'
-
-// ===================== //
-// Ingestion trigger     //
-// ===================== //
 
 @allowed([
   'direct_enqueue'
   'event_grid'
 ])
-@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend enqueues the doc-processing message itself. event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue.')
+@description('Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed.')
 param ingestionTrigger string = 'direct_enqueue'
 
-// ===================== //
-// AI model parameters   //
-// ===================== //
+// ============================================================================
+// Parameters — AI Configuration
+// ============================================================================
 
 @minLength(1)
 @description('Optional. Primary chat model deployment name.')
@@ -97,7 +114,7 @@ param reasoningModelDeploymentType string = 'GlobalStandard'
 param reasoningModelCapacity int = 50
 
 @minLength(1)
-@description('Optional. Embedding model deployment name.')
+@description('Optional. Embedding model deployment name (used by Foundry IQ and the LangGraph indexer).')
 param embeddingModelName string = 'text-embedding-3-large'
 
 @description('Optional. Embedding model version.')
@@ -114,42 +131,42 @@ param embeddingModelDeploymentType string = 'Standard'
 @description('Optional. Token capacity for the embedding model.')
 param embeddingModelCapacity int = 100
 
-@description('Optional. Azure OpenAI API version exposed via the OpenAI-compatible endpoint.')
+@description('Optional. Azure OpenAI API version exposed via the OpenAI-compatible endpoint (used by the LangGraph orchestrator).')
 param azureOpenAiApiVersion string = '2025-01-01-preview'
 
 @description('Optional. Azure AI Agent API version (used by the Agent Framework orchestrator).')
 param azureAiAgentApiVersion string = '2025-05-01'
 
-@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode).')
+@description('Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection.')
 param searchKnowledgeBaseName string = 'cwyd-kb'
 
-@description('Optional. Foundry IQ knowledge source name backing the knowledge base.')
+@description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
 param searchKnowledgeSourceName string = 'cwyd-index-ks'
 
-@description('Optional. Foundry IQ knowledge base / knowledge source REST API version.')
+@description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
 param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
+
+@description('Optional. Deploy Application Insights and wire diagnostics. Log Analytics is always deployed because the Container Apps Environment requires it.')
+param enableMonitoring bool = false
 
 // ============================================================================
 // Parameters — Compute
 // ============================================================================
 
-@description('Optional. The container registry login server/endpoint for the container images.')
+@description('Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint).')
 param containerRegistryEndpoint string = 'cwydcontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
 param imageTag string = 'latest'
 
-@description('Optional. Hosting model for the web apps. Fixed as "container" for the Container App frontend/backend.')
-#disable-next-line no-unused-params
-param hostingModel string = 'container'
+// ============================================================================
+// Parameters — Existing Resources
+// ============================================================================
 
-@description('Optional. Deploy Application Insights and wire diagnostics. Log Analytics is always deployed because the Container Apps Environment requires it.')
-param enableMonitoring bool = false
-
-@description('Optional. Existing Log Analytics Workspace Resource ID. When set, the workspace is reused instead of deploying a new one.')
+@description('Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one.')
 param existingLogAnalyticsWorkspaceId string = ''
 
-@description('Optional. Existing AI Foundry project Resource ID. When set, that project (cross-subscription supported) is reused instead of deploying a new one.')
+@description('Optional. Resource ID of an existing AI Foundry project. Empty creates a new one.')
 param existingFoundryProjectResourceId string = ''
 
 // ===================== //
@@ -354,33 +371,27 @@ module aiModelDeployments './modules/ai/ai-foundry-model-deployment.bicep' = [
   }
 ]
 
-var speechServiceName = 'spch-${solutionSuffix}'
 module speechService './modules/ai/ai-services.bicep' = {
   name: take('module.ai-services.SpeechServices.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     namePrefix: 'spch'
-    name: speechServiceName
     location: azureAiServiceLocation
     tags: allTags
     kind: 'SpeechServices'
-    customSubDomainName: speechServiceName
-    publicNetworkAccess: 'Enabled'
+    customSubDomainName: 'spch${uniqueString(resourceGroup().id, solutionSuffix, 'SpeechServices')}'
   }
 }
 
-var contentSafetyServiceName = 'cs-${solutionSuffix}'
 module contentSafety './modules/ai/ai-services.bicep' = {
   name: take('module.ai-services.ContentSafety.${solutionName}', 64)
   params: {
     solutionName: solutionSuffix
     namePrefix: 'cs'
-    name: contentSafetyServiceName
     location: azureAiServiceLocation
     tags: allTags
     kind: 'ContentSafety'
-    customSubDomainName: contentSafetyServiceName
-    publicNetworkAccess: 'Enabled'
+    customSubDomainName: 'cs${uniqueString(resourceGroup().id, solutionSuffix, 'ContentSafety')}'
   }
 }
 
@@ -395,7 +406,6 @@ module aiSearch './modules/ai/ai-search.bicep' = if (isCosmos) {
     location: location
     tags: allTags
     skuName: 'basic'
-    publicNetworkAccess: 'Enabled'
   }
 }
 
@@ -431,10 +441,6 @@ module storageAccount './modules/data/storage-account.bicep' = {
     solutionName: solutionSuffix
     location: location
     tags: allTags
-    kind: 'StorageV2'
-    skuName: 'Standard_LRS'
-    accessTier: 'Hot'
-    allowBlobPublicAccess: false
     allowSharedKeyAccess: false
     containers: [
       { name: documentsContainerName, publicAccess: 'None' }
@@ -466,7 +472,6 @@ module postgresServer './modules/data/postgresql-flexible-server.bicep' = if (da
     location: location
     tags: allTags
     skuName: 'Standard_B2s'
-    skuTier: 'Burstable'
     administrators: union(
       [
         {
@@ -563,7 +568,6 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
     }
     workloadProfileName: 'Consumption'
     ingressTargetPort: 8000
-    ingressExternal: true
     scaleSettings: {
       minReplicas: 0
       maxReplicas: 3
@@ -590,7 +594,6 @@ module appServicePlan './modules/compute/app-service-plan.bicep' = {
     location: location
     tags: allTags
     skuName: 'B3'
-    skuCapacity: 1
   }
 }
 
@@ -619,7 +622,6 @@ module frontendContainerApp './modules/compute/container-app.bicep' = {
     }
     workloadProfileName: 'Consumption'
     ingressTargetPort: 80
-    ingressExternal: true
     scaleSettings: {
       minReplicas: 1
       maxReplicas: 3
@@ -700,7 +702,6 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
     tags: allTags
     source: storageAccount.outputs.resourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
-    identity: { type: 'SystemAssigned' }
     storageAccountName: storageAccount.outputs.name
     eventSubscriptions: [
       {
@@ -742,11 +743,8 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
 // Mirrors the avm flavor's array-driven role-assignments module.
 // ============================================================================
 
-var uamiPrincipalId = userAssignedIdentity.outputs.principalId
 var foundryAccountPrincipalId = useExistingAIProject ? existingAIProject!.outputs.principalId : aiProject!.outputs.principalId
 var foundryProjectPrincipalId = useExistingAIProject ? existingAIProject!.outputs.projectIdentityPrincipalId : aiProject!.outputs.projectIdentityPrincipalId
-var functionPrincipalId = functionApp.outputs.principalId
-var searchPrincipalId = isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
 
 // Role-assignment definitions (roleIds map + who-gets-what arrays) live in
 // ./modules/identity/role-assignments.bicep; main.bicep only supplies principals.
@@ -755,24 +753,20 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
   params: {
     isCosmos: isCosmos
     aiFoundryName: aiFoundryResourceName
-    speechServiceName: speechServiceName
-    contentSafetyServiceName: contentSafetyServiceName
+    speechServiceName: speechService.outputs.name
+    contentSafetyServiceName: contentSafety.outputs.name
     storageName: storageName
     aiSearchName: aiSearchName
     cosmosDbName: cosmosDbName
     useExistingAIProject: useExistingAIProject
-    uamiPrincipalId: uamiPrincipalId
+    uamiPrincipalId: userAssignedIdentity.outputs.principalId
     foundryAccountPrincipalId: foundryAccountPrincipalId
     foundryProjectPrincipalId: foundryProjectPrincipalId
-    functionPrincipalId: functionPrincipalId
-    searchPrincipalId: searchPrincipalId
+    functionPrincipalId: functionApp.outputs.principalId
+    searchPrincipalId: isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
   }
-  dependsOn: [
-    speechService
-    contentSafety
-  ]
 }
 // ===================== //
 // Outputs               //

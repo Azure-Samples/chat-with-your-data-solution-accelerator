@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.43.8.12551",
-      "templateHash": "2645379468028983712"
+      "version": "0.44.1.10279",
+      "templateHash": "4333864030488379252"
     }
   },
   "parameters": {
@@ -29,20 +29,44 @@
     },
     "location": {
       "type": "string",
+      "allowedValues": [
+        "australiaeast",
+        "eastus2",
+        "japaneast",
+        "uksouth"
+      ],
       "metadata": {
         "azd": {
           "type": "location"
         },
-        "description": "Required. Azure region for non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres)."
+        "description": "Required. Azure region for non-AI resources (Container Apps, App Service, Functions, Storage, Cosmos/Postgres). Restricted to the 4 regions where ALL three redundancy guarantees hold simultaneously: PostgreSQL Flexible Server ZoneRedundant HA (3 AZs), Cosmos DB automatic failover with paired-region replicas, and Storage GZRS. Independent of azureAiServiceLocation, which selects the model-availability region. Source: https://learn.microsoft.com/azure/reliability/regions-list and https://learn.microsoft.com/azure/postgresql/flexible-server/overview#azure-regions"
       }
     },
     "azureAiServiceLocation": {
       "type": "string",
+      "allowedValues": [
+        "australiaeast",
+        "canadaeast",
+        "eastus2",
+        "japaneast",
+        "koreacentral",
+        "polandcentral",
+        "swedencentral",
+        "switzerlandnorth",
+        "uaenorth",
+        "uksouth",
+        "westus3"
+      ],
       "metadata": {
         "azd": {
-          "type": "location"
+          "type": "location",
+          "usageName": [
+            "OpenAI.GlobalStandard.gpt-5.1,150",
+            "OpenAI.GlobalStandard.o4-mini,50",
+            "OpenAI.Standard.text-embedding-3-large,100"
+          ]
         },
-        "description": "Required. Region for AI Services / Foundry deployments."
+        "description": "Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability."
       }
     },
     "databaseType": {
@@ -53,7 +77,7 @@
         "postgresql"
       ],
       "metadata": {
-        "description": "Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed)."
+        "description": "Required. Selects BOTH the chat-history backend AND the vector index store. CosmosDB: Cosmos DB + Azure AI Search. PostgreSQL: PostgreSQL Flexible Server with pgvector (Azure AI Search is NOT deployed). Locked at deploy time."
       }
     },
     "ingestionTrigger": {
@@ -64,7 +88,7 @@
         "event_grid"
       ],
       "metadata": {
-        "description": "Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend enqueues the doc-processing message itself. event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue."
+        "description": "Optional. How an uploaded document is picked up for indexing. direct_enqueue: the backend admin upload enqueues the doc-processing message itself (works without an Event Grid subscription). event_grid: a storage Event Grid subscription fans BlobCreated/BlobDeleted to the blob-events queue and the blob_event Function translates each (create -> ingest, delete -> de-index), so the backend writes the blob only (no double-ingest). Flip to event_grid only after the blob_event Function blueprint is deployed."
       }
     },
     "gptModelName": {
@@ -140,7 +164,7 @@
       "defaultValue": "text-embedding-3-large",
       "minLength": 1,
       "metadata": {
-        "description": "Optional. Embedding model deployment name."
+        "description": "Optional. Embedding model deployment name (used by Foundry IQ and the LangGraph indexer)."
       }
     },
     "embeddingModelVersion": {
@@ -173,7 +197,7 @@
       "type": "string",
       "defaultValue": "2025-01-01-preview",
       "metadata": {
-        "description": "Optional. Azure OpenAI API version exposed via the OpenAI-compatible endpoint."
+        "description": "Optional. Azure OpenAI API version exposed via the OpenAI-compatible endpoint (used by the LangGraph orchestrator)."
       }
     },
     "azureAiAgentApiVersion": {
@@ -187,42 +211,21 @@
       "type": "string",
       "defaultValue": "cwyd-kb",
       "metadata": {
-        "description": "Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode)."
+        "description": "Optional. Foundry IQ knowledge base name the agent_framework orchestrator grounds on (cosmosdb mode). Must match the name seeded by post_provision.py and resolved through the Project-Search connection."
       }
     },
     "searchKnowledgeSourceName": {
       "type": "string",
       "defaultValue": "cwyd-index-ks",
       "metadata": {
-        "description": "Optional. Foundry IQ knowledge source name backing the knowledge base."
+        "description": "Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py)."
       }
     },
     "searchKnowledgeBaseApiVersion": {
       "type": "string",
       "defaultValue": "2025-11-01-preview",
       "metadata": {
-        "description": "Optional. Foundry IQ knowledge base / knowledge source REST API version."
-      }
-    },
-    "containerRegistryEndpoint": {
-      "type": "string",
-      "defaultValue": "cwydcontainerreg.azurecr.io",
-      "metadata": {
-        "description": "Optional. The container registry login server/endpoint for the container images."
-      }
-    },
-    "imageTag": {
-      "type": "string",
-      "defaultValue": "latest",
-      "metadata": {
-        "description": "Optional. The image tag for the container images."
-      }
-    },
-    "hostingModel": {
-      "type": "string",
-      "defaultValue": "container",
-      "metadata": {
-        "description": "Optional. Hosting model for the web apps. Fixed as \"container\" for the Container App frontend/backend."
+        "description": "Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image)."
       }
     },
     "enableMonitoring": {
@@ -232,18 +235,32 @@
         "description": "Optional. Deploy Application Insights and wire diagnostics. Log Analytics is always deployed because the Container Apps Environment requires it."
       }
     },
+    "containerRegistryEndpoint": {
+      "type": "string",
+      "defaultValue": "cwydcontainerreg.azurecr.io",
+      "metadata": {
+        "description": "Optional. The container registry login server/endpoint for the container images (for example, an Azure Container Registry endpoint)."
+      }
+    },
+    "imageTag": {
+      "type": "string",
+      "defaultValue": "latest",
+      "metadata": {
+        "description": "Optional. The image tag for the container images."
+      }
+    },
     "existingLogAnalyticsWorkspaceId": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Optional. Existing Log Analytics Workspace Resource ID. When set, the workspace is reused instead of deploying a new one."
+        "description": "Optional. Resource ID of an existing Log Analytics workspace. Empty creates a new one."
       }
     },
     "existingFoundryProjectResourceId": {
       "type": "string",
       "defaultValue": "",
       "metadata": {
-        "description": "Optional. Existing AI Foundry project Resource ID. When set, that project (cross-subscription supported) is reused instead of deploying a new one."
+        "description": "Optional. Resource ID of an existing AI Foundry project. Empty creates a new one."
       }
     },
     "tags": {
@@ -339,8 +356,6 @@
     "storageName": "[take(format('st{0}', variables('solutionSuffix')), 24)]",
     "cosmosDbName": "[format('cosmos-{0}', variables('solutionSuffix'))]",
     "useExistingLogAnalytics": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
-    "speechServiceName": "[format('spch-{0}', variables('solutionSuffix'))]",
-    "contentSafetyServiceName": "[format('cs-{0}', variables('solutionSuffix'))]",
     "functionName": "[format('func-{0}', variables('solutionSuffix'))]",
     "functionAppName": "[format('{0}-docker', variables('functionName'))]"
   },
@@ -388,8 +403,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "8284042434160589947"
+              "version": "0.44.1.10279",
+              "templateHash": "18283443262150133120"
             }
           },
           "parameters": {
@@ -489,8 +504,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "969553531695631445"
+              "version": "0.44.1.10279",
+              "templateHash": "18362209914173142473"
             }
           },
           "parameters": {
@@ -621,8 +636,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3276019876379547678"
+              "version": "0.44.1.10279",
+              "templateHash": "3199910078817503702"
             }
           },
           "parameters": {
@@ -782,8 +797,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "7450334128816260704"
+              "version": "0.44.1.10279",
+              "templateHash": "11426307275851055409"
             }
           },
           "parameters": {
@@ -909,8 +924,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "10170653721383907908"
+              "version": "0.44.1.10279",
+              "templateHash": "18246185807871991410"
             }
           },
           "parameters": {
@@ -1157,8 +1172,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "8590492508744195961"
+              "version": "0.44.1.10279",
+              "templateHash": "10180502016624897684"
             }
           },
           "parameters": {
@@ -1268,9 +1283,6 @@
           "namePrefix": {
             "value": "spch"
           },
-          "name": {
-            "value": "[variables('speechServiceName')]"
-          },
           "location": {
             "value": "[parameters('azureAiServiceLocation')]"
           },
@@ -1281,10 +1293,7 @@
             "value": "SpeechServices"
           },
           "customSubDomainName": {
-            "value": "[variables('speechServiceName')]"
-          },
-          "publicNetworkAccess": {
-            "value": "Enabled"
+            "value": "[format('spch{0}', uniqueString(resourceGroup().id, variables('solutionSuffix'), 'SpeechServices'))]"
           }
         },
         "template": {
@@ -1293,8 +1302,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3997607582623445408"
+              "version": "0.44.1.10279",
+              "templateHash": "5513864769288877005"
             }
           },
           "parameters": {
@@ -1465,9 +1474,6 @@
           "namePrefix": {
             "value": "cs"
           },
-          "name": {
-            "value": "[variables('contentSafetyServiceName')]"
-          },
           "location": {
             "value": "[parameters('azureAiServiceLocation')]"
           },
@@ -1478,10 +1484,7 @@
             "value": "ContentSafety"
           },
           "customSubDomainName": {
-            "value": "[variables('contentSafetyServiceName')]"
-          },
-          "publicNetworkAccess": {
-            "value": "Enabled"
+            "value": "[format('cs{0}', uniqueString(resourceGroup().id, variables('solutionSuffix'), 'ContentSafety'))]"
           }
         },
         "template": {
@@ -1490,8 +1493,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "3997607582623445408"
+              "version": "0.44.1.10279",
+              "templateHash": "5513864769288877005"
             }
           },
           "parameters": {
@@ -1668,9 +1671,6 @@
           },
           "skuName": {
             "value": "basic"
-          },
-          "publicNetworkAccess": {
-            "value": "Enabled"
           }
         },
         "template": {
@@ -1679,8 +1679,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "5544705592026127764"
+              "version": "0.44.1.10279",
+              "templateHash": "5979892336048972781"
             }
           },
           "parameters": {
@@ -1868,8 +1868,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.43.8.12551",
-                      "templateHash": "11405874480605370927"
+                      "version": "0.44.1.10279",
+                      "templateHash": "2672261376096761553"
                     }
                   },
                   "parameters": {
@@ -2087,8 +2087,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "386381294886679564"
+              "version": "0.44.1.10279",
+              "templateHash": "14126031085782385090"
             }
           },
           "parameters": {
@@ -2234,18 +2234,6 @@
           "tags": {
             "value": "[variables('allTags')]"
           },
-          "kind": {
-            "value": "StorageV2"
-          },
-          "skuName": {
-            "value": "Standard_LRS"
-          },
-          "accessTier": {
-            "value": "Hot"
-          },
-          "allowBlobPublicAccess": {
-            "value": false
-          },
           "allowSharedKeyAccess": {
             "value": false
           },
@@ -2275,8 +2263,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "2468142010748627117"
+              "version": "0.44.1.10279",
+              "templateHash": "5195208660794667624"
             }
           },
           "parameters": {
@@ -2522,8 +2510,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "14953893349373721534"
+              "version": "0.44.1.10279",
+              "templateHash": "18081889173683611818"
             }
           },
           "parameters": {
@@ -2713,9 +2701,6 @@
           "skuName": {
             "value": "Standard_B2s"
           },
-          "skuTier": {
-            "value": "Burstable"
-          },
           "administrators": {
             "value": "[union(createArray(createObject('objectId', reference('userAssignedIdentity').outputs.principalId.value, 'principalName', reference('userAssignedIdentity').outputs.name.value, 'principalType', 'ServicePrincipal')), if(contains(deployer(), 'userPrincipalName'), createArray(createObject('objectId', variables('deployingUserPrincipalId'), 'principalName', deployer().userPrincipalName, 'principalType', parameters('deployingUserPrincipalType'))), createArray()))]"
           },
@@ -2744,8 +2729,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "4450680400131203993"
+              "version": "0.44.1.10279",
+              "templateHash": "17424919820056106971"
             }
           },
           "parameters": {
@@ -3005,8 +2990,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "6021762781018875862"
+              "version": "0.44.1.10279",
+              "templateHash": "4755624393925218963"
             }
           },
           "parameters": {
@@ -3164,9 +3149,6 @@
           "ingressTargetPort": {
             "value": 8000
           },
-          "ingressExternal": {
-            "value": true
-          },
           "scaleSettings": {
             "value": {
               "minReplicas": 0,
@@ -3194,8 +3176,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "72048432286064874"
+              "version": "0.44.1.10279",
+              "templateHash": "17370346544281807053"
             }
           },
           "parameters": {
@@ -3429,9 +3411,6 @@
           },
           "skuName": {
             "value": "B3"
-          },
-          "skuCapacity": {
-            "value": 1
           }
         },
         "template": {
@@ -3440,8 +3419,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "15924018586594831869"
+              "version": "0.44.1.10279",
+              "templateHash": "8496143357348681814"
             }
           },
           "parameters": {
@@ -3610,9 +3589,6 @@
           "ingressTargetPort": {
             "value": 80
           },
-          "ingressExternal": {
-            "value": true
-          },
           "scaleSettings": {
             "value": {
               "minReplicas": 1,
@@ -3640,8 +3616,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "72048432286064874"
+              "version": "0.44.1.10279",
+              "templateHash": "17370346544281807053"
             }
           },
           "parameters": {
@@ -3904,8 +3880,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "15397042214208124525"
+              "version": "0.44.1.10279",
+              "templateHash": "3021355990104297258"
             }
           },
           "parameters": {
@@ -4097,11 +4073,6 @@
           "topicType": {
             "value": "Microsoft.Storage.StorageAccounts"
           },
-          "identity": {
-            "value": {
-              "type": "SystemAssigned"
-            }
-          },
           "storageAccountName": {
             "value": "[reference('storageAccount').outputs.name.value]"
           },
@@ -4144,8 +4115,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "17266479511572207397"
+              "version": "0.44.1.10279",
+              "templateHash": "15676310630249646620"
             }
           },
           "parameters": {
@@ -4300,10 +4271,10 @@
             "value": "[variables('aiFoundryResourceName')]"
           },
           "speechServiceName": {
-            "value": "[variables('speechServiceName')]"
+            "value": "[reference('speechService').outputs.name.value]"
           },
           "contentSafetyServiceName": {
-            "value": "[variables('contentSafetyServiceName')]"
+            "value": "[reference('contentSafety').outputs.name.value]"
           },
           "storageName": {
             "value": "[variables('storageName')]"
@@ -4339,8 +4310,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.43.8.12551",
-              "templateHash": "11557015739798402092"
+              "version": "0.44.1.10279",
+              "templateHash": "4892197753519617386"
             }
           },
           "parameters": {

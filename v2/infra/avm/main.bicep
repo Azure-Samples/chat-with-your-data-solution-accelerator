@@ -1,6 +1,6 @@
 // ============================================================================
 // main.bicep — Orchestrator
-// Description: Pure orchestrator for Agentic Applications for UDF
+// Description: Pure orchestrator for Chat With Your Data V2.
 //              All resource names are derived from params — no hardcoded names.
 //              This file only calls modules; no inline resource definitions.
 //              Supports WAF-aligned deployment via feature flags.
@@ -156,9 +156,6 @@ param containerRegistryEndpoint string = 'cwydcontainerreg.azurecr.io'
 
 @description('Optional. The image tag for the container images.')
 param imageTag string = 'latest'
-
-@description('Optional. Hosting model for the web apps. This value is fixed as "container", which uses prebuilt containers for faster deployment.')
-param hostingModel string = 'container'
 
 // ============================================================================
 // Parameters — Existing Resources
@@ -1256,6 +1253,7 @@ module frontendContainerApp './modules/compute/container-app.bicep' = {
 }
 
 var functionName = 'func-${solutionSuffix}'
+var hostingModel = 'container'
 module functionApp './modules/compute/function-app.bicep' = {
   name: hostingModel == 'container' ? '${functionName}-docker' : functionName
   params: {
