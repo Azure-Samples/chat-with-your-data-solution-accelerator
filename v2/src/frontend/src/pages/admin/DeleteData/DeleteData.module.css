@@ -184,9 +184,10 @@
 }
 
 .dialogTarget {
+  margin: 0;
   font-weight: var(--fontWeightSemibold);
   color: var(--colorNeutralForeground1);
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .dialogActions {

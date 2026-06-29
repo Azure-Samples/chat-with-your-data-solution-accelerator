@@ -67,7 +67,7 @@ describe("DeleteData -- page shell", () => {
     listMock.mockResolvedValueOnce(LIST_FIXTURE);
     render(<DeleteData />);
     expect(
-      screen.getByRole("heading", { name: /delete data/i }),
+      screen.getByRole("heading", { name: /data set/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: /indexed sources/i }),
@@ -108,7 +108,26 @@ describe("DeleteData -- initial list call", () => {
     const betaRow = screen.getByTestId("source-row-beta.pdf");
     expect(betaRow).toHaveTextContent("beta.pdf");
     expect(betaRow).toHaveTextContent("7");
-    expect(betaRow).toHaveTextContent("2026-05-01T12:00:00Z");
+    expect(betaRow).toHaveTextContent("05/01/26 12:00");
+  });
+
+  it("hides the Last modified column when no row has a value", async () => {
+    const allNull: ListDocumentsResponse = {
+      documents: [
+        { source: "alpha.pdf", chunk_count: 3, last_modified: null },
+        { source: "beta.pdf", chunk_count: 5, last_modified: null },
+      ],
+      total: 2,
+    };
+    listMock.mockResolvedValueOnce(allNull);
+    render(<DeleteData />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("source-table")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("columnheader", { name: /last modified/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the loading status before the list call resolves", async () => {

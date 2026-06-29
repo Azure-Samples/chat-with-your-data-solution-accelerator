@@ -34,7 +34,7 @@ const ADMIN_NAV_ITEMS: readonly AdminNavItem[] = [
   },
   {
     section: Section.AdminDelete,
-    label: "Delete data",
+    label: "Data set",
     testId: "admin-subnav-delete",
   },
   {

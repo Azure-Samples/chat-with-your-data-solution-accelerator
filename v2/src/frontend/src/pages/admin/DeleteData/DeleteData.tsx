@@ -191,7 +191,19 @@ function errorMessage(err: unknown): string {
 }
 
 function formatLastModified(value: string | null): string {
-  return value ?? "—";
+  if (value === null) {
+    return "—";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  const yy = String(date.getUTCFullYear() % 100).padStart(2, "0");
+  const hh = String(date.getUTCHours()).padStart(2, "0");
+  const min = String(date.getUTCMinutes()).padStart(2, "0");
+  return `${mm}/${dd}/${yy} ${hh}:${min}`;
 }
 
 export function DeleteData(): JSX.Element {
@@ -207,6 +219,9 @@ export function DeleteData(): JSX.Element {
   const isAllSelected =
     state.rows.length > 0 &&
     state.rows.every((row) => selectedSet.has(row.listing.source));
+  const hasAnyLastModified = state.rows.some(
+    (row) => row.listing.last_modified !== null,
+  );
 
   const refresh = useCallback(async (): Promise<void> => {
     dispatch({ type: DeleteActionType.ListStarted });
@@ -276,12 +291,12 @@ export function DeleteData(): JSX.Element {
 
   return (
     <section
-      aria-label="delete data"
+      aria-label="data set"
       data-testid="delete-data"
       className={styles.page}
     >
       <header className={styles.pageHeader}>
-        <h2 className={styles.pageTitle}>Delete data</h2>
+        <h2 className={styles.pageTitle}>Data set</h2>
         <p className={styles.pageHint}>
           Review every distinct source currently indexed and remove
           ones that should no longer be queryable.
@@ -383,7 +398,9 @@ export function DeleteData(): JSX.Element {
                 </th>
                 <th scope="col">Source</th>
                 <th scope="col">Chunks</th>
-                <th scope="col">Last modified</th>
+                {hasAnyLastModified ? (
+                  <th scope="col">Last modified</th>
+                ) : null}
                 <th scope="col" className={styles.rowActions}>
                   Actions
                 </th>
@@ -425,9 +442,11 @@ export function DeleteData(): JSX.Element {
                   <td className={styles.rowMeta}>
                     {row.listing.chunk_count.toString()}
                   </td>
-                  <td className={styles.rowMeta}>
-                    {formatLastModified(row.listing.last_modified)}
-                  </td>
+                  {hasAnyLastModified ? (
+                    <td className={styles.rowMeta}>
+                      {formatLastModified(row.listing.last_modified)}
+                    </td>
+                  ) : null}
                   <td className={styles.rowActions}>
                     {row.deleteStatus === RowDeleteStatus.Failed ? (
                       <Button
@@ -465,57 +484,54 @@ export function DeleteData(): JSX.Element {
         ) : null}
       </section>
 
-      {state.pendingDeleteSources !== null ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Confirm delete"
-          data-testid="delete-confirm-dialog"
-          className={styles.dialogBackdrop}
-        >
-          <div className={styles.dialog}>
-            <h3 className={styles.dialogTitle}>Confirm delete</h3>
-            <p className={styles.dialogBody}>
-              {state.pendingDeleteSources.length === 1 ? (
-                <>
-                  This permanently removes every indexed chunk attached to{" "}
-                  <span className={styles.dialogTarget}>
-                    {state.pendingDeleteSources[0]}
-                  </span>
-                  . The action cannot be undone.
-                </>
-              ) : (
-                <>
-                  This permanently removes every indexed chunk attached to{" "}
-                  <span className={styles.dialogTarget}>
-                    {state.pendingDeleteSources.length.toString()} selected
-                    sources
-                  </span>
-                  . The action cannot be undone.
-                </>
-              )}
-            </p>
-            <div className={styles.dialogActions}>
-              <Button
-                appearance="secondary"
-                onClick={handleConfirmCancel}
-                data-testid="delete-cancel"
+      {state.pendingDeleteSources !== null
+        ? (() => {
+            const sources = state.pendingDeleteSources;
+            const [firstSource] = sources;
+            const target =
+              sources.length === 1 && firstSource !== undefined
+                ? firstSource
+                : `${sources.length.toString()} selected sources`;
+            return (
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Confirm delete"
+                data-testid="delete-confirm-dialog"
+                className={styles.dialogBackdrop}
               >
-                Cancel
-              </Button>
-              <Button
-                appearance="primary"
-                onClick={() => {
-                  void handleConfirmDelete();
-                }}
-                data-testid="delete-confirm"
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+                <div className={styles.dialog}>
+                  <h3 className={styles.dialogTitle}>Confirm delete</h3>
+                  <p className={styles.dialogBody}>
+                    This permanently removes every indexed chunk attached to:
+                  </p>
+                  <p className={styles.dialogTarget}>{target}</p>
+                  <p className={styles.dialogBody}>
+                    The action cannot be undone.
+                  </p>
+                  <div className={styles.dialogActions}>
+                    <Button
+                      appearance="secondary"
+                      onClick={handleConfirmCancel}
+                      data-testid="delete-cancel"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      appearance="primary"
+                      onClick={() => {
+                        void handleConfirmDelete();
+                      }}
+                      data-testid="delete-confirm"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        : null}
     </section>
   );
 }
