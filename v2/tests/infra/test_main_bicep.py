@@ -555,3 +555,29 @@ def test_aisearch_grants_deployer_index_read(aisearch_slice: str) -> None:
         f"role id '{_SEARCH_INDEX_DATA_READER_ROLE_ID}' for the deployer "
         "seed-verify grant."
     )
+
+
+def test_bicep_exports_search_index_name(bicep_text: str) -> None:
+    """main.bicep must export AZURE_AI_SEARCH_INDEX for the postdeploy seed.
+
+    The seed hook's index-population self-check reads `AZURE_AI_SEARCH_INDEX`
+    from the azd env; without the output the check is skipped (the env is
+    empty on a clean `azd up`). The index name is single-sourced through the
+    `searchIndexName` param (Hard Rule #11) -- the backend container-app env
+    binding and the azd output both reference it, so an infra rename can't
+    diverge the two.
+    """
+    assert "param searchIndexName string = 'cwyd-index'" in bicep_text, (
+        "main.bicep must declare `param searchIndexName string = "
+        "'cwyd-index'` to single-source the chat index name."
+    )
+    assert "output AZURE_AI_SEARCH_INDEX string =" in bicep_text, (
+        "main.bicep must export `AZURE_AI_SEARCH_INDEX` so the postdeploy "
+        "seed hook receives the index name via the azd env and can run its "
+        "index-population self-check."
+    )
+    assert "value: searchIndexName" in bicep_text, (
+        "the backend container-app `AZURE_AI_SEARCH_INDEX` env binding must "
+        "reference the `searchIndexName` param, not a bare literal, so the "
+        "env value and the azd output stay single-sourced."
+    )

@@ -200,6 +200,9 @@ param searchKnowledgeBaseName string = 'cwyd-kb'
 @description('Optional. Foundry IQ knowledge source name backing the knowledge base (the search-index knowledge source seeded by post_provision.py).')
 param searchKnowledgeSourceName string = 'cwyd-index-ks'
 
+@description('Optional. Chat index name the azure_search provider reads/writes and post_provision.py creates. Single-sourced so the backend env binding and the azd output (consumed by the postdeploy seed self-check) cannot diverge.')
+param searchIndexName string = 'cwyd-index'
+
 @description('Optional. Foundry IQ knowledge base / knowledge source REST API version (operator-tunable so the KB protocol can advance without a new image).')
 param searchKnowledgeBaseApiVersion string = '2025-11-01-preview'
 
@@ -1888,7 +1891,7 @@ module backendContainerApp 'br/public:avm/res/app/container-app:0.22.1' = {
             // explicitly so an infra rename can't silently diverge from the
             // index post_provision.py creates (retrieval would break only at
             // query time, not deploy time).
-            { name: 'AZURE_AI_SEARCH_INDEX', value: 'cwyd-index' }
+            { name: 'AZURE_AI_SEARCH_INDEX', value: searchIndexName }
             // Foundry IQ knowledge base config (agent_framework orchestrator).
             // The agent grounds on the KB via the Search MCP endpoint
             // ({search}/knowledgebases/{kb}/mcp?api-version=<ver>); the
@@ -2599,6 +2602,9 @@ output AZURE_AI_SEARCH_ENDPOINT string = databaseType == 'cosmosdb' ? effectiveS
 
 @description('AI Search service name. Empty in postgresql mode.')
 output AZURE_AI_SEARCH_NAME string = databaseType == 'cosmosdb' ? effectiveSearchName : ''
+
+@description('Chat index name. Exported so the postdeploy seed hook can run its index-population self-check; empty in postgresql mode (no AI Search).')
+output AZURE_AI_SEARCH_INDEX string = databaseType == 'cosmosdb' ? searchIndexName : ''
 
 @description('Foundry IQ knowledge base name. Backend grounds the agent_framework orchestrator on it; post_provision.py seeds it. Carries the configured name in both modes (post_provision skips seeding when the Search endpoint is empty).')
 output AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME string = searchKnowledgeBaseName

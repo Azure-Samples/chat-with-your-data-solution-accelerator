@@ -4,7 +4,7 @@ Pillar: Stable Core
 Phase: 7 (router cleanup -- health-probe diagnostic helpers)
 """
 
-from backend.core.settings import AppSettings, DbType, Environment, IndexStore
+from backend.core.settings import AppSettings, DbType, IndexStore
 from backend.models.health import CheckStatus, DependencyCheck, HealthResponse, OverallStatus
 
 __all__ = ["run_health_checks"]
@@ -58,6 +58,6 @@ def run_health_checks(settings: AppSettings) -> HealthResponse:
     checks = [_check_foundry(settings), _check_database(settings), _check_search(settings)]
     return HealthResponse(
         status=_aggregate(checks),
-        auth_enforced=settings.environment is Environment.PRODUCTION,
+        auth_enforced=settings.require_admin_auth,
         checks=checks,
     )

@@ -36,9 +36,9 @@ class HealthResponse(BaseModel):
     optional check failing yields `degraded`. A required check failing
     yields `fail`.
 
-    `auth_enforced` reports whether the deployment requires Easy Auth
-    (true in production), so the frontend can decide whether to demand a
-    signed-in user or fall back to the default user.
+    `auth_enforced` reports whether the deployment requires a signed-in
+    user (the admin wall is on), so the frontend can decide whether to
+    demand an Easy Auth principal or fall back to the default user.
     """
 
     status: OverallStatus

@@ -232,6 +232,42 @@ async def test_health_returns_200_when_all_checks_pass(
 
 
 @pytest.mark.asyncio
+async def test_health_auth_enforced_false_when_open_in_production(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An open production deployment (no admin wall) must not advertise auth.
+
+    `auth_enforced` gates the frontend's AuthBlocked screen: when the wall
+    is open (`require_admin_auth=False`) the SPA must fall back to the
+    default user even in production -- it must not block on a missing
+    Easy Auth principal. Tying the flag to `environment` instead of the
+    wall regressed this (BUG: open prod deploy showed "Authentication Not
+    Configured").
+    """
+    monkeypatch.setenv("AZURE_ENVIRONMENT", "production")
+    monkeypatch.setenv("AZURE_REQUIRE_ADMIN_AUTH", "false")
+    app = _build_app(COSMOS_ENV, monkeypatch)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        r = await ac.get("/api/health")
+    assert r.status_code == 200
+    assert r.json()["auth_enforced"] is False
+
+
+@pytest.mark.asyncio
+async def test_health_auth_enforced_true_when_admin_wall_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A locked-down deployment (admin wall on) advertises enforced auth."""
+    monkeypatch.setenv("AZURE_ENVIRONMENT", "production")
+    monkeypatch.setenv("AZURE_REQUIRE_ADMIN_AUTH", "true")
+    app = _build_app(COSMOS_ENV, monkeypatch)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        r = await ac.get("/api/health")
+    assert r.status_code == 200
+    assert r.json()["auth_enforced"] is True
+
+
+@pytest.mark.asyncio
 async def test_health_reports_fail_when_foundry_endpoint_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
