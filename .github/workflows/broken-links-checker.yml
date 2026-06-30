@@ -25,10 +25,17 @@ jobs:
       - name: Get changed markdown files (PR only)
         id: changed-markdown-files
         if: github.event_name == 'pull_request'
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46
-        with:
-          files: |
-            **/*.md
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed_files=$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.md' | tr '\n' ' ' | sed 's/ *$//')
+          if [ -n "$changed_files" ]; then
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "all_changed_files=$changed_files" >> "$GITHUB_OUTPUT"
 
       - name: Skip - No Markdown Files Changed
         if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed != 'true'
@@ -38,7 +45,7 @@ jobs:
       - name: Check Broken Links in Changed Markdown Files
         id: lychee-check-pr
         if: github.event_name == 'pull_request' && steps.changed-markdown-files.outputs.any_changed == 'true'
-        uses: lycheeverse/lychee-action@v2.7.0
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           args: >
             --verbose --no-progress --exclude ^https?://
@@ -51,7 +58,7 @@ jobs:
       - name: Check Broken Links in All Markdown Files in Entire Repo (Manual Trigger)
         id: lychee-check-manual
         if: github.event_name == 'workflow_dispatch'
-        uses: lycheeverse/lychee-action@v2.7.0
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           args: >
             --verbose --no-progress --exclude ^https?://
