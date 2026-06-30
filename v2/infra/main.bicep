@@ -1036,7 +1036,7 @@ resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' exi
 }
 
 resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
-  name: guid(aiServicesName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  name: guid(aiServicesAccount.id, 'srch-${solutionSuffix}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
   scope: aiServicesAccount
   properties: {
     // Cognitive Services OpenAI User — lets the Search MI call the KB
@@ -1048,7 +1048,7 @@ resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022
 }
 
 resource searchOpenAiUserOnReusedOpenAi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && useExistingOpenAi) {
-  name: guid(existingOpenAiName, 'search-system-mi', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  name: guid(existingOpenAi.id, 'srch-${solutionSuffix}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
   scope: existingOpenAi
   properties: {
     // Cognitive Services OpenAI User — lets the Search MI call the KB

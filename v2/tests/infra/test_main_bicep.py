@@ -641,3 +641,76 @@ def test_bicep_exports_search_index_name(bicep_text: str) -> None:
         "reference the `searchIndexName` param, not a bare literal, so the "
         "env value and the azd output stay single-sourced."
     )
+
+
+# ---------------------------------------------------------------------------
+# BUG-0054 Phase 2: search-system-MI -> OpenAI role-assignment idempotency.
+#
+# `searchOpenAiUserOnFoundry` and `searchOpenAiUserOnReusedOpenAi` grant the
+# AI Search service's system-assigned managed identity the Cognitive
+# Services OpenAI User role on the (new or reused) OpenAI account. They
+# originally salted their assignment `name:` with the static literal
+# `'search-system-mi'` and the bare scope *name* -- a hand-coded token with
+# no tie to the actual principal-owning resource. The canonical
+# deterministic key (per v2-infra.instructions.md, matching the
+# `existingOpenAiUamiRole` precedent) is `guid(scope.id, identityName,
+# roleDefinitionId)`: keyed on the full scope resource id plus the real
+# Search service name so the key is unambiguous and self-documenting.
+#
+# NOTE: a role-assignment `name` must be computable at the START of
+# deployment, so the Search system-MI principalId (a deploy-time module
+# output) cannot appear in the name -- doing so raises BCP120. The Search
+# service NAME (`srch-${solutionSuffix}`) is the start-time stand-in for
+# that principal, exactly as `existingOpenAiUamiRole` uses the UAMI name.
+# This guard pins both names to that shape and forbids any reversion to
+# the static salt.
+# ---------------------------------------------------------------------------
+
+_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID = "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+
+
+def test_search_openai_role_assignments_use_idempotent_name(bicep_text: str) -> None:
+    """Both search->OpenAI role assignments must key their name on scope.id + Search name.
+
+    The deterministic `guid(scope.id, 'srch-${solutionSuffix}',
+    roleDefinitionId)` shape ties the assignment name to the full scope
+    resource id and the real Search service name, replacing the hand-coded
+    `'search-system-mi'` static salt (BUG-0054 Phase 2). The Search system
+    MI principalId cannot appear in the name (it is a deploy-time output;
+    BCP120), so the start-time Search service name is the stand-in --
+    mirroring the `existingOpenAiUamiRole` `guid(scope.id, uami.name, role)`
+    precedent. The role definition is referenced as a subscription-scoped
+    resource id so the key is unambiguous.
+    """
+    foundry_name = (
+        "name: guid(aiServicesAccount.id, 'srch-${solutionSuffix}', "
+        "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
+        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))"
+    )
+    reused_name = (
+        "name: guid(existingOpenAi.id, 'srch-${solutionSuffix}', "
+        "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
+        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))"
+    )
+    assert foundry_name in bicep_text, (
+        "searchOpenAiUserOnFoundry must key its assignment name on "
+        "`guid(aiServicesAccount.id, 'srch-${solutionSuffix}', "
+        "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
+        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))` -- the full scope "
+        "id plus the real Search service name, not a static salt (BUG-0054 "
+        "Phase 2)."
+    )
+    assert reused_name in bicep_text, (
+        "searchOpenAiUserOnReusedOpenAi must key its assignment name on "
+        "`guid(existingOpenAi.id, 'srch-${solutionSuffix}', "
+        "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
+        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))` -- the full scope "
+        "id plus the real Search service name, not a static salt (BUG-0054 "
+        "Phase 2)."
+    )
+    assert "'search-system-mi'" not in bicep_text, (
+        "The static salt `'search-system-mi'` must not appear in main.bicep. "
+        "It was a hand-coded token with no tie to the principal-owning "
+        "resource (BUG-0054 Phase 2); both names must key on `scope.id` plus "
+        "the real Search service name instead."
+    )
