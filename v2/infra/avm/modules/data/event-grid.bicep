@@ -56,7 +56,7 @@ module eventGridSystemTopic 'br/public:avm/res/event-grid/system-topic:0.6.5' = 
     enableTelemetry: enableTelemetry
     source: source
     topicType: topicType
-    eventSubscriptions: [] // Subscriptions added in step 3 after role propagates
+    eventSubscriptions: []
     diagnosticSettings: !empty(diagnosticSettings) ? diagnosticSettings : []
     managedIdentities: managedIdentities
   }
