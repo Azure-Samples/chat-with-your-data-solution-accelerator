@@ -65,6 +65,12 @@ from backend.dependencies import (
     SettingsDep,
 )
 from backend.core.agents.definitions import CWYD_DEFAULT_BODY
+from backend.core.agents.presets import (
+    ASSISTANT_PRESETS,
+    DEFAULT_ASSISTANT_TYPE,
+    DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
+    DEFAULT_POST_ANSWERING_PROMPT,
+)
 from backend.core.types import AdminAuditEntry, RuntimeConfig
 from backend.models.admin import (
     APP_VERSION,
@@ -169,9 +175,10 @@ async def config_endpoint(
         # seed-edit-save round-trip cannot bake the guardrail into the
         # stored override and double-wrap it.
         cwyd_agent_instructions=CWYD_DEFAULT_BODY,
-        post_answering_prompt="",
+        ai_assistant_type=DEFAULT_ASSISTANT_TYPE,
+        post_answering_prompt=DEFAULT_POST_ANSWERING_PROMPT,
         post_answering_enabled=False,
-        post_answering_filter_message="",
+        post_answering_filter_message=DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
     )
 
 
@@ -204,9 +211,10 @@ async def config_effective_endpoint(
         # guardrail; it is appended once at request time by
         # `resolve_effective_config`.
         "cwyd_agent_instructions": CWYD_DEFAULT_BODY,
-        "post_answering_prompt": "",
+        "ai_assistant_type": DEFAULT_ASSISTANT_TYPE,
+        "post_answering_prompt": DEFAULT_POST_ANSWERING_PROMPT,
         "post_answering_enabled": False,
-        "post_answering_filter_message": "",
+        "post_answering_filter_message": DEFAULT_POST_ANSWERING_FILTER_MESSAGE,
     }
     merged: dict[str, Any] = dict(env_values)
     sources: dict[str, ConfigSource] = {
@@ -234,6 +242,9 @@ async def config_effective_endpoint(
     return EffectiveAdminConfig(
         values=AdminConfig(**merged),
         sources=sources,
+        assistant_type_presets={
+            member.value: body for member, body in ASSISTANT_PRESETS.items()
+        },
         updated_at=updated_at,
         updated_by=updated_by,
     )

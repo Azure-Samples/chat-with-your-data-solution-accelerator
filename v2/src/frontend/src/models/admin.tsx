@@ -37,6 +37,32 @@ export const LogLevel = {
 export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
 
 /**
+ * Built-in Assistant Type presets offered by the admin Configuration
+ * page. Mirrors the backend `AssistantType` StrEnum in
+ * `backend/core/agents/presets.py`. Unlike `orchestrator_name` /
+ * `log_level`, the backend keeps `ai_assistant_type` a hard StrEnum
+ * (no `str` widening) -- this closed set is the exact wire vocabulary.
+ * Selecting one loads its persona body (from `assistant_type_presets`)
+ * into the editable Answering-prompt field.
+ */
+export const AssistantType = {
+  Default: "default",
+  Contract: "contract assistant",
+  Employee: "employee assistant",
+} as const;
+export type AssistantType =
+  (typeof AssistantType)[keyof typeof AssistantType];
+
+/**
+ * Read-only `{ assistantType: personaBody }` map the backend ships in
+ * the effective-config response so the admin dropdown can repopulate
+ * the Answering-prompt textarea on change without a second round-trip.
+ * Mirrors `EffectiveAdminConfig.assistant_type_presets` (the keys are
+ * `AssistantType` wire strings).
+ */
+export type AssistantTypePresets = Record<string, string>;
+
+/**
  * Sanitized snapshot of the running backend configuration.
  * Mirrors `backend.models.admin.AdminStatus`; non-secret fields only.
  */
@@ -161,6 +187,11 @@ export interface DeleteDocumentResponse {
  * `CWYD_AGENT`; the GET surfaces the built-in default and the PATCH
  * channel lets an operator persist an override.
  *
+ * `ai_assistant_type` is the selected persona preset (`default` /
+ * `contract assistant` / `employee assistant`). Selecting one loads
+ * its body into `cwyd_agent_instructions` client-side; the field is
+ * persisted so the dropdown reflects the last choice on reload.
+ *
  * `post_answering_prompt`, `post_answering_enabled`, and
  * `post_answering_filter_message` configure the optional
  * `PostPromptValidator` wired into the chat pipeline. The GET surfaces
@@ -177,6 +208,7 @@ export interface AdminConfig {
   log_level: string;
   content_safety_enabled: boolean;
   cwyd_agent_instructions: string;
+  ai_assistant_type: string;
   post_answering_prompt: string;
   post_answering_enabled: boolean;
   post_answering_filter_message: string;
@@ -208,10 +240,15 @@ export type ConfigSource =
  * from the env default or a persisted override. `updated_at` /
  * `updated_by` surface the audit fields of the persisted override, or
  * `null` when no override has been saved.
+ *
+ * `assistant_type_presets` is the static `{ type: personaBody }` map
+ * the dropdown uses to repopulate the Answering-prompt textarea on
+ * change; it is read-only and identical across overrides.
  */
 export interface EffectiveAdminConfig {
   values: AdminConfig;
   sources: Record<string, ConfigSource>;
+  assistant_type_presets: AssistantTypePresets;
   updated_at: string | null;
   updated_by: string | null;
 }
@@ -234,6 +271,7 @@ export interface RuntimeConfig {
   log_level: string | null;
   content_safety_enabled: boolean | null;
   cwyd_agent_instructions: string | null;
+  ai_assistant_type: string | null;
   post_answering_prompt: string | null;
   post_answering_enabled: boolean | null;
   post_answering_filter_message: string | null;
@@ -263,6 +301,7 @@ export interface AdminConfigPatch {
   log_level?: string | null;
   content_safety_enabled?: boolean | null;
   cwyd_agent_instructions?: string | null;
+  ai_assistant_type?: string | null;
   post_answering_prompt?: string | null;
   post_answering_enabled?: boolean | null;
   post_answering_filter_message?: string | null;

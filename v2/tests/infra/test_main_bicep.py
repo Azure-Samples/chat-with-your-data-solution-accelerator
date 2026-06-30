@@ -252,28 +252,42 @@ def test_application_insights_grants_metrics_publisher_to_uami(
     )
 
 
-# ADR-0018 drift-guard pair: backend + function env blocks must wire
-# `APPLICATIONINSIGHTS_CONNECTION_STRING` from the AppI module output, so
-# the OpenTelemetry exporter inside each workload knows where to send
-# telemetry. The env entry lives inside an `enableMonitoring ? [...] : []`
-# ternary so it stays absent in non-monitoring builds (no SDK auto-init
-# against an empty string); the drift-guard fires on the static Bicep
-# source text and so is flag-agnostic.
+# ADR-0018 drift-guard pair: backend + function env blocks must wire the
+# AppI connection string from the AppI module output, so the telemetry
+# exporter inside each workload knows where to send telemetry. The env
+# entry lives inside an `enableMonitoring ? [...] : []` ternary so it stays
+# absent in non-monitoring builds (no SDK auto-init against an empty
+# string); the drift-guard fires on the static Bicep source text and so is
+# flag-agnostic.
+#
+# The two workloads bind DIFFERENT env-var names on purpose (BUG-0055):
+#   - Backend ACA is a plain container with no host-level App Insights
+#     agent. Its Python lifespan calls `configure_azure_monitor` with the
+#     connection string read from the AZURE_-prefixed typed setting
+#     (`ObservabilitySettings`, `env_prefix="AZURE_"`), so the container
+#     must receive `AZURE_APP_INSIGHTS_CONNECTION_STRING`. The standard
+#     name was wired here originally and the typed setting stayed empty, so
+#     telemetry never initialized in the cloud.
+#   - The Function host reads the standard `APPLICATIONINSIGHTS_CONNECTION_STRING`
+#     natively, so the function app keeps that name.
 @pytest.mark.parametrize(
-    "slice_fixture",
-    ["backend_aca_slice", "function_app_slice"],
+    "slice_fixture,expected_env_name",
+    [
+        ("backend_aca_slice", "AZURE_APP_INSIGHTS_CONNECTION_STRING"),
+        ("function_app_slice", "APPLICATIONINSIGHTS_CONNECTION_STRING"),
+    ],
 )
 def test_appinsights_connection_string_bound_to_workload(
-    slice_fixture: str, request: pytest.FixtureRequest
+    slice_fixture: str, expected_env_name: str, request: pytest.FixtureRequest
 ) -> None:
-    """Backend + function env blocks must wire APPLICATIONINSIGHTS_CONNECTION_STRING (ADR-0018)."""
+    """Backend wires the typed name; function wires the standard name (ADR-0018, BUG-0055)."""
     module_slice: str = request.getfixturevalue(slice_fixture)
-    assert "'APPLICATIONINSIGHTS_CONNECTION_STRING'" in module_slice, (
-        f"APPLICATIONINSIGHTS_CONNECTION_STRING missing from {slice_fixture}. "
+    assert f"'{expected_env_name}'" in module_slice, (
+        f"{expected_env_name} missing from {slice_fixture}. "
         "Wire it inside an `enableMonitoring ? [...] : []` ternary sourced "
         "from `applicationInsights!.outputs.connectionString` so the "
-        "workload OpenTelemetry exporter knows where to ingest telemetry "
-        "(ADR-0018)."
+        "workload telemetry exporter knows where to ingest telemetry "
+        "(ADR-0018, BUG-0055)."
     )
     assert "applicationInsights!.outputs.connectionString" in module_slice, (
         f"{slice_fixture} must source the AppI connection string from "

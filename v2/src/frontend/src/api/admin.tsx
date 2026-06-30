@@ -13,6 +13,7 @@ import type {
   AdminConfig,
   AdminConfigPatch,
   AdminStatus,
+  AssistantTypePresets,
   DeleteDocumentResponse,
   EffectiveAdminConfig,
   IngestUrlRequest,
@@ -282,6 +283,31 @@ export async function getAdminConfig(): Promise<AdminConfig> {
 }
 
 /**
+ * Fetch the static `{ assistantType: personaBody }` preset map the
+ * admin Configuration dropdown uses to repopulate the Answering-prompt
+ * textarea when the operator switches Assistant Type. Hits the same
+ * `GET /api/admin/config/effective` endpoint as `getAdminConfig` and
+ * unwraps the `assistant_type_presets` field. The map is identical
+ * across overrides, so the page loads it once on mount and never
+ * refetches it on save / reset.
+ *
+ * @throws Error on non-2xx (401/403 RBAC, 5xx backend down).
+ */
+export async function getAssistantTypePresets(): Promise<AssistantTypePresets> {
+  const response = await fetch(apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
+    method: "GET",
+    headers: { Accept: "application/json", ...userIdHeaders() },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `getAssistantTypePresets: request failed with status ${response.status}`,
+    );
+  }
+  const body = (await response.json()) as EffectiveAdminConfig;
+  return body.assistant_type_presets;
+}
+
+/**
  * Apply an RFC 7396 JSON Merge Patch to the persisted
  * `RuntimeConfig` and return the merged shape.
  *
@@ -340,6 +366,7 @@ const RESET_ALL_OVERRIDES: Required<AdminConfigPatch> = {
   log_level: null,
   content_safety_enabled: null,
   cwyd_agent_instructions: null,
+  ai_assistant_type: null,
   post_answering_prompt: null,
   post_answering_enabled: null,
   post_answering_filter_message: null,

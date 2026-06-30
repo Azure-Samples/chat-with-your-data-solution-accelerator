@@ -33,11 +33,15 @@ dependencies = [
     "langchain-openai>=0.3,<1.0",
 
     # OSS Microsoft Agent Framework (orchestrator backend behind the
-    # `agent_framework` registry key; see development_plan.md §0.1
-    # `B1-MAF-MISLABEL`). Use the umbrella package for core runtime
-    # primitives and keep `agent-framework-foundry` for Foundry hosted-agent
-    # integration.
-    "agent-framework==1.7.0",
+    # `agent_framework` registry key). Pin the *core* distribution, not the
+    # `agent-framework` umbrella meta-package: the umbrella depends on
+    # `agent-framework-hyperlight` (env marker `python_version < "3.14"`),
+    # which in turn requires `hyperlight-sandbox-backend-wasm` — unresolvable
+    # on the Functions host's Python 3.11 runtime, so a remote pip build
+    # backtracks indefinitely and never completes. Only `agent_framework`
+    # (core) and `agent_framework_foundry` are imported in this codebase;
+    # `agent-framework-foundry` supplies the Foundry hosted-agent integration.
+    "agent-framework-core==1.7.0",
     "agent-framework-foundry==1.7.0",
 
     # Azure data plane (passwordless via Managed Identity)

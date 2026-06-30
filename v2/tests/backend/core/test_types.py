@@ -29,6 +29,7 @@ from pydantic import ValidationError
 
 import backend.core.types as st
 import backend.core.types as types_module
+from backend.core.agents.presets import AssistantType
 from backend.core.types import (
     AadScope,
     ChatMessage,
@@ -354,6 +355,30 @@ def test_runtime_config_distinguishes_false_from_unset() -> None:
     assert explicit_false.search_use_semantic_search is False
     assert unset.search_use_semantic_search is None
     assert explicit_false != unset
+
+
+def test_runtime_config_ai_assistant_type_defaults_to_none() -> None:
+    # `None` = not overridden -> fall through to the default type (ADR 0030).
+    assert RuntimeConfig().ai_assistant_type is None
+
+
+def test_runtime_config_coerces_ai_assistant_type_string_to_enum() -> None:
+    # The PATCH path validates the merged dict through RuntimeConfig, so a
+    # wire string must coerce to the closed-set AssistantType member.
+    rc = RuntimeConfig(ai_assistant_type="contract assistant")
+    assert rc.ai_assistant_type is AssistantType.CONTRACT
+
+
+def test_runtime_config_rejects_unknown_ai_assistant_type() -> None:
+    with pytest.raises(ValidationError):
+        RuntimeConfig(ai_assistant_type="chief of staff")
+
+
+def test_runtime_config_round_trips_ai_assistant_type() -> None:
+    rc = RuntimeConfig(ai_assistant_type=AssistantType.EMPLOYEE)
+    rebuilt = RuntimeConfig.model_validate(rc.model_dump())
+    assert rebuilt.ai_assistant_type is AssistantType.EMPLOYEE
+    assert rebuilt == rc
 
 
 def test_runtime_config_partial_override_leaves_other_fields_none() -> None:
