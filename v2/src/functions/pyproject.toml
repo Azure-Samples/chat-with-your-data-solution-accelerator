@@ -1,13 +1,48 @@
 # Pillar: Stable Core
-# Phase: 1 (debt #7)
+# Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 #
-# Minimal pyproject for the Functions container build (Dockerfile.functions
-# COPYs this file before `uv sync`). Phase 6 expands deps as blueprints land.
+# Dedicated pyproject for the Functions container build (Dockerfile.functions
+# uses this + uv.lock for reproducible, minimal installs).
+# Only includes packages actually imported by functions code and the
+# backend.core modules they use — no agent-framework, langchain, etc.
 [project]
 name = "cwyd-functions"
 version = "0.1.0"
 description = "CWYD v2 Azure Functions — modular RAG indexing pipeline host"
 requires-python = ">=3.11"
 dependencies = [
+    # Azure Functions runtime
     "azure-functions>=1.24,<2.0",
+
+    # Azure data plane (passwordless via Managed Identity)
+    "azure-identity>=1.25,<2.0",
+    "azure-storage-blob>=12.28,<13.0",
+    "azure-storage-queue>=12.15,<13.0",
+
+    # Search indexing
+    "azure-search-documents>=11.6.0b1",
+
+    # Document Intelligence parser
+    "azure-ai-documentintelligence>=1.0,<2.0",
+
+    # Embedders (Azure AI Projects + OpenAI)
+    "azure-ai-projects==2.2.0",
+    "openai==2.32.0",
+
+    # Async transport for azure-core clients
+    "aiohttp>=3.10,<4.0",
+
+    # PostgreSQL (pgvector mode)
+    "asyncpg>=0.31,<1.0",
+
+    # HTTP client (add_url function)
+    "httpx>=0.28,<1.0",
+
+    # Config + validation
+    "pydantic>=2.11,<3.0",
+    "pydantic-settings>=2.7,<3.0",
+    "python-dotenv>=1.2,<2.0",
+
+    # Document parsers
+    "beautifulsoup4>=4.14,<5.0",
 ]

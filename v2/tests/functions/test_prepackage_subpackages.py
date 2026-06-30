@@ -3,7 +3,7 @@
 Pillar: Stable Core
 Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
 
-`scripts/prepackage_function.py` stages an explicit allow-list of
+`infra/scripts/prepackage/prepackage_function.py` stages an explicit allow-list of
 subpackages (`_FUNCTION_SUBPACKAGES`) into the Flex Consumption deploy
 artifact -- listed explicitly rather than globbed so a stray dir never
 ships. The failure mode of an explicit list is the inverse: a *new*
@@ -20,13 +20,15 @@ from pathlib import Path
 
 _V2_ROOT = Path(__file__).resolve().parents[2]
 _FUNCTIONS_SRC = _V2_ROOT / "src" / "functions"
-_PREPACKAGE_SCRIPT = _V2_ROOT / "scripts" / "prepackage_function.py"
+_PREPACKAGE_SCRIPT = (
+    _V2_ROOT / "infra" / "scripts" / "prepackage" / "prepackage_function.py"
+)
 
 
 def _load_function_subpackages() -> tuple[str, ...]:
     """Load `_FUNCTION_SUBPACKAGES` from the prepackage script by file path.
 
-    The script lives under `v2/scripts/` (not on the test import path),
+    The script lives under `v2/infra/scripts/prepackage/` (not on the test import path),
     and importing it is side-effect-free -- `main()` only runs under the
     `__main__` guard -- so loading the module to read the constant is safe.
     """

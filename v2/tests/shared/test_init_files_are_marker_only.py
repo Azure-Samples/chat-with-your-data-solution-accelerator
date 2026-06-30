@@ -39,9 +39,9 @@ import pytest
 # v2/ root resolves from this file: v2/tests/shared/test_*.py -> v2/
 _V2_ROOT = Path(__file__).resolve().parents[2]
 
-# Subtrees under v2/ that get scanned. v2/scripts/ has no Python
+# Subtrees under v2/ that get scanned. v2/infra/scripts/ has no Python
 # packages today (dev scripts are plain modules); if that ever changes,
-# add "scripts" here and the gate will pick the new packages up.
+# add "infra/scripts" here and the gate will pick the new packages up.
 _SCAN_ROOTS = ("src", "tests")
 
 # Per-file exemption list. Empty by design -- the rule has no
@@ -63,7 +63,12 @@ def _iter_v2_init_files() -> list[Path]:
             # Skip any cached / venv / build output that may have been
             # dropped under one of the scan roots.
             parts = set(path.parts)
-            if "__pycache__" in parts or ".venv" in parts or "build" in parts or "node_modules" in parts:
+            if (
+                "__pycache__" in parts
+                or ".venv" in parts
+                or "build" in parts
+                or "node_modules" in parts
+            ):
                 continue
             files.append(path)
     return sorted(files)
@@ -138,8 +143,7 @@ def test_scan_actually_walked_files() -> None:
     assert _ALL_FILES, "no `__init__.py` files discovered under v2/{src,tests}"
     rel_parts = {p.relative_to(_V2_ROOT).parts[0] for p in _ALL_FILES}
     assert "src" in rel_parts, (
-        "no `__init__.py` files found under v2/src/ -- path resolution "
-        "likely broken"
+        "no `__init__.py` files found under v2/src/ -- path resolution " "likely broken"
     )
     assert "tests" in rel_parts, (
         "no `__init__.py` files found under v2/tests/ -- path resolution "
