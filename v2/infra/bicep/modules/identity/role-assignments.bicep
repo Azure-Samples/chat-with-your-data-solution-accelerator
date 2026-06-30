@@ -40,8 +40,14 @@ param cosmosDbName string
 // Parameters — principal IDs (who receives the roles) + flags
 // ============================================================================
 
-@description('Whether the AI Foundry project is an existing (BYO) resource; when true, foundry-scoped roles are skipped.')
+@description('Whether the AI Foundry project is an existing (BYO) resource; when true, foundry-scoped roles are granted cross-scope via the cross-scope-role-assignment helper instead of in-RG.')
 param useExistingAIProject bool = false
+
+@description('Subscription ID of the existing (BYO) AI Foundry account; used to scope cross-scope foundry role assignments. Defaults to the current subscription.')
+param aiFoundrySubscriptionId string = subscription().subscriptionId
+
+@description('Resource group of the existing (BYO) AI Foundry account; used to scope cross-scope foundry role assignments. Defaults to the current resource group.')
+param aiFoundryResourceGroupName string = resourceGroup().name
 
 @description('Principal ID of the user-assigned managed identity.')
 param uamiPrincipalId string
@@ -86,7 +92,11 @@ var roleIds = {
 }
 var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
 
-var foundryRoleAssignments = useExistingAIProject ? [] : union(
+// Foundry data-plane grants. The same who-gets-what set serves both paths:
+//   - new project (same RG) → in-RG foundryRoles loop below
+//   - existing/BYO project   → cross-scope foundryRolesExisting module loop,
+//     which lands each assignment in the foundry's own subscription/RG.
+var foundryRoleAssignmentsBase = union(
   [
     { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesOpenAIUser }
     { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesUser }
@@ -101,6 +111,13 @@ var foundryRoleAssignments = useExistingAIProject ? [] : union(
       ]
     : []
 )
+
+var foundryRoleAssignments = useExistingAIProject ? [] : foundryRoleAssignmentsBase
+
+// Cross-scope (BYO) path: drop empty principals to avoid InvalidPrincipalId.
+var existingFoundryRoleAssignments = useExistingAIProject
+  ? filter(foundryRoleAssignmentsBase, assignment => !empty(assignment.principalId))
+  : []
 
 var speechRoleAssignments = [
   { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.cognitiveServicesSpeechUser }
@@ -196,6 +213,23 @@ resource foundryRoles 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
     properties: {
       principalId: ra.principalId
       roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', ra.roleDefinitionId)
+      principalType: ra.principalType
+    }
+  }
+]
+
+// BYO foundry: grant the same data-plane roles cross-scope. The helper module
+// is deployed into the foundry's own subscription/RG so the assignment is valid
+// even when the existing foundry lives in a different subscription.
+module foundryRolesExisting './cross-scope-role-assignment.bicep' = [
+  for ra in existingFoundryRoleAssignments: {
+    name: take('rbac-foundry-byo-${uniqueString(aiFoundryName, ra.principalId, ra.roleDefinitionId)}', 64)
+    scope: resourceGroup(aiFoundrySubscriptionId, aiFoundryResourceGroupName)
+    params: {
+      principalId: ra.principalId
+      roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', ra.roleDefinitionId)
+      roleAssignmentName: guid(aiFoundryName, ra.principalId, ra.roleDefinitionId)
+      aiFoundryName: aiFoundryName
       principalType: ra.principalType
     }
   }

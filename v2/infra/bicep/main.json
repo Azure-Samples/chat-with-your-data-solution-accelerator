@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.44.1.10279",
-      "templateHash": "1347943906019505742"
+      "version": "0.43.8.12551",
+      "templateHash": "15779612913790531398"
     }
   },
   "parameters": {
@@ -403,8 +403,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "18283443262150133120"
+              "version": "0.43.8.12551",
+              "templateHash": "8284042434160589947"
             }
           },
           "parameters": {
@@ -504,8 +504,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "18362209914173142473"
+              "version": "0.43.8.12551",
+              "templateHash": "969553531695631445"
             }
           },
           "parameters": {
@@ -636,8 +636,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "3199910078817503702"
+              "version": "0.43.8.12551",
+              "templateHash": "3276019876379547678"
             }
           },
           "parameters": {
@@ -789,19 +789,6 @@
           },
           "projectName": {
             "value": "[variables('aiProjectResourceName')]"
-          },
-          "uamiPrincipalId": {
-            "value": "[reference('userAssignedIdentity').outputs.principalId.value]"
-          },
-          "deployingUserPrincipalId": {
-            "value": "[variables('deployingUserPrincipalId')]"
-          },
-          "deployingUserPrincipalType": {
-            "value": "[parameters('deployingUserPrincipalType')]"
-          },
-          "searchPrincipalId": "[if(variables('isCosmos'), createObject('value', reference('aiSearch').outputs.identityPrincipalId.value), createObject('value', ''))]",
-          "isCosmos": {
-            "value": "[variables('isCosmos')]"
           }
         },
         "template": {
@@ -810,8 +797,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "2412005977099618335"
+              "version": "0.43.8.12551",
+              "templateHash": "7450334128816260704"
             }
           },
           "parameters": {
@@ -826,69 +813,9 @@
               "metadata": {
                 "description": "Required. The name of the existing AI project."
               }
-            },
-            "uamiPrincipalId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Optional. Principal ID of the user-assigned managed identity that needs data-plane access to the BYO foundry. Empty disables its grants."
-              }
-            },
-            "deployingUserPrincipalId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Optional. Object ID of the deploying user/principal that needs data-plane access to the BYO foundry. Empty disables its grants."
-              }
-            },
-            "deployingUserPrincipalType": {
-              "type": "string",
-              "defaultValue": "User",
-              "metadata": {
-                "description": "Optional. Principal type of the deploying user (User or ServicePrincipal)."
-              }
-            },
-            "searchPrincipalId": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Optional. Principal ID of the AI Search service identity (cosmosdb mode only). Empty disables its grants."
-              }
-            },
-            "isCosmos": {
-              "type": "bool",
-              "defaultValue": false,
-              "metadata": {
-                "description": "Optional. Whether the deployment targets Cosmos DB + AI Search (true); enables the search identity grants on the BYO foundry."
-              }
             }
           },
-          "variables": {
-            "roleIds": {
-              "cognitiveServicesOpenAIUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
-              "cognitiveServicesUser": "a97b65f3-24c7-4388-baec-2e87135dc908",
-              "azureAiUser": "53ca6127-db72-4b80-b1b0-d745d6d5456d"
-            },
-            "foundryRoleAssignments": "[union(createArray(createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').azureAiUser), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').azureAiUser)), if(parameters('isCosmos'), createArray(createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser)), createArray()))]",
-            "foundryRoleAssignmentsToCreate": "[filter(variables('foundryRoleAssignments'), lambda('assignment', not(empty(lambdaVariables('assignment').principalId))))]"
-          },
-          "resources": [
-            {
-              "copy": {
-                "name": "foundryRoles",
-                "count": "[length(variables('foundryRoleAssignmentsToCreate'))]"
-              },
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
-              "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('name')), variables('foundryRoleAssignmentsToCreate')[copyIndex()].principalId, variables('foundryRoleAssignmentsToCreate')[copyIndex()].roleDefinitionId)]",
-              "properties": {
-                "principalId": "[variables('foundryRoleAssignmentsToCreate')[copyIndex()].principalId]",
-                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('foundryRoleAssignmentsToCreate')[copyIndex()].roleDefinitionId)]",
-                "principalType": "[variables('foundryRoleAssignmentsToCreate')[copyIndex()].principalType]"
-              }
-            }
-          ],
+          "resources": [],
           "outputs": {
             "resourceId": {
               "type": "string",
@@ -962,11 +889,7 @@
             }
           }
         }
-      },
-      "dependsOn": [
-        "aiSearch",
-        "userAssignedIdentity"
-      ]
+      }
     },
     "aiProject": {
       "condition": "[not(variables('useExistingAIProject'))]",
@@ -1001,8 +924,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "18246185807871991410"
+              "version": "0.43.8.12551",
+              "templateHash": "10170653721383907908"
             }
           },
           "parameters": {
@@ -1249,8 +1172,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "10180502016624897684"
+              "version": "0.43.8.12551",
+              "templateHash": "8590492508744195961"
             }
           },
           "parameters": {
@@ -1379,8 +1302,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "5513864769288877005"
+              "version": "0.43.8.12551",
+              "templateHash": "3997607582623445408"
             }
           },
           "parameters": {
@@ -1570,8 +1493,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "5513864769288877005"
+              "version": "0.43.8.12551",
+              "templateHash": "3997607582623445408"
             }
           },
           "parameters": {
@@ -1756,8 +1679,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "5979892336048972781"
+              "version": "0.43.8.12551",
+              "templateHash": "5544705592026127764"
             }
           },
           "parameters": {
@@ -1945,8 +1868,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.44.1.10279",
-                      "templateHash": "2672261376096761553"
+                      "version": "0.43.8.12551",
+                      "templateHash": "11405874480605370927"
                     }
                   },
                   "parameters": {
@@ -2164,8 +2087,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "14126031085782385090"
+              "version": "0.43.8.12551",
+              "templateHash": "386381294886679564"
             }
           },
           "parameters": {
@@ -2340,8 +2263,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "5195208660794667624"
+              "version": "0.43.8.12551",
+              "templateHash": "2468142010748627117"
             }
           },
           "parameters": {
@@ -2587,8 +2510,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "18081889173683611818"
+              "version": "0.43.8.12551",
+              "templateHash": "14953893349373721534"
             }
           },
           "parameters": {
@@ -2806,8 +2729,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "17424919820056106971"
+              "version": "0.43.8.12551",
+              "templateHash": "4450680400131203993"
             }
           },
           "parameters": {
@@ -3067,8 +2990,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "4755624393925218963"
+              "version": "0.43.8.12551",
+              "templateHash": "6021762781018875862"
             }
           },
           "parameters": {
@@ -3253,8 +3176,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "17370346544281807053"
+              "version": "0.43.8.12551",
+              "templateHash": "72048432286064874"
             }
           },
           "parameters": {
@@ -3496,8 +3419,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "8496143357348681814"
+              "version": "0.43.8.12551",
+              "templateHash": "15924018586594831869"
             }
           },
           "parameters": {
@@ -3693,8 +3616,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "17370346544281807053"
+              "version": "0.43.8.12551",
+              "templateHash": "72048432286064874"
             }
           },
           "parameters": {
@@ -3957,8 +3880,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "3021355990104297258"
+              "version": "0.43.8.12551",
+              "templateHash": "15397042214208124525"
             }
           },
           "parameters": {
@@ -4192,8 +4115,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "15676310630249646620"
+              "version": "0.43.8.12551",
+              "templateHash": "17266479511572207397"
             }
           },
           "parameters": {
@@ -4365,6 +4288,12 @@
           "useExistingAIProject": {
             "value": "[variables('useExistingAIProject')]"
           },
+          "aiFoundrySubscriptionId": {
+            "value": "[variables('aiFoundrySubscriptionId')]"
+          },
+          "aiFoundryResourceGroupName": {
+            "value": "[variables('aiFoundryResourceGroupName')]"
+          },
           "uamiPrincipalId": {
             "value": "[reference('userAssignedIdentity').outputs.principalId.value]"
           },
@@ -4387,8 +4316,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.44.1.10279",
-              "templateHash": "4892197753519617386"
+              "version": "0.43.8.12551",
+              "templateHash": "12962544617791186683"
             }
           },
           "parameters": {
@@ -4445,7 +4374,21 @@
               "type": "bool",
               "defaultValue": false,
               "metadata": {
-                "description": "Whether the AI Foundry project is an existing (BYO) resource; when true, foundry-scoped roles are skipped."
+                "description": "Whether the AI Foundry project is an existing (BYO) resource; when true, foundry-scoped roles are granted cross-scope via the cross-scope-role-assignment helper instead of in-RG."
+              }
+            },
+            "aiFoundrySubscriptionId": {
+              "type": "string",
+              "defaultValue": "[subscription().subscriptionId]",
+              "metadata": {
+                "description": "Subscription ID of the existing (BYO) AI Foundry account; used to scope cross-scope foundry role assignments. Defaults to the current subscription."
+              }
+            },
+            "aiFoundryResourceGroupName": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().name]",
+              "metadata": {
+                "description": "Resource group of the existing (BYO) AI Foundry account; used to scope cross-scope foundry role assignments. Defaults to the current resource group."
               }
             },
             "uamiPrincipalId": {
@@ -4510,7 +4453,9 @@
               "storageAccountContributor": "17d1049b-9a84-46fb-8f53-869881c3d3ab"
             },
             "cosmosDataContributorRoleId": "00000000-0000-0000-0000-000000000002",
-            "foundryRoleAssignments": "[if(parameters('useExistingAIProject'), createArray(), union(createArray(createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').azureAiUser), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').azureAiUser)), if(parameters('isCosmos'), createArray(createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser)), createArray())))]",
+            "foundryRoleAssignmentsBase": "[union(createArray(createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').azureAiUser), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').azureAiUser)), if(parameters('isCosmos'), createArray(createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesUser), createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').cognitiveServicesOpenAIUser)), createArray()))]",
+            "foundryRoleAssignments": "[if(parameters('useExistingAIProject'), createArray(), variables('foundryRoleAssignmentsBase'))]",
+            "existingFoundryRoleAssignments": "[if(parameters('useExistingAIProject'), filter(variables('foundryRoleAssignmentsBase'), lambda('assignment', not(empty(lambdaVariables('assignment').principalId)))), createArray())]",
             "speechRoleAssignments": [
               {
                 "principalId": "[parameters('uamiPrincipalId')]",
@@ -4635,6 +4580,101 @@
                 "principalId": "[variables('cosmosSqlRoleAssignments')[copyIndex()].principalId]",
                 "roleDefinitionId": "[format('{0}/sqlRoleDefinitions/{1}', resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbName')), variables('cosmosSqlRoleAssignments')[copyIndex()].roleDefinitionId)]",
                 "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('cosmosDbName'))]"
+              }
+            },
+            {
+              "copy": {
+                "name": "foundryRolesExisting",
+                "count": "[length(variables('existingFoundryRoleAssignments'))]"
+              },
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[take(format('rbac-foundry-byo-{0}', uniqueString(parameters('aiFoundryName'), variables('existingFoundryRoleAssignments')[copyIndex()].principalId, variables('existingFoundryRoleAssignments')[copyIndex()].roleDefinitionId)), 64)]",
+              "subscriptionId": "[parameters('aiFoundrySubscriptionId')]",
+              "resourceGroup": "[parameters('aiFoundryResourceGroupName')]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalId": {
+                    "value": "[variables('existingFoundryRoleAssignments')[copyIndex()].principalId]"
+                  },
+                  "roleDefinitionId": {
+                    "value": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('existingFoundryRoleAssignments')[copyIndex()].roleDefinitionId)]"
+                  },
+                  "roleAssignmentName": {
+                    "value": "[guid(parameters('aiFoundryName'), variables('existingFoundryRoleAssignments')[copyIndex()].principalId, variables('existingFoundryRoleAssignments')[copyIndex()].roleDefinitionId)]"
+                  },
+                  "aiFoundryName": {
+                    "value": "[parameters('aiFoundryName')]"
+                  },
+                  "principalType": {
+                    "value": "[variables('existingFoundryRoleAssignments')[copyIndex()].principalType]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.43.8.12551",
+                      "templateHash": "8140699401604799898"
+                    }
+                  },
+                  "parameters": {
+                    "principalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The principal ID to assign the role to."
+                      }
+                    },
+                    "roleDefinitionId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The resource ID of the role definition to assign."
+                      }
+                    },
+                    "roleAssignmentName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "A unique name for the role assignment."
+                      }
+                    },
+                    "aiFoundryName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "The name of the AI Services account to scope the role assignment to."
+                      }
+                    },
+                    "principalType": {
+                      "type": "string",
+                      "defaultValue": "ServicePrincipal",
+                      "allowedValues": [
+                        "ServicePrincipal",
+                        "User"
+                      ],
+                      "metadata": {
+                        "description": "The principal type of the identity being assigned."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiFoundryName'))]",
+                      "name": "[parameters('roleAssignmentName')]",
+                      "properties": {
+                        "roleDefinitionId": "[parameters('roleDefinitionId')]",
+                        "principalId": "[parameters('principalId')]",
+                        "principalType": "[parameters('principalType')]"
+                      }
+                    }
+                  ]
+                }
               }
             }
           ]

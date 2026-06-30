@@ -333,11 +333,6 @@ module existingAIProject './modules/ai/existing-project-setup.bicep' = if (useEx
   params: {
     name: aiFoundryResourceName
     projectName: aiProjectResourceName
-    uamiPrincipalId: userAssignedIdentity.outputs.principalId
-    deployingUserPrincipalId: deployingUserPrincipalId
-    deployingUserPrincipalType: deployingUserPrincipalType
-    searchPrincipalId: isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
-    isCosmos: isCosmos
   }
 }
 
@@ -764,6 +759,8 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
     aiSearchName: aiSearchName
     cosmosDbName: cosmosDbName
     useExistingAIProject: useExistingAIProject
+    aiFoundrySubscriptionId: aiFoundrySubscriptionId
+    aiFoundryResourceGroupName: aiFoundryResourceGroupName
     uamiPrincipalId: userAssignedIdentity.outputs.principalId
     foundryAccountPrincipalId: foundryAccountPrincipalId
     foundryProjectPrincipalId: foundryProjectPrincipalId
