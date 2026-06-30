@@ -217,6 +217,38 @@ def test_function_app_keeps_blob_event_always_ready(bicep_text: str) -> None:
     )
 
 
+def test_blob_event_subscription_targets_blob_events_queue(bicep_text: str) -> None:
+    """The Event Grid blob subscription must deliver to the `blob-events`
+    queue (via `blobEventsQueueName`), never raw `doc-processing`.
+
+    This is the exact regression that defined BUG-0054: if the
+    subscription destination is repointed to `doc-processing`, the
+    backend admin upload AND the Event Grid fan-out both enqueue the
+    same document, double-ingesting every uploaded blob. The
+    `blob_event` queue trigger exists precisely to translate BlobCreated
+    into a single `doc-processing` envelope (and BlobDeleted into a
+    de-index), so the subscription must land on `blob-events` and let
+    the trigger own the hand-off (ADR 0028).
+    """
+    assert "queueName: blobEventsQueueName" in bicep_text, (
+        "Event Grid blob subscription destination must reference "
+        "blobEventsQueueName ('blob-events') in main.bicep, not a raw "
+        "'doc-processing' queue. Pointing it at doc-processing re-creates "
+        "the BUG-0054 double-ingest: the backend upload and the Event Grid "
+        "fan-out would both enqueue the same document."
+    )
+    for event_type in (
+        "'Microsoft.Storage.BlobCreated'",
+        "'Microsoft.Storage.BlobDeleted'",
+    ):
+        assert event_type in bicep_text, (
+            f"{event_type} missing from the Event Grid subscription "
+            "includedEventTypes filter in main.bicep. Both BlobCreated and "
+            "BlobDeleted must fan out to blob-events so the blob_event "
+            "trigger can ingest creates and de-index deletes."
+        )
+
+
 # ---------------------------------------------------------------------------
 # ADR-0018: Monitoring Metrics Publisher RBAC for UAMI on AppI.
 #

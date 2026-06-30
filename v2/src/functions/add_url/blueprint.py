@@ -46,12 +46,12 @@ Search service, or live HTTPS traffic.
 """
 
 from http import HTTPStatus
-from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import urlparse
 
 import azure.functions as func
 
+from backend.core.paths import parser_key_for_path
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.embedders import registry as embedders_registry
 from backend.core.providers.search import registry as search_registry
@@ -84,12 +84,11 @@ def _parser_key_for_url(url: str) -> str:
 
     ``urlparse`` ignores the query string and fragment, so
     ``https://example.com/file.pdf?q=1`` resolves to ``"pdf"``.
-    ``PurePosixPath`` keeps separator handling stable across Windows
-    dev hosts and Linux Functions runtimes -- URL paths are always
-    POSIX-style.
+    Extension derivation is delegated to
+    :func:`backend.core.paths.parser_key_for_path` -- URL paths are
+    always POSIX-style.
     """
-    parsed = urlparse(url)
-    suffix = PurePosixPath(parsed.path).suffix.lstrip(".").lower()
+    suffix = parser_key_for_path(urlparse(url).path)
     return suffix or _DEFAULT_PARSER_KEY
 
 

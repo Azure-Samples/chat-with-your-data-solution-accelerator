@@ -57,12 +57,12 @@ unit tests monkeypatch so they do not need Azurite, a real
 credential, or a real Search service.
 """
 
-from pathlib import PurePosixPath
 from typing import Any
 
 import azure.functions as func
 from azure.storage.blob.aio import ContainerClient
 
+from backend.core.paths import parser_key_for_path
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.embedders import registry as embedders_registry
 from backend.core.providers.search import registry as search_registry
@@ -82,12 +82,11 @@ bp = func.Blueprint()
 def _parser_key_for_filename(filename: str) -> str:
     """Return the lowercase extension (no dot) for parser-registry lookup.
 
-    ``PurePosixPath`` (not ``Path``) keeps separator handling stable
-    across Windows dev hosts and Linux Functions runtimes -- the
+    Delegates to :func:`backend.core.paths.parser_key_for_path`; the
     filename comes from a blob path, which is POSIX-style on every
     platform Azure Storage exposes.
     """
-    return PurePosixPath(filename).suffix.lstrip(".").lower()
+    return parser_key_for_path(filename)
 
 
 async def _execute(

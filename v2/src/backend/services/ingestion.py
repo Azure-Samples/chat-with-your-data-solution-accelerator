@@ -32,13 +32,13 @@ import logging
 import re
 from hashlib import blake2b
 from http import HTTPStatus
-from pathlib import PurePosixPath
 from urllib.parse import urlparse
 from uuid import uuid4
 
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
+from backend.core.paths import parser_key_for_path
 from backend.core.settings import AppSettings, IngestionTrigger
 from backend.models.admin import (
     IngestUrlRequest,
@@ -91,7 +91,7 @@ def _blob_name_for_url(url: str) -> str:
     :func:`backend.services.files._validate_filename`.
     """
     parsed = urlparse(url)
-    suffix = PurePosixPath(parsed.path).suffix.lstrip(".").lower()
+    suffix = parser_key_for_path(parsed.path)
     extension = (
         suffix
         if suffix in ingestion_parsers_registry.registry
@@ -214,7 +214,7 @@ def validate_upload(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail="Uploaded file must carry a non-empty filename.",
         )
-    extension = PurePosixPath(filename).suffix.lstrip(".").lower()
+    extension = parser_key_for_path(filename)
     if extension not in ingestion_parsers_registry.registry:
         supported = sorted(ingestion_parsers_registry.registry.keys())
         raise UploadRejected(
