@@ -39,6 +39,49 @@ Validation performed this turn:
 - Implementation Validator (full-quality) — subagent Blocked (read-only tooling); findings produced by reviewer via direct file reads + test run: PASS, 0 critical / 0 major / 3 minor.
 - Validation commands — infra test 36/36 green; `get_errors` clean; `az bicep build` EXIT=0 (confirmed by RPI Validator).
 
+## Re-Review Addendum — 2026-06-29 (work since the initial review)
+
+Since the initial review (the sections below), the implementer addressed all three minor findings (explicit user authorization ID-00) and the operator ran a full clean-slate `azd provision` (decision ID-01). **This addendum supersedes the historical "Overall Status" verdict at the bottom of this log.**
+
+### Prior minor findings — all RESOLVED ✅
+
+| Finding | Resolution | Evidence |
+|---|---|---|
+| M-1 (stale `main.json`) | Deleted + gitignored | `v2/infra/main.json` absent (file search: not found); ignore rule `infra/main.json` at `v2/.gitignore:20` |
+| M-2 (`.id` vs `!.id`) | Normalized to `existingOpenAi!.id` | `v2/infra/main.bicep:1055` |
+| M-3 (un-hoisted role GUID) | Hoisted to `var cognitiveServicesOpenAiUserRoleId` | declared `v2/infra/main.bicep:133`; referenced 7× (`:602,:704,:709,:1043,:1048,:1055,:1060`); only the declaration carries the literal |
+
+Test coverage extended in lockstep — `v2/tests/infra/test_main_bicep.py` now pins the full deterministic `guid(...cognitiveServicesOpenAiUserRoleId))` expression on both names (`:688`,`:693`), asserts the `var` declaration (`:695-701`), keeps the negative pin on `'search-system-mi'` (`:721`), and pins the EG `queueName: blobEventsQueueName` invariant (`:233`). **36/36 infra tests pass; `az bicep build` EXIT=0 (no BCP120).** All three fixes are value-identical at compile time — no role-assignment `guid()` name changed, so no new orphan risk.
+
+### Live re-provision (ID-01) — PARTIAL ⚠️ (one operational blocker, not a code defect)
+
+The prior environment was entirely torn down (DR-06), so a full clean-slate `azd provision` ran against the hardened template. Outcome:
+
+- **Provisioned green:** resource group, Log Analytics, Container Registry, App Insights, Container Apps Environment, Storage, Cosmos DB, both App Service plans, all three Cognitive Services accounts (Speech / Foundry AI Services / Content Safety) + 3 model deployments + Foundry project + project↔Search connection, **Search service, and the Function App**.
+- **Phase 2 hardening proven in the wild:** on the clean slate the Search service's role assignments were created cleanly (`code=Created`) with **no `RoleAssignmentExists` conflict** — exactly the idempotency outcome Phase 2 targeted. The orphan `70d96d3a…` that blocked the pre-teardown run is gone with the old RG.
+- **One failure — Container App `ca-backend-<SUFFIX>`:** `MANIFEST_UNKNOWN: manifest tagged by "latest" is not found` for `cr<SUFFIX>.azurecr.io/cwyd-backend:latest`. **Root cause: `azd provision` was run standalone, so no image has been built/pushed yet.** The backend image is produced by `azd deploy` (or `azd up`, which sequences package → provision → deploy). This is a deploy-sequencing gap, **not a Bicep defect and unrelated to the reviewed Phase 2 change.**
+
+### Updated status of plan phases
+
+- **Phase 2** — ✅ complete + clean (unchanged); the three follow-up minors are now resolved.
+- **Phase 1 (live cutover validation), Phase 4 (close-out docs), Phase 5 (validation gate)** — still `[ ]`. The bug-closing live validation (Step 1.6 create/delete e2e) and the `bugs.md`/worklog close-out have **not** run.
+- **BUG-0054 remains OPEN.** The durable intent (`AZURE_ENV_INGESTION_TRIGGER=event_grid`) is set and the template deploys the single `event_grid` path, but no live ingestion has been validated.
+
+### Re-review severity counts
+
+| Metric | Count |
+|---|---|
+| Critical findings | 0 |
+| Major findings (code) | 0 |
+| Minor findings (open) | 0 (all 3 prior minors resolved) |
+| Operational blockers | 1 (backend image not pushed — run `azd deploy`/`azd up`) |
+
+### Recommended next steps (operator)
+
+1. `azd deploy` (or re-run `azd up`) to build+push the backend/frontend/functions images and complete the Container App revision.
+2. Run Phase 1 Step 1.6 live validation — upload a doc → confirm single-path Event Grid ingestion + citation; delete → confirm de-index; **clean up the test doc** (cleanup-before-next-step).
+3. Run Phase 4 close-out docs (flip BUG-0054 → `fixed` in `v2/docs/bugs.md` + add the discrete static-salt `BUG-####` row + append the worklog) and the Phase 5 validation gate.
+
 ## RPI Validation Findings (per phase)
 
 ### Phase 2 — Durable Bicep idempotency hardening — ✅ VALIDATED
@@ -110,6 +153,8 @@ PASS (reviewer-produced; subagent Blocked on tooling). By category:
 - **M-3 (pre-existing)** — the role-def GUID `5e0bd9bd-...` is not hoisted to a Bicep `var` despite repeated use; pre-existing, not worsened by this change; do not back-fill inline (HR #12).
 
 ## Overall Status
+
+> **Superseded by the Re-Review Addendum (2026-06-29) above** — the three minor findings are now resolved and a full clean-slate `azd provision` has run (all resources green except the backend Container App, which needs `azd deploy`/`azd up` to push its image). BUG-0054 remains OPEN pending live validation. The verdict below is the historical initial-review record.
 
 🚫 **Blocked** (plan-level / BUG-0054 closure) — **with the implemented Phase 2 scope ✅ Complete and clean.**
 
