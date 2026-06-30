@@ -685,26 +685,36 @@ def test_search_openai_role_assignments_use_idempotent_name(bicep_text: str) -> 
     foundry_name = (
         "name: guid(aiServicesAccount.id, 'srch-${solutionSuffix}', "
         "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
-        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))"
+        "cognitiveServicesOpenAiUserRoleId))"
     )
     reused_name = (
-        "name: guid(existingOpenAi.id, 'srch-${solutionSuffix}', "
+        "name: guid(existingOpenAi!.id, 'srch-${solutionSuffix}', "
         "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
-        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))"
+        "cognitiveServicesOpenAiUserRoleId))"
+    )
+    var_decl = (
+        f"var cognitiveServicesOpenAiUserRoleId = "
+        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'"
+    )
+    assert var_decl in bicep_text, (
+        "The Cognitive Services OpenAI User role GUID must be hoisted to "
+        "`var cognitiveServicesOpenAiUserRoleId = "
+        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'` rather than repeated as "
+        "an inline literal at every role-assignment site."
     )
     assert foundry_name in bicep_text, (
         "searchOpenAiUserOnFoundry must key its assignment name on "
         "`guid(aiServicesAccount.id, 'srch-${solutionSuffix}', "
         "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
-        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))` -- the full scope "
+        "cognitiveServicesOpenAiUserRoleId))` -- the full scope "
         "id plus the real Search service name, not a static salt (BUG-0054 "
         "Phase 2)."
     )
     assert reused_name in bicep_text, (
         "searchOpenAiUserOnReusedOpenAi must key its assignment name on "
-        "`guid(existingOpenAi.id, 'srch-${solutionSuffix}', "
+        "`guid(existingOpenAi!.id, 'srch-${solutionSuffix}', "
         "subscriptionResourceId('Microsoft.Authorization/roleDefinitions', "
-        f"'{_COGNITIVE_SERVICES_OPENAI_USER_ROLE_ID}'))` -- the full scope "
+        "cognitiveServicesOpenAiUserRoleId))` -- the full scope "
         "id plus the real Search service name, not a static salt (BUG-0054 "
         "Phase 2)."
     )

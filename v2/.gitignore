@@ -14,6 +14,11 @@ src/functions/local.settings.json
 # Local-only Bicep compile/lint output captured for triage (regenerated on demand via `az bicep build`).
 bicep-errors.txt
 
+# Pre-compiled ARM output. azd compiles infra/main.bicep directly (azure.yaml
+# provider: bicep, module: main), so this artifact is never consumed and drifts
+# from source. Regenerate on demand via `az bicep build --file infra/main.bicep`.
+infra/main.json
+
 # Local-only orphan staging dir from deprecated `func azure functionapp publish` workflow.
 # Canonical Function deploy path is `azd deploy function` against `src/functions/` + `docker/Dockerfile.functions`.
 build-functions/

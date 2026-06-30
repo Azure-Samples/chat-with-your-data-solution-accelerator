@@ -128,6 +128,10 @@ var useExistingStorage = !empty(existingStorageName)
 var useExistingEventGridTopic = !empty(existingEventGridTopicName)
 var useExistingOpenAi = !empty(existingOpenAiName)
 
+// Built-in role definition GUID: Cognitive Services OpenAI User —
+// grants inference on Cognitive Services / OpenAI account deployments.
+var cognitiveServicesOpenAiUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+
 var effectiveSearchLocation = empty(searchServiceLocation) ? location : searchServiceLocation
 
 // ===================== //
@@ -595,7 +599,7 @@ module aiServices 'br/public:avm/res/cognitive-services/account:0.13.0' = {
         principalId: userAssignedIdentity.outputs.principalId
         principalType: 'ServicePrincipal'
         // Cognitive Services OpenAI User
-        roleDefinitionIdOrName: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+        roleDefinitionIdOrName: cognitiveServicesOpenAiUserRoleId
       }
       {
         principalId: userAssignedIdentity.outputs.principalId
@@ -697,12 +701,12 @@ resource existingOpenAiReasoningDeployment 'Microsoft.CognitiveServices/accounts
 }
 
 resource existingOpenAiUamiRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (useExistingOpenAi) {
-  name: guid(existingOpenAi!.id, userAssignedIdentity.name, '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+  name: guid(existingOpenAi!.id, userAssignedIdentity.name, cognitiveServicesOpenAiUserRoleId)
   scope: existingOpenAi
   properties: {
     // Cognitive Services OpenAI User — grants inference on every
     // deployment on the account (chat, reasoning, embedding).
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAiUserRoleId)
     principalId: userAssignedIdentity.outputs.principalId
     principalType: 'ServicePrincipal'
   }
@@ -1036,24 +1040,24 @@ resource aiServicesAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' exi
 }
 
 resource searchOpenAiUserOnFoundry 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && !useExistingOpenAi) {
-  name: guid(aiServicesAccount.id, 'srch-${solutionSuffix}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
+  name: guid(aiServicesAccount.id, 'srch-${solutionSuffix}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAiUserRoleId))
   scope: aiServicesAccount
   properties: {
     // Cognitive Services OpenAI User — lets the Search MI call the KB
     // query-planning chat deployment on the Foundry account.
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAiUserRoleId)
     principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
 }
 
 resource searchOpenAiUserOnReusedOpenAi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (databaseType == 'cosmosdb' && !useExistingSearch && useExistingOpenAi) {
-  name: guid(existingOpenAi.id, 'srch-${solutionSuffix}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'))
+  name: guid(existingOpenAi!.id, 'srch-${solutionSuffix}', subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAiUserRoleId))
   scope: existingOpenAi
   properties: {
     // Cognitive Services OpenAI User — lets the Search MI call the KB
     // query-planning chat deployment on the reused v1 OpenAI account.
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cognitiveServicesOpenAiUserRoleId)
     principalId: aiSearch!.outputs.systemAssignedMIPrincipalId!
     principalType: 'ServicePrincipal'
   }
