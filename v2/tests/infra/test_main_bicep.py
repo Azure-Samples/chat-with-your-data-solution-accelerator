@@ -230,12 +230,22 @@ def test_blob_event_subscription_targets_blob_events_queue(bicep_text: str) -> N
     de-index), so the subscription must land on `blob-events` and let
     the trigger own the hand-off (ADR 0028).
     """
-    assert "queueName: blobEventsQueueName" in bicep_text, (
-        "Event Grid blob subscription destination must reference "
-        "blobEventsQueueName ('blob-events') in main.bicep, not a raw "
-        "'doc-processing' queue. Pointing it at doc-processing re-creates "
-        "the BUG-0054 double-ingest: the backend upload and the Event Grid "
-        "fan-out would both enqueue the same document."
+    blob_events_pins = bicep_text.count("queueName: blobEventsQueueName")
+    assert blob_events_pins == 2, (
+        "Both Event Grid blob subscriptions (the new-topic path and the "
+        "existing-topic reuse path) must pin their destination to "
+        f"blobEventsQueueName ('blob-events') in main.bicep; found "
+        f"{blob_events_pins} of 2. Repointing *either* subscription off "
+        "blob-events re-creates the BUG-0054 double-ingest: the backend "
+        "upload and the Event Grid fan-out would both enqueue the same "
+        "document."
+    )
+    assert "queueName: docProcessingQueueName" not in bicep_text, (
+        "An Event Grid blob subscription destination is pointed at "
+        "doc-processing in main.bicep. That is the exact BUG-0054 "
+        "regression: the subscription must land on blob-events and let "
+        "the blob_event trigger own the single doc-processing hand-off "
+        "(ADR 0028), never enqueue doc-processing directly."
     )
     for event_type in (
         "'Microsoft.Storage.BlobCreated'",

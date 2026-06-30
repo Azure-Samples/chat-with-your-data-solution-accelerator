@@ -26,7 +26,9 @@ Wire shape:
   :func:`functions.blob_event.handler.handle_blob_created` (enqueue a
   :class:`BatchPushQueueMessage` onto ``doc-processing``, consumed by the
   unchanged ``batch_push``); a delete resolves the registry-first search
-  provider (exactly as ``batch_push`` does) and calls
+  provider via the shared
+  :func:`functions.core.search_resolution.resolve_search_provider`
+  (exactly as ``batch_push`` does) and calls
   :func:`functions.blob_event.handler.handle_blob_deleted`
   (``delete_by_source``). Only the collaborator the matched action needs
   is opened.
@@ -44,14 +46,11 @@ exactly as ``batch_push`` does. The private :func:`_execute` helper is
 the single seam tests monkeypatch.
 """
 
-from typing import Any
-
 import azure.functions as func
 from azure.storage.queue.aio import QueueClient
 
 from backend.core.providers.credentials import registry as credentials_registry
-from backend.core.providers.search import registry as search_registry
-from backend.core.settings import AppSettings, IndexStore, get_settings
+from backend.core.settings import AppSettings, get_settings
 from functions.blob_event.event_parser import BlobEventType, parse_blob_event
 from functions.blob_event.handler import (
     BlobEventOutcome,
@@ -59,7 +58,7 @@ from functions.blob_event.handler import (
     handle_blob_deleted,
 )
 from functions.core.exception_mapping import log_queue_errors
-from functions.core.pgvector_pool import PgVectorPool
+from functions.core.search_resolution import resolve_search_provider
 from functions.core.storage_endpoints import resolve_storage_endpoints
 
 bp = func.Blueprint()
@@ -82,9 +81,10 @@ async def _execute(
 
     * **create** -- open the ``doc-processing`` queue client and call
       :func:`handle_blob_created` (enqueue an ingestion job).
-    * **delete** -- resolve the registry-first search provider (the
-      pgvector pool is acquired only on the pgvector path, mirroring
-      ``batch_push``) and call :func:`handle_blob_deleted`
+    * **delete** -- resolve the registry-first search provider via
+      :func:`functions.core.search_resolution.resolve_search_provider`
+      (the pgvector pool is acquired only on the pgvector path,
+      mirroring ``batch_push``) and call :func:`handle_blob_deleted`
       (``delete_by_source``).
 
     Extracted from :func:`blob_event` so route-level tests monkeypatch
@@ -109,36 +109,19 @@ async def _execute(
                 credential=credential,
             ) as queue_client:
                 return await handle_blob_created(event.ref, queue_client)
-        # BlobEventType.DELETED -- de-index via the registry-first search
-        # provider. PgVectorPool is constructed only on the pgvector path
-        # so AzureSearch stays free of any postgres SDK touch; the pool is
-        # closed in `finally` so the credential context fully owns the
-        # connection lifecycle (mirrors batch_push).
-        search_key = settings.database.index_store
-        pool_helper: PgVectorPool | None = None
+        # BlobEventType.DELETED -- de-index via the shared
+        # functions.core.search_resolution helper (the pgvector pool is
+        # acquired only on the pgvector path, mirroring batch_push). The
+        # helper runs ensure_schema; this branch owns teardown.
+        resolved = await resolve_search_provider(
+            settings=settings, credential=credential
+        )
         try:
-            # `Any` per Hard Rule #11 boundary carve-out: the registry
-            # callable accepts heterogeneous kwargs across provider
-            # concretes (AzureSearch takes settings+credential; PgVector
-            # additionally takes `pool`). Same pattern as batch_push.
-            search_kwargs: dict[str, Any] = {
-                "settings": settings,
-                "credential": credential,
-            }
-            if search_key == IndexStore.PGVECTOR:
-                pool_helper = PgVectorPool(settings=settings, credential=credential)
-                search_kwargs["pool"] = await pool_helper.acquire()
-            search_provider = search_registry.registry.get(search_key)(**search_kwargs)
-            try:
-                # ensure_schema is a no-op on AzureSearch and runs the
-                # pgvector DDL once-per-process; keeps delete provider-agnostic.
-                await search_provider.ensure_schema()
-                return await handle_blob_deleted(event.ref, search_provider)
-            finally:
-                await search_provider.aclose()
+            return await handle_blob_deleted(event.ref, resolved.provider)
         finally:
-            if pool_helper is not None:
-                await pool_helper.aclose()
+            await resolved.provider.aclose()
+            if resolved.pool_helper is not None:
+                await resolved.pool_helper.aclose()
 
 
 @bp.queue_trigger(

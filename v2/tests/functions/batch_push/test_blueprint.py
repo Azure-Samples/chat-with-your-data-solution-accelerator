@@ -14,17 +14,19 @@ function (one ``ValidationError`` + one ``AzureError`` + one generic
 
 import json
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 
 import azure.functions as func
 import pytest
 from azure.core.exceptions import AzureError
 from pydantic import ValidationError
 
+from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings, get_settings
-from backend.core.types import SearchDocument
+from backend.core.types import SearchDocument, SearchResult
 from functions.batch_push import blueprint as bp_module
 from functions.batch_push.blueprint import _parser_key_for_filename, batch_push
+from functions.core import search_resolution
 from functions.core.contracts import BatchPushQueueMessage
 from functions.function_app import app
 
@@ -305,7 +307,7 @@ def _patch_execute_collaborators(
             return None
 
     monkeypatch.setattr(bp_module.embedders_registry.registry, "get", lambda _key: _Embedder)
-    monkeypatch.setattr(bp_module.search_registry.registry, "get", lambda _key: lambda **_kw: search_stub)
+    monkeypatch.setattr(search_resolution.search_registry.registry, "get", lambda _key: lambda **_kw: search_stub)
     monkeypatch.setattr(bp_module, "ContainerClient", _StubContainerClient)
     monkeypatch.setattr(
         bp_module,
@@ -326,9 +328,17 @@ async def test_execute_calls_ensure_schema_before_handler_and_aclose_after(
 ) -> None:
     record: list[str] = []
 
-    class _StubSearch:
+    class _StubSearch(BaseSearch):
         def __init__(self, **_kw: object) -> None:
             pass
+
+        async def search(
+            self, query: str, **_kwargs: object
+        ) -> Sequence[SearchResult]:
+            return []
+
+        async def delete_by_source(self, source: str) -> int:
+            return 0
 
         async def ensure_schema(self) -> None:
             record.append("ensure_schema")
@@ -356,9 +366,17 @@ async def test_execute_propagates_ensure_schema_failure_and_still_closes_provide
 ) -> None:
     record: list[str] = []
 
-    class _FailingSearch:
+    class _FailingSearch(BaseSearch):
         def __init__(self, **_kw: object) -> None:
             pass
+
+        async def search(
+            self, query: str, **_kwargs: object
+        ) -> Sequence[SearchResult]:
+            return []
+
+        async def delete_by_source(self, source: str) -> int:
+            return 0
 
         async def ensure_schema(self) -> None:
             record.append("ensure_schema")

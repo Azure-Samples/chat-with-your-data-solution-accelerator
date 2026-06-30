@@ -31,14 +31,15 @@ Registry-first collaborator wiring (Hard Rule #4):
 * Embedder via ``embedders_registry`` -- post-Phase-6 default key
   ``"azure_openai"`` (single concrete embedder today; promoted to
   settings when an alternate concrete lands).
-* Search provider via ``search_registry`` keyed on
-  ``settings.database.index_store`` -- the read side and the write
-  side now share the same dispatch, so an ``AZURE_INDEX_STORE=pgvector``
-  deployment can ingest URLs into pgvector instead of crashing
-  against an unreachable AzureSearch endpoint. On the pgvector
-  path the blueprint stands up a :class:`functions.core.pgvector_pool.PgVectorPool`
-  inside the credential context so the pool's AAD password provider
-  shares the same lifetime as the Search/Embedder credential.
+* Search provider via
+  :func:`functions.core.search_resolution.resolve_search_provider`,
+  which keys ``search_registry`` on ``settings.database.index_store``
+  so an ``AZURE_INDEX_STORE=pgvector`` deployment can ingest URLs into
+  pgvector instead of crashing against an unreachable AzureSearch
+  endpoint. On the pgvector path the helper stands up a
+  :class:`functions.core.pgvector_pool.PgVectorPool` so the pool's AAD
+  password provider shares the same lifetime as the Search/Embedder
+  credential; ``_execute`` owns teardown of the provider and pool.
 
 The private :func:`_execute` helper is the single seam route-level
 tests monkeypatch so they do not need a real credential, a real
@@ -46,7 +47,6 @@ Search service, or live HTTPS traffic.
 """
 
 from http import HTTPStatus
-from typing import Any
 from urllib.parse import urlparse
 
 import azure.functions as func
@@ -54,14 +54,13 @@ import azure.functions as func
 from backend.core.paths import parser_key_for_path
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.embedders import registry as embedders_registry
-from backend.core.providers.search import registry as search_registry
-from backend.core.settings import AppSettings, IndexStore, get_settings
+from backend.core.settings import AppSettings, get_settings
 from backend.core.types import SearchDocument
 from functions.add_url.handler import AddUrlRequest, add_url_handler
 from functions.core.exception_mapping import map_function_exceptions
 from functions.core.http import json_response
 from functions.core.parsers import registry as ingestion_parsers_registry
-from functions.core.pgvector_pool import PgVectorPool
+from functions.core.search_resolution import resolve_search_provider
 
 bp = func.Blueprint()
 
@@ -109,43 +108,29 @@ async def _execute(
     parser_cls = ingestion_parsers_registry.registry.get(
         _parser_key_for_url(request.url)
     )
-    search_key = settings.database.index_store
     async with await cred_provider.get_credential() as credential:
         parser = parser_cls(settings=settings, credential=credential)
         embedder_cls = embedders_registry.registry.get("azure_openai")
         embedder = embedder_cls(settings=settings, credential=credential)
-        pool_helper: PgVectorPool | None = None
         try:
-            search_kwargs: dict[str, Any] = {
-                "settings": settings,
-                "credential": credential,
-            }
-            if search_key == IndexStore.PGVECTOR:
-                pool_helper = PgVectorPool(
-                    settings=settings, credential=credential
-                )
-                search_kwargs["pool"] = await pool_helper.acquire()
-            search_provider = search_registry.registry.get(search_key)(
-                **search_kwargs
+            # Registry-first search provider (+ pgvector pool on the
+            # pgvector path); the helper runs ensure_schema and hands
+            # back teardown ownership for the provider and pool.
+            resolved = await resolve_search_provider(
+                settings=settings, credential=credential
             )
             try:
-                # ensure_schema is a no-op on AzureSearch (index owned
-                # by Bicep) and runs the pgvector DDL once-per-process
-                # under an asyncio.Lock + readiness flag. Unconditional
-                # call keeps the wiring provider-agnostic; raising here
-                # still triggers `finally: aclose` below.
-                await search_provider.ensure_schema()
                 return await add_url_handler(
                     request,
                     parser,
                     embedder,
-                    search_provider,
+                    resolved.provider,
                 )
             finally:
-                await search_provider.aclose()
+                await resolved.provider.aclose()
+                if resolved.pool_helper is not None:
+                    await resolved.pool_helper.aclose()
         finally:
-            if pool_helper is not None:
-                await pool_helper.aclose()
             await embedder.aclose()
 
 

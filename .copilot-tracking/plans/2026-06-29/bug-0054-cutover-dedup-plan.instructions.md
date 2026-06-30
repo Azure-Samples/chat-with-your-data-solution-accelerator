@@ -77,38 +77,42 @@ The earlier `bug-0054-fix` plan (.copilot-tracking/plans/2026-06-29/bug-0054-fix
 * [x] Step 2.3: Validate phase changes
   * Run `uv run pytest v2/tests/backend/core/test_paths.py v2/tests/functions/batch_push/test_blueprint.py v2/tests/functions/add_url/test_blueprint.py v2/tests/backend/test_services_ingestion.py`
 
-### [ ] Implementation Phase 3: Extract `resolve_search_provider` (structural — new module)
+### [x] Implementation Phase 3: Extract `resolve_search_provider` (structural — new module)
 
 <!-- parallelizable: false -->
 
-* [ ] Step 3.1: Create `v2/src/functions/core/search_resolution.py` (`ResolvedSearch` + `resolve_search_provider`) + its unit test
+* [x] Step 3.1: Create `v2/src/functions/core/search_resolution.py` (`ResolvedSearch` + `resolve_search_provider`) + its unit test
   * Details: .copilot-tracking/details/2026-06-29/bug-0054-cutover-dedup-details.md (Lines 113-180)
-* [ ] Step 3.2: Repoint the three function-blueprint `_execute` bodies to the shared helper
+* [x] Step 3.2: Repoint the three function-blueprint `_execute` bodies to the shared helper
   * Details: .copilot-tracking/details/2026-06-29/bug-0054-cutover-dedup-details.md (Lines 182-218)
-* [ ] Step 3.3: Validate phase changes
+* [x] Step 3.3: Validate phase changes
   * Run `uv run pytest v2/tests/functions/core/test_search_resolution.py v2/tests/functions/batch_push/test_blueprint.py v2/tests/functions/add_url/test_blueprint.py v2/tests/functions/blob_event/test_blueprint.py`
 
 ### [ ] Implementation Phase 4: BUG-0054 cloud cutover + docs reconcile (ops, gated on BUG-0058)
 
 <!-- parallelizable: false -->
 
-* [ ] Step 4.1: Reconcile the stale BUG-0054 detail block in `v2/docs/bugs.md`
+* [x] Step 4.1: Reconcile the stale BUG-0054 detail block in `v2/docs/bugs.md`
   * Details: .copilot-tracking/details/2026-06-29/bug-0054-cutover-dedup-details.md (Lines 229-248)
-* [ ] Step 4.2: Flip the trigger flag and re-provision (operator-driven)
+  * Done: detail block (L973-991) + summary row (L113) both reconciled to the 2026-06-24 deploy; BUG-0054 stays `open`.
+* [ ] Step 4.2: Flip the trigger flag and re-provision (operator-driven) — BLOCKED (gated on an authenticated `azd` session + a clean BUG-0058 deploy state; not agent-doable)
   * Details: .copilot-tracking/details/2026-06-29/bug-0054-cutover-dedup-details.md (Lines 250-274)
-* [ ] Step 4.3: Cloud end-to-end re-validation (the BUG-0058 gate) + poison drain + close
+* [ ] Step 4.3: Cloud end-to-end re-validation (the BUG-0058 gate) + poison drain + close — BLOCKED (operator-driven; gated on Step 4.2)
   * Details: .copilot-tracking/details/2026-06-29/bug-0054-cutover-dedup-details.md (Lines 276-298)
 
-### [ ] Implementation Phase 5: Validation
+### [x] Implementation Phase 5: Validation
 
 <!-- parallelizable: false -->
 
-* [ ] Step 5.1: Run full backend + functions + infra + shared test suites
+* [x] Step 5.1: Run full backend + functions + infra + shared test suites
   * Run `uv run pytest v2/tests/backend v2/tests/functions v2/tests/infra v2/tests/shared`
-* [ ] Step 5.2: Run the type gate on touched trees
+  * Result: 2514 passed, 1 skipped (pre-existing, unrelated).
+* [x] Step 5.2: Run the type gate on touched trees
   * Run `uv run pyright` for `v2/src/backend/**` + `v2/src/functions/core/**` (must stay `0 errors / 0 warnings / 0 information`)
-* [ ] Step 5.3: Fix minor validation issues; report blocking issues
+  * Result: 0 errors / 0 warnings / 0 information.
+* [x] Step 5.3: Fix minor validation issues; report blocking issues
   * Details: .copilot-tracking/details/2026-06-29/bug-0054-cutover-dedup-details.md (Lines 312-322)
+  * Result: no fixes needed; both gates green on first run.
 
 ## Planning Log
 
