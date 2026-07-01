@@ -86,8 +86,8 @@ async def test_process_rejects_empty_operation() -> None:
 async def test_process_passes_deployment_through() -> None:
     llm = _make_llm()
     helper = TextProcessingHelper(llm=llm)
-    await helper.process("hi", "Summarize", deployment="gpt-4o-mini")
-    assert llm.chat.await_args.kwargs["deployment"] == "gpt-4o-mini"
+    await helper.process("hi", "Summarize", deployment="gpt-5.1-mini")
+    assert llm.chat.await_args.kwargs["deployment"] == "gpt-5.1-mini"
 
 
 @pytest.mark.asyncio

@@ -48,8 +48,7 @@ COSMOS_ENV: dict[str, str] = {
     "AZURE_AI_AGENT_API_VERSION": "2025-05-01",
     # openai
     "AZURE_OPENAI_API_VERSION": "2024-12-01-preview",
-    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-4.1",
-    "AZURE_OPENAI_REASONING_DEPLOYMENT": "o4-mini",
+    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-5.1",
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-small",
     # database -- cosmosdb mode
     "AZURE_DB_TYPE": "cosmosdb",
@@ -107,7 +106,7 @@ def test_loads_from_env_cosmosdb_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.location == "eastus2"
     assert settings.identity.uami_client_id.endswith("000002")
     assert settings.foundry.project_endpoint.endswith("/projects/proj")
-    assert settings.openai.gpt_deployment == "gpt-4.1"
+    assert settings.openai.gpt_deployment == "gpt-5.1"
     assert settings.database.db_type == "cosmosdb"
     assert settings.database.index_store == "AzureSearch"
     assert settings.database.cosmos_endpoint.startswith("https://cosmos-")

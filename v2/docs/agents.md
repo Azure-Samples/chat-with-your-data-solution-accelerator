@@ -106,7 +106,7 @@ Defined in [v2/src/backend/core/agents/definitions.py](../src/backend/core/agent
 | Field | Value |
 |---|---|
 | `name` (registry + DB key) | `cwyd` |
-| `deployment_attr` | `gpt_deployment` → resolves to `AZURE_OPENAI_GPT_DEPLOYMENT` |
+| model | `AZURE_OPENAI_GPT_DEPLOYMENT` (the chat deployment) |
 | `tools` | `("search",)` — the agent_framework orchestrator binds this to the Foundry IQ knowledge-base search tool |
 | Role | Primary chat assistant. Answers user questions by calling the search tool and synthesising grounded responses with citations. |
 | Caller | [`backend/routers/conversation.py`](../src/backend/routers/conversation.py) on the `agent_framework` orchestrator branch only. |
@@ -116,7 +116,7 @@ Defined in [v2/src/backend/core/agents/definitions.py](../src/backend/core/agent
 | Field | Value |
 |---|---|
 | `name` (registry + DB key) | `rai` |
-| `deployment_attr` | `gpt_deployment` → resolves to `AZURE_OPENAI_GPT_DEPLOYMENT` (same model as CWYD; v2 collapses MACAE's per-agent `AZURE_OPENAI_RAI_DEPLOYMENT_NAME` env var into the `deployment_attr` indirection) |
+| model | `AZURE_OPENAI_GPT_DEPLOYMENT` (the shared chat deployment; v2 runs the RAI classifier on the chat model rather than the reference architecture's dedicated `AZURE_OPENAI_RAI_DEPLOYMENT_NAME`) |
 | `tools` | `()` — pure classifier, no tool calls |
 | Role | TRUE/FALSE safety classifier. Returns exactly one token; TRUE = safe (allow), FALSE = unsafe (block). |
 | Caller | [`backend/core/tools/content_safety.py::rai_check`](../src/backend/core/tools/content_safety.py) → wired into the chat pipeline as a pre-orchestrator gate by [`backend/core/pipelines/chat.py`](../src/backend/core/pipelines/chat.py) (CU-011b). |
@@ -201,7 +201,6 @@ Edit [v2/src/backend/core/agents/definitions.py](../src/backend/core/agents/defi
 SUMMARIZER_AGENT = AgentDefinition(
     name="summarizer",
     description="Summarises long documents into 3-5 bullet points.",
-    deployment_attr="reasoning_deployment",  # uses AZURE_OPENAI_REASONING_DEPLOYMENT
     instructions=(
         "You are a summarization assistant. Produce 3-5 bullet points, "
         "each ≤ 20 words. Preserve numerical facts verbatim."
@@ -239,7 +238,7 @@ No infra change required. No `.env.sample` change required. No Bicep change requ
 
 ## 6. Acceptance gates (CU-012b)
 
-* This file lists `CWYD_AGENT` + `RAI_AGENT` with `name` / `deployment_attr` / `tools` / role / caller — and only those two — matching `BUILTIN_AGENTS`.
+* This file lists `CWYD_AGENT` + `RAI_AGENT` with `name` / model / `tools` / role / caller — and only those two — matching `BUILTIN_AGENTS`.
 * Sequence diagram lines up exactly with `BaseAgentsProvider.get_or_create_agent` step ordering (cache → DB → 404-fallthrough → lock → create → upsert → cache → return).
 * Force-recreate runbook covers both `cosmosdb` and `postgresql` modes.
 * "Adding a third built-in agent" section requires zero infra / Bicep / env changes (one-file change in `definitions.py` + caller wiring + test).

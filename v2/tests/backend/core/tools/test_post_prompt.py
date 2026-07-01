@@ -150,8 +150,8 @@ async def test_validate_honors_custom_validation_prompt() -> None:
 async def test_validate_passes_deployment_through() -> None:
     llm = _make_llm("true")
     validator = PostPromptValidator(llm=llm)
-    await validator.validate("Q?", "A.", [_src(1, "x")], deployment="gpt-4o")
-    assert llm.chat.await_args.kwargs["deployment"] == "gpt-4o"
+    await validator.validate("Q?", "A.", [_src(1, "x")], deployment="gpt-5.1")
+    assert llm.chat.await_args.kwargs["deployment"] == "gpt-5.1"
 
 
 def test_default_constants_are_strings() -> None:

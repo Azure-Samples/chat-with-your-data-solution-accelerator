@@ -79,8 +79,8 @@ async def test_answer_passes_deployment_to_llm() -> None:
     llm = _make_llm()
     search = _make_search([_src(1, "x")])
     helper = QuestionAnsweringHelper(llm=llm, search=search)
-    await helper.answer("q?", deployment="gpt-4o")
-    assert llm.chat.await_args.kwargs["deployment"] == "gpt-4o"
+    await helper.answer("q?", deployment="gpt-5.1")
+    assert llm.chat.await_args.kwargs["deployment"] == "gpt-5.1"
 
 
 @pytest.mark.asyncio

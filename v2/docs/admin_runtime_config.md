@@ -42,7 +42,6 @@ Status codes: `200` on success · `401` missing/malformed Easy Auth (production 
 | `foundry_project_endpoint_host` | `str` | hostname of `settings.foundry.project_endpoint`, path stripped |
 | `gpt_deployment` | `str` | `settings.llm.gpt_deployment` |
 | `embedding_deployment` | `str` | `settings.embedder.deployment_name` |
-| `reasoning_deployment` | `str` | `settings.llm.reasoning_deployment` (may be empty) |
 | `search_enabled` | `bool` | true iff `settings.search.service_endpoint` is set |
 | `app_insights_enabled` | `bool` | true iff `settings.observability.application_insights_connection_string` is set |
 | `cors_origins` | `list[str]` | `settings.cors.allow_origins` |

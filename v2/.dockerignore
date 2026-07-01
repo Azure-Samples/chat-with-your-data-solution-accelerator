@@ -26,7 +26,6 @@ htmlcov/
 
 # azd / Azure artifacts
 .azure/
-build-functions/
 
 # Docs / infra / scripts (not needed in app images)
 docs/

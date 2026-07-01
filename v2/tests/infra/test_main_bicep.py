@@ -102,22 +102,33 @@ def _slice_module(text: str, start_marker: str, end_marker: str) -> str:
 
 @pytest.fixture(scope="module")
 def backend_aca_slice(bicep_text: str) -> str:
-    """Bicep source between `module backendContainerApp` and the next module."""
+    """Bicep source between `module backendContainerApp` and the frontend Container App module."""
     return _slice_module(
         bicep_text,
         "module backendContainerApp ",
-        "module appServicePlan ",
+        # The frontend App Service + appServicePlan were replaced by the
+        # frontend Container App (Phase 1), which is the next module after
+        # the backend Container App.
+        "module frontendContainerApp ",
     )
 
 
 @pytest.fixture(scope="module")
 def function_app_slice(bicep_text: str) -> str:
-    """Bicep source between `module functionApp` and the trailing role-assignment block."""
+    """Bicep source spanning the raw `functionContainerApp` resource.
+
+    The Flex Consumption `functionApp`/`functionPlan` AVM modules were
+    replaced (Phase 2) by a raw
+    `Microsoft.App/containerApps@... kind: 'functionapp'` resource
+    (`functionContainerApp`). The slice runs from that resource to the
+    next resource declaration (`storageAccountExisting`), so it covers
+    the function's `env:` + `scale:` blocks without spilling into sibling
+    resources.
+    """
     return _slice_module(
         bicep_text,
-        "module functionApp ",
-        # Sentinel comment immediately after the module's closing brace.
-        "// Function App needs Storage Blob",
+        "resource functionContainerApp ",
+        "resource storageAccountExisting ",
     )
 
 
@@ -199,21 +210,65 @@ def test_function_app_settings_bind_required_phase4_settings(
     )
 
 
-def test_function_app_keeps_blob_event_always_ready(bicep_text: str) -> None:
-    """The Flex `alwaysReady` set must keep an always-ready instance for
-    `function:blob_event`.
+def test_function_container_app_stays_warm_for_queue_consumers(
+    function_app_slice: str,
+) -> None:
+    """The function Container App must keep `minReplicas: 1` (warm).
 
-    `blob_event` is a queue trigger on the `blob-events` queue; without an
-    always-ready instance it carries the same Flex scale-from-zero loss that
-    BUG-0053 fixed for `function:batch_push`. The first BlobCreated event
-    after the function app idles to zero would otherwise be dropped before
-    a host instance spins up to drain the queue.
+    The Flex Consumption plan (with its `alwaysReady` set) was replaced
+    (Phase 2) by a raw `functionContainerApp` (`kind: 'functionapp'`) on
+    the shared Container Apps Environment. The queue consumers --
+    `batch_push` on `doc-processing` and `blob_event` on `blob-events` --
+    carry the same scale-from-zero loss BUG-0053 fixed: the first
+    BlobCreated event after the app idles to zero would be dropped before
+    a host instance spins up to drain the queue. `minReplicas: 1` on the
+    container app `scale` block is the Container Apps equivalent of the
+    former Flex always-ready instance, so it must stay pinned to 1 (never
+    `enableScalability ? 1 : 0`).
     """
-    assert "'function:blob_event'" in bicep_text, (
-        "function:blob_event missing from the Flex alwaysReady set in "
-        "main.bicep. Add a { name: 'function:blob_event', instanceCount: 1 } "
-        "entry next to function:batch_push so the blob-events queue trigger "
-        "stays warm."
+    assert "minReplicas: 1" in function_app_slice, (
+        "minReplicas: 1 missing from the functionContainerApp `scale` block "
+        "in main.bicep. The function hosts the batch_push + blob_event queue "
+        "consumers; without a warm instance the first queue message after "
+        "idle-to-zero is dropped (BUG-0053). Keep `minReplicas: 1` (not "
+        "`enableScalability ? 1 : 0`) so the queue triggers stay warm."
+    )
+
+
+def test_bicep_uses_container_apps_not_flex_or_appservice(bicep_text: str) -> None:
+    """The frontend App Service + Flex Function App were replaced by Container Apps.
+
+    Phase 1 replaced the frontend App Service (+ `appServicePlan`) with the
+    `frontendContainerApp` module; Phase 2 replaced the Flex Consumption
+    `functionApp`/`functionPlan` with the raw `functionContainerApp`
+    (`kind: 'functionapp'`). Re-adding either removed module would revert to
+    a hosting model that cannot run the ACR-built container images.
+    """
+    # Removed hosting resources must stay gone.
+    assert "module appServicePlan " not in bicep_text, (
+        "module appServicePlan re-introduced in main.bicep. The frontend "
+        "App Service was replaced by the frontendContainerApp Container App "
+        "(Phase 1); an App Service plan cannot host the ACR-built frontend "
+        "image."
+    )
+    assert "module functionApp " not in bicep_text, (
+        "module functionApp re-introduced in main.bicep. The Flex Consumption "
+        "Function App was replaced by the raw functionContainerApp "
+        "(kind: 'functionapp') on the shared Container Apps Environment "
+        "(Phase 2)."
+    )
+    # New container-hosted resources must exist.
+    assert "module frontendContainerApp " in bicep_text, (
+        "frontendContainerApp module missing from main.bicep. The frontend "
+        "must run as an ACR-built Container App on the shared environment."
+    )
+    assert "resource functionContainerApp " in bicep_text, (
+        "functionContainerApp resource missing from main.bicep. The function "
+        "must run as an ACR-built Functions-on-ACA resource."
+    )
+    assert "kind: 'functionapp'" in bicep_text, (
+        "functionContainerApp must declare `kind: 'functionapp'` so the "
+        "Container Apps runtime hosts it as an Azure Functions app."
     )
 
 

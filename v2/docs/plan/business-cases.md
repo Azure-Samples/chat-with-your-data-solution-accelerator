@@ -192,7 +192,7 @@ v1 maintained four orchestrators with significant overlap and maintenance burden
 | Feature | v1 Status | v2 Status | Phase | Notes |
 |---|---|---|---|---|
 | **Speech-to-Text** | Azure Speech Services; 4 default languages (en-US, fr-FR, de-DE, it-IT); configurable | **Kept** | M5 | Same SDK, same config pattern |
-| **Advanced Image Processing** | GPT-4 Vision + Computer Vision; CosmosDB + Custom flow only | **Kept** | M6+ | Same constraints; may slip to post-MVP |
+| **Advanced Image Processing** | Vision LLM + Computer Vision; CosmosDB + Custom flow only | **Kept** | M6+ | Same constraints; may slip to post-MVP |
 | **Chat History** | CosmosDB/PG storage; toggle via admin; audit trail | **Kept** — both DBs, async | M4 | Feature parity, now async |
 | **Semantic Search** | Azure AI Search semantic ranking | **Kept** | M3 | Same config toggle |
 | **Teams Extension** | Azure Bot Service + Teams Toolkit | **Deferred** | — | Focus v2 on core; extensibility built in for later |
@@ -211,7 +211,7 @@ v1 maintained four orchestrators with significant overlap and maintenance burden
 | | v1 | v2 |
 |---|---|---|
 | **Requires** | CosmosDB + Custom flow + integrated vectorization OFF | Same constraints |
-| **Pipeline** | GPT-4 Vision captions → Computer Vision embeddings → hybrid search | Same |
+| **Pipeline** | Vision LLM captions → Computer Vision embeddings → hybrid search | Same |
 | **Config** | `USE_ADVANCED_IMAGE_PROCESSING=true`, `ADVANCED_IMAGE_PROCESSING_MAX_IMAGES=1` | Same env vars → Pydantic Settings |
 | **Supported types** | JPEG, JPG, PNG | Same |
 
@@ -270,7 +270,7 @@ All v1 file types carry to v2 unchanged:
 | MD | Markdown parsing | **Kept** |
 | HTML | HTML parsing | **Kept** |
 | JSON | Structured data extraction | **Kept** |
-| JPEG / JPG / PNG | Advanced image processing (GPT-4 Vision + Computer Vision) | **Kept** |
+| JPEG / JPG / PNG | Advanced image processing (Vision LLM + Computer Vision) | **Kept** |
 
 ---
 

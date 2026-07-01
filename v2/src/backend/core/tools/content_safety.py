@@ -19,9 +19,9 @@ Two parallel safety seams live in this module, by design:
    with calibrated severity, the RAI agent catches jailbreaks /
    prompt-injection / policy-bypass attempts that the categorical
    classifier misses (reference-architecture pattern, adapted; v2
-   collapses the reference architecture's per-RAI env var
-   `AZURE_OPENAI_RAI_DEPLOYMENT_NAME` into the
-   `AgentDefinition.deployment_attr` indirection).
+   runs the RAI classifier on the shared chat deployment
+   (`AZURE_OPENAI_GPT_DEPLOYMENT`) rather than the reference
+   architecture's dedicated `AZURE_OPENAI_RAI_DEPLOYMENT_NAME`).
 
 NOT a registry domain. Tools are imported directly:
 
@@ -155,9 +155,8 @@ async def rai_check(
 
     Reference-architecture attribution: the TRUE/FALSE classifier
     prompt shape and the dedicated-agent pattern are adapted from the
-    reference architecture. The classifier's model deployment is
-    selected via `AgentDefinition.deployment_attr` instead of the
-    reference architecture's per-RAI env var.
+    reference architecture. The classifier runs on the shared chat
+    deployment instead of the reference architecture's per-RAI env var.
     """
     if not text or not text.strip():
         return True

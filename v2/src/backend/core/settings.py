@@ -171,7 +171,6 @@ class OpenAISettings(BaseSettings):
 
     api_version: str = ""
     gpt_deployment: str = ""
-    reasoning_deployment: str = ""
     embedding_deployment: str = ""
     embedding_dimensions: int = 1536
     temperature: float = 0.0

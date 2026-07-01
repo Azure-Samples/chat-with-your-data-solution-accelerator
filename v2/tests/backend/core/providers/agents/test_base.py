@@ -181,17 +181,15 @@ def _definition(name: str = "cwyd") -> AgentDefinition:
     return AgentDefinition(
         name=name,
         description="d",
-        deployment_attr="gpt_deployment",
         instructions="i",
         tools=(),
     )
 
 
-def _make_settings(deployment: str = "gpt-4o-mini") -> MagicMock:
+def _make_settings(deployment: str = "gpt-5.1-mini") -> MagicMock:
     settings = MagicMock(spec=AppSettings)
     settings.openai = MagicMock()
     settings.openai.gpt_deployment = deployment
-    settings.openai.reasoning_deployment = "o4-mini"
     return settings
 
 
@@ -293,7 +291,7 @@ async def test_cold_start_creates_persists_and_caches() -> None:
     `upsert_agent_id`, and cache for next time."""
     client = _make_client()
     provider = _StubAgentsProvider(
-        _make_settings(deployment="gpt-4o-mini"),
+        _make_settings(deployment="gpt-5.1-mini"),
         MagicMock(),
         client=client,
     )
@@ -305,37 +303,13 @@ async def test_cold_start_creates_persists_and_caches() -> None:
     assert create_kwargs["agent_name"] == "cwyd"
     assert create_kwargs["description"] == "d"
     prompt_definition = create_kwargs["definition"]
-    assert prompt_definition.model == "gpt-4o-mini"
+    assert prompt_definition.model == "gpt-5.1-mini"
     assert prompt_definition.instructions == "i"
     # Both built-in agents declare no definition tools, so the strict
     # key->Tool converter yields None and the SDK field is omitted.
     assert prompt_definition.tools is None
     assert db.upsert_calls == [("cwyd", "cwyd")]
     assert provider._agent_cache["cwyd"] == "cwyd"
-
-
-@pytest.mark.asyncio
-async def test_cold_start_uses_reasoning_deployment_when_definition_says_so() -> None:
-    """The `deployment_attr` indirection lets RAI (or any other
-    cheap-model agent) point at `reasoning_deployment` instead of
-    `gpt_deployment` without a per-agent env var."""
-    client = _make_client()
-    provider = _StubAgentsProvider(
-        _make_settings(deployment="gpt-4o-mini"),
-        MagicMock(),
-        client=client,
-    )
-    rai_def = AgentDefinition(
-        name="rai",
-        description="d",
-        deployment_attr="reasoning_deployment",
-        instructions="i",
-    )
-    await provider.get_or_create_agent(rai_def, _StubDB())
-    assert (
-        client.agents.create_version.await_args.kwargs["definition"].model
-        == "o4-mini"
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -558,7 +532,7 @@ async def test_create_agent_azure_error_logs_and_reraises(
         side_effect=ClientAuthenticationError("bad token")
     )
     provider = _StubAgentsProvider(
-        _make_settings(deployment="gpt-4o-mini"),
+        _make_settings(deployment="gpt-5.1-mini"),
         MagicMock(),
         client=client,
     )
@@ -571,7 +545,7 @@ async def test_create_agent_azure_error_logs_and_reraises(
     record = _find_record(caplog, "create_version")
     assert record.provider == "agents"  # type: ignore[attr-defined]
     assert record.agent_name == "cwyd"  # type: ignore[attr-defined]
-    assert record.deployment == "gpt-4o-mini"  # type: ignore[attr-defined]
+    assert record.deployment == "gpt-5.1-mini"  # type: ignore[attr-defined]
     # No DB write, no cache write -- partial state is poison.
     assert db.upsert_calls == []
     assert "cwyd" not in provider._agent_cache
@@ -692,7 +666,6 @@ def test_resolve_definition_clones_cwyd_with_overridden_instructions() -> None:
     # Every other field carries over.
     assert resolved.name == definition.name
     assert resolved.description == definition.description
-    assert resolved.deployment_attr == definition.deployment_attr
     assert resolved.tools == definition.tools
     # Original is unmutated (frozen anyway, but assert the invariant).
     assert definition.instructions == "i"

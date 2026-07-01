@@ -114,7 +114,6 @@ class AdminStatus(BaseModel):
     foundry_project_endpoint_host: str
     gpt_deployment: str
     embedding_deployment: str
-    reasoning_deployment: str
     search_enabled: bool
     app_insights_enabled: bool
     cors_origins: list[str] = Field(default_factory=list[str])

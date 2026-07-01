@@ -78,9 +78,8 @@ def _settings(
     index_store: str = "AzureSearch",
     project_endpoint: str = "https://my-foundry.cognitiveservices.azure.com/projects/proj1",
     services_endpoint: str = "https://my-foundry.cognitiveservices.azure.com",
-    gpt_deployment: str = "gpt-4o",
+    gpt_deployment: str = "gpt-5.1",
     embedding_deployment: str = "text-embedding-3-large",
-    reasoning_deployment: str = "",
     search_endpoint: str = "https://srch.search.windows.net",
     app_insights_conn: str = "",
     cors_origins: list[str] | None = None,
@@ -115,7 +114,6 @@ def _settings(
         openai=NS(
             gpt_deployment=gpt_deployment,
             embedding_deployment=embedding_deployment,
-            reasoning_deployment=reasoning_deployment,
             api_version=api_version,
             temperature=openai_temperature,
             max_tokens=openai_max_tokens,
@@ -242,7 +240,6 @@ _EXPECTED_STATUS_KEYS = {
     "foundry_project_endpoint_host",
     "gpt_deployment",
     "embedding_deployment",
-    "reasoning_deployment",
     "search_enabled",
     "app_insights_enabled",
     "cors_origins",
@@ -386,18 +383,16 @@ async def test_status_uses_env_orchestrator_when_no_override(
 async def test_status_returns_cors_and_deployments(admin_app_factory) -> None:
     app = admin_app_factory(
         _settings(
-            gpt_deployment="gpt-4o",
+            gpt_deployment="gpt-5.1",
             embedding_deployment="text-embedding-3-large",
-            reasoning_deployment="o3-mini",
             cors_origins=["http://localhost:3000", "https://prod.example.com"],
         )
     )
     async with _client(app) as ac:
         resp = await ac.get("/api/admin/status")
     body = resp.json()
-    assert body["gpt_deployment"] == "gpt-4o"
+    assert body["gpt_deployment"] == "gpt-5.1"
     assert body["embedding_deployment"] == "text-embedding-3-large"
-    assert body["reasoning_deployment"] == "o3-mini"
     assert body["cors_origins"] == [
         "http://localhost:3000",
         "https://prod.example.com",

@@ -47,7 +47,6 @@ Model deployments on the Foundry account:
 |---|---|
 | `AZURE_OPENAI_GPT_DEPLOYMENT` | `gpt-5.1` |
 | `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | `text-embedding-3-large` |
-| `AZURE_OPENAI_REASONING_DEPLOYMENT` | `o4-mini` |
 | `AZURE_OPENAI_API_VERSION` | `2025-01-01-preview` |
 
 ---

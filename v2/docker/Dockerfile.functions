@@ -1,25 +1,57 @@
-# Azure Functions dev image — Python 3.11 + uv
+# Azure Functions image — Python 3.11 (Functions-on-ACA deploy + docker-compose dev).
 # Pillar: Stable Core
-# Phase: 1
+# Phase: 6 (Functions blueprints / modular RAG indexing pipeline)
+#
+# Reproduces the deploy layout the Functions Python host requires (the
+# host's sys.path is the deploy root /home/site/wwwroot):
+#   /home/site/wwwroot/function_app.py    host entry point
+#   /home/site/wwwroot/host.json          runtime configuration
+#   /home/site/wwwroot/functions/<sub>/   blueprint subpackages, so
+#                                         `from functions.<sub>...` resolves
+#   /home/site/wwwroot/backend/           shared tree, so `from backend.core...` resolves
+#
+# The blueprints are nested under a functions/ package (NOT flattened to the
+# deploy root) because they import each other as `from functions.<sub>.<mod>`.
+#
+# Dependencies are the single source v2/pyproject.toml [project.dependencies];
+# pip resolves transitives into the system Python the Functions worker imports
+# from. The build context is v2/ (azure.yaml sets context: ../..), so the
+# repo-root readme referenced by pyproject is outside the context — deps are
+# read from [project.dependencies] with stdlib tomllib, which never touches
+# the readme.
+#
+# docker-compose.dev.yml builds this same image and then volume-mounts
+# src/functions + src/backend over the deploy root, so the dev container reuses
+# the installed dependencies while serving live source.
 FROM mcr.microsoft.com/azure-functions/python:4-python3.11
 
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
     AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
-    PYTHONPATH="/home/site/wwwroot" \
-    UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT=/opt/venv
-
-RUN pip install --no-cache-dir uv
+    PYTHONPATH=/home/site/wwwroot
 
 WORKDIR /home/site/wwwroot
 
-COPY src/functions/pyproject.toml src/functions/uv.lock* ./
-RUN uv sync --frozen --no-install-project || uv sync --no-install-project || true
+# Runtime dependencies from the single-source dependency list. tomllib
+# (stdlib, Python 3.11) reads only [project.dependencies]; pip installs them
+# into the system Python the Functions worker uses.
+COPY pyproject.toml ./pyproject.toml
+RUN python -c "import tomllib, pathlib; deps = tomllib.loads(pathlib.Path('pyproject.toml').read_text('utf-8'))['project']['dependencies']; pathlib.Path('requirements.txt').write_text('\n'.join(deps) + '\n', 'utf-8')" \
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -f pyproject.toml requirements.txt
 
-COPY src/functions /home/site/wwwroot
-# REFACTOR-B (2026-05-06): functions imports backend.core, so the backend
-# tree is copied next to functions at /home/site/wwwroot/backend. The
-# functions/core/ namespace package only EXTENDS backend/core (no duplicates).
-COPY src/backend   /home/site/wwwroot/backend
+# Host entry point + runtime config at the deploy root.
+COPY src/functions/function_app.py src/functions/host.json ./
 
-ENV PATH="/opt/venv/bin:$PATH"
+# Blueprint subpackages nested under functions/ so `from functions.<sub>...`
+# resolves. Listed explicitly so a stray directory under src/functions/ never
+# lands in the image.
+COPY src/functions/add_url      ./functions/add_url
+COPY src/functions/batch_push   ./functions/batch_push
+COPY src/functions/batch_start  ./functions/batch_start
+COPY src/functions/blob_event   ./functions/blob_event
+COPY src/functions/search_skill ./functions/search_skill
+COPY src/functions/core         ./functions/core
+RUN printf '"""Pillar: Stable Core\nPhase: 6 (Functions blueprints / modular RAG indexing pipeline)\n"""\n' > ./functions/__init__.py
+
+# Shared backend tree so the blueprints' `from backend.core...` imports resolve.
+COPY src/backend ./backend

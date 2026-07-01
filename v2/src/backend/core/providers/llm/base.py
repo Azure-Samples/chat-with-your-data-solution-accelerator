@@ -87,7 +87,9 @@ class BaseLLMProvider(ABC):
           (rendered in the frontend's collapsible reasoning panel).
         - `OrchestratorChannel.ANSWER` -- the final answer tokens.
 
-        Implementations route to the configured reasoning deployment.
+        Implementations stream from the given ``deployment``, defaulting
+        to the chat deployment when none is passed; the deployment must
+        be a reasoning-capable model to emit chain-of-thought summaries.
         """
 
     async def complete(
@@ -104,38 +106,23 @@ class BaseLLMProvider(ABC):
         for free without re-implementing the routing logic. Orchestrators
         and pipelines call THIS method instead of ``chat()`` or
         ``reason()`` directly so adding a new orchestrator library
-        never grows per-library reasoning-vs-chat dispatch (CU-004a).
+        never grows per-library reasoning-vs-chat dispatch.
 
-        Routing rule:
+        The base delegates to ``self.chat()`` -- forwarding the optional
+        ``temperature`` / ``max_tokens`` sampling parameters -- and
+        yields a single ``answer``-channel event with the assistant
+        content. ``chat`` failures are surfaced as a single ``error``
+        event with ``metadata.code == "complete_chat_failed"`` so the
+        SSE consumer never crashes mid-stream.
 
-        * When the resolved deployment matches
-          ``settings.openai.reasoning_deployment`` (and the latter is
-          non-empty), delegate to ``self.reason()`` and propagate every
-          event it yields (``reasoning`` / ``answer`` / ``error``
-          channels).
-        * Otherwise, delegate to ``self.chat()`` -- forwarding the
-          optional ``temperature`` / ``max_tokens`` sampling parameters
-          (omitted on the ``reason()`` branch above, which reasoning
-          models reject) -- and yield a single ``answer``-channel event
-          with the assistant content. ``chat`` failures are surfaced as
-          a single ``error`` event with
-          ``metadata.code == "complete_chat_failed"`` so the SSE
-          consumer never crashes mid-stream.
-
-        A provider MAY override this method to add provider-specific
-        step-trace ``reasoning`` events (e.g. tool-call traces). The
-        contract is "yields ``OrchestratorEvent`` on the locked channel
-        set" with no other guarantees.
+        A provider MAY override this method to stream reasoning: the
+        production ``FoundryIQ`` provider probes the answer model's
+        reasoning capability and, when supported, streams a
+        chain-of-thought summary on the ``reasoning`` channel alongside
+        the ``answer`` tokens. The contract is "yields
+        ``OrchestratorEvent`` on the locked channel set" with no other
+        guarantees.
         """
-        reasoning_deployment = self._settings.openai.reasoning_deployment
-        chosen = deployment or self._settings.openai.gpt_deployment
-        if reasoning_deployment and chosen == reasoning_deployment:
-            # Reasoning models reject the chat sampling params; `reason()`
-            # does not expose `temperature` / `max_tokens`, so they are
-            # intentionally not forwarded on this branch.
-            async for event in self.reason(messages, deployment=chosen):
-                yield event
-            return
         try:
             reply = await self.chat(
                 messages,

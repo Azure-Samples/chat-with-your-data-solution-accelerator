@@ -74,7 +74,6 @@ export interface AdminStatus {
   foundry_project_endpoint_host: string;
   gpt_deployment: string;
   embedding_deployment: string;
-  reasoning_deployment: string;
   search_enabled: boolean;
   app_insights_enabled: boolean;
   cors_origins: string[];

@@ -35,9 +35,8 @@ COSMOS_ENV: dict[str, str] = {
     "AZURE_COSMOS_ENDPOINT": "https://cosmos-cwyd001.documents.azure.com:443/",
     "AZURE_AI_PROJECT_ENDPOINT": "https://foundry-cwyd001.services.ai.azure.com/api/projects/p1",
     "AZURE_AI_SERVICES_ENDPOINT": "https://foundry-cwyd001.cognitiveservices.azure.com/",
-    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-4o",
+    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-5.1",
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-small",
-    "AZURE_OPENAI_REASONING_DEPLOYMENT": "o4-mini",
 }
 
 
@@ -148,7 +147,7 @@ async def test_chat_calls_openai_with_resolved_deployment(
     assert reply.role == "assistant"
     assert reply.content == "hello world"
     call = openai.chat.completions.create.await_args
-    assert call.kwargs["model"] == "gpt-4o"
+    assert call.kwargs["model"] == "gpt-5.1"
     assert call.kwargs["messages"] == [{"role": "user", "content": "hi"}]
 
 
@@ -168,12 +167,12 @@ async def test_chat_passes_temperature_and_max_completion_tokens(
     )
     await provider.chat(
         [ChatMessage(role="user", content="hi")],
-        deployment="gpt-4o-mini",
+        deployment="gpt-5.1-mini",
         temperature=0.2,
         max_tokens=128,
     )
     call = openai.chat.completions.create.await_args
-    assert call.kwargs["model"] == "gpt-4o-mini"
+    assert call.kwargs["model"] == "gpt-5.1-mini"
     assert call.kwargs["temperature"] == 0.2
     assert call.kwargs["max_completion_tokens"] == 128
     assert "max_tokens" not in call.kwargs
@@ -335,7 +334,7 @@ def _wrap_responses_client(responses_create: AsyncMock) -> Any:
 
 
 @pytest.mark.asyncio
-async def test_reason_routes_to_reasoning_deployment_and_streams(
+async def test_reason_routes_to_chat_deployment_and_streams(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
     responses_create = AsyncMock(
@@ -356,9 +355,9 @@ async def test_reason_routes_to_reasoning_deployment_and_streams(
         ev async for ev in provider.reason([ChatMessage(role="user", content="hi")])
     ]
 
-    # Routes to the reasoning deployment via the Responses API.
+    # Routes to the chat deployment via the Responses API.
     call = responses_create.await_args
-    assert call.kwargs["model"] == "o4-mini"
+    assert call.kwargs["model"] == settings.openai.gpt_deployment
     assert call.kwargs["stream"] is True
     # Responses API uses `input`, not `messages`, and each turn is an
     # explicit `message`-typed item -- the Responses endpoint rejects a
@@ -462,13 +461,13 @@ async def test_reason_raises_when_deployment_missing(
     monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
 ) -> None:
     for key, value in COSMOS_ENV.items():
-        if key != "AZURE_OPENAI_REASONING_DEPLOYMENT":
+        if key != "AZURE_OPENAI_GPT_DEPLOYMENT":
             monkeypatch.setenv(key, value)
-    monkeypatch.delenv("AZURE_OPENAI_REASONING_DEPLOYMENT", raising=False)
+    monkeypatch.delenv("AZURE_OPENAI_GPT_DEPLOYMENT", raising=False)
     s = AppSettings()
     provider = FoundryIQ(s, fake_credential, project_client=MagicMock())
     iterator = provider.reason([ChatMessage(role="user", content="hi")])
-    with pytest.raises(RuntimeError, match="reason deployment"):
+    with pytest.raises(RuntimeError, match="chat deployment"):
         async for _ in iterator:
             pass
 
@@ -529,7 +528,7 @@ async def test_complete_routes_to_chat_for_default_deployment(
 
     assert [(e.channel, e.content) for e in events] == [("answer", "hi back")]
     # Confirms chat() (non-streaming) was called, not reason() (streaming).
-    assert openai.chat.completions.create.await_args.kwargs["model"] == "gpt-4o"
+    assert openai.chat.completions.create.await_args.kwargs["model"] == "gpt-5.1"
     assert "stream" not in openai.chat.completions.create.await_args.kwargs
 
 
@@ -564,10 +563,10 @@ async def test_complete_forwards_sampling_to_chat(
 
 
 @pytest.mark.asyncio
-async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
+async def test_complete_streams_reasoning_for_explicit_deployment_when_supported(
     settings: AppSettings, fake_credential: MagicMock
 ) -> None:
-    """Explicit deployment == reasoning_deployment -> reason() path,
+    """Explicit deployment + a reasoning-capable model -> reason() path,
     propagates reasoning + answer events in order."""
     responses_create = AsyncMock(
         return_value=_build_reason_stream(
@@ -589,7 +588,7 @@ async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
     events = [
         ev
         async for ev in provider.complete(
-            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+            [ChatMessage(role="user", content="hi")], deployment="gpt-5.1"
         )
     ]
 
@@ -598,72 +597,35 @@ async def test_complete_routes_to_reason_when_deployment_matches_reasoning(
         ("reasoning", "step b"),
         ("answer", "Answer."),
     ]
-    assert responses_create.await_args.kwargs["model"] == "o4-mini"
+    assert responses_create.await_args.kwargs["model"] == "gpt-5.1"
     assert responses_create.await_args.kwargs["stream"] is True
 
 
 @pytest.mark.asyncio
-async def test_complete_routes_to_reason_when_default_chat_equals_reasoning(
-    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
+async def test_complete_uses_chat_with_explicit_override_when_model_lacks_reasoning(
+    settings: AppSettings, fake_credential: MagicMock
 ) -> None:
-    """Edge case: gpt_deployment and reasoning_deployment configured to
-    the same value -> default routes to reason()."""
-    for key, value in COSMOS_ENV.items():
-        monkeypatch.setenv(key, value)
-    monkeypatch.setenv("AZURE_OPENAI_GPT_DEPLOYMENT", "o4-mini")
-    s = AppSettings()
-
-    responses_create = AsyncMock(
-        return_value=_build_reason_stream([("", "ok")])
-    )
-    openai_client = _wrap_responses_client(responses_create)
-    provider = FoundryIQ(
-        s,
-        fake_credential,
-        project_client=_build_fake_project_client(openai_client),
-    )
-    provider.supports_reasoning = AsyncMock(return_value=True)  # type: ignore[method-assign]
-
-    events = [
-        ev async for ev in provider.complete([ChatMessage(role="user", content="hi")])
-    ]
-
-    assert [(e.channel, e.content) for e in events] == [("answer", "ok")]
-    assert responses_create.await_args.kwargs["stream"] is True
-
-
-@pytest.mark.asyncio
-async def test_complete_routes_to_chat_when_no_reasoning_deployment_configured(
-    monkeypatch: pytest.MonkeyPatch, fake_credential: MagicMock
-) -> None:
-    """Empty reasoning_deployment -> always chat() regardless of
-    explicit deployment override."""
-    for key, value in COSMOS_ENV.items():
-        if key != "AZURE_OPENAI_REASONING_DEPLOYMENT":
-            monkeypatch.setenv(key, value)
-    monkeypatch.delenv("AZURE_OPENAI_REASONING_DEPLOYMENT", raising=False)
-    s = AppSettings()
-
+    """A non-reasoning model -> chat(), honoring the explicit deployment
+    override."""
     openai = MagicMock()
     openai.chat.completions.create = AsyncMock(
         return_value=_build_openai_chat_response("plain")
     )
     provider = FoundryIQ(
-        s, fake_credential, project_client=_build_fake_project_client(openai)
+        settings, fake_credential, project_client=_build_fake_project_client(openai)
     )
     provider.supports_reasoning = AsyncMock(return_value=False)  # type: ignore[method-assign]
 
     events = [
         ev
         async for ev in provider.complete(
-            [ChatMessage(role="user", content="hi")], deployment="o4-mini"
+            [ChatMessage(role="user", content="hi")], deployment="gpt-5.1"
         )
     ]
 
     assert [(e.channel, e.content) for e in events] == [("answer", "plain")]
-    # chat() was called with the explicit override even though it would
-    # have been the reasoning deployment if one were configured.
-    assert openai.chat.completions.create.await_args.kwargs["model"] == "o4-mini"
+    # chat() was called with the explicit override.
+    assert openai.chat.completions.create.await_args.kwargs["model"] == "gpt-5.1"
 
 
 @pytest.mark.asyncio
@@ -755,12 +717,12 @@ async def test_complete_streams_reasoning_when_model_supports_it(
         ("reasoning", "weighing the options "),
         ("answer", "Final answer."),
     ]
-    # Capability detected against the ANSWER deployment (gpt-4o); the
+    # Capability detected against the ANSWER deployment (gpt-5.1); the
     # answer streams through the Responses API with the summary
     # requested -- this is what makes the answer model emit reasoning.
-    provider.supports_reasoning.assert_awaited_once_with("gpt-4o")
+    provider.supports_reasoning.assert_awaited_once_with("gpt-5.1")
     call = responses_create.await_args
-    assert call.kwargs["model"] == "gpt-4o"
+    assert call.kwargs["model"] == "gpt-5.1"
     assert call.kwargs["stream"] is True
     assert call.kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
 
@@ -786,7 +748,7 @@ async def test_complete_uses_chat_when_model_lacks_reasoning(
     ]
 
     assert [(e.channel, e.content) for e in events] == [("answer", "plain answer")]
-    provider.supports_reasoning.assert_awaited_once_with("gpt-4o")
+    provider.supports_reasoning.assert_awaited_once_with("gpt-5.1")
     openai.responses.create.assert_not_awaited()
     assert "stream" not in openai.chat.completions.create.await_args.kwargs
 
@@ -890,7 +852,7 @@ async def test_chat_logs_and_reraises_on_openai_api_error(
 
     record = _find_record(caplog, "chat")
     assert record.provider == "foundry_iq"
-    assert record.deployment == "gpt-4o"
+    assert record.deployment == "gpt-5.1"
     chat_completions.create.assert_awaited_once()
 
 
@@ -925,7 +887,7 @@ async def test_chat_stream_logs_and_reraises_on_create_api_error(
 
     record = _find_record(caplog, "chat_stream_create")
     assert record.provider == "foundry_iq"
-    assert record.deployment == "gpt-4o"
+    assert record.deployment == "gpt-5.1"
 
 
 @pytest.mark.asyncio
@@ -978,7 +940,7 @@ async def test_chat_stream_logs_and_reraises_on_iteration_api_error(
     assert [c.content for c in chunks] == ["hel"]
     record = _find_record(caplog, "chat_stream_iter")
     assert record.provider == "foundry_iq"
-    assert record.deployment == "gpt-4o"
+    assert record.deployment == "gpt-5.1"
 
 
 @pytest.mark.asyncio
@@ -1151,7 +1113,7 @@ async def test_supports_reasoning_probes_once_and_caches_true(
     assert second is True
     responses_create.assert_awaited_once()
     call = responses_create.await_args
-    assert call.kwargs["model"] == "gpt-4o"
+    assert call.kwargs["model"] == "gpt-5.1"
     assert call.kwargs["reasoning"] == {"effort": "low", "summary": "auto"}
     assert call.kwargs["stream"] is False
     assert call.kwargs["max_output_tokens"] == 256
@@ -1186,7 +1148,7 @@ async def test_supports_reasoning_caches_false_on_reasoning_rejection(
     assert second is False
     responses_create.assert_awaited_once()
     record = _find_record(caplog, "supports_reasoning", level="INFO")
-    assert record.deployment == "gpt-4o"
+    assert record.deployment == "gpt-5.1"
 
 
 @pytest.mark.asyncio
@@ -1217,7 +1179,7 @@ async def test_supports_reasoning_does_not_cache_transient_failure(
     assert second is True
     assert responses_create.await_count == 2
     record = _find_record(caplog, "supports_reasoning", level="WARNING")
-    assert record.deployment == "gpt-4o"
+    assert record.deployment == "gpt-5.1"
 
 
 def test_is_reasoning_unsupported_classifies_param_and_message() -> None:

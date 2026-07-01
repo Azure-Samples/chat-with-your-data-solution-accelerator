@@ -122,7 +122,7 @@ class FoundryAgentsProvider(BaseAgentsProvider):
         """
         name = await self.get_or_create_agent(definition, db)
         resolved = self._resolve_definition(definition)
-        deployment = getattr(self._settings.openai, definition.deployment_attr)
+        deployment = self._settings.openai.gpt_deployment
         tools = list(extra_tools) if extra_tools else None
         try:
             chat_client = FoundryChatClient(

@@ -52,7 +52,6 @@ Every row corresponds to exactly one field in [`AppSettings`](../src/backend/cor
 |---|---|---|---|---|---|---|
 | `AZURE_OPENAI_API_VERSION` | str | optional | `openai.api_version` | `AZURE_OPENAI_API_VERSION` | `""` | |
 | `AZURE_OPENAI_GPT_DEPLOYMENT` | str | required | `openai.gpt_deployment` | `AZURE_OPENAI_GPT_DEPLOYMENT` | `""` | Primary chat deployment. |
-| `AZURE_OPENAI_REASONING_DEPLOYMENT` | str | optional | `openai.reasoning_deployment` | `AZURE_OPENAI_REASONING_DEPLOYMENT` | `""` | o-series deployment (reasoning channel). |
 | `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | str | required (RAG) | `openai.embedding_deployment` | `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | `""` | Used by ingestion + search providers. |
 | `AZURE_OPENAI_TEMPERATURE` | float | optional | `openai.temperature` | — | `0.0` | Operator override only; not a Bicep output. |
 | `AZURE_OPENAI_MAX_TOKENS` | int | optional | `openai.max_tokens` | — | `1000` | |
@@ -179,7 +178,7 @@ Wires the prompt-shielding guard injected into `run_chat(...)` via `Depends(get_
 | `AZURE_OPENAI_SYSTEM_MESSAGE`, `OPEN_AI_FUNCTIONS_SYSTEM_PROMPT`, `SEMANTIC_KERNEL_SYSTEM_PROMPT` | System prompts moved to `backend/core/agents/definitions.py` (`AgentDefinition.instructions`); see [agents.md](agents.md). | Phase 3 |
 | `AZURE_SEARCH_FIELDS_*`, `AZURE_SEARCH_*_COLUMN` (23 vars) | Index schema is fixed in v2 (`backend/core/providers/search/_schema.py`). | Phase 3 |
 | `AZURE_SEARCH_INDEX_IS_PRECHUNKED`, `AZURE_SEARCH_INDEXER_NAME`, `AZURE_SEARCH_DATASOURCE_NAME`, `AZURE_SEARCH_DOC_UPLOAD_BATCH_SIZE`, `AZURE_SEARCH_CONVERSATIONS_LOG_INDEX`, `AZURE_SEARCH_FILTER`, `AZURE_SEARCH_ENABLE_IN_DOMAIN`, `AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG` | Replaced by Foundry IQ knowledge stores + the typed `SearchSettings`. | Phase 3 |
-| `AZURE_OPENAI_MODEL`, `AZURE_OPENAI_MODEL_NAME`, `AZURE_OPENAI_VISION_MODEL`, `AZURE_OPENAI_TOP_P`, `AZURE_OPENAI_STOP_SEQUENCE`, `AZURE_OPENAI_STREAM`, `AZURE_OPENAI_EMBEDDING_MODEL` | Replaced by `AZURE_OPENAI_GPT_DEPLOYMENT` / `_REASONING_DEPLOYMENT` / `_EMBEDDING_DEPLOYMENT` (deployment names, not model names). | Phase 2 |
+| `AZURE_OPENAI_MODEL`, `AZURE_OPENAI_MODEL_NAME`, `AZURE_OPENAI_VISION_MODEL`, `AZURE_OPENAI_TOP_P`, `AZURE_OPENAI_STOP_SEQUENCE`, `AZURE_OPENAI_STREAM`, `AZURE_OPENAI_EMBEDDING_MODEL` | Replaced by `AZURE_OPENAI_GPT_DEPLOYMENT` / `_EMBEDDING_DEPLOYMENT` (deployment names, not model names). | Phase 2 |
 | `AZURE_COMPUTER_VISION_*`, `AZURE_FORM_RECOGNIZER_ENDPOINT` | Replaced by Foundry Document Intelligence + Vision via the Foundry account. | Phase 4 |
 | `AZURE_ML_WORKSPACE_NAME` | No standalone ML workspace in v2. | Phase 1 |
 | `AZURE_BLOB_ACCOUNT_NAME`, `AZURE_BLOB_CONTAINER_NAME`, `AZURE_STORAGE_ACCOUNT_ENDPOINT`, `AzureWebJobsStorage`, `DOCUMENT_PROCESSING_QUEUE_NAME` | Replaced by typed `StorageSettings` (`AZURE_STORAGE_*`, `AZURE_DOCUMENTS_CONTAINER`, `AZURE_DOC_PROCESSING_QUEUE`). | Phase 4 |

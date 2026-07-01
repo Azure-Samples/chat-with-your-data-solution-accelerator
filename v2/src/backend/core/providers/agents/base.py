@@ -244,7 +244,7 @@ class BaseAgentsProvider(ABC):
             return cached
 
         client = self.get_client()
-        deployment = getattr(self._settings.openai, definition.deployment_attr)
+        deployment = self._settings.openai.gpt_deployment
 
         persisted = await db.get_agent_id(definition.name)
         if persisted is not None:

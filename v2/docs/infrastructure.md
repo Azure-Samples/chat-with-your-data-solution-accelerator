@@ -9,7 +9,7 @@ This document explains **what the v2 Bicep deploys**, **how the pieces fit toget
 
 ## 1. Design principles
 
-1. **Foundry-first.** A single Cognitive Services account of `kind='AIServices'` with `allowProjectManagement: true` is the unified surface for both orchestrators (Microsoft Agent Framework + LangGraph). All chat / reasoning / embedding models are deployments of that account; the Foundry Project is a child resource.
+1. **Foundry-first.** A single Cognitive Services account of `kind='AIServices'` with `allowProjectManagement: true` is the unified surface for both orchestrators (Microsoft Agent Framework + LangGraph). All chat / embedding models are deployments of that account; the Foundry Project is a child resource.
 2. **One database parameter, two modes.** `databaseType` (allowed: `cosmosdb` | `postgresql`) selects **both** chat-history storage **and** vector-index storage:
    - `cosmosdb` → Cosmos DB (chat) + Azure AI Search (vectors).
    - `postgresql` → PostgreSQL Flexible Server (chat **and** vectors via pgvector). AI Search is **not** deployed.
@@ -31,7 +31,7 @@ This document explains **what the v2 Bicep deploys**, **how the pieces fit toget
 | Resource | AVM module | Notes |
 |---|---|---|
 | User-Assigned Managed Identity | `managed-identity/user-assigned-identity:0.4.1` | Single workload identity. |
-| AI Services account (`AIServices` kind) | `cognitive-services/account:0.13.0` | Hosts gpt / reasoning / embedding deployments + Foundry Project. |
+| AI Services account (`AIServices` kind) | `cognitive-services/account:0.13.0` | Hosts gpt / embedding deployments + Foundry Project. |
 | Foundry Project | custom: [`modules/ai-project.bicep`](../infra/modules/ai-project.bicep) | Child of AI Services. |
 | Storage account | `storage/storage-account:0.32.0` | 3 blob containers (`documents`, `config`, `deployment-package`) + 4 queues (`doc-processing`, `add-url`, + poison). |
 | Container Apps Environment + backend Container App | `app/managed-environment:0.13.2` + `app/container-app:0.22.1` | FastAPI backend on workload-profile Consumption. |
@@ -93,7 +93,7 @@ Other key parameters:
 | `location` | _(required)_ | Restricted to 4 regions where Postgres ZR-HA, Cosmos paired-region failover, and Storage GZRS all hold. |
 | `azureAiServiceLocation` | _(required)_ | AI region. Defaults to `${AZURE_LOCATION}` if unset. Restricted to GPT-5.1 GlobalStandard regions. |
 | `databaseType` | `cosmosdb` | Set to `postgresql` for the Postgres+pgvector mode. |
-| `gpt/reasoning/embedding ModelName/Version/Sku/Capacity` | `gpt-5.1` / `o4-mini` / `text-embedding-3-large` etc. | All overridable via `AZURE_ENV_*` env vars. |
+| `gpt/embedding ModelName/Version/Sku/Capacity` | `gpt-5.1` / `text-embedding-3-large` etc. | All overridable via `AZURE_ENV_*` env vars. |
 | `postgresAdminPrincipalId` | _deployer_ | Object ID of the Entra principal granted Postgres admin. |
 | `postgresAdminPrincipalName` | _(required for `postgresql` mode)_ | UPN / group / app name. **No default** — wrong value silently locks you out. |
 | `postgresAdminPrincipalType` | `User` | One of `User`, `Group`, `ServicePrincipal`. |
@@ -185,7 +185,7 @@ psql -d postgres
 | `AZURE_UAMI_CLIENT_ID`, `AZURE_UAMI_PRINCIPAL_ID`, `AZURE_UAMI_RESOURCE_ID` | Workload identity wiring. |
 | `AZURE_DB_TYPE`, `AZURE_INDEX_STORE` | Runtime branching for the orchestrators. |
 | `AZURE_AI_SERVICES_ENDPOINT`, `AZURE_AI_PROJECT_ENDPOINT`, `AZURE_OPENAI_API_VERSION`, `AZURE_AI_AGENT_API_VERSION` | Foundry data-plane. |
-| `AZURE_OPENAI_GPT_DEPLOYMENT`, `AZURE_OPENAI_REASONING_DEPLOYMENT`, `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Model deployment names. |
+| `AZURE_OPENAI_GPT_DEPLOYMENT`, `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Model deployment names. |
 | `AZURE_AI_SEARCH_ENDPOINT/NAME`, `AZURE_COSMOS_ENDPOINT/ACCOUNT_NAME` | Cosmosdb-mode data stores (empty in postgres mode). |
 | `AZURE_POSTGRES_HOST/NAME/ADMIN_PRINCIPAL_NAME` | Postgres-mode data store (empty in cosmosdb mode). |
 | `AZURE_STORAGE_ACCOUNT_NAME`, `AZURE_STORAGE_BLOB_ENDPOINT`, `AZURE_DOCUMENTS_CONTAINER`, `AZURE_DOC_PROCESSING_QUEUE` | Indexing-pipeline wiring. |
@@ -217,7 +217,7 @@ Exit codes: `0` ok · `2` missing required env var · `3` missing pip deps · `4
 - [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) ≥ 1.10
 - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) ≥ 2.60 with `bicep` extension
 - Python 3.12 + `uv` (for the post-provision hook). `uv sync` from the repo root installs `psycopg2-binary` and `azure-identity`.
-- An Azure subscription with quota for: GPT-5.1 GlobalStandard (150K TPM), o4-mini GlobalStandard (50K TPM), text-embedding-3-large Standard (100K TPM) in `azureAiServiceLocation`.
+- An Azure subscription with quota for: GPT-5.1 GlobalStandard (150K TPM), text-embedding-3-large Standard (100K TPM) in `azureAiServiceLocation`.
 
 ### 7.2 First deploy (default profile, public)
 

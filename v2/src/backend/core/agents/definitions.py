@@ -16,13 +16,6 @@ Field choices:
 
 * `description` -- human-readable; surfaces in the Foundry portal.
 
-* `deployment_attr` -- the *name* of an `OpenAISettings` field whose
-  value is the actual Azure OpenAI deployment name. Letting the
-  definition pick `gpt_deployment` vs `reasoning_deployment` keeps
-  the RAI agent on a cheaper model without inventing a per-agent env
-  var (the reference architecture adds `AZURE_OPENAI_RAI_DEPLOYMENT_NAME`;
-  we collapse that to a settings-attr indirection).
-
 * `instructions` -- the system prompt. Foundry SDK uses the term
   `instructions`; we mirror it to avoid translation friction in the
   provider (CU-010c).
@@ -38,17 +31,9 @@ Reference-architecture attribution: TRUE/FALSE classifier prompt shape
 used by RAI_AGENT.instructions.
 """
 
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.core.agents.presets import AssistantType, body_for
-
-# Names of `OpenAISettings` fields whose value is an actual deployment
-# name. Centralising this Literal in one place gives the static type
-# checker a way to catch typos ("gpt_deplyment") at definition time
-# rather than at first-request time.
-DeploymentAttr = Literal["gpt_deployment", "reasoning_deployment"]
 
 
 class AgentDefinition(BaseModel):
@@ -64,7 +49,6 @@ class AgentDefinition(BaseModel):
 
     name: str = Field(min_length=1, max_length=64)
     description: str = Field(min_length=1, max_length=512)
-    deployment_attr: DeploymentAttr = "gpt_deployment"
     instructions: str = Field(min_length=1)
     tools: tuple[str, ...] = ()
 
@@ -144,7 +128,6 @@ CWYD_AGENT = AgentDefinition(
         "retrieving from the Foundry IQ knowledge base and "
         "synthesising grounded responses with citations."
     ),
-    deployment_attr="gpt_deployment",
     instructions=compose_cwyd_instructions(CWYD_DEFAULT_BODY),
     tools=(),
 )
@@ -160,7 +143,6 @@ RAI_AGENT = AgentDefinition(
         "TRUE if the user message should be allowed to reach the primary "
         "agent, FALSE if it must be blocked."
     ),
-    deployment_attr="gpt_deployment",
     instructions=(
         "You are a Responsible AI safety classifier. Read the user message "
         "and respond with exactly one word: TRUE or FALSE.\n"
@@ -199,7 +181,6 @@ PROMPT_REVIEW_AGENT = AgentDefinition(
         "system prompt is a legitimate assistant configuration, FALSE "
         "if it directs the assistant to behave harmfully."
     ),
-    deployment_attr="gpt_deployment",
     instructions=(
         "You are a Responsible AI reviewer for ADMINISTRATOR-AUTHORED "
         "SYSTEM PROMPTS. An operator is configuring the persona and "

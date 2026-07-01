@@ -21,7 +21,7 @@ COSMOS_ENV: dict[str, str] = {
     "AZURE_COSMOS_ENDPOINT": "https://cosmos-cwyd001.documents.azure.com:443/",
     "AZURE_AI_PROJECT_ENDPOINT": "https://foundry-cwyd001.services.ai.azure.com/api/projects/p1",
     "AZURE_AI_SEARCH_ENDPOINT": "https://srch-cwyd001.search.windows.net",
-    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-4o",
+    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-5.1",
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-small",
 }
 

@@ -32,7 +32,6 @@ const ADMIN_STATUS_FIXTURE = {
   foundry_project_endpoint_host: "fdy-abc123.services.ai.azure.com",
   gpt_deployment: "gpt-5",
   embedding_deployment: "text-embedding-3-large",
-  reasoning_deployment: "gpt-5",
   search_enabled: true,
   app_insights_enabled: false,
   cors_origins: [] as string[],

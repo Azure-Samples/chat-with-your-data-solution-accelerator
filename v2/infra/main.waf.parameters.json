@@ -32,18 +32,6 @@
     "gptModelCapacity": {
       "value": "${AZURE_ENV_GPT_MODEL_CAPACITY=150}"
     },
-    "reasoningModelName": {
-      "value": "${AZURE_ENV_REASONING_MODEL_NAME=o4-mini}"
-    },
-    "reasoningModelVersion": {
-      "value": "${AZURE_ENV_REASONING_MODEL_VERSION=2025-04-16}"
-    },
-    "reasoningModelDeploymentType": {
-      "value": "${AZURE_ENV_REASONING_MODEL_SKU=GlobalStandard}"
-    },
-    "reasoningModelCapacity": {
-      "value": "${AZURE_ENV_REASONING_MODEL_CAPACITY=50}"
-    },
     "embeddingModelName": {
       "value": "${AZURE_ENV_EMBEDDING_MODEL_NAME=text-embedding-3-large}"
     },

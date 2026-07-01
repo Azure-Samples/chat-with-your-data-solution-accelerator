@@ -182,7 +182,7 @@ flowchart LR
     subgraph FoundryStack["Foundry-first AI stack (always-on)"]
         AISvc["AI Services account<br/>kind = AIServices<br/>allowProjectManagement = true"]
         Project["Foundry Project<br/>(child resource)"]
-        Models["Model deployments<br/>gpt-5.1 · o4-mini<br/>text-embedding-3-large"]
+        Models["Model deployments<br/>gpt-5.1<br/>text-embedding-3-large"]
         AISvc --> Project
         AISvc --> Models
     end

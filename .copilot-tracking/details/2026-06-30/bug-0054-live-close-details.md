@@ -14,13 +14,13 @@ Sources: `.copilot-tracking/research/2026-06-30/bug-0054-live-close-research.md`
 Hard gate. Every Azure write returns HTTP 409 `ReadOnlyDisabledSubscription` until the user re-enables subscription `<AZURE_SUBSCRIPTION_ID>` (Azure portal → Subscriptions → Reactivate / remove spending limit). Do NOT proceed past this step until it passes.
 
 Commands:
-* `az account show --refresh --query "{name:name,state:state,id:id}" -o json` — assert `state == "Enabled"` (`--refresh` bypasses the cached state so a stale `Enabled` is not trusted).
-* `az group show -n <RESOURCE_GROUP> --query name -o tsv` — confirms read access; the RG shell is expected to still exist.
-* Note (DR-11): a successful read does not by itself prove a write will succeed; the definitive proof is the `azd up` in Step 1.2, which 409s loudly if the subscription is still read-only. Phase 0 is a fast pre-check, not a guarantee.
+* `az account list --all --refresh --query "[?id=='<AZURE_SUBSCRIPTION_ID>'].{name:name,state:state}" -o json` — assert `state == "Enabled"` (`--refresh` forces a live billing-state read; `--all` includes non-Enabled subscriptions so a `Warned`/`Disabled` state is visible rather than silently filtered out). NOTE: `az account show` has no `--refresh` flag (DR-12) — use `az account list --all --refresh`.
+* Write probe (definitive): `az tag update --resource-id /subscriptions/<AZURE_SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP> --operation merge --tags cwydWriteProbe=ok` then revert with `--operation delete`. A reversible ARM write that proves write-capability in ~5s without committing to a 30–40 min `azd up`. `ReadOnlyDisabledSubscription` here ⇒ still blocked (a `Warned` state can still be read-only).
+* Note (DR-11/DR-12): the `state` read alone does not prove writability (`Warned` reads as not-`Enabled` but is ambiguous); the tag-merge write probe is the authoritative Phase 0 signal. The `azd up` in Step 1.2 is the final confirmation.
 
 Success criteria:
-* `az account show --refresh` reports `state == "Enabled"`.
-* No `ReadOnlyDisabledSubscription` on a trivial read.
+* `az account list --all --refresh` reports `state == "Enabled"` AND the tag-merge write probe succeeds (then is reverted).
+* No `ReadOnlyDisabledSubscription` on the write probe.
 
 Dependencies:
 * User has re-enabled the subscription (external billing/account action — cannot be done from CLI).

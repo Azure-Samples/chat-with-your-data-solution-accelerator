@@ -76,7 +76,7 @@ SEMANTIC_CONFIG_NAME = "default"
 
 # Foundry IQ Knowledge Base seed. A `searchIndex` knowledge source wraps
 # the existing chat index, and the knowledge base references that source
-# plus the Azure OpenAI reasoning model used for query planning. Created
+# plus the Azure OpenAI chat model used for query planning. Created
 # once via the Search REST `knowledgesources` / `knowledgebases` endpoints
 # (api-version from SearchSettings) — never per-document. The two `kind`
 # discriminators below are the only values this script emits, so they are
@@ -120,7 +120,6 @@ SUMMARY_KEYS = (
     "AZURE_AI_SERVICES_ENDPOINT",
     "AZURE_AI_PROJECT_ENDPOINT",
     "AZURE_OPENAI_GPT_DEPLOYMENT",
-    "AZURE_OPENAI_REASONING_DEPLOYMENT",
     "AZURE_OPENAI_EMBEDDING_DEPLOYMENT",
     "AZURE_AI_SEARCH_ENDPOINT",
     "AZURE_COSMOS_ENDPOINT",
@@ -351,8 +350,8 @@ def _build_knowledge_base_seed(
     2. A knowledge base that references the knowledge source by name and
        lists the Azure OpenAI chat model used for query planning. The
        Foundry IQ knowledge base API only accepts chat models here (for
-       example gpt-4o-mini, gpt-4.1, gpt-5.1); o-series reasoning models
-       are rejected, so this is the chat deployment, not the reasoning one.
+       example gpt-5.1, gpt-5-mini); o-series reasoning models are
+       rejected, so this is the chat deployment, not the reasoning one.
 
     The shapes match the Azure AI Search ``knowledgesources`` /
     ``knowledgebases`` REST contract; the caller pins the api-version from
@@ -432,8 +431,8 @@ def _ensure_knowledge_base(*, dry_run: bool, client_factory=None) -> str:
     )
 
     # The KB query-planning model lives on the Azure OpenAI account. Foundry
-    # IQ knowledge bases only accept a chat model here (gpt-4o-mini, gpt-4.1,
-    # gpt-5.1, ...); o-series reasoning models are rejected with a 400, so the
+    # IQ knowledge bases only accept a chat model here (gpt-5.1, gpt-5-mini,
+    # ...); o-series reasoning models are rejected with a 400, so the
     # KB uses the chat deployment (AZURE_OPENAI_GPT_DEPLOYMENT), not the
     # reasoning one. In this repo the deployment is named after its model
     # (Bicep wires the deployment and the model from the same `gptModelName`

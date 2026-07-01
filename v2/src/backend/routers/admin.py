@@ -141,7 +141,6 @@ async def status_endpoint(
         ),
         gpt_deployment=settings.openai.gpt_deployment,
         embedding_deployment=settings.openai.embedding_deployment,
-        reasoning_deployment=settings.openai.reasoning_deployment,
         search_enabled=bool(settings.search.endpoint),
         app_insights_enabled=bool(obs_conn),
         cors_origins=list(settings.network.cors_origins),

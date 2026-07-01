@@ -14,7 +14,7 @@ Caller pattern (Hard Rule #13):
     llm_provider = llm_registry.registry.get("foundry_iq")(
         settings=settings, credential=credential
     )
-    reply = await llm_provider.chat(messages, deployment="gpt-4o")
+    reply = await llm_provider.chat(messages, deployment="gpt-5.1")
 """
 
 # pyright: reportUnusedImport=false

@@ -149,7 +149,7 @@ def test_build_knowledge_base_seed_shape():
         semantic_configuration_name="default",
         openai_resource_uri="https://ai.example/",
         query_planning_deployment="chat",
-        query_planning_model_name="gpt-4.1",
+        query_planning_model_name="gpt-5.1",
     )
 
     # Knowledge source: a searchIndex kind wrapping the existing chat index,
@@ -182,7 +182,7 @@ def test_build_knowledge_base_seed_shape():
     assert model["azureOpenAIParameters"] == {
         "resourceUri": "https://ai.example/",
         "deploymentId": "chat",
-        "modelName": "gpt-4.1",
+        "modelName": "gpt-5.1",
     }
 
 
@@ -212,11 +212,10 @@ class _FakeHttpClient:
 def _set_kb_env(monkeypatch):
     monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
     monkeypatch.setenv("AZURE_OPENAI_ENDPOINT", "https://aoai.example/")
-    # The KB query-planning model must be a chat model; the reasoning
-    # deployment is set too, to prove the KB seed ignores it (regression
-    # guard for the o-series-rejected-by-Foundry-IQ bug).
+    # The KB query-planning model must be a chat model (Foundry IQ
+    # rejects o-series reasoning models for the KB; regression guard for
+    # the o-series-rejected-by-Foundry-IQ bug).
     monkeypatch.setenv("AZURE_OPENAI_GPT_DEPLOYMENT", "gpt-5.1")
-    monkeypatch.setenv("AZURE_OPENAI_REASONING_DEPLOYMENT", "o4-mini")
 
 
 def test_ensure_knowledge_base_skips_when_endpoint_missing(capsys):

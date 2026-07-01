@@ -309,7 +309,6 @@ class FoundryIQ(BaseLLMProvider):
         cfg = self._settings.openai
         chosen = {
             "chat": cfg.gpt_deployment,
-            "reason": cfg.reasoning_deployment,
             "embed": cfg.embedding_deployment,
         }[kind]
         if not chosen:
@@ -506,7 +505,7 @@ class FoundryIQ(BaseLLMProvider):
         ``max_output_tokens`` (left to the deployment's configured
         default for now).
         """
-        model = self._resolve_deployment(deployment, kind="reason")
+        model = self._resolve_deployment(deployment, kind="chat")
         oai = await self._get_openai_client()
         kwargs: dict[str, Any] = {
             "model": model,
@@ -656,10 +655,9 @@ class FoundryIQ(BaseLLMProvider):
 
         Azure OpenAI returns a 400 whose ``param`` is ``"reasoning"`` (or
         whose message names the unsupported ``reasoning`` parameter) when
-        the deployment is a non-reasoning model (e.g. gpt-4o). Every
-        other failure -- auth, throttle, budget, 5xx, network -- is a
-        transient / unrelated error and must NOT be cached as a
-        capability verdict.
+        the deployment is a non-reasoning model. Every other failure --
+        auth, throttle, budget, 5xx, network -- is a transient /
+        unrelated error and must NOT be cached as a capability verdict.
         """
         param = getattr(exc, "param", None)
         if param == "reasoning":
@@ -685,8 +683,7 @@ class FoundryIQ(BaseLLMProvider):
         the Responses API summary path (the surface :meth:`reason` uses),
         emitting a chain-of-thought summary on the ``reasoning`` channel
         alongside the ``answer`` tokens. A non-reasoning model falls back
-        to the base routing: :meth:`reason` only for the dedicated
-        reasoning deployment, :meth:`chat` otherwise.
+        to the base routing: :meth:`chat` non-streaming.
 
         Capability is detected at this single model-invocation boundary,
         so every orchestrator that answers through ``complete()`` (the
