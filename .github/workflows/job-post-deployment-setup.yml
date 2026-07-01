@@ -24,7 +24,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Login to Azure
         uses: azure/login@v3

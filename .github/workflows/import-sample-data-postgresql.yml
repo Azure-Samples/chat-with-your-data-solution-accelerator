@@ -34,7 +34,7 @@ jobs:
     environment: production
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Login to Azure for Sample Data Download
         uses: azure/login@v3

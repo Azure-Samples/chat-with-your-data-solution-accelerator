@@ -40,7 +40,7 @@ jobs:
       TEST_REPORT_URL: ${{ steps.upload_report.outputs.artifact-url }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v6
