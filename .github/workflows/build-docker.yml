@@ -22,7 +22,7 @@ jobs:
     environment: production
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Login to Azure via OIDC
       if: ${{ inputs.push == true }}

@@ -47,7 +47,7 @@ jobs:
       should_build: ${{ steps.filter.outputs.docker_related }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

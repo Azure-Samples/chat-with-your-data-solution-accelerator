@@ -32,7 +32,7 @@ jobs:
       should_deploy: ${{ steps.filter.outputs.deploy_related }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install azd
         uses: Azure/setup-azd@v2
@@ -444,7 +444,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Destroy resources
         uses: devcontainers/ci@v0.3
