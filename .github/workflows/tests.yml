@@ -101,8 +101,8 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
-          cache-dependency-path: "src/frontend/package-lock.json"
+          cache-dependency-path: "package-lock.json"
       - name: Run frontend unit tests
-        run: cd src/frontend && npm ci && npm test -- --run
+        run: npm ci && npm test -- --run
       - name: Lint
         run: make lint
