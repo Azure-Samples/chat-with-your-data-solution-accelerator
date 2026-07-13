@@ -111,4 +111,3 @@ def test_error_envelope_is_frozen() -> None:
 def test_error_envelope_forbids_extras() -> None:
     with pytest.raises(ValidationError):
         ErrorEnvelope(error=ErrorType.VALIDATION_ERROR, extra="x")
-

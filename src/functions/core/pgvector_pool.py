@@ -74,12 +74,14 @@ class PgVectorPool:
                     "to connect as."
                 )
             try:
-                new_pool: asyncpg.Pool = await asyncpg.create_pool(  # pyright: ignore[reportUnknownMemberType]
-                    dsn=endpoint,
-                    user=user,
-                    password=self._password_provider,
-                    min_size=1,
-                    max_size=10,
+                new_pool: asyncpg.Pool = (
+                    await asyncpg.create_pool(  # pyright: ignore[reportUnknownMemberType]
+                        dsn=endpoint,
+                        user=user,
+                        password=self._password_provider,
+                        min_size=1,
+                        max_size=10,
+                    )
                 )
             except (asyncpg.PostgresError, OSError):
                 # Lifespan-style policy: log loud + re-raise. The

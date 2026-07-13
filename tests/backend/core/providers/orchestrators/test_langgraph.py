@@ -1,6 +1,6 @@
 """Tests for the LangGraph orchestrator."""
 
-from typing import Any, AsyncIterator, Sequence
+from typing import AsyncIterator, Sequence
 from unittest.mock import MagicMock
 
 import pytest

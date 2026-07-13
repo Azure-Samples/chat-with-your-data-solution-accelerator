@@ -139,7 +139,9 @@ class PgVector(BaseSearch):
         try:
             rows = cast(
                 "list[Mapping[str, Any]]",
-                await self._pool.fetch(sql, *params),  # pyright: ignore[reportUnknownMemberType]
+                await self._pool.fetch(
+                    sql, *params
+                ),  # pyright: ignore[reportUnknownMemberType]
             )
         except asyncpg.PostgresError:
             # SDK boundary per Hard Rule #14: structured-log with the
@@ -169,7 +171,9 @@ class PgVector(BaseSearch):
         try:
             rows = cast(
                 "list[Mapping[str, Any]]",
-                await self._pool.fetch(sql, source),  # pyright: ignore[reportUnknownMemberType]
+                await self._pool.fetch(
+                    sql, source
+                ),  # pyright: ignore[reportUnknownMemberType]
             )
         except asyncpg.PostgresError:
             logger.exception(
@@ -265,7 +269,9 @@ class PgVector(BaseSearch):
         try:
             rows = cast(
                 "list[Mapping[str, Any]]",
-                await self._pool.fetch(sql, *params),  # pyright: ignore[reportUnknownMemberType]
+                await self._pool.fetch(
+                    sql, *params
+                ),  # pyright: ignore[reportUnknownMemberType]
             )
         except asyncpg.PostgresError:
             logger.exception(
@@ -320,7 +326,9 @@ class PgVector(BaseSearch):
                 "(content_vector vector_cosine_ops);"
             )
             try:
-                await self._pool.execute(sql)  # pyright: ignore[reportUnknownMemberType]
+                await self._pool.execute(
+                    sql
+                )  # pyright: ignore[reportUnknownMemberType]
             except asyncpg.PostgresError:
                 logger.exception(
                     "pgvector ensure_schema failed",

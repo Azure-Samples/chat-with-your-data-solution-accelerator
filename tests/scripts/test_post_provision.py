@@ -3,7 +3,6 @@ Purpose: Validate post_provision.py search-index bootstrap and CLI flags.
 """
 
 import importlib.util
-import subprocess
 import sys
 from pathlib import Path
 
@@ -11,7 +10,13 @@ import pytest
 
 # The script lives in infra/scripts/, which is not on pythonpath. Load it
 # directly with importlib so tests don't depend on PYTHONPATH munging.
-_SCRIPT_PATH = Path(__file__).resolve().parents[2] / "infra" / "scripts" / "post-provision" / "post_provision.py"
+_SCRIPT_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "infra"
+    / "scripts"
+    / "post-provision"
+    / "post_provision.py"
+)
 _spec = importlib.util.spec_from_file_location("_post_provision", _SCRIPT_PATH)
 assert _spec and _spec.loader
 post_provision = importlib.util.module_from_spec(_spec)
@@ -384,6 +389,3 @@ def test_post_provision_does_not_reference_agent_partition() -> None:
     assert "_system" not in source
     assert "CosmosItemType" not in source
     assert "upsert_item" not in source
-
-
-

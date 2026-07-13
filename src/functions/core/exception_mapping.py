@@ -108,7 +108,9 @@ def map_function_exceptions(
                     },
                 )
                 return json_response(
-                    ErrorEnvelope(error=ErrorType.UPSTREAM_STORAGE_ERROR).model_dump(exclude_none=True),
+                    ErrorEnvelope(error=ErrorType.UPSTREAM_STORAGE_ERROR).model_dump(
+                        exclude_none=True
+                    ),
                     status,
                 )
             except Exception:  # noqa: BLE001 -- final safety net for HTTP route
@@ -123,7 +125,9 @@ def map_function_exceptions(
                     },
                 )
                 return json_response(
-                    ErrorEnvelope(error=ErrorType.INTERNAL_SERVER_ERROR).model_dump(exclude_none=True),
+                    ErrorEnvelope(error=ErrorType.INTERNAL_SERVER_ERROR).model_dump(
+                        exclude_none=True
+                    ),
                     status,
                 )
 
@@ -192,4 +196,3 @@ def log_queue_errors(
         return _wrapper
 
     return _decorator
-

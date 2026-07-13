@@ -16,7 +16,7 @@ import asyncpg
 import httpx
 import openai
 import pytest
-from azure.core.exceptions import AzureError, ServiceRequestError
+from azure.core.exceptions import ServiceRequestError
 from azure.cosmos.exceptions import CosmosHttpResponseError
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient

@@ -97,9 +97,7 @@ async def _execute(
     )(settings=settings)
     async with await cred_provider.get_credential() as credential:
         if event.event_type is BlobEventType.CREATED:
-            _blob_endpoint, queue_endpoint = resolve_storage_endpoints(
-                settings.storage
-            )
+            _blob_endpoint, queue_endpoint = resolve_storage_endpoints(settings.storage)
             async with QueueClient(
                 account_url=queue_endpoint,
                 queue_name=settings.storage.doc_processing_queue,

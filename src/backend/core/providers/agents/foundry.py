@@ -33,13 +33,16 @@ from collections.abc import Sequence
 from typing import Callable
 
 from agent_framework import Agent, ToolTypes
+
 # Debt (dev_plan §0.1 B-IMPL-FOUNDRY-STUBS-DEBT): the OSS
 # `agent_framework_foundry` PyPI distribution ships no `py.typed`
 # marker, so pyright cannot find stubs even though the package is
 # installed and importable. Suppress at the SDK boundary per Hard Rule
 # #11(a); clears when the SDK ships a `py.typed` marker or when we
 # vendor a minimal local stub.
-from agent_framework_foundry import FoundryChatClient  # pyright: ignore[reportMissingTypeStubs]
+from agent_framework_foundry import (
+    FoundryChatClient,
+)  # pyright: ignore[reportMissingTypeStubs]
 from azure.ai.projects.aio import AIProjectClient
 from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
@@ -85,9 +88,7 @@ class FoundryAgentsProvider(BaseAgentsProvider):
                 "FoundryAgentsProvider requires a Foundry project "
                 "endpoint to construct AIProjectClient."
             )
-        self._client = AIProjectClient(
-            endpoint=endpoint, credential=self._credential
-        )
+        self._client = AIProjectClient(endpoint=endpoint, credential=self._credential)
         return self._client
 
     async def build_agent(

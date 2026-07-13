@@ -67,8 +67,7 @@ async def test_conversation_lifecycle_live_persists_and_deletes(
         detail_body = detail.json()
         assert detail_body["conversation"]["id"] == conversation_id, detail_body
         assert any(
-            m.get("content") == message_content
-            for m in detail_body.get("messages", [])
+            m.get("content") == message_content for m in detail_body.get("messages", [])
         ), detail_body.get("messages")
 
         # Happy-path delete of an existing row returns 204...

@@ -31,7 +31,7 @@ Caller pattern (Hard Rule #13):
 
 from backend.core.discovery import load_entry_points
 
-from ._instance import (
+from ._instance import (  # noqa: F401
     EmbedderInstance as EmbedderInstance,
     SupportsEmbedderConstruction as SupportsEmbedderConstruction,
     registry as registry,

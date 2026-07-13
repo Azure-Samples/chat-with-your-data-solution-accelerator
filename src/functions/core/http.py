@@ -54,10 +54,14 @@ class ErrorEnvelope(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     error: ErrorType
-    details: list[dict[str, Any]] | None = None  # errors() boundary shape, per Hard Rule #15(a)
+    details: list[dict[str, Any]] | None = (
+        None  # errors() boundary shape, per Hard Rule #15(a)
+    )
 
 
-def json_response(payload: dict[str, object], status_code: HTTPStatus) -> func.HttpResponse:
+def json_response(
+    payload: dict[str, object], status_code: HTTPStatus
+) -> func.HttpResponse:
     """Build a ``func.HttpResponse`` with a JSON body.
 
     Single source of truth for blueprint response shaping: every

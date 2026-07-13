@@ -43,7 +43,6 @@ from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings
 from backend.core.tools.citations import (
     build_citations,
-    filter_to_referenced,
     format_sources_block,
 )
 from backend.core.types import (

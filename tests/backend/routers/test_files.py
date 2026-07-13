@@ -52,8 +52,7 @@ async def test_returns_blob_inline_with_pdf_content_type(
     assert resp.content == b"%PDF-1.7 hello"
     assert resp.headers["content-type"].startswith("application/pdf")
     assert (
-        resp.headers["content-disposition"]
-        == 'inline; filename="Benefit_Options.pdf"'
+        resp.headers["content-disposition"] == 'inline; filename="Benefit_Options.pdf"'
     )
     # The service is invoked with the decoded filename + injected deps.
     assert fake_download.await_count == 1

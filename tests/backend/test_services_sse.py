@@ -35,7 +35,10 @@ def test_format_sse_payload_roundtrips_through_json() -> None:
     frame = format_sse(event).decode("utf-8")
     data_line = next(line for line in frame.splitlines() if line.startswith("data: "))
     payload = json.loads(data_line.removeprefix("data: "))
-    assert payload == {"content": "see source", "metadata": {"id": "c-1", "title": "doc"}}
+    assert payload == {
+        "content": "see source",
+        "metadata": {"id": "c-1", "title": "doc"},
+    }
 
 
 def test_format_sse_preserves_non_ascii_content() -> None:

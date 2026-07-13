@@ -40,7 +40,9 @@ class HtmlParser(BaseParser):
         for element in soup(_NON_CONTENT_TAGS):
             element.decompose()
         text = soup.get_text(separator="\n")
-        paragraphs = [paragraph.strip() for paragraph in _PARAGRAPH_SEPARATOR.split(text)]
+        paragraphs = [
+            paragraph.strip() for paragraph in _PARAGRAPH_SEPARATOR.split(text)
+        ]
         return [
             Chunk(
                 id=self.make_chunk_id(source, index),

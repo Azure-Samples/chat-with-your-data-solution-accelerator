@@ -1,7 +1,6 @@
 """Lifespan wires search provider."""
 
-from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from azure.core.exceptions import AzureError

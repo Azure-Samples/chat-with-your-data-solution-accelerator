@@ -15,7 +15,8 @@ def _make_fake_ep(name: str, value: str, load_side_effect: object = None) -> Mag
     ep.value = value
     ep.group = "cwyd.providers.test"
     if isinstance(load_side_effect, BaseException) or (
-        isinstance(load_side_effect, type) and issubclass(load_side_effect, BaseException)
+        isinstance(load_side_effect, type)
+        and issubclass(load_side_effect, BaseException)
     ):
         ep.load.side_effect = load_side_effect
     else:
@@ -56,9 +57,13 @@ def test_load_entry_points_loads_multiple_plugins_in_order():
     ep_b.load.assert_called_once_with()
 
 
-def test_load_entry_points_reraises_on_plugin_load_failure(caplog: pytest.LogCaptureFixture):
+def test_load_entry_points_reraises_on_plugin_load_failure(
+    caplog: pytest.LogCaptureFixture,
+):
     ep_good = _make_fake_ep("good", "cwyd_good.client", load_side_effect=object())
-    ep_bad = _make_fake_ep("bad", "cwyd_bad.client", load_side_effect=RuntimeError("boom"))
+    ep_bad = _make_fake_ep(
+        "bad", "cwyd_bad.client", load_side_effect=RuntimeError("boom")
+    )
     ep_after = _make_fake_ep("after", "cwyd_after.client", load_side_effect=object())
     with _patch_entry_points([ep_good, ep_bad, ep_after]):
         with caplog.at_level(logging.ERROR, logger="backend.core.discovery"):
@@ -70,7 +75,8 @@ def test_load_entry_points_reraises_on_plugin_load_failure(caplog: pytest.LogCap
     ep_after.load.assert_not_called()
     # Structured failure log fired.
     failure_records = [
-        r for r in caplog.records
+        r
+        for r in caplog.records
         if r.name == "backend.core.discovery" and r.levelno == logging.ERROR
     ]
     assert len(failure_records) == 1
@@ -81,13 +87,16 @@ def test_load_entry_points_reraises_on_plugin_load_failure(caplog: pytest.LogCap
     assert getattr(record, "plugin_value", None) == "cwyd_bad.client"
 
 
-def test_load_entry_points_emits_structured_info_log_on_success(caplog: pytest.LogCaptureFixture):
+def test_load_entry_points_emits_structured_info_log_on_success(
+    caplog: pytest.LogCaptureFixture,
+):
     ep = _make_fake_ep("fake", "cwyd_fake.client", load_side_effect=object())
     with _patch_entry_points([ep]):
         with caplog.at_level(logging.INFO, logger="backend.core.discovery"):
             load_entry_points("cwyd.providers.test")
     success_records = [
-        r for r in caplog.records
+        r
+        for r in caplog.records
         if r.name == "backend.core.discovery" and r.levelno == logging.INFO
     ]
     assert len(success_records) == 1

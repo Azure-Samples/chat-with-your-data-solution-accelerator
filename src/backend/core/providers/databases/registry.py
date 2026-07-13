@@ -24,7 +24,7 @@ The registry key must match `settings.database.db_type`
 
 from backend.core.discovery import load_entry_points
 
-from ._instance import registry as registry
+from ._instance import registry as registry  # noqa: F401
 from . import cosmosdb  # noqa: F401
 from . import postgres  # noqa: F401
 
