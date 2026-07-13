@@ -1,15 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-# ========================================================================
-# Purpose: Azure Developer CLI manifest for CWYD v2. Drives `azd up` /
-#          `azd provision` / `azd deploy`. The `parameters:` block uses
-#          azd's typed-prompt feature (CGSA pattern) to ask the operator
-#          for the few decisions that cannot be defaulted safely:
-#            - databaseType (LOCKED at deploy: chat history + index store)
-#            - azureAiServiceLocation (model availability)
-#            - WAF flags (monitoring, scalability, redundancy, networking)
-# ========================================================================
-
 name: chat-with-your-data-v2
 metadata:
   template: chat-with-your-data-v2@0.1.0
@@ -21,167 +11,49 @@ infra:
   path: infra
   module: main
 
-# ----------------------------------------------------------------------
-# Typed prompt block: surfaced by `azd up` / `azd provision`. Each
-# answer is persisted in the azd env file under AZURE_ENV_<name> and
-# bound back to a Bicep parameter via infra/main.parameters.json.
-# ----------------------------------------------------------------------
-parameters:
-  - name: databaseType
-    description: |
-      Database engine for chat history AND vector index. LOCKED after
-      deploy.
-        cosmosdb   - Cosmos DB (chat) + Azure AI Search (index)
-        postgresql - PostgreSQL Flexible (chat) + pgvector (index)
-                     Azure AI Search is NOT deployed in this mode.
-    type: string
-    default: cosmosdb
-    allowed:
-      - cosmosdb
-      - postgresql
-
-  - name: azureAiServiceLocation
-    description: |
-      Azure region for AI Services / Foundry (model availability).
-      Restricted to regions with GPT-5.1 GlobalStandard capacity.
-    type: string
-    default: eastus2
-    allowed:
-      - australiaeast
-      - canadaeast
-      - eastus2
-      - japaneast
-      - koreacentral
-      - polandcentral
-      - swedencentral
-      - switzerlandnorth
-      - uaenorth
-      - uksouth
-      - westus3
-
-  - name: enableMonitoring
-    description: Deploy Log Analytics + Application Insights and wire diagnostic settings on every applicable resource.
-    type: boolean
-    default: false
-
-  - name: enableScalability
-    description: Higher SKUs and autoscale on App Service Plan, Container Apps, Search, and PostgreSQL.
-    type: boolean
-    default: false
-
-  - name: enableRedundancy
-    description: Zone-redundant + paired-region failover on databases, App Service Plan, Container Apps, and Storage.
-    type: boolean
-    default: false
-
-  - name: enablePrivateNetworking
-    description: Deploy a VNet, private endpoints, and disable public network access on data-plane resources.
-    type: boolean
-    default: false
-
-# ----------------------------------------------------------------------
-# Services: bound to Bicep resources by the `azd-service-name` tag in
-# infra/main.bicep:
-#   - backend  → Container App  (tag 'backend')
-#   - frontend → Container App  (tag 'frontend')
-#   - function → Container App  (tag 'function', kind=functionapp)
-# Each service uses its own Dockerfile under docker/. `azd deploy`
-# builds the image, pushes to the Bicep-deployed ACR, and updates the
-# target resource.
-# ----------------------------------------------------------------------
-services:
-  backend:
-    project: ./src/backend
-    language: py
-    host: containerapp
-    docker:
-      path: ../../docker/Dockerfile.backend
-      context: ../..
-      # Build the backend image in ACR (remote) instead of the local
-      # Docker daemon, so `azd deploy` works without a local Docker
-      # install and pushes straight to the registry the UAMI pulls from.
-      remoteBuild: true
-  frontend:
-    project: ./src/frontend
-    language: js
-    host: containerapp
-    docker:
-      path: ../../docker/Dockerfile.frontend
-      context: ../..
-      # Pin the multi-stage build to the `prod` stage (uvicorn serving
-      # the Vite dist/ on port 80).
-      target: prod
-      # Build the frontend image in ACR (remote) instead of the local
-      # Docker daemon, so `azd deploy` works without a local Docker
-      # install and pushes straight to the registry the UAMI pulls from.
-      remoteBuild: true
-      # No VITE_BACKEND_URL build-arg: the SPA reads the backend origin at
-      # runtime from /config (the BACKEND_API_URL env on the container
-      # app), so nothing is baked at build time.
-  function:
-    project: ./src/functions
-    language: py
-    host: containerapp
-    docker:
-      path: ../../docker/Dockerfile.functions
-      context: ../..
-      # Build the function image in ACR (remote) instead of the local
-      # Docker daemon, so `azd deploy` works without a local Docker
-      # install and pushes straight to the registry the UAMI pulls from.
-      # The Dockerfile reproduces the Functions deploy layout
-      # (function_app.py + host.json at the deploy root, blueprints nested
-      # under functions/, backend/ copied) so no prepackage staging hook
-      # is needed.
-      remoteBuild: true
-
-# ----------------------------------------------------------------------
-# Project-level hooks.
-#
-#   postprovision -- runs after every successful `azd provision` /
-#                    `azd up`. Idempotent. In postgresql mode it
-#                    creates the pgvector extension on the freshly
-#                    provisioned Flexible Server using the deployer's
-#                    Entra token. Always prints a compact summary of
-#                    the AZURE_* outputs an operator most commonly
-#                    needs.
-#
-#   postdeploy    -- runs after every successful `azd deploy` / `azd up`.
-#                    Prompts the operator (interactive menu) to choose an
-#                    assistant scenario to seed -- default / employee
-#                    (benefits + HR docs), contract (contract docs), or
-#                    All -- then uploads those documents into the
-#                    documents container and enqueues ingestion so chat
-#                    grounds out-of-the-box. The scope can also be set
-#                    unattended via AZURE_ENV_SAMPLE_DATA (or --set);
-#                    a non-interactive shell with no override skips the
-#                    seed. Idempotent (skip-if-present), and
-#                    continueOnError is true so a seed hiccup (e.g. RBAC
-#                    propagation delay) never fails an otherwise-successful
-#                    deployment.
-#
-# Both posix/windows wrappers shell out to a single Python script so
-# behaviour is identical across platforms.
-# ----------------------------------------------------------------------
 hooks:
-  postprovision:
-    posix:
-      shell: sh
-      run: ./scripts/post-provision.sh
-      continueOnError: false
-      interactive: true
-    windows:
-      shell: pwsh
-      run: ./scripts/post-provision.ps1
-      continueOnError: false
-      interactive: true
   postdeploy:
-    posix:
-      shell: sh
-      run: ./scripts/upload-sample-data.sh
-      continueOnError: true
-      interactive: true
     windows:
       shell: pwsh
-      run: ./scripts/upload-sample-data.ps1
-      continueOnError: true
+      run: |
+        Write-Host ""
+        Write-Host "=============================================="
+        Write-Host " Deployment Complete - Post-Deployment Steps"
+        Write-Host "=============================================="
+        Write-Host ""
+        Write-Host "1. Login to Azure CLI (required for post-deployment script):" -ForegroundColor Yellow
+        Write-Host "   az login" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "2. Run the ACR build/push/update script:" -ForegroundColor Yellow
+        Write-Host "   ./infra/scripts/post-provision/acr_build_push_update.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "   Or using Bash:" -ForegroundColor Yellow
+        Write-Host "   bash infra/scripts/post-provision/acr_build_push_update.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "3. Run the post-deployment setup script:" -ForegroundColor Yellow
+        Write-Host "   ./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "   Or using Bash:" -ForegroundColor Yellow
+        Write-Host "   bash infra/scripts/post-provision/post_deployment_setup.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+      continueOnError: false
+      interactive: true
+    posix:
+      shell: sh
+      run: |
+        echo ""
+        echo "=============================================="
+        echo " Deployment Complete - Post-Deployment Steps"
+        echo "=============================================="
+        echo ""
+        echo "1. Login to Azure CLI (required for post-deployment script):"
+        echo "   az login"
+        echo ""
+        echo "2. Run the ACR build/push/update script:"
+        echo "   bash infra/scripts/post-provision/acr_build_push_update.sh \"$AZURE_RESOURCE_GROUP\""
+        echo ""
+        echo "3. Run the post-deployment setup script:"
+        echo "   bash infra/scripts/post-provision/post_deployment_setup.sh \"$AZURE_RESOURCE_GROUP\""
+        echo ""
+      continueOnError: false
       interactive: true

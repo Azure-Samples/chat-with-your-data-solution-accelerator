@@ -2,104 +2,71 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "solutionName": {
-      "value": "${AZURE_ENV_SOLUTION_NAME=${AZURE_ENV_NAME}}"
+    "deploymentFlavor": {
+      "value": "${DEPLOYMENT_FLAVOR=bicep}"
     },
-    "solutionUniqueText": {
-      "value": "${AZURE_ENV_UNIQUE_TEXT=}"
+    "solutionName": {
+      "value": "${AZURE_ENV_NAME}"
     },
     "location": {
       "value": "${AZURE_LOCATION}"
     },
     "azureAiServiceLocation": {
-      "value": "${AZURE_ENV_AI_SERVICE_LOCATION=${AZURE_LOCATION}}"
+      "value": "${AZURE_AI_SERVICE_LOCATION}"
     },
     "databaseType": {
-      "value": "${AZURE_ENV_DATABASE_TYPE=cosmosdb}"
+      "value": "${DATABASE_TYPE=postgresql}"
     },
     "ingestionTrigger": {
-      "value": "${AZURE_ENV_INGESTION_TRIGGER=direct_enqueue}"
+      "value": "${INGESTION_TRIGGER=direct_enqueue}"
     },
     "gptModelName": {
-      "value": "${AZURE_ENV_GPT_MODEL_NAME=gpt-5.1}"
+      "value": "${AZURE_GPT_MODEL_NAME=gpt-5.4-mini}"
     },
     "gptModelVersion": {
-      "value": "${AZURE_ENV_GPT_MODEL_VERSION=2025-11-13}"
+      "value": "${AZURE_GPT_MODEL_VERSION=2026-03-17}"
     },
     "gptModelDeploymentType": {
-      "value": "${AZURE_ENV_GPT_MODEL_SKU=GlobalStandard}"
+      "value": "${AZURE_GPT_MODEL_DEPLOYMENT_TYPE=GlobalStandard}"
     },
     "gptModelCapacity": {
-      "value": "${AZURE_ENV_GPT_MODEL_CAPACITY=150}"
+      "value": "${AZURE_GPT_MODEL_CAPACITY=50}"
+    },
+    "reasoningModelName": {
+      "value": "${AZURE_REASONING_MODEL_NAME=gpt-5-mini}"
+    },
+    "reasoningModelVersion": {
+      "value": "${AZURE_REASONING_MODEL_VERSION=2025-08-07}"
+    },
+    "reasoningModelDeploymentType": {
+      "value": "${AZURE_REASONING_MODEL_DEPLOYMENT_TYPE=GlobalStandard}"
+    },
+    "reasoningModelCapacity": {
+      "value": "${AZURE_REASONING_MODEL_CAPACITY=50}"
     },
     "embeddingModelName": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_NAME=text-embedding-3-large}"
+      "value": "${AZURE_EMBEDDING_MODEL_NAME=text-embedding-3-small}"
     },
     "embeddingModelVersion": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_VERSION=1}"
+      "value": "${AZURE_EMBEDDING_MODEL_VERSION=1}"
     },
     "embeddingModelDeploymentType": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_SKU=Standard}"
+      "value": "${AZURE_EMBEDDING_MODEL_DEPLOYMENT_TYPE=Standard}"
     },
     "embeddingModelCapacity": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_CAPACITY=100}"
+      "value": "${AZURE_EMBEDDING_MODEL_CAPACITY=100}"
     },
     "azureOpenAiApiVersion": {
-      "value": "${AZURE_ENV_OPENAI_API_VERSION=2025-01-01-preview}"
+      "value": "${AZURE_OPENAI_API_VERSION=2025-01-01-preview}"
     },
     "azureAiAgentApiVersion": {
-      "value": "${AZURE_ENV_AI_AGENT_API_VERSION=2025-05-01}"
+      "value": "${AZURE_AI_AGENT_API_VERSION=2025-05-01}"
     },
-    "enableMonitoring": {
-      "value": "${AZURE_ENV_ENABLE_MONITORING=false}"
+    "existingLogAnalyticsWorkspaceId": {
+      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
     },
-    "enableScalability": {
-      "value": "${AZURE_ENV_ENABLE_SCALABILITY=false}"
-    },
-    "enableRedundancy": {
-      "value": "${AZURE_ENV_ENABLE_REDUNDANCY=false}"
-    },
-    "enablePrivateNetworking": {
-      "value": "${AZURE_ENV_ENABLE_PRIVATE_NETWORKING=false}"
-    },
-    "tags": {
-      "value": {}
-    },
-    "createdBy": {
-      "value": "${AZURE_ENV_CREATED_BY=${AZURE_PRINCIPAL_ID}}"
-    },
-    "postgresAdminPrincipalId": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_ID=${AZURE_PRINCIPAL_ID}}"
-    },
-    "postgresAdminPrincipalName": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_NAME}"
-    },
-    "postgresAdminPrincipalType": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_TYPE=User}"
-    },
-    "existingSearchName": {
-      "value": "${AZURE_ENV_EXISTING_SEARCH_NAME=}"
-    },
-    "searchServiceLocation": {
-      "value": "${AZURE_ENV_SEARCH_SERVICE_LOCATION=}"
-    },
-    "existingCosmosName": {
-      "value": "${AZURE_ENV_EXISTING_COSMOS_NAME=}"
-    },
-    "existingStorageName": {
-      "value": "${AZURE_ENV_EXISTING_STORAGE_NAME=}"
-    },
-    "existingEventGridTopicName": {
-      "value": "${AZURE_ENV_EXISTING_EVENT_GRID_TOPIC_NAME=}"
-    },
-    "existingOpenAiName": {
-      "value": "${AZURE_ENV_EXISTING_OPENAI_NAME=}"
-    },
-    "backendContainerRegistryHostname": {
-      "value": "${AZURE_CONTAINER_REGISTRY_ENDPOINT=}"
-    },
-    "backendContainerImageTag": {
-      "value": "${AZURE_ENV_IMAGE_TAG=latest}"
+    "existingFoundryProjectResourceId": {
+      "value": "${AZURE_EXISTING_AIPROJECT_RESOURCE_ID}"
     }
   }
 }

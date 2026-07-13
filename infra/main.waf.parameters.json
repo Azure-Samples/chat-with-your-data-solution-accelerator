@@ -2,80 +2,95 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
+    "deploymentFlavor": {
+      "value": "${DEPLOYMENT_FLAVOR=avm-waf}"
+    },
     "solutionName": {
       "value": "${AZURE_ENV_NAME}"
-    },
-    "solutionUniqueText": {
-      "value": "${AZURE_ENV_UNIQUE_TEXT=}"
     },
     "location": {
       "value": "${AZURE_LOCATION}"
     },
     "azureAiServiceLocation": {
-      "value": "${AZURE_ENV_AI_SERVICE_LOCATION=${AZURE_LOCATION}}"
+      "value": "${AZURE_AI_SERVICE_LOCATION}"
     },
     "databaseType": {
-      "value": "${AZURE_ENV_DATABASE_TYPE=cosmosdb}"
+      "value": "${DATABASE_TYPE=postgresql}"
     },
     "ingestionTrigger": {
-      "value": "${AZURE_ENV_INGESTION_TRIGGER=direct_enqueue}"
+      "value": "${INGESTION_TRIGGER=direct_enqueue}"
     },
     "gptModelName": {
-      "value": "${AZURE_ENV_GPT_MODEL_NAME=gpt-5.1}"
+      "value": "${AZURE_GPT_MODEL_NAME=gpt-5.4-mini}"
     },
     "gptModelVersion": {
-      "value": "${AZURE_ENV_GPT_MODEL_VERSION=2025-11-13}"
+      "value": "${AZURE_GPT_MODEL_VERSION=2026-03-17}"
     },
     "gptModelDeploymentType": {
-      "value": "${AZURE_ENV_GPT_MODEL_SKU=GlobalStandard}"
+      "value": "${AZURE_GPT_MODEL_DEPLOYMENT_TYPE=GlobalStandard}"
     },
     "gptModelCapacity": {
-      "value": "${AZURE_ENV_GPT_MODEL_CAPACITY=150}"
+      "value": "${AZURE_GPT_MODEL_CAPACITY=50}"
+    },
+    "reasoningModelName": {
+      "value": "${AZURE_REASONING_MODEL_NAME=gpt-5-mini}"
+    },
+    "reasoningModelVersion": {
+      "value": "${AZURE_REASONING_MODEL_VERSION=2025-08-07}"
+    },
+    "reasoningModelDeploymentType": {
+      "value": "${AZURE_REASONING_MODEL_DEPLOYMENT_TYPE=GlobalStandard}"
+    },
+    "reasoningModelCapacity": {
+      "value": "${AZURE_REASONING_MODEL_CAPACITY=50}"
     },
     "embeddingModelName": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_NAME=text-embedding-3-large}"
+      "value": "${AZURE_EMBEDDING_MODEL_NAME=text-embedding-3-small}"
     },
     "embeddingModelVersion": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_VERSION=1}"
+      "value": "${AZURE_EMBEDDING_MODEL_VERSION=1}"
     },
     "embeddingModelDeploymentType": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_SKU=Standard}"
+      "value": "${AZURE_EMBEDDING_MODEL_DEPLOYMENT_TYPE=Standard}"
     },
     "embeddingModelCapacity": {
-      "value": "${AZURE_ENV_EMBEDDING_MODEL_CAPACITY=100}"
+      "value": "${AZURE_EMBEDDING_MODEL_CAPACITY=100}"
     },
     "azureOpenAiApiVersion": {
-      "value": "${AZURE_ENV_OPENAI_API_VERSION=2025-01-01-preview}"
+      "value": "${AZURE_OPENAI_API_VERSION=2025-01-01-preview}"
     },
     "azureAiAgentApiVersion": {
-      "value": "${AZURE_ENV_AI_AGENT_API_VERSION=2025-05-01}"
+      "value": "${AZURE_AI_AGENT_API_VERSION=2025-05-01}"
+    },
+    "existingLogAnalyticsWorkspaceId": {
+      "value": "${AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID}"
+    },
+    "existingFoundryProjectResourceId": {
+      "value": "${AZURE_EXISTING_AIPROJECT_RESOURCE_ID}"
+    },
+    "enableTelemetry": {
+      "value": "${ENABLE_TELEMETRY=true}"
     },
     "enableMonitoring": {
-      "value": "${AZURE_ENV_ENABLE_MONITORING=true}"
+      "value": "${ENABLE_MONITORING=false}"
     },
     "enableScalability": {
-      "value": "${AZURE_ENV_ENABLE_SCALABILITY=true}"
+      "value": "${ENABLE_SCALABILITY=true}"
     },
     "enableRedundancy": {
-      "value": "${AZURE_ENV_ENABLE_REDUNDANCY=true}"
+      "value": "${ENABLE_REDUNDANCY=false}"
     },
     "enablePrivateNetworking": {
-      "value": "${AZURE_ENV_ENABLE_PRIVATE_NETWORKING=true}"
+      "value": "${ENABLE_PRIVATE_NETWORKING=true}"
     },
-    "tags": {
-      "value": {}
+    "vmAdminUsername": {
+      "value": "${AZURE_ENV_VM_ADMIN_USERNAME}"
     },
-    "createdBy": {
-      "value": "${AZURE_ENV_CREATED_BY=${AZURE_PRINCIPAL_ID}}"
+    "vmAdminPassword": {
+      "value": "${AZURE_ENV_VM_ADMIN_PASSWORD}"
     },
-    "postgresAdminPrincipalId": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_ID=${AZURE_PRINCIPAL_ID}}"
-    },
-    "postgresAdminPrincipalName": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_NAME}"
-    },
-    "postgresAdminPrincipalType": {
-      "value": "${AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_TYPE=User}"
+    "vmSize": {
+      "value": "${AZURE_ENV_JUMPBOX_SIZE=Standard_D2s_v5}"
     }
   }
 }

@@ -96,9 +96,9 @@ jobs:
           export TEXT_EMBEDDING_MIN_CAPACITY="30"
           export AZURE_REGIONS="${{ vars.AZURE_REGIONS }}"
 
-          chmod +x scripts/checkquota.sh
-          if ! scripts/checkquota.sh; then
-            if grep -q "No region with sufficient quota found" scripts/checkquota.sh; then
+          chmod +x infra/scripts/pre-provision/checkquota.sh
+          if ! infra/scripts/pre-provision/checkquota.sh; then
+            if grep -q "No region with sufficient quota found" infra/scripts/pre-provision/checkquota.sh; then
               echo "QUOTA_FAILED=true" >> $GITHUB_ENV
             fi
             exit 1

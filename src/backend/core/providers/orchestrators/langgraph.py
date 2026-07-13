@@ -223,7 +223,7 @@ class LangGraphOrchestrator(OrchestratorBase):
             )
             return
 
-        for citation in filter_to_referenced(answer, citations):
+        for citation in citations:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.CITATION,
                 metadata=citation.model_dump(),

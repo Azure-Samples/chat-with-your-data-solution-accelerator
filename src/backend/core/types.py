@@ -22,7 +22,10 @@ class AadScope(StrEnum):
     these scopes. ``COGNITIVE_SERVICES`` covers the unified Foundry AI
     Services account (Document Intelligence, Content Understanding,
     OpenAI, Speech) per ``infra/main.bicep``. ``POSTGRES_FLEX``
-    covers Postgres Flexible Server's Entra-only auth.
+    covers Postgres Flexible Server's Entra-only auth. ``SEARCH``
+    covers the Azure AI Search data plane -- including the Foundry IQ
+    Knowledge Base managed MCP endpoint, which authenticates the
+    caller-supplied bearer against the search service's RBAC.
 
     ``StrEnum`` subclassing keeps the wire-shape contract intact: SDK
     methods declared with ``*scopes: str`` accept the enum member
@@ -31,6 +34,7 @@ class AadScope(StrEnum):
 
     COGNITIVE_SERVICES = "https://cognitiveservices.azure.com/.default"
     POSTGRES_FLEX = "https://ossrdbms-aad.database.windows.net/.default"
+    SEARCH = "https://search.azure.com/.default"
 
 
 class ChatRole(StrEnum):

@@ -60,6 +60,7 @@ from agent_framework import (
     ToolTypes,
 )
 from azure.ai.projects.models import MCPTool
+from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
 from backend.core.agents.definitions import CWYD_AGENT
@@ -78,6 +79,7 @@ from backend.core.tools.citations import (
     strip_kb_markers,
 )
 from backend.core.types import (
+    AadScope,
     ChatMessage,
     ChatRole,
     Citation,
@@ -110,15 +112,24 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         search_use_semantic_search: bool | None = None,
         openai_temperature: float | None = None,
         openai_max_tokens: int | None = None,
+        credential: AsyncTokenCredential | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
-        # orchestrator (`system_prompt` for `langgraph`, plus `credential` /
-        # `agent_name` from the shared wiring contract). Avoids name-based
-        # dispatch in the caller (Hard Rule #4).
+        # orchestrator (`system_prompt` for `langgraph`, plus `agent_name`
+        # from the shared wiring contract). Avoids name-based dispatch in
+        # the caller (Hard Rule #4). `credential` is a named parameter: the
+        # KB MCP endpoint authenticates a caller-supplied bearer, so this
+        # orchestrator mints a Search-scoped token from it per request.
         super().__init__(settings, llm)
         self._agents = agents
         self._db = db
+        # The backend's async managed-identity credential, used to mint a
+        # Search-audience bearer for the Foundry IQ Knowledge Base MCP
+        # endpoint (see `_kb_authorization`). `None` in unit tests and on
+        # deployments without a KB, where `_build_kb_tool` falls back to
+        # the project search connection.
+        self._credential = credential
         # The injected search provider backs citation enrichment: an
         # agent_framework KB citation carries only a raw
         # mcp://searchindex/<key> id, so run() resolves each key through
@@ -141,9 +152,12 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # Foundry IQ Knowledge Base coordinates are infra-pinned (not
         # per-request), so capture them once here rather than holding a
         # reference to `settings` and reaching through it later. The KB
-        # MCP endpoint is authenticated server-side via the project
-        # search connection (`connection_name`), so no per-request bearer
-        # is minted.
+        # MCP endpoint authenticates a caller-supplied bearer against the
+        # search service RBAC, so `run()` mints a Search-scoped token from
+        # `self._credential` per request (`_kb_authorization`) and attaches
+        # it via `MCPTool.authorization`; the project search connection
+        # (`connection_name`) is only the fallback when no credential is
+        # wired.
         search_settings = settings.search
         self._search_endpoint = search_settings.endpoint
         self._kb_name = search_settings.knowledge_base_name
@@ -176,13 +190,15 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         settings_override: dict[str, Any] | None = None,
     ) -> AsyncIterator[OrchestratorEvent]:
         # Build the KB retrieval tool only when a Knowledge Base is
-        # configured. The tool is authenticated server-side via the
-        # project search connection (`project_connection_id`), so there
-        # is no per-request bearer to mint and no caller-owned HTTP
-        # client to manage -- the Responses API runs the MCP call under
-        # the connection's identity. The dict form (`.as_dict()`) is the
-        # wire shape the runtime agent forwards to the Responses API.
-        kb_tool = self._build_kb_tool()
+        # configured. Mint a Search-scoped bearer from the backend
+        # credential and attach it via `MCPTool.authorization` so the
+        # Responses API forwards it to the KB MCP endpoint, which
+        # authenticates the caller against the search service RBAC. When
+        # no credential is wired the tool falls back to the project search
+        # connection (`project_connection_id`). The dict form (`.as_dict()`)
+        # is the wire shape the runtime agent forwards to the Responses API.
+        authorization = await self._kb_authorization()
+        kb_tool = self._build_kb_tool(authorization)
         extra_tools: list[ToolTypes] | None = (
             [kb_tool.as_dict()] if kb_tool is not None else None
         )
@@ -308,12 +324,11 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
 
         answer = "".join(answer_parts)
         if retrieved_citations:
-            # pgvector app-side grounding path: the model cited the
-            # injected [docN] sources block, so keep only the markers it
-            # actually referenced -- symmetric with the langgraph path.
-            # There are no native KB annotations to normalize or enrich
-            # here; build_citations already carries title / snippet.
-            citations = filter_to_referenced(answer, retrieved_citations)
+            # pgvector app-side grounding path: emit all citations so
+            # positional [docN] indexing stays in sync with the array
+            # the frontend receives (the frontend resolves [docN] by
+            # array position, not by id).
+            citations = list(retrieved_citations)
         else:
             # Foundry IQ KB path: citations ride native annotations.
             citations = citations_from_annotations(citation_annotations)
@@ -369,33 +384,76 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
 
     # Helpers
 
-    def _build_kb_tool(self) -> MCPTool | None:
+    async def _kb_authorization(self) -> str | None:
+        """Mint a Search-scoped bearer for the Knowledge Base MCP endpoint.
+
+        Returns the raw access token string for `MCPTool.authorization`,
+        or `None` when no credential is wired (unit tests, or a deployment
+        that relies on the project search connection). Token acquisition is
+        best-effort: a transient credential failure degrades to `None` so
+        `_build_kb_tool` falls back to the connection-id path rather than
+        failing the whole turn (the failure is logged at this SDK boundary,
+        never silently swallowed -- Hard Rule #14).
+        """
+        if self._credential is None:
+            return None
+        try:
+            token = await self._credential.get_token(AadScope.SEARCH)
+        except AzureError:
+            logger.exception(
+                "agent_framework KB token acquisition failed; "
+                "falling back to project connection auth",
+                extra={
+                    "operation": "mint_kb_token",
+                    "provider": "agent_framework",
+                    "scope": AadScope.SEARCH,
+                },
+            )
+            return None
+        return token.token
+
+    def _build_kb_tool(self, authorization: str | None = None) -> MCPTool | None:
         """Build the Foundry IQ Knowledge Base retrieval tool.
 
-        Returns a server-side `MCPTool` bound to the KB's managed MCP
-        endpoint and the project search connection, or `None` when the
-        KB is unconfigured (empty Search endpoint, knowledge-base name,
-        or connection name -- e.g. a pgvector deployment, where
+        Returns an `MCPTool` bound to the KB's managed MCP endpoint, or
+        `None` when the KB is unconfigured (empty Search endpoint or
+        knowledge-base name -- e.g. a pgvector deployment, where
         `agent_framework` is rejected upstream rather than reaching this
-        path). The tool carries `project_connection_id` so the Responses
-        API authenticates the retrieval call server-side under the
-        connection's identity; the caller serializes it via `.as_dict()`
-        before attaching it to the runtime agent.
+        path) or when no auth path is available. When `authorization` is
+        supplied it is attached as the OAuth bearer the Responses API
+        forwards to the KB MCP endpoint; otherwise the tool carries
+        `project_connection_id` so the Responses API authenticates the
+        retrieval call server-side under the connection's identity. The
+        caller serializes it via `.as_dict()` before attaching it to the
+        runtime agent.
         """
         endpoint = self._search_endpoint.rstrip("/")
-        if not endpoint or not self._kb_name or not self._connection_name:
+        if not endpoint or not self._kb_name:
             return None
         url = (
             f"{endpoint}/knowledgebases/{self._kb_name}/mcp"
             f"?api-version={self._kb_api_version}"
         )
-        return MCPTool(
-            server_label=self._kb_name,
-            server_url=url,
-            require_approval="never",
-            allowed_tools=[KB_RETRIEVE_TOOL_NAME],
-            project_connection_id=self._connection_name,
-        )
+        # A caller-minted bearer wins over the project connection: when we
+        # supply our own token we do not also point the runtime at the
+        # connection. With neither, there is no auth path -- no tool.
+        if authorization:
+            return MCPTool(
+                server_label=self._kb_name,
+                server_url=url,
+                require_approval="never",
+                allowed_tools=[KB_RETRIEVE_TOOL_NAME],
+                authorization=authorization,
+            )
+        if self._connection_name:
+            return MCPTool(
+                server_label=self._kb_name,
+                server_url=url,
+                require_approval="never",
+                allowed_tools=[KB_RETRIEVE_TOOL_NAME],
+                project_connection_id=self._connection_name,
+            )
+        return None
 
     @staticmethod
     def _to_oss_messages(messages: Sequence[ChatMessage]) -> list[Message]:
