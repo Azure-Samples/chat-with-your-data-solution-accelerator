@@ -48,8 +48,8 @@ jobs:
         env:
           RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
         run: |
-          chmod +x scripts/post_deployment_setup.sh
-          bash scripts/post_deployment_setup.sh "$RESOURCE_GROUP"
+          chmod +x infra/scripts/post-provision/post_deployment_setup.sh
+          bash infra/scripts/post-provision/post_deployment_setup.sh "$RESOURCE_GROUP"
 
       - name: Generate Post-Deployment Summary
         if: always()

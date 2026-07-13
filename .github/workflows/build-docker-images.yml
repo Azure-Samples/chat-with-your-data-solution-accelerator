@@ -7,8 +7,7 @@ on:
       - dev
       - demo
     paths:
-      - 'code/**'
-      - '!code/tests/**'
+      - 'src/**'
       - 'docker/**'
       - 'package.json'
       - 'pyproject.toml'
@@ -20,8 +19,7 @@ on:
       - dev
       - demo
     paths:
-      - 'code/**'
-      - '!code/tests/**'
+      - 'src/**'
       - 'docker/**'
       - 'package.json'
       - 'pyproject.toml'
@@ -57,8 +55,7 @@ jobs:
         with:
           filters: |
             docker_related:
-              - 'code/**'
-              - '!code/tests/**'
+              - 'src/**'
               - 'docker/**'
               - 'package.json'
               - 'pyproject.toml'
@@ -75,12 +72,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - app_name: rag-adminwebapp
-            dockerfile: docker/Admin.Dockerfile
+          - app_name: rag-frontend
+            dockerfile: docker/Dockerfile.frontend
           - app_name: rag-backend
-            dockerfile: docker/Backend.Dockerfile
-          - app_name: rag-webapp
-            dockerfile: docker/Frontend.Dockerfile
+            dockerfile: docker/Dockerfile.backend
+          - app_name: rag-functions
+            dockerfile: docker/Dockerfile.functions
     uses: ./.github/workflows/build-docker.yml
     with:
       new_registry: 'cwydcontainerreg.azurecr.io'
