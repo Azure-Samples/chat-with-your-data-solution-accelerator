@@ -40,6 +40,9 @@ on:
       - ".github/workflows/v2-frontend-checks.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   frontend-checks:
     runs-on: ubuntu-latest

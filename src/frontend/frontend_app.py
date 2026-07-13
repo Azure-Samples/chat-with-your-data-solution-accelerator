@@ -61,7 +61,10 @@ def serve_spa(full_path: str) -> FileResponse:
     to `index.html` so the browser-side router can take over.
     """
     dist_root = _DIST_DIR.resolve()
-    candidate = (dist_root / full_path).resolve()
-    if full_path and candidate.is_file() and candidate.is_relative_to(dist_root):
+    normalized_path = os.path.normpath(full_path).lstrip("/\\")
+    if normalized_path in ("", ".") or normalized_path.startswith("../") or normalized_path.startswith("..\\"):
+        return FileResponse(dist_root / "index.html")
+    candidate = (dist_root / normalized_path).resolve()
+    if candidate.is_file() and candidate.is_relative_to(dist_root):
         return FileResponse(candidate)
     return FileResponse(dist_root / "index.html")

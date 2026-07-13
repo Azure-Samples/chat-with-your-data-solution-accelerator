@@ -38,6 +38,9 @@ on:
       - ".github/workflows/v2-backend-only-smoke.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     runs-on: ubuntu-latest

@@ -37,6 +37,7 @@ import argparse
 import os
 import sys
 from typing import Sequence
+from urllib.parse import urlparse
 
 import httpx
 import psycopg2  # type: ignore[import-not-found]
@@ -192,7 +193,13 @@ def _enable_pgvector() -> None:
     # cannot resolve it from outside the VNet. Fail loudly with an
     # actionable Bastion-tunnel command instead of letting psycopg2
     # raise an opaque `could not translate host name` error.
-    if ".private.postgres.database.azure.com" in host:
+    parsed_host = urlparse(host if "://" in host else f"//{host}").hostname
+    normalized_host = (parsed_host or host).strip().lower()
+    is_private_pg_host = (
+        normalized_host == "private.postgres.database.azure.com"
+        or normalized_host.endswith(".private.postgres.database.azure.com")
+    )
+    if is_private_pg_host:
         bastion = os.environ.get("AZURE_BASTION_NAME", "<bastion-name>")
         rg = os.environ.get("AZURE_RESOURCE_GROUP", "<resource-group>")
         pg_name = os.environ.get("AZURE_POSTGRES_NAME", "<postgres-name>")

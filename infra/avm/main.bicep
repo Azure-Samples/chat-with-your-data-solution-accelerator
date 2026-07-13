@@ -423,7 +423,7 @@ module virtualNetwork './modules/networking/virtual-network.bicep' = if (enableP
     location: location
     tags: allTags
     addressPrefixes: ['10.0.0.0/20'] // 4096 addresses (enough for 8 /23 subnets or 16 /24)
-    logAnalyticsWorkspaceId: logAnalyticsWorkspaceResourceId
+    logAnalyticsWorkspaceId: (enableMonitoring || useExistingLogAnalytics) ? logAnalyticsWorkspaceResourceId : ''
     resourceSuffix: solutionSuffix
     enableTelemetry: enableTelemetry
   }
@@ -1025,7 +1025,7 @@ module containerRegistry './modules/compute/container-registry.bicep' = {
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
     networkRuleSetDefaultAction: enablePrivateNetworking ? 'Deny' : 'Allow'
     enablePrivateNetworking: enablePrivateNetworking
-    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.containerSubnetResourceId : ''
+    privateEndpointSubnetId: enablePrivateNetworking ? virtualNetwork!.outputs.backendSubnetResourceId : ''
     privateDnsZoneResourceIds: enablePrivateNetworking ? [
       privateDnsZoneDeployments[dnsZoneIndex.containerRegistry]!.outputs.resourceId
     ] : []

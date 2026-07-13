@@ -304,9 +304,7 @@ v2/infra/
     └── ai-project-search-connection.bicep  # Foundry Project ↔ Search connection (cosmosdb mode).
 
 v2/scripts/
-├── post_provision.py             # azd postprovision hook (Python).
-├── post-provision.sh             # POSIX wrapper.
-└── post-provision.ps1            # PowerShell wrapper.
+└── post_provision.py             # azd postprovision hook (Python).
 
 v2/azure.yaml                     # azd service map (backend/frontend/function).
 ```

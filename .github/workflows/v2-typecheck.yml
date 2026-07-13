@@ -29,6 +29,9 @@ on:
       - ".github/workflows/v2-typecheck.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   pyright:
     runs-on: ubuntu-latest

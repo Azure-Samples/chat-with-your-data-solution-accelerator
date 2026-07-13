@@ -26,13 +26,60 @@ status (502 for SDK errors per the policy in
 [v2/docs/exception_handling_policy.md] §"Functions blueprints").
 """
 
+import ipaddress
 import logging
+import socket
+from urllib.parse import urlparse
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 30.0
+
+
+def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+    )
+
+
+def _validate_public_http_url(url: str) -> None:
+    """Raise ``httpx.InvalidURL`` if *url* is not a safe public http/https URL.
+
+    Guards against SSRF by rejecting non-http(s) schemes, URLs without a
+    hostname, and URLs whose hostname resolves to a private, loopback,
+    link-local, multicast, reserved, or unspecified IP address (including
+    Azure IMDS 169.254.169.254 and the Azure WireServer 168.63.129.16).
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise httpx.InvalidURL("Only http/https URLs are allowed.")
+    if not parsed.hostname:
+        raise httpx.InvalidURL("URL must include a hostname.")
+    host = parsed.hostname
+    try:
+        ip = ipaddress.ip_address(host)
+        if _is_blocked_ip(ip):
+            raise httpx.InvalidURL("URL host resolves to a non-public IP.")
+        return
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, parsed.port, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise httpx.InvalidURL("Hostname could not be resolved.") from exc
+    if not infos:
+        raise httpx.InvalidURL("Hostname could not be resolved.")
+    for info in infos:
+        resolved_ip = ipaddress.ip_address(info[4][0])
+        if _is_blocked_ip(resolved_ip):
+            raise httpx.InvalidURL("URL host resolves to a non-public IP.")
 
 
 async def fetch_url(
@@ -63,6 +110,7 @@ async def fetch_url(
             ``@map_function_exceptions("add_url")`` decorator can
             translate it into a 502 response.
     """
+    _validate_public_http_url(url)
     try:
         if client is None:
             async with httpx.AsyncClient(

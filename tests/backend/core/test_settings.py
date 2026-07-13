@@ -2,6 +2,7 @@
 
 from enum import StrEnum
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 from pydantic import ValidationError
@@ -597,7 +598,13 @@ def test_content_safety_settings_reads_env_prefix(
     monkeypatch.setenv(_ContentSafetyEnvVar.ENABLED, "true")
     monkeypatch.setenv(_ContentSafetyEnvVar.SEVERITY_THRESHOLD, "6")
     settings = AppSettings()
-    assert settings.content_safety.endpoint.endswith(".cognitiveservices.azure.com/")
+    parsed = urlparse(settings.content_safety.endpoint)
+    assert parsed.scheme == "https"
+    assert parsed.hostname is not None
+    assert (
+        parsed.hostname == "cognitiveservices.azure.com"
+        or parsed.hostname.endswith(".cognitiveservices.azure.com")
+    )
     assert settings.content_safety.enabled is True
     assert settings.content_safety.severity_threshold == 6
 

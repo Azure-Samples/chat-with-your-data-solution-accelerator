@@ -225,7 +225,7 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.8.0' = {
         delegation: subnet.?delegation
       }
     ]
-    diagnosticSettings: [
+    diagnosticSettings: empty(logAnalyticsWorkspaceId) ? [] : [
       {
         name: 'vnetDiagnostics'
         workspaceResourceId: logAnalyticsWorkspaceId

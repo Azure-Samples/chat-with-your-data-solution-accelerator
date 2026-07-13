@@ -31,6 +31,15 @@ function isHttpUrl(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://");
 }
 
+function isAzureBlobHost(rawUrl: string): boolean {
+  try {
+    const host = new URL(rawUrl).hostname.toLowerCase();
+    return host === "blob.core.windows.net" || host.endsWith(BLOB_HOST_FRAGMENT);
+  } catch {
+    return false;
+  }
+}
+
 function filesHref(filename: string): string {
   return `${getBackendUrl()}/api/files/${encodeURIComponent(filename)}`;
 }
@@ -50,7 +59,7 @@ function lastPathSegment(rawUrl: string): string {
 export function deriveDocumentHref(citation: Citation): string | null {
   const url = citation.url;
   if (isHttpUrl(url)) {
-    if (url.includes(BLOB_HOST_FRAGMENT)) {
+    if (isAzureBlobHost(url)) {
       const filename = lastPathSegment(url);
       return filename.length > 0 ? filesHref(filename) : null;
     }
