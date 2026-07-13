@@ -254,6 +254,7 @@ def test_aad_scope_membership_is_frozen() -> None:
     assert {member.value for member in AadScope} == {
         "https://cognitiveservices.azure.com/.default",
         "https://ossrdbms-aad.database.windows.net/.default",
+        "https://search.azure.com/.default",
     }
 
 
