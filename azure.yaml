@@ -12,6 +12,27 @@ infra:
   module: main
 
 hooks:
+  preprovision:
+    windows:
+      run: |
+        Write-Host ""
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host "  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs." -ForegroundColor Yellow
+        Write-Host "  https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues" -ForegroundColor Cyan
+        Write-Host "  ---------------------------------------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host ""
+      shell: pwsh
+      interactive: true
+  posix:
+      run: |
+        echo ""
+        echo "  ---------------------------------------------------------------------------------------------------"
+        echo "  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs."
+        echo "  https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues"
+        echo "  ---------------------------------------------------------------------------------------------------"
+        echo ""
+      shell: sh
+      interactive: true
   postdeploy:
     windows:
       shell: pwsh
