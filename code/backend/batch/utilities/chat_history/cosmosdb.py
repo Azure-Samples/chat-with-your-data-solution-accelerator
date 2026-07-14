@@ -122,8 +122,12 @@ class CosmosConversationClient(DatabaseClientBase):
 
     async def get_conversations(self, user_id, limit, sort_order="DESC", offset=0):
         parameters = [{"name": "@userId", "value": user_id}]
+        if sort_order not in ("ASC", "DESC"):
+            sort_order = "DESC"
         query = f"SELECT * FROM c where c.userId = @userId and c.type='conversation' order by c.updatedAt {sort_order}"
         if limit is not None:
+            offset = int(offset)
+            limit = int(limit)
             query += f" offset {offset} limit {limit}"
 
         conversations = []
