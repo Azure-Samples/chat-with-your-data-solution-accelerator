@@ -207,16 +207,28 @@ try {
 
     foreach ($img in $Images) {
         $FullTag    = "$($img.Name):${Tag}"
-        $Dockerfile = Join-Path $RepoRoot $img.Dockerfile
+        $ContextDir = Join-Path $env:TEMP "acr-build-context-$($img.Name)"
+
+        Remove-Item $ContextDir -Recurse -Force -ErrorAction SilentlyContinue
+        $null = New-Item -ItemType Directory -Path $ContextDir
+        Copy-Item -Path (Join-Path $RepoRoot 'src')            -Destination $ContextDir -Recurse
+        Copy-Item -Path (Join-Path $RepoRoot 'docker')         -Destination $ContextDir -Recurse
+        Copy-Item -Path (Join-Path $RepoRoot 'pyproject.toml') -Destination $ContextDir
+        Copy-Item -Path (Join-Path $RepoRoot 'uv.lock')        -Destination $ContextDir
 
         Write-Host "[$($img.Name)] Submitting remote build to ACR '$AcrName' ..."
         az acr build `
             --registry  $AcrName `
             --image     $FullTag `
-            --file      $Dockerfile `
-            $RepoRoot
-        if ($LASTEXITCODE -ne 0) { Write-Error "Remote build failed for $($img.Name)."; exit 1 }
+            --file      $img.Dockerfile `
+            $ContextDir
+        if ($LASTEXITCODE -ne 0) {
+            Remove-Item $ContextDir -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Error "Remote build failed for $($img.Name)."
+            exit 1
+        }
 
+        Remove-Item $ContextDir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "[$($img.Name)] OK Done"
     }
 } finally {
