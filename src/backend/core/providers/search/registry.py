@@ -25,7 +25,7 @@ name-string translation (Hard Rule #4). Lookups are case-insensitive
 
 from backend.core.discovery import load_entry_points
 
-from ._instance import registry as registry
+from ._instance import registry as registry  # noqa: F401
 from . import azure_search  # noqa: F401
 from . import pgvector  # noqa: F401
 

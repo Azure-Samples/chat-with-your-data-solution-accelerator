@@ -172,9 +172,7 @@ class UploadRejected(Exception):
         super().__init__(detail if isinstance(detail, str) else str(detail))
 
 
-def validate_upload(
-    filename: str, content_size: int, *, settings: AppSettings
-) -> None:
+def validate_upload(filename: str, content_size: int, *, settings: AppSettings) -> None:
     """Validate one admin upload is ingestable before it is stored.
 
     Raises :class:`UploadRejected` (which the admin router maps to an
@@ -221,8 +219,9 @@ def validate_upload(
             },
         )
     parser_cls = ingestion_parsers_registry.registry.get(extension)
-    if parser_cls.requires_ai_services and not settings.foundry.services_endpoint.lower().startswith(
-        "https://"
+    if (
+        parser_cls.requires_ai_services
+        and not settings.foundry.services_endpoint.lower().startswith("https://")
     ):
         raise UploadRejected(
             status_code=HTTPStatus.SERVICE_UNAVAILABLE,
@@ -383,9 +382,7 @@ async def reprocess_all(
         container_name=container_name,
         queue_name=queue_name,
     ) as (container_client, queue_client):
-        messages = await batch_start_handler(
-            request, container_client, queue_client
-        )
+        messages = await batch_start_handler(request, container_client, queue_client)
     ingestion_job_id = messages[0].ingestion_job_id if messages else None
     logger.info(
         "Admin reprocess-all fan-out queued.",

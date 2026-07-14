@@ -6,8 +6,19 @@ from typing import cast
 import pytest
 
 from backend.core.settings import AppSettings, get_settings
-from backend.models.health import CheckStatus, DependencyCheck, HealthResponse, OverallStatus
-from backend.services.health import _aggregate, _check_database, _check_foundry, _check_search, run_health_checks
+from backend.models.health import (
+    CheckStatus,
+    DependencyCheck,
+    HealthResponse,
+    OverallStatus,
+)
+from backend.services.health import (
+    _aggregate,
+    _check_database,
+    _check_foundry,
+    _check_search,
+    run_health_checks,
+)
 
 
 COSMOS_ENV: dict[str, str] = {
@@ -33,7 +44,10 @@ def _clean_settings_cache() -> None:
 
 
 def _set_env(monkeypatch: pytest.MonkeyPatch, env: dict[str, str]) -> None:
-    for key in list(COSMOS_ENV.keys()) + ["AZURE_POSTGRES_ENDPOINT", "AZURE_UAMI_CLIENT_ID"]:
+    for key in list(COSMOS_ENV.keys()) + [
+        "AZURE_POSTGRES_ENDPOINT",
+        "AZURE_UAMI_CLIENT_ID",
+    ]:
         monkeypatch.delenv(key, raising=False)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
@@ -49,14 +63,18 @@ def _settings(monkeypatch: pytest.MonkeyPatch, env: dict[str, str]) -> AppSettin
 # ---------------------------------------------------------------------------
 
 
-def test_check_foundry_passes_when_endpoints_set(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_foundry_passes_when_endpoints_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings = _settings(monkeypatch, COSMOS_ENV)
     result = _check_foundry(settings)
     assert result.name == "foundry_iq"
     assert result.status is CheckStatus.PASS
 
 
-def test_check_foundry_fails_when_project_endpoint_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_foundry_fails_when_project_endpoint_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     env = {k: v for k, v in COSMOS_ENV.items() if k != "AZURE_AI_PROJECT_ENDPOINT"}
     settings = _settings(monkeypatch, env)
     result = _check_foundry(settings)
@@ -64,7 +82,9 @@ def test_check_foundry_fails_when_project_endpoint_missing(monkeypatch: pytest.M
     assert "AZURE_AI_PROJECT_ENDPOINT" in result.detail
 
 
-def test_check_foundry_fails_when_gpt_deployment_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_foundry_fails_when_gpt_deployment_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     env = {k: v for k, v in COSMOS_ENV.items() if k != "AZURE_OPENAI_GPT_DEPLOYMENT"}
     settings = _settings(monkeypatch, env)
     result = _check_foundry(settings)
@@ -87,7 +107,11 @@ def test_check_database_passes_for_cosmosdb(monkeypatch: pytest.MonkeyPatch) -> 
 
 def test_check_database_passes_for_postgresql(monkeypatch: pytest.MonkeyPatch) -> None:
     env = {
-        **{k: v for k, v in COSMOS_ENV.items() if k not in {"AZURE_DB_TYPE", "AZURE_COSMOS_ENDPOINT", "AZURE_INDEX_STORE"}},
+        **{
+            k: v
+            for k, v in COSMOS_ENV.items()
+            if k not in {"AZURE_DB_TYPE", "AZURE_COSMOS_ENDPOINT", "AZURE_INDEX_STORE"}
+        },
         "AZURE_DB_TYPE": "postgresql",
         "AZURE_INDEX_STORE": "pgvector",
         "AZURE_POSTGRES_ENDPOINT": "postgresql://pg-cwyd001.postgres.database.azure.com:5432/cwyd?sslmode=require",
@@ -106,7 +130,9 @@ def test_check_database_fails_when_endpoint_missing() -> None:
     Use a lightweight stub to exercise the helper's own logic.
     """
     stub = SimpleNamespace(
-        database=SimpleNamespace(db_type="cosmosdb", cosmos_endpoint="", postgres_endpoint=""),
+        database=SimpleNamespace(
+            db_type="cosmosdb", cosmos_endpoint="", postgres_endpoint=""
+        ),
     )
     result = _check_database(cast(AppSettings, stub))
     assert result.status is CheckStatus.FAIL
@@ -126,7 +152,9 @@ def test_check_search_passes_for_azure_search(monkeypatch: pytest.MonkeyPatch) -
     assert result.detail == "AzureSearch"
 
 
-def test_check_search_fails_when_endpoint_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_check_search_fails_when_endpoint_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     env = {k: v for k, v in COSMOS_ENV.items() if k != "AZURE_AI_SEARCH_ENDPOINT"}
     settings = _settings(monkeypatch, env)
     result = _check_search(settings)
@@ -136,7 +164,17 @@ def test_check_search_fails_when_endpoint_missing(monkeypatch: pytest.MonkeyPatc
 
 def test_check_search_skips_for_pgvector(monkeypatch: pytest.MonkeyPatch) -> None:
     env = {
-        **{k: v for k, v in COSMOS_ENV.items() if k not in {"AZURE_DB_TYPE", "AZURE_COSMOS_ENDPOINT", "AZURE_INDEX_STORE", "AZURE_AI_SEARCH_ENDPOINT"}},
+        **{
+            k: v
+            for k, v in COSMOS_ENV.items()
+            if k
+            not in {
+                "AZURE_DB_TYPE",
+                "AZURE_COSMOS_ENDPOINT",
+                "AZURE_INDEX_STORE",
+                "AZURE_AI_SEARCH_ENDPOINT",
+            }
+        },
         "AZURE_DB_TYPE": "postgresql",
         "AZURE_INDEX_STORE": "pgvector",
         "AZURE_POSTGRES_ENDPOINT": "postgresql://pg-cwyd001.postgres.database.azure.com:5432/cwyd?sslmode=require",
@@ -183,7 +221,9 @@ def test_aggregate_any_fail_returns_fail() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_run_health_checks_returns_health_response_with_all_three_checks(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_health_checks_returns_health_response_with_all_three_checks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     settings = _settings(monkeypatch, COSMOS_ENV)
     result = run_health_checks(settings)
     assert isinstance(result, HealthResponse)
@@ -192,7 +232,9 @@ def test_run_health_checks_returns_health_response_with_all_three_checks(monkeyp
     assert names == {"foundry_iq", "database", "search"}
 
 
-def test_run_health_checks_overall_fails_when_any_dependency_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_health_checks_overall_fails_when_any_dependency_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     env = {k: v for k, v in COSMOS_ENV.items() if k != "AZURE_AI_PROJECT_ENDPOINT"}
     settings = _settings(monkeypatch, env)
     result = run_health_checks(settings)
@@ -201,9 +243,21 @@ def test_run_health_checks_overall_fails_when_any_dependency_fails(monkeypatch: 
     assert foundry.status is CheckStatus.FAIL
 
 
-def test_run_health_checks_overall_passes_when_search_skipped(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_health_checks_overall_passes_when_search_skipped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     env = {
-        **{k: v for k, v in COSMOS_ENV.items() if k not in {"AZURE_DB_TYPE", "AZURE_COSMOS_ENDPOINT", "AZURE_INDEX_STORE", "AZURE_AI_SEARCH_ENDPOINT"}},
+        **{
+            k: v
+            for k, v in COSMOS_ENV.items()
+            if k
+            not in {
+                "AZURE_DB_TYPE",
+                "AZURE_COSMOS_ENDPOINT",
+                "AZURE_INDEX_STORE",
+                "AZURE_AI_SEARCH_ENDPOINT",
+            }
+        },
         "AZURE_DB_TYPE": "postgresql",
         "AZURE_INDEX_STORE": "pgvector",
         "AZURE_POSTGRES_ENDPOINT": "postgresql://pg-cwyd001.postgres.database.azure.com:5432/cwyd?sslmode=require",

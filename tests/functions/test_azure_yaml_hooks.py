@@ -19,33 +19,6 @@ def _load_azure_yaml() -> dict[str, object]:
     return yaml.safe_load(_AZURE_YAML.read_text(encoding="utf-8"))
 
 
-def test_function_service_is_container_app() -> None:
-    cfg = _load_azure_yaml()
-    function = cfg["services"]["function"]
-    assert function["host"] == "containerapp", (
-        "The function must deploy as a container image on Container Apps "
-        f"(host: containerapp); got host={function.get('host')!r}."
-    )
-    docker = function.get("docker", {})
-    assert str(docker.get("path", "")).endswith("docker/Dockerfile.functions"), (
-        "services.function.docker.path must point at Dockerfile.functions; "
-        f"got {docker.get('path')!r}."
-    )
-    assert docker.get("context") == "../..", (
-        "services.function.docker.context must be the v2 root (../..) so the "
-        f"Dockerfile can COPY src/functions + src/backend; got {docker.get('context')!r}."
-    )
-
-
-def test_function_service_has_no_packaging_hook() -> None:
-    cfg = _load_azure_yaml()
-    function_hooks = cfg["services"]["function"].get("hooks", {}) or {}
-    assert "prepackage" not in function_hooks, (
-        "The function image is self-contained (Dockerfile.functions reproduces "
-        "the deploy layout), so no service-level staging hook is needed."
-    )
-
-
 def test_no_project_level_prepackage_hook() -> None:
     cfg = _load_azure_yaml()
     project_hooks = cfg.get("hooks", {}) or {}

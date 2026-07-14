@@ -70,8 +70,6 @@ async def test_admin_config_live_forbids_non_admin_role(
     non_admin_headers: dict[str, str],
 ) -> None:
     """A valid but non-admin caller is rejected with 403 in any environment."""
-    response = await live_client.get(
-        "/api/admin/config", headers=non_admin_headers
-    )
+    response = await live_client.get("/api/admin/config", headers=non_admin_headers)
 
     assert response.status_code == 403, response.text

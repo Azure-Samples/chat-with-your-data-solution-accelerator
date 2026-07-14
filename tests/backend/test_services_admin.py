@@ -4,8 +4,6 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Any
 
-import pytest
-
 from backend.core.agents.definitions import (
     CWYD_AGENT,
     CWYD_GUARDRAIL,
@@ -157,8 +155,7 @@ def test_resolve_effective_config_cold_start_returns_env_defaults() -> None:
     assert effective.post_answering_prompt == DEFAULT_POST_ANSWERING_PROMPT
     assert effective.post_answering_enabled is False
     assert (
-        effective.post_answering_filter_message
-        == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
+        effective.post_answering_filter_message == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
     )
 
 
@@ -290,9 +287,7 @@ def test_resolve_allows_pgvector_with_agent_framework() -> None:
     """pgvector + the agent_framework env default resolves with no raise:
     agent_framework now grounds app-side on pgvector (ADR 0027 supersedes
     the ADR 0022 block), so the pairing is served."""
-    settings = _settings(
-        orchestrator_name="agent_framework", index_store="pgvector"
-    )
+    settings = _settings(orchestrator_name="agent_framework", index_store="pgvector")
     effective = resolve_effective_config(settings, None)
     assert effective.orchestrator_name == "agent_framework"
 
@@ -300,9 +295,7 @@ def test_resolve_allows_pgvector_with_agent_framework() -> None:
 def test_resolve_allows_azure_search_with_agent_framework() -> None:
     """AzureSearch + agent_framework is the supported cloud default --
     the resolver returns the effective config with no raise."""
-    settings = _settings(
-        orchestrator_name="agent_framework", index_store="AzureSearch"
-    )
+    settings = _settings(orchestrator_name="agent_framework", index_store="AzureSearch")
     effective = resolve_effective_config(settings, None)
     assert effective.orchestrator_name == "agent_framework"
 

@@ -141,9 +141,7 @@ async def test_missing_blob_raises_file_not_found_without_error_log(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    _patch_container_client(
-        monkeypatch, raises=ResourceNotFoundError("not found")
-    )
+    _patch_container_client(monkeypatch, raises=ResourceNotFoundError("not found"))
     caplog.set_level(logging.ERROR, logger="backend.services.files")
 
     with pytest.raises(FileNotFoundError):

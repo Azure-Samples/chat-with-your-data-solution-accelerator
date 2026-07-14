@@ -13,7 +13,7 @@ from backend.core.agents.presets import (
 )
 from backend.core.providers.databases.base import BaseDatabaseClient
 from backend.core.providers.llm.base import BaseLLMProvider
-from backend.core.tools.post_prompt import DEFAULT_FILTER_MESSAGE, PostPromptValidator
+from backend.core.tools.post_prompt import PostPromptValidator
 from backend.core.types import (
     ChatMessage,
     ChatRole,
@@ -315,7 +315,9 @@ def test_build_post_prompt_validator_returns_none_when_enabled_is_false() -> Non
     assert build_post_prompt_validator(_stub_llm(), overrides) is None
 
 
-def test_build_post_prompt_validator_uses_default_prompt_when_override_missing() -> None:
+def test_build_post_prompt_validator_uses_default_prompt_when_override_missing() -> (
+    None
+):
     # Enabling without an override prompt now uses the populated JSON
     # default (ADR 0030) so enabling the feature actually validates.
     llm = _stub_llm()
@@ -328,7 +330,9 @@ def test_build_post_prompt_validator_uses_default_prompt_when_override_missing()
     assert validator._filter_message == DEFAULT_POST_ANSWERING_FILTER_MESSAGE
 
 
-def test_build_post_prompt_validator_uses_default_prompt_when_override_whitespace() -> None:
+def test_build_post_prompt_validator_uses_default_prompt_when_override_whitespace() -> (
+    None
+):
     overrides = _make_overrides(
         post_answering_enabled=True,
         post_answering_prompt="   \n\t  ",
@@ -443,7 +447,9 @@ async def test_persisting_sse_stream_persists_and_emits_conversation_frame() -> 
 
     # Every orchestrator event is framed, then a terminal conversation frame.
     assert frames[:2] == [format_sse(events[0]), format_sse(events[1])]
-    assert frames[-1] == b'event: conversation\ndata: {"conversation_id": "conv-new"}\n\n'
+    assert (
+        frames[-1] == b'event: conversation\ndata: {"conversation_id": "conv-new"}\n\n'
+    )
     # The turn is persisted: new conversation titled with the question,
     # then user-then-assistant messages carrying the full answer.
     assert fake.created == [("user-1", "Say hi?")]

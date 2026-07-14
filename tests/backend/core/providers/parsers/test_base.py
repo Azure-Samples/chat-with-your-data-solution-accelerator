@@ -43,7 +43,6 @@ def test_base_parser_does_not_require_ai_services_by_default() -> None:
     assert BaseParser.requires_ai_services is False
 
 
-
 def test_make_chunk_id_is_deterministic() -> None:
     assert BaseParser.make_chunk_id("doc.pdf", 0) == BaseParser.make_chunk_id(
         "doc.pdf", 0

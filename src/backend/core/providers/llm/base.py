@@ -27,9 +27,7 @@ from backend.core.types import (
 
 
 class BaseLLMProvider(ABC):
-    def __init__(
-        self, settings: AppSettings, credential: AsyncTokenCredential
-    ) -> None:
+    def __init__(self, settings: AppSettings, credential: AsyncTokenCredential) -> None:
         self._settings = settings
         self._credential = credential
 

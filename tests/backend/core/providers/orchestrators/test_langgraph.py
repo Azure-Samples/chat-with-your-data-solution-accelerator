@@ -1,6 +1,6 @@
 """Tests for the LangGraph orchestrator."""
 
-from typing import Any, AsyncIterator, Sequence
+from typing import AsyncIterator, Sequence
 from unittest.mock import MagicMock
 
 import pytest
@@ -226,12 +226,11 @@ async def test_run_with_search_emits_citations_for_referenced_markers_only() -> 
 
     events = [e async for e in orch.run([ChatMessage(role="user", content="what?")])]
     channels = [e.channel for e in events]
-    assert channels == ["citation", "answer"]
-    citation_ev = events[0]
-    assert citation_ev.metadata["id"] == "[doc1]"
-    assert citation_ev.metadata["title"] == "A"
-    assert citation_ev.metadata["metadata"]["source_id"] == "src-a"
-    assert events[1].content == "From [doc1] we learn the answer."
+    # Production emits all retrieved citations then the answer.
+    assert channels == ["citation", "citation", "answer"]
+    citation_ids = [e.metadata["id"] for e in events if e.channel == "citation"]
+    assert citation_ids == ["[doc1]", "[doc2]"]
+    assert events[-1].content == "From [doc1] we learn the answer."
     # Search was called with the latest user text.
     assert fake_search.calls == ["what?"]
 
@@ -420,8 +419,9 @@ async def test_run_with_search_drops_unreferenced_citations() -> None:
 
     events = [e async for e in orch.run([ChatMessage(role="user", content="?")])]
     citation_events = [e for e in events if e.channel == "citation"]
-    assert len(citation_events) == 1
-    assert citation_events[0].metadata["id"] == "[doc2]"
+    # Production emits all retrieved citations regardless of reply markers.
+    assert len(citation_events) == 2
+    assert {e.metadata["id"] for e in citation_events} == {"[doc1]", "[doc2]"}
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,399 @@
 ---
-title: Deploy with azd
-description: Provision and deploy Chat with Your Data to Azure with a single azd up command.
-ms.date: 2026-07-03
-ms.topic: how-to
+
+<details>
+<summary><b>Option A: VS Code Dev Containers (Recommended)</b></summary>
+
+[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
+
+⚠️ **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the [Non DevContainer Setup](./NON_DEVCONTAINER_SETUP.md) instructions to run the accelerator locally.
+
+**Prerequisites:**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- [VS Code](https://code.visualstudio.com/) with [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+**Steps:**
+1. Start Docker Desktop
+2. Click the badge above to open in Dev Containers
+3. Wait for the container to build and start (includes all development tools)
+4. Proceed to [Step 3: Configure Azure Resources](#step-3-configure-deployment-settings)
+
+**💡 Tip:** Visual Studio Code should recognize the available development container and ask you to open the folder using it. For additional details on connecting to remote containers, please see the [Open an existing folder in a container](https://code.visualstudio.com/docs/remote/containers#_quick-start-open-an-existing-folder-in-a-container) quickstart.
+
+</details>
+
+<details>
+<summary><b>Option B: Local Environment</b></summary>
+
+**Required Tools:**
+- A code editor. We recommend [Visual Studio Code](https://code.visualstudio.com/), with the following extensions:
+  - [Azure Functions](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
+  - [Azure Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-node-azure-pack)
+  - [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
+  - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
+  - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+  - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) **Optional**
+- [Python 3.11](https://www.python.org/downloads/release/python-3119/)
+- [Node.js LTS](https://nodejs.org/en)
+- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) <small>(v2.87.0+ required for post-deployment scripts)</small>
+- [Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install) <small>(v0.33.0+)</small>
+- [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local)
+- [Git](https://git-scm.com/downloads)
+- [PowerShell 7.0+](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell)
+
+**Setup Steps:**
+1. Install all required deployment tools listed above
+2. Clone the repository:
+   ```shell
+   azd init -t chat-with-your-data-solution-accelerator
+   ```
+3. Open the project folder in your terminal
+4. Review the contents of [.devcontainer/setupEnv.sh](../.devcontainer/setupEnv.sh) and then run it:
+
+    ```bash
+    .devcontainer/setupEnv.sh
+    ```
+5. Select the Python interpreter in Visual Studio Code:
+
+    - Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
+    - Type `Python: Select Interpreter`.
+    - Select the Python 3.11 environment created by Poetry.
+6. Proceed to [Step 3: Configure Azure Resources](#step-3-configure-deployment-settings)
+
+**PowerShell Users:** If you encounter script execution issues, run:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+</details>
+
+## Step 3: Configure Deployment Settings
+
+Review the configuration options below. You can customize any settings that meet your needs, or leave them as defaults to proceed with a standard deployment.
+
+### 3.1 Choose Deployment Type (Optional)
+
+| **Aspect** | **Development/Testing (Default)** | **Production** |
+|------------|-----------------------------------|----------------|
+| **Configuration File** | `main.parameters.json` (sandbox) | Copy `main.waf.parameters.json` to `main.parameters.json` |
+| **Security Controls** | Minimal (for rapid iteration) | Enhanced (production best practices) |
+| **Cost** | Lower costs | Cost optimized |
+| **Use Case** | POCs, development, testing | Production workloads |
+| **Framework** | Basic configuration | [Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/) |
+| **Features** | Core functionality | Reliability, security, operational excellence |
+
+**To use production configuration:**
+
+Copy the contents from the production configuration file to your main parameters file:
+
+1. Navigate to the `infra` folder in your project
+2. Open `main.waf.parameters.json` in a text editor (like Notepad, VS Code, etc.)
+3. Select all content (Ctrl+A) and copy it (Ctrl+C)
+4. Open `main.parameters.json` in the same text editor
+5. Select all existing content (Ctrl+A) and paste the copied content (Ctrl+V)
+6. Save the file (Ctrl+S)
+
+### 3.2 Set VM Credentials (Optional - Production Deployment Only)
+
+> **Note:** This section only applies if you selected **Production** deployment type in section 3.1. VMs are not deployed in the default Development/Testing configuration.
+
+By default, random GUIDs are generated for VM credentials. To set custom credentials:
+
+```shell
+azd env set AZURE_ENV_VM_ADMIN_USERNAME <your-username>
+azd env set AZURE_ENV_VM_ADMIN_PASSWORD <your-password>
+```
+
+### 3.3 Advanced Configuration (Optional)
+
+<details>
+<summary><b>Configurable Parameters</b></summary>
+
+You can customize various deployment settings before running `azd up`, including Azure regions, AI model configurations (deployment type, version, capacity), container registry settings, and resource names.
+
+📖 **Complete Guide:** See [Parameter Customization Guide](./customizing_azd_parameters.md) for the full list of available parameters and their usage.
+
+</details>
+
+<details>
+<summary><b>Reuse Existing Resources</b></summary>
+
+To optimize costs and integrate with your existing Azure infrastructure, you can configure the solution to reuse compatible resources already deployed in your subscription.
+
+**Supported Resources for Reuse:**
+
+- **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring. [Configuration Guide](./re-use-log-analytics.md)
+
+- **Resource Group:** Leverage an existing resource group to organize resources within your current Azure infrastructure. Follow the [setup steps here](./re-use-resource-group.md) before running `azd up`
+
+**Key Benefits:**
+- **Cost Optimization:** Eliminate duplicate resource charges
+- **Operational Consistency:** Maintain unified monitoring and AI infrastructure
+- **Faster Deployment:** Skip resource creation for existing compatible services
+- **Simplified Management:** Reduce the number of resources to manage and monitor
+
+**Important Considerations:**
+- Ensure existing resources meet the solution's requirements and are in compatible regions
+- Review access permissions and configurations before reusing resources
+- Consider the impact on existing workloads when sharing resources
+
+</details>
+
+## Step 4: Deploy the Solution
+
+<!-- 💡 **Before You Start:** If you encounter any issues during deployment, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for common solutions. -->
+
+### 4.1 Authenticate with Azure
+
+```shell
+azd auth login
+```
+
+**For specific tenants:**
+```shell
+azd auth login --tenant-id <tenant-id>
+```
+
+> **Finding Tenant ID:**
+   > 1. Open the [Azure Portal](https://portal.azure.com/).
+   > 2. Navigate to **Microsoft Entra ID** from the left-hand menu.
+   > 3. Under the **Overview** section, locate the **Tenant ID** field. Copy the value displayed.
+
+### 4.2 Start Deployment
+
+**NOTE:** If you are running the latest azd version (version 1.23.9), please run the following command.
+```bash
+azd config set provision.preflight off
+```
+
+```shell
+azd up
+```
+
+**During deployment, you'll be prompted for:**
+1. **Environment name** (e.g., "cwyd") - Must be 3-16 characters long, alphanumeric only
+2. **Azure subscription** selection
+3. **Location** - Select the region where your infrastructure resources will be deployed
+5. **Resource group** selection (create new or use existing)
+
+**Expected Duration:** 25-30 minutes for default configuration
+
+<!-- **⚠️ Deployment Issues:** If you encounter errors or timeouts, try a different region as there may be capacity constraints. For detailed error solutions, see our [Troubleshooting Guide](./TroubleShootingSteps.md). -->
+
+### 4.3 Get Application URL
+
+After successful deployment, locate your application URLs:
+
+1. Open the [Azure Portal](https://portal.azure.com/)
+2. Navigate to your resource group
+3. Locate the **App Services** - you'll find two deployments:
+   - **Chat Application:** App Service without "admin" suffix - Main chat interface
+   - **Admin Application:** App Service with "admin" suffix - Data management interface
+4. Click on each App Service and copy its **Default Domain** URL from the overview page
+
+**Example URLs:**
+- Chat App: `https://app-<unique-text>.azurewebsites.net`
+- Admin App: `https://app-<unique-text>-admin.azurewebsites.net`
+
+⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
+
+## Step 5: Post-Deployment Configuration
+
+### 5.1 Run Post-Deployment Setup Script (Required)
+
+After deployment completes, run the post-deployment script to configure the Function App client key and create PostgreSQL tables (if applicable).
+
+**Login to Azure CLI:**
+
+The post-deployment script uses Azure CLI (`az`) commands. Ensure you are logged in before running it:
+
+```shell
+az login
+```
+
+**For specific tenants:**
+```shell
+az login --tenant-id <tenant-id>
+```
+
+> **Important:** The post-deployment script requires **Azure CLI version 2.87.0 or later**.
+>
+> Check your installed version:
+> ```bash
+> az version
+> ```
+>
+> If your version is earlier than **2.87.0**, upgrade Azure CLI before running the script:
+> ```bash
+> az upgrade
+> ```
+
+**PowerShell (Windows):**
+```powershell
+./scripts/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+**Bash (Linux/macOS/WSL):**
+```bash
+bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
+```
+
+> **Note:** The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
+
+### 5.2 Configure Authentication (Required for Chat Application)
+
+**This step is mandatory for Chat Application access:**
+
+1. Follow [App Authentication Configuration](./azure_app_service_auth_setup.md)
+2. Wait up to 10 minutes for authentication changes to take effect
+
+### 5.3 Verify Deployment
+
+1. Access your application using the URL from Step 4.3
+2. Confirm the application loads successfully
+3. Verify you can sign in with your authenticated account
+
+### 5.4 Test the Application
+
+**Quick Test Steps:**
+1. Navigate to the admin site, where you can upload documents. Then select Ingest Data and add your data. You can find sample data in the [data](../data) directory.
+2. Navigate to the Chat web app to start chatting on top of your data.
+
+## Step 6: Clean Up (Optional)
+
+### Remove All Resources
+```shell
+azd down
+```
+> **Note:** If you deployed with `enableRedundancy=true` and Log Analytics workspace replication is enabled, you must first disable replication before running `azd down` else resource group delete will fail. Follow the steps in [Handling Log Analytics Workspace Deletion with Replication Enabled](./LogAnalyticsReplicationDisable.md), wait until replication returns `false`, then run `azd down`.
+
+### Manual Cleanup (if needed)
+If deployment fails or you need to clean up manually:
+- Follow [Delete Resource Group Guide](./delete_resource_group.md)
+
+## Managing Multiple Environments
+
+### Recover from Failed Deployment
+
+If your deployment failed or encountered errors, here are the steps to recover:
+
+<details>
+<summary><b>Recover from Failed Deployment</b></summary>
+
+**If your deployment failed or encountered errors:**
+
+1. **Try a different region:** Create a new environment and select a different Azure region during deployment
+2. **Clean up and retry:** Use `azd down` to remove failed resources, then `azd up` to redeploy
+3. **Fresh start:** Create a completely new environment with a different name
+
+**Example Recovery Workflow:**
+```shell
+# Remove failed deployment (optional)
+azd down
+
+# Create new environment (3-16 chars, alphanumeric only)
+azd env new cwydretry
+
+# Deploy with different settings/region
+azd up
+```
+
+</details>
+
+### Creating a New Environment
+
+If you need to deploy to a different region, test different configurations, or create additional environments:
+
+<details>
+<summary><b>Create a New Environment</b></summary>
+
+**Create Environment Explicitly:**
+```shell
+# Create a new named environment (3-16 characters, alphanumeric only)
+azd env new <new-environment-name>
+
+# Select the new environment
+azd env select <new-environment-name>
+
+# Deploy to the new environment
+azd up
+```
+
+**Example:**
+```shell
+# Create a new environment for production (valid: 3-16 chars)
+azd env new cwydprod
+
+# Switch to the new environment
+azd env select cwydprod
+
+# Deploy with fresh settings
+azd up
+```
+
+> **Environment Name Requirements:**
+> - **Length:** 3-16 characters
+> - **Characters:** Alphanumeric only (letters and numbers)
+> - **Valid examples:** `cwyd`, `test123`, `myappdev`, `prod2024`
+> - **Invalid examples:** `cd` (too short), `my-very-long-environment-name` (too long), `test_env` (underscore not allowed), `myapp-dev` (hyphen not allowed)
+
+</details>
+
+<details>
+<summary><b>Switch Between Environments</b></summary>
+
+**List Available Environments:**
+```shell
+azd env list
+```
+
+**Switch to Different Environment:**
+```shell
+azd env select <environment-name>
+```
+
+**View Current Environment Variables:**
+```shell
+azd env get-values
+```
+
+</details>
+
+### Best Practices for Multiple Environments
+
+- **Use descriptive names:** `cwyddev`, `cwydprod`, `cwydtest` (remember: 3-16 chars, alphanumeric only)
+- **Different regions:** Deploy to multiple regions for testing quota availability
+- **Separate configurations:** Each environment can have different parameter settings
+- **Clean up unused environments:** Use `azd down` to remove environments you no longer need
+
+## Deploy Using Bicep Directly
+
+If you prefer not to use `azd`, you can deploy using the Bicep file directly.
+
+A [Bicep file](../infra/main.bicep) is used to generate the [ARM template](../infra/main.json). You can deploy this accelerator with the following command:
+
+```sh
+az deployment sub create --template-file ./infra/main.bicep --subscription {your_azure_subscription_id} --location {your_preferred_location}
+```
+
+## Next Steps
+
+Now that your deployment is complete and tested, explore these resources to enhance your experience:
+
+📚 **Learn More:**
+- [Model Configuration](./model_configuration.md) - Configure AI models and parameters
+- [Conversation Flow Options](./conversation_flow_options.md) - Customize conversation flow behavior
+- [Best Practices](./best_practices.md) - Best practices for deployment and usage
+- [Local Development Setup](./LocalDevelopmentSetup.md) - Set up your local development environment
+- [Advanced Image Processing](./advanced_image_processing.md) - Enable and configure vision capabilities
+- [Integrated Vectorization](./integrated_vectorization.md) - Understanding integrated vectorization
+- [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
+
+## Need Help?
+- 🛠️  **Troubleshooting: ** Refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document
+- 💬 **Support:** Review [Support Guidelines](../SUPPORT.md)
+- 🔧 **Development:** See [Contributing Guide](../CONTRIBUTING.md)
+
 ---
 
 [Back to *Chat with your data* README](../README.md)

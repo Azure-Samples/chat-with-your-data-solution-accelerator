@@ -167,8 +167,7 @@ class DocumentIntelligenceParser(BaseParser):
                     continue
                 if (
                     group
-                    and group_len + len(paragraph_text)
-                    > _FALLBACK_CHUNK_TARGET_CHARS
+                    and group_len + len(paragraph_text) > _FALLBACK_CHUNK_TARGET_CHARS
                 ):
                     chunks.append(
                         Chunk(

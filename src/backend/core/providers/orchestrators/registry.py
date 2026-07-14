@@ -22,7 +22,7 @@ orchestrator names anywhere downstream (see
 
 from backend.core.discovery import load_entry_points
 
-from ._instance import registry as registry
+from ._instance import registry as registry  # noqa: F401
 from . import agent_framework  # noqa: F401
 from . import langgraph  # noqa: F401
 

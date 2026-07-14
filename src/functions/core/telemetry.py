@@ -15,7 +15,9 @@ entry module stays a thin blueprint-registration surface with no logic.
 import logging
 import os
 
-from azure.monitor.opentelemetry import configure_azure_monitor  # pyright: ignore[reportUnknownVariableType]
+from azure.monitor.opentelemetry import (
+    configure_azure_monitor,
+)  # pyright: ignore[reportUnknownVariableType]
 
 logger = logging.getLogger(__name__)
 

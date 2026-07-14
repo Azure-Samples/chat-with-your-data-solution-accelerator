@@ -1172,10 +1172,12 @@ async def test_run_grounds_on_pgvector_when_kb_unconfigured() -> None:
     assert "[doc1]: Remote work is allowed three days a week." in agent_text
     assert "How many remote days?" in agent_text
 
-    # Only the referenced citation ([doc1]) is emitted, not [doc2].
+    # All retrieved citations are emitted (pgvector path keeps positional
+    # [docN] indexing in sync with the array the frontend resolves by position).
     citation_events = [e for e in events if e.channel == "citation"]
-    assert len(citation_events) == 1
+    assert len(citation_events) == 2
     assert citation_events[0].metadata["id"] == "[doc1]"
+    assert citation_events[1].metadata["id"] == "[doc2]"
 
     # The answer streams unchanged.
     answer_events = [e for e in events if e.channel == "answer"]

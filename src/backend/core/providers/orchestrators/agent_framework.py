@@ -73,7 +73,6 @@ from backend.core.tools.citations import (
     build_citations,
     citations_from_annotations,
     enrich_kb_citations,
-    filter_to_referenced,
     format_sources_block,
     normalize_kb_citations,
     strip_kb_markers,

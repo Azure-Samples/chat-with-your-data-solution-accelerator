@@ -21,7 +21,7 @@ Caller pattern (Hard Rule #13):
 
 from backend.core.discovery import load_entry_points
 
-from ._instance import registry as registry
+from ._instance import registry as registry  # noqa: F401
 from . import foundry_iq  # noqa: F401
 
 # Third-party plugins self-register via the `cwyd.providers.llm`

@@ -33,13 +33,10 @@ def resolve_storage_endpoints(storage: StorageSettings) -> tuple[str, str]:
             to derive a URL and the caller would otherwise build
             ``https://.blob.core.windows.net`` (always 404).
     """
-    blob_endpoint = (
-        storage.storage_blob_endpoint
-        or (
-            f"https://{storage.storage_account_name}.blob.core.windows.net"
-            if storage.storage_account_name
-            else ""
-        )
+    blob_endpoint = storage.storage_blob_endpoint or (
+        f"https://{storage.storage_account_name}.blob.core.windows.net"
+        if storage.storage_account_name
+        else ""
     )
     if not blob_endpoint:
         raise ValueError(

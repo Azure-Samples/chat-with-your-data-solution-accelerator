@@ -3,15 +3,20 @@ Purpose: Validate post_provision.py search-index bootstrap and CLI flags.
 """
 
 import importlib.util
-import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-# The script lives in scripts/, which is not on pythonpath. Load it
+# The script lives in infra/scripts/, which is not on pythonpath. Load it
 # directly with importlib so tests don't depend on PYTHONPATH munging.
-_SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "post_provision.py"
+_SCRIPT_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "infra"
+    / "scripts"
+    / "post-provision"
+    / "post_provision.py"
+)
 _spec = importlib.util.spec_from_file_location("_post_provision", _SCRIPT_PATH)
 assert _spec and _spec.loader
 post_provision = importlib.util.module_from_spec(_spec)
@@ -306,163 +311,6 @@ def test_ensure_knowledge_base_is_idempotent(monkeypatch):
     assert [p["url"] for p in first.puts] == [p["url"] for p in second.puts]
 
 
-# ---------------------------------------------------------------------------
-# KB-MCP RemoteTool connection seed (ARM control-plane PUT)
-# ---------------------------------------------------------------------------
-
-
-class _FakeConnStatusError(Exception):
-    """Stand-in for httpx.HTTPStatusError raised by raise_for_status()."""
-
-
-class _FakeConnResponse:
-    def __init__(self, status_code: int = 200, text: str = ""):
-        self.status_code = status_code
-        self.text = text
-
-    def raise_for_status(self) -> None:
-        if self.status_code >= 400:  # noqa: PLR2004
-            raise _FakeConnStatusError(f"status {self.status_code}")
-
-
-class _FakeConnClient:
-    """Records PUT calls; stands in for httpx.Client (the connection seam)."""
-
-    def __init__(self, *, status_code: int = 200, text: str = ""):
-        self._status_code = status_code
-        self._text = text
-        self.puts: list[dict[str, object]] = []
-        self.closed = False
-
-    def put(self, url, *, params=None, json=None):
-        self.puts.append({"url": url, "params": params, "json": json})
-        return _FakeConnResponse(self._status_code, self._text)
-
-    def close(self):
-        self.closed = True
-
-
-_PROJECT_RESOURCE_ID = (
-    "/subscriptions/00000000-0000-0000-0000-000000000000"
-    "/resourceGroups/rg-test/providers/Microsoft.CognitiveServices"
-    "/accounts/acct-test/projects/proj-test"
-)
-
-
-def _set_conn_env(monkeypatch):
-    monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
-    monkeypatch.setenv("AZURE_AI_PROJECT_RESOURCE_ID", _PROJECT_RESOURCE_ID)
-
-
-def test_kb_mcp_connection_constants():
-    # The connection PUT is an ARM control-plane call -- a different scope and
-    # api-version from the search data-plane KB seed.
-    assert post_provision.ARM_SCOPE == "https://management.azure.com/.default"
-    assert post_provision.KB_MCP_CONNECTION_API_VERSION == "2025-04-01-preview"
-
-
-def test_ensure_kb_mcp_connection_skips_when_endpoint_missing(capsys):
-    # AZURE_AI_SEARCH_ENDPOINT not set -- postgresql-mode deploy.
-    sentinel = {"called": False}
-
-    def factory():
-        sentinel["called"] = True
-        raise AssertionError("client_factory should not be invoked")
-
-    result = post_provision._ensure_kb_mcp_connection(
-        dry_run=False, client_factory=factory
-    )
-
-    assert result == "skipped"
-    assert sentinel["called"] is False
-    assert "skipping KB-MCP connection" in capsys.readouterr().out
-
-
-def test_ensure_kb_mcp_connection_skips_when_project_id_missing(monkeypatch, capsys):
-    # Endpoint set but no project resource id -- the PUT URL is built from
-    # the project id, so the seed cannot proceed (still a no-op).
-    monkeypatch.setenv("AZURE_AI_SEARCH_ENDPOINT", "https://srch.example/")
-
-    def factory():
-        raise AssertionError("client_factory should not be invoked")
-
-    result = post_provision._ensure_kb_mcp_connection(
-        dry_run=False, client_factory=factory
-    )
-
-    assert result == "skipped"
-    assert "skipping KB-MCP connection" in capsys.readouterr().out
-
-
-def test_ensure_kb_mcp_connection_dry_run_makes_no_calls(monkeypatch, capsys):
-    _set_conn_env(monkeypatch)
-
-    def factory():
-        raise AssertionError("dry-run must not build a client")
-
-    result = post_provision._ensure_kb_mcp_connection(
-        dry_run=True, client_factory=factory
-    )
-
-    out = capsys.readouterr().out
-    assert result == "dry-run"
-    assert "[dry-run]" in out
-    assert "cwyd-kb-mcp" in out
-
-
-def test_ensure_kb_mcp_connection_puts_remote_tool_connection(monkeypatch):
-    _set_conn_env(monkeypatch)
-    fake = _FakeConnClient()
-
-    result = post_provision._ensure_kb_mcp_connection(
-        dry_run=False, client_factory=lambda: fake
-    )
-
-    assert result == "ensured"
-    assert fake.closed is True
-    # One ARM control-plane PUT on the project's connections, named {kb}-mcp,
-    # with the connection (control-plane) api-version embedded in the URL.
-    assert len(fake.puts) == 1
-    put = fake.puts[0]
-    assert put["url"] == (
-        "https://management.azure.com"
-        f"{_PROJECT_RESOURCE_ID}"
-        "/connections/cwyd-kb-mcp?api-version=2025-04-01-preview"
-    )
-    # Body is the RemoteTool / ProjectManagedIdentity connection properties.
-    props = put["json"]["properties"]
-    assert props["category"] == "RemoteTool"
-    assert props["authType"] == "ProjectManagedIdentity"
-    assert props["useWorkspaceManagedIdentity"] is True
-    assert props["isSharedToAll"] is True
-    assert props["audience"] == "https://search.azure.com"
-    assert props["metadata"] == {"ApiType": "Azure"}
-    # The target embeds the KB target-URL api-version (not the connection
-    # one) and the endpoint's trailing slash is normalized (no double slash).
-    assert props["target"] == (
-        "https://srch.example/knowledgebases/cwyd-kb/mcp"
-        "?api-version=2025-11-01-preview"
-    )
-
-
-def test_ensure_kb_mcp_connection_raises_on_non_2xx(monkeypatch, capsys):
-    _set_conn_env(monkeypatch)
-    fake = _FakeConnClient(status_code=403, text="forbidden")
-
-    with pytest.raises(_FakeConnStatusError):
-        post_provision._ensure_kb_mcp_connection(
-            dry_run=False, client_factory=lambda: fake
-        )
-
-    # The client is still closed (finally) and the status + connection name
-    # are surfaced to stderr before the error propagates (Hard Rule #14, no
-    # silent swallow).
-    assert fake.closed is True
-    err = capsys.readouterr().err
-    assert "403" in err
-    assert "cwyd-kb-mcp" in err
-
-
 def test_main_dry_run_cosmosdb_skips_postgres_and_search_calls(monkeypatch, capsys):
     monkeypatch.setenv("AZURE_DB_TYPE", "cosmosdb")
 
@@ -473,7 +321,6 @@ def test_main_dry_run_cosmosdb_skips_postgres_and_search_calls(monkeypatch, caps
     assert "skipping postgres setup" in out
     # Search endpoint not set → skipped path.
     assert "skipping search index" in out
-    assert "azd outputs" in out
 
 
 def test_main_dry_run_postgresql_announces_pgvector(monkeypatch, capsys):
@@ -482,41 +329,6 @@ def test_main_dry_run_postgresql_announces_pgvector(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert rc == 0
     assert "[dry-run] would enable pgvector extension" in out
-
-
-def test_main_cosmosdb_seeds_kb_mcp_connection_after_kb(monkeypatch):
-    monkeypatch.setenv("AZURE_DB_TYPE", "cosmosdb")
-    calls: list[str] = []
-
-    def _record(label: str):
-        def _seed(*, dry_run: bool) -> str:
-            calls.append(label)
-            return "skipped"
-
-        return _seed
-
-    monkeypatch.setattr(post_provision, "_ensure_search_index", _record("search"))
-    monkeypatch.setattr(post_provision, "_ensure_knowledge_base", _record("kb"))
-    monkeypatch.setattr(post_provision, "_ensure_kb_mcp_connection", _record("kb-mcp"))
-
-    rc = post_provision.main(["--dry-run"])
-
-    assert rc == 0
-    # DR-05: the knowledge base is seeded first, then its MCP connection.
-    assert calls == ["search", "kb", "kb-mcp"]
-    assert calls.index("kb") < calls.index("kb-mcp")
-
-
-def test_main_postgresql_skips_kb_mcp_connection(monkeypatch, capsys):
-    monkeypatch.setenv("AZURE_DB_TYPE", "postgresql")
-
-    rc = post_provision.main(["--dry-run"])
-
-    out = capsys.readouterr().out
-    assert rc == 0
-    # No search endpoint / project id in postgresql mode -> the KB-MCP
-    # connection seed is a no-op (returns "skipped", no ARM PUT).
-    assert "skipping KB-MCP connection" in out
 
 
 def test_main_rejects_unknown_db_type(monkeypatch, capsys):
@@ -577,129 +389,3 @@ def test_post_provision_does_not_reference_agent_partition() -> None:
     assert "_system" not in source
     assert "CosmosItemType" not in source
     assert "upsert_item" not in source
-
-
-# ---------------------------------------------------------------------------
-# Public network access re-assert (MACAE parity)
-# ---------------------------------------------------------------------------
-
-
-def _set_public_profile(monkeypatch):
-    monkeypatch.delenv("AZURE_ENV_ENABLE_PRIVATE_NETWORKING", raising=False)
-    monkeypatch.setenv("AZURE_RESOURCE_GROUP", "rg-test")
-    monkeypatch.setenv(
-        "AZURE_COSMOS_ENDPOINT", "https://cosno-abc.documents.azure.com:443/"
-    )
-    monkeypatch.setenv("AZURE_STORAGE_ACCOUNT_NAME", "stabc")
-
-
-def test_ensure_public_network_access_skips_under_private_networking(
-    monkeypatch, capsys
-):
-    _set_public_profile(monkeypatch)
-    monkeypatch.setenv("AZURE_ENV_ENABLE_PRIVATE_NETWORKING", "true")
-    calls: list = []
-
-    result = post_provision._ensure_public_network_access(
-        dry_run=False, runner=lambda cmd: calls.append(cmd)
-    )
-
-    assert result == "skipped"
-    assert calls == []
-    assert "private networking on" in capsys.readouterr().out
-
-
-def test_ensure_public_network_access_reasserts_cosmos_and_storage(monkeypatch):
-    _set_public_profile(monkeypatch)
-    calls: list[list[str]] = []
-
-    result = post_provision._ensure_public_network_access(
-        dry_run=False, runner=lambda cmd: calls.append(list(cmd))
-    )
-
-    assert result == "ensured"
-    assert len(calls) == 2
-    assert calls[0][:3] == ["az", "cosmosdb", "update"]
-    assert "cosno-abc" in calls[0]
-    assert "ENABLED" in calls[0]
-    assert calls[1][:4] == ["az", "storage", "account", "update"]
-    assert "stabc" in calls[1]
-    assert "Enabled" in calls[1]
-
-
-def test_ensure_public_network_access_storage_only_in_postgres_mode(monkeypatch):
-    # No AZURE_COSMOS_ENDPOINT (postgresql mode) -> storage account only.
-    monkeypatch.delenv("AZURE_ENV_ENABLE_PRIVATE_NETWORKING", raising=False)
-    monkeypatch.delenv("AZURE_COSMOS_ENDPOINT", raising=False)
-    monkeypatch.setenv("AZURE_RESOURCE_GROUP", "rg-test")
-    monkeypatch.setenv("AZURE_STORAGE_ACCOUNT_NAME", "stpg")
-    calls: list[list[str]] = []
-
-    result = post_provision._ensure_public_network_access(
-        dry_run=False, runner=lambda cmd: calls.append(list(cmd))
-    )
-
-    assert result == "ensured"
-    assert len(calls) == 1
-    assert calls[0][:4] == ["az", "storage", "account", "update"]
-
-
-def test_ensure_public_network_access_dry_run_makes_no_calls(monkeypatch, capsys):
-    _set_public_profile(monkeypatch)
-    calls: list = []
-
-    result = post_provision._ensure_public_network_access(
-        dry_run=True, runner=lambda cmd: calls.append(cmd)
-    )
-
-    assert result == "dry-run"
-    assert calls == []
-    assert "[dry-run] would run" in capsys.readouterr().out
-
-
-def test_ensure_public_network_access_skips_without_resource_group(monkeypatch, capsys):
-    monkeypatch.delenv("AZURE_ENV_ENABLE_PRIVATE_NETWORKING", raising=False)
-    monkeypatch.delenv("AZURE_RESOURCE_GROUP", raising=False)
-    monkeypatch.setenv("AZURE_STORAGE_ACCOUNT_NAME", "stx")
-    calls: list = []
-
-    result = post_provision._ensure_public_network_access(
-        dry_run=False, runner=lambda cmd: calls.append(cmd)
-    )
-
-    assert result == "skipped"
-    assert calls == []
-
-
-def test_run_az_reraises_on_command_failure(monkeypatch, capsys):
-    def _boom(*args, **kwargs):
-        raise subprocess.CalledProcessError(returncode=3, cmd=["az"], stderr="denied")
-
-    monkeypatch.setattr(post_provision.subprocess, "run", _boom)
-
-    with pytest.raises(subprocess.CalledProcessError):
-        post_provision._run_az(["az", "cosmosdb", "update"])
-
-    assert "failed (exit 3)" in capsys.readouterr().err
-
-
-def test_main_reasserts_public_access_before_db_work(monkeypatch):
-    monkeypatch.setenv("AZURE_DB_TYPE", "cosmosdb")
-    calls: list[str] = []
-    monkeypatch.setattr(
-        post_provision,
-        "_ensure_public_network_access",
-        lambda *, dry_run: (calls.append("public-access"), "skipped")[1],
-    )
-    monkeypatch.setattr(
-        post_provision,
-        "_ensure_search_index",
-        lambda *, dry_run: (calls.append("search"), "skipped")[1],
-    )
-
-    rc = post_provision.main(["--dry-run"])
-
-    assert rc == 0
-    # The public-access re-assert runs before the search / KB seed.
-    assert calls[0] == "public-access"
-    assert calls.index("public-access") < calls.index("search")

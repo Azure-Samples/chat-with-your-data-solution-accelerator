@@ -50,43 +50,41 @@ The PostgreSQL server is configured for Microsoft Entra authentication only; pas
 Retrieval uses the `pgvector` extension. The post-provision step enables the extension, and the application creates the `documents` table on first use. The table stores each chunk with its embedding:
 
 ```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE IF NOT EXISTS documents (
-    id              TEXT PRIMARY KEY,
-    content         TEXT NOT NULL,
-    title           TEXT,
-    url             TEXT,
-    last_modified   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    content_vector  vector(<dims>) NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS documents_vec_hnsw
-    ON documents USING hnsw (content_vector vector_cosine_ops);
+SELECT content
+FROM vector_store
+ORDER BY content_vector <=> $1
+LIMIT $2;
 ```
 
-The vector width (`<dims>`) comes from the embedding model. `text-embedding-3-large` produces 3072-dimensional vectors; see [Model configuration](model_configuration.md). Changing the embedding dimension on an existing deployment requires recreating the table, because the column width is fixed when the table is first created.
 
-Retrieval ranks chunks by cosine similarity over the embedding. When no query embedding is supplied, the provider falls back to PostgreSQL full-text search.
+---
 
-## Chat history
+### 4. **Automated Table Creation**
+The PostgreSQL deployment process automatically creates the necessary tables for chat history and vector storage, including table indexes. The script `create_postgres_tables.py` is executed as part of the infrastructure deployment, ensuring the database is ready for use immediately after setup.
 
-The same server stores chat history in two tables, created on first use:
+---
 
-* `conversations`: one row per conversation, keyed by a UUID and scoped to a user.
-* `messages`: one row per message, linked to its conversation with a foreign key and cascade delete, and carrying the citations for assistant turns.
+### 8. **Secure PostgreSQL Connections**
+All PostgreSQL connections use secure configurations:
+- SSL is enabled with parameters such as `sslmode=verify-full`.
+- Credentials are securely managed via environment variables and Key Vault integrations.
 
-For how users work with chat history, see [Chat history](chat_history.md).
+---
 
-## Benefits
+### 9. **Backend Enhancements**
+- PostgreSQL database integration is included in the implementation of the Semantic Kernel orchestrator to ensure unified functionality.
+- Database operations, including indexing and similarity searches, align with the CWYD workflow.
 
-* **One data platform.** A single server holds both the vector index and the chat history, which keeps the deployment simple.
-* **Secretless access.** Entra-only authentication with a managed identity means there are no database credentials to manage.
-* **Scalable retrieval.** The `pgvector` HNSW index supports similarity search over large document sets.
+---
 
-## Related documentation
+## Benefits of PostgreSQL Integration
+1. **Scalability**: PostgreSQL offers robust data storage and table indexing capabilities suitable for large-scale deployments
+2. **Flexibility**: Dynamic database switching allows users to choose between PostgreSQL and CosmosDB based on their requirements.
+3. **Ease of Use**: Automated table creation and environment configuration simplify deployment and management.
+4. **Security**: SSL-enabled connections and secure credential handling ensure data protection.
 
-* [Architecture overview](architecture.md)
-* [Chat history](chat_history.md)
-* [Managed identity and RBAC](managed_identity.md)
-* [Model configuration](model_configuration.md)
+
+---
+
+## Conclusion
+PostgreSQL integration transforms CWYD into a versatile, scalable platform capable of handling advanced database storage, table indexing, and query scenarios. By leveraging PostgreSQL’s cutting edge features, CWYD ensures a seamless user experience, robust performance, and future-ready architecture.

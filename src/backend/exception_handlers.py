@@ -76,9 +76,7 @@ def _request_extras(request: Request) -> dict[str, Any]:
     }
 
 
-async def _openai_api_error_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def _openai_api_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Sanitize OpenAI / Foundry IQ failures to a 502 response."""
     logger.exception(
         "openai.APIError surfaced at router boundary",
@@ -87,9 +85,7 @@ async def _openai_api_error_handler(
     return JSONResponse(status_code=502, content={"detail": _OPENAI_DETAIL})
 
 
-async def _cosmos_http_error_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def _cosmos_http_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Sanitize Cosmos transport failures to a 503 response."""
     logger.exception(
         "CosmosHttpResponseError surfaced at router boundary",
@@ -98,9 +94,7 @@ async def _cosmos_http_error_handler(
     return JSONResponse(status_code=503, content={"detail": _COSMOS_DETAIL})
 
 
-async def _postgres_error_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def _postgres_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Sanitize asyncpg failures to a 503 response."""
     logger.exception(
         "asyncpg.PostgresError surfaced at router boundary",
@@ -109,9 +103,7 @@ async def _postgres_error_handler(
     return JSONResponse(status_code=503, content={"detail": _POSTGRES_DETAIL})
 
 
-async def _azure_error_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def _azure_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Sanitize generic azure-core failures (Search, AIProjectClient,
     Storage, etc.) to a 503 response. Registered AFTER the more
     specific `CosmosHttpResponseError` handler so MRO dispatch lands
@@ -188,12 +180,8 @@ def install_exception_handlers(app: FastAPI) -> None:
     sanitized surface.
     """
     app.add_exception_handler(openai.APIError, _openai_api_error_handler)
-    app.add_exception_handler(
-        CosmosHttpResponseError, _cosmos_http_error_handler
-    )
+    app.add_exception_handler(CosmosHttpResponseError, _cosmos_http_error_handler)
     app.add_exception_handler(asyncpg.PostgresError, _postgres_error_handler)
     app.add_exception_handler(AzureError, _azure_error_handler)
-    app.add_exception_handler(
-        ConfigResolutionError, _config_resolution_error_handler
-    )
+    app.add_exception_handler(ConfigResolutionError, _config_resolution_error_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)

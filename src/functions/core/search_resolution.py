@@ -49,9 +49,7 @@ class ResolvedSearch(BaseModel):
     pool it was layered over.
     """
 
-    model_config = ConfigDict(
-        frozen=True, extra="forbid", arbitrary_types_allowed=True
-    )
+    model_config = ConfigDict(frozen=True, extra="forbid", arbitrary_types_allowed=True)
 
     provider: BaseSearch
     pool_helper: PgVectorPool | None

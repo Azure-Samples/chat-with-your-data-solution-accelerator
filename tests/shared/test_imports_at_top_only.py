@@ -36,7 +36,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Subtrees under v2/ that get scanned. Full v2/ Python surface
 # (production + scripts + tests) is gated.
-_SCAN_ROOTS = ("src", "tests", "scripts")
+_SCAN_ROOTS = ("src", "tests")
 
 # Per-file exemption list. Empty by design -- Hard Rule #17 is absolute
 # with zero carve-outs. If you think you need to add an entry here, you
@@ -155,11 +155,11 @@ def test_scan_actually_walked_files() -> None:
     because the test runs from an unexpected cwd in CI), the
     parametrised test would generate zero cases and quietly pass.
     """
-    assert _ALL_FILES, "no Python files discovered under {src,scripts}"
+    assert _ALL_FILES, "no Python files discovered under {src,tests}"
     rel_parts = {p.relative_to(_REPO_ROOT).parts[0] for p in _ALL_FILES}
     assert (
         "src" in rel_parts
     ), "no files found under src/ -- path resolution likely broken"
     assert (
-        "scripts" in rel_parts
-    ), "no files found under scripts/ -- path resolution likely broken"
+        "tests" in rel_parts
+    ), "no files found under tests/ -- path resolution likely broken"

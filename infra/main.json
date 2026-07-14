@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.44.1.10279",
-      "templateHash": "8681857623077107649"
+      "templateHash": "12688427597147446813"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -480,7 +480,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.44.1.10279",
-              "templateHash": "751298563800987660"
+              "templateHash": "11359746846676993354"
             }
           },
           "parameters": {
@@ -47705,8 +47705,8 @@
               },
               "dependsOn": [
                 "logAnalyticsWorkspace",
-                "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').file)]",
                 "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').queue)]",
+                "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').file)]",
                 "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)]",
                 "userAssignedIdentity",
                 "virtualNetwork"
