@@ -24,7 +24,9 @@ def _bypass_ssrf_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     ``socket.getaddrinfo`` from failing on ``.invalid`` TLD domains that are
     intentionally unresolvable (RFC 6761).
     """
-    monkeypatch.setattr(module_under_test, "_validate_public_http_url", lambda _url: None)
+    monkeypatch.setattr(
+        module_under_test, "_validate_public_http_url", lambda _url: None
+    )
 
 
 @pytest.mark.asyncio

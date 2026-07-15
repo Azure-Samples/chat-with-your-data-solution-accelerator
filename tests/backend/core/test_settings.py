@@ -601,9 +601,8 @@ def test_content_safety_settings_reads_env_prefix(
     parsed = urlparse(settings.content_safety.endpoint)
     assert parsed.scheme == "https"
     assert parsed.hostname is not None
-    assert (
-        parsed.hostname == "cognitiveservices.azure.com"
-        or parsed.hostname.endswith(".cognitiveservices.azure.com")
+    assert parsed.hostname == "cognitiveservices.azure.com" or parsed.hostname.endswith(
+        ".cognitiveservices.azure.com"
     )
     assert settings.content_safety.enabled is True
     assert settings.content_safety.severity_threshold == 6
