@@ -685,41 +685,7 @@ module eventGridSystemTopic './modules/data/event-grid.bicep' = {
     tags: allTags
     source: storageAccount.outputs.resourceId
     topicType: 'Microsoft.Storage.StorageAccounts'
-    storageAccountName: storageAccount.outputs.name
-    eventSubscriptions: [
-      {
-        name: 'blob-created-to-blob-events'
-        deliveryWithResourceIdentity: {
-          identity: {
-            type: 'SystemAssigned'
-          }
-          destination: {
-            endpointType: 'StorageQueue'
-            properties: {
-              resourceId: storageAccount.outputs.resourceId
-              queueName: blobEventsQueueName
-            }
-          }
-        }
-        filter: {
-          includedEventTypes: [
-            'Microsoft.Storage.BlobCreated'
-            'Microsoft.Storage.BlobDeleted'
-          ]
-          subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
-          enableAdvancedFilteringOnArrays: true
-        }
-        eventDeliverySchema: 'EventGridSchema'
-        retryPolicy: {
-          maxDeliveryAttempts: 30
-          eventTimeToLiveInMinutes: 1440
-        }
-      }
-    ]
   }
-  dependsOn: [
-    storageAccount
-  ]
 }
 
 // ============================================================================
@@ -752,9 +718,53 @@ module roleAssignments './modules/identity/role-assignments.bicep' = {
     foundryProjectPrincipalId: foundryProjectPrincipalId
     functionPrincipalId: functionContainerApp.outputs.principalId
     searchPrincipalId: isCosmos ? aiSearch!.outputs.identityPrincipalId : ''
+    eventGridPrincipalId: eventGridSystemTopic.outputs.systemAssignedMIPrincipalId
     deployingUserPrincipalId: deployingUserPrincipalId
     deployingUserPrincipalType: deployingUserPrincipalType
   }
+}
+
+// ========== Event Grid subscriptions (depends on roleAssignments so the     ========== //
+// ========== Storage Queue Data Message Sender role has time to propagate)   ========== //
+module eventGridSubscriptions './modules/data/event-grid-subscription.bicep' = {
+  name: take('module.event-grid-subs.${solutionName}', 64)
+  params: {
+    systemTopicName: eventGridSystemTopic.outputs.name
+    eventSubscriptions: [
+      {
+        name: 'blob-created-to-doc-processing'
+        deliveryWithResourceIdentity: {
+          identity: {
+            type: 'SystemAssigned'
+          }
+          destination: {
+            endpointType: 'StorageQueue'
+            properties: {
+              resourceId: storageAccount.outputs.resourceId
+              queueName: blobEventsQueueName
+              queueMessageTimeToLiveInSeconds: 86400
+            }
+          }
+        }
+        filter: {
+          includedEventTypes: [
+            'Microsoft.Storage.BlobCreated'
+            'Microsoft.Storage.BlobDeleted'
+          ]
+          subjectBeginsWith: '/blobServices/default/containers/${documentsContainerName}/'
+          enableAdvancedFilteringOnArrays: true
+        }
+        eventDeliverySchema: 'EventGridSchema'
+        retryPolicy: {
+          maxDeliveryAttempts: 30
+          eventTimeToLiveInMinutes: 1440
+        }
+      }
+    ]
+  }
+  dependsOn: [
+    roleAssignments
+  ]
 }
 // ===================== //
 // Outputs               //

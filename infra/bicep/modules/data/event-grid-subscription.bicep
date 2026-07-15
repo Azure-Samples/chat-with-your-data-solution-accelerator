@@ -7,7 +7,7 @@
 //              (Storage Queue Data Message Sender) granted in the parent module
 //              has propagated. A single deployment with only dependsOn ordering
 //              does not provide this propagation slack.
-// API: Microsoft.EventGrid/systemTopics/eventSubscriptions@2025-07-15-preview
+// API: Microsoft.EventGrid/systemTopics/eventSubscriptions@2025-02-15
 // ============================================================================
 
 @description('Name of the existing Event Grid System Topic to attach subscriptions to.')
@@ -19,7 +19,7 @@ param eventSubscriptions array = []
 // ============================================================================
 // Existing system topic reference (created by the parent event-grid module).
 // ============================================================================
-resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2025-07-15-preview' existing = {
+resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2025-02-15' existing = {
   name: systemTopicName
 }
 
@@ -27,7 +27,7 @@ resource eventGridSystemTopic 'Microsoft.EventGrid/systemTopics@2025-07-15-previ
 // Event Subscriptions. Each uses identity-based delivery
 // (deliveryWithResourceIdentity) when provided, otherwise a plain destination.
 // ============================================================================
-resource systemTopicSubscriptions 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2025-07-15-preview' = [
+resource systemTopicSubscriptions 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2025-02-15' = [
   for sub in eventSubscriptions: {
     name: sub.name
     parent: eventGridSystemTopic

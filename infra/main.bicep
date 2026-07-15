@@ -61,7 +61,7 @@ param location string
     usageName: [
       'OpenAI.GlobalStandard.gpt-5.4-mini,50'
       'OpenAI.GlobalStandard.gpt-5-mini,50'
-      'OpenAI.Standard.text-embedding-3-large,100'
+      'OpenAI.Standard.text-embedding-3-small,100'
     ]
   }
 })

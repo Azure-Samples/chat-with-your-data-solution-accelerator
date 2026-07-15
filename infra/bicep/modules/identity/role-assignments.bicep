@@ -58,6 +58,9 @@ param foundryProjectPrincipalId string = ''
 @description('Principal ID of the Function App system-assigned identity.')
 param functionPrincipalId string
 
+@description('Principal ID of the Event Grid system topic system-assigned identity. When provided, Storage Queue Data Message Sender is granted on the storage account so identity-based delivery works.')
+param eventGridPrincipalId string = ''
+
 @description('Principal ID of the AI Search service identity (cosmosdb mode only).')
 param searchPrincipalId string = ''
 
@@ -85,6 +88,7 @@ var roleIds = {
   storageBlobDataContributor: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   storageBlobDataOwner: 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
   storageQueueDataContributor: '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+  storageQueueDataMessageSender: 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'
   storageAccountContributor: '17d1049b-9a84-46fb-8f53-869881c3d3ab'
 }
 var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
@@ -125,19 +129,26 @@ var contentSafetyRoleAssignments = [
 ]
 
 var storageRoleAssignments = union(
-  [
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
-    { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
-    { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
-    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataOwner }
-    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
-    { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
-    { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.storageBlobDataContributor }
-  ],
-  isCosmos
+  union(
+    [
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
+      { principalId: uamiPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
+      { principalId: foundryProjectPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+      { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataOwner }
+      { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataContributor }
+      { principalId: functionPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageAccountContributor }
+      { principalId: deployingUserPrincipalId, principalType: deployingUserPrincipalType, roleDefinitionId: roleIds.storageBlobDataContributor }
+    ],
+    isCosmos
+      ? [
+          { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+        ]
+      : []
+  ),
+  !empty(eventGridPrincipalId)
     ? [
-        { principalId: searchPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageBlobDataContributor }
+        { principalId: eventGridPrincipalId, principalType: 'ServicePrincipal', roleDefinitionId: roleIds.storageQueueDataMessageSender }
       ]
     : []
 )

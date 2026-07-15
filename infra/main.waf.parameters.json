@@ -54,7 +54,7 @@
       "value": "${AZURE_EMBEDDING_MODEL_DEPLOYMENT_TYPE=Standard}"
     },
     "embeddingModelCapacity": {
-      "value": "${AZURE_EMBEDDING_MODEL_CAPACITY=100}"
+      "value": "${AZURE_EMBEDDING_MODEL_CAPACITY=50}"
     },
     "azureOpenAiApiVersion": {
       "value": "${AZURE_OPENAI_API_VERSION=2025-01-01-preview}"

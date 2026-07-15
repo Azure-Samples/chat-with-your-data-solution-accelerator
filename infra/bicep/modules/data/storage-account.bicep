@@ -49,6 +49,12 @@ param queues array = []
 @description('Optional. Managed identity configuration for the resource.')
 param identity object = { type: 'SystemAssigned' }
 
+@description('Network ACLs for the storage account.')
+param networkAcls object = {
+  defaultAction: 'Allow'
+  bypass: 'AzureServices'
+}
+
 // ============================================================================
 // Resource Deployment
 // ============================================================================
@@ -68,6 +74,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-08-01' = {
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
     isHnsEnabled: enableHierarchicalNamespace
+    networkAcls: networkAcls
     encryption: {
       services: {
         blob: {

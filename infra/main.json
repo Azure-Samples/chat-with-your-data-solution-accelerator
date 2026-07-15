@@ -5,8 +5,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.45.6.27763",
-      "templateHash": "11972983976420154235"
+      "version": "0.45.15.27210",
+      "templateHash": "2309682989942346037"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -76,7 +76,7 @@
           "usageName": [
             "OpenAI.GlobalStandard.gpt-5.4-mini,50",
             "OpenAI.GlobalStandard.gpt-5-mini,50",
-            "OpenAI.Standard.text-embedding-3-large,100"
+            "OpenAI.Standard.text-embedding-3-small,100"
           ]
         },
         "description": "Required. Region for AI Services / Foundry deployments. Restricted to regions with GPT-5.1 GlobalStandard availability."
@@ -479,8 +479,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "17894071956480704783"
+              "version": "0.45.15.27210",
+              "templateHash": "16341738384772812212"
             }
           },
           "parameters": {
@@ -927,8 +927,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "6723126364266058808"
+                      "version": "0.45.15.27210",
+                      "templateHash": "11785570845697058733"
                     }
                   },
                   "parameters": {
@@ -1547,8 +1547,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "13057004032172561022"
+                      "version": "0.45.15.27210",
+                      "templateHash": "8088039885965286237"
                     }
                   },
                   "parameters": {
@@ -4849,8 +4849,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "15211167376897453419"
+                      "version": "0.45.15.27210",
+                      "templateHash": "17593462233384180904"
                     }
                   },
                   "parameters": {
@@ -5776,8 +5776,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "5573894156957377500"
+                      "version": "0.45.15.27210",
+                      "templateHash": "6921094249231590534"
                     }
                   },
                   "definitions": {
@@ -8623,8 +8623,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9116500550183450565"
+                      "version": "0.45.15.27210",
+                      "templateHash": "5843178535659210113"
                     }
                   },
                   "parameters": {
@@ -10527,8 +10527,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "5272027087445572747"
+                      "version": "0.45.15.27210",
+                      "templateHash": "1089854782656841223"
                     }
                   },
                   "parameters": {
@@ -11066,8 +11066,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "11479330755037849383"
+                      "version": "0.45.15.27210",
+                      "templateHash": "8930408375182742451"
                     }
                   },
                   "parameters": {
@@ -12535,8 +12535,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "6662408081790292224"
+                      "version": "0.45.15.27210",
+                      "templateHash": "9515837065104451474"
                     }
                   },
                   "parameters": {
@@ -13052,8 +13052,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9028893310045880819"
+                      "version": "0.45.15.27210",
+                      "templateHash": "18103466400870370455"
                     }
                   },
                   "parameters": {
@@ -22408,8 +22408,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "6269193753809634195"
+                      "version": "0.45.15.27210",
+                      "templateHash": "6776150673571028467"
                     }
                   },
                   "parameters": {
@@ -25891,8 +25891,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "705358977237504297"
+                      "version": "0.45.15.27210",
+                      "templateHash": "13279543274194444884"
                     }
                   },
                   "parameters": {
@@ -26023,8 +26023,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "10733798193077385194"
+                      "version": "0.45.15.27210",
+                      "templateHash": "15082066787887503864"
                     }
                   },
                   "definitions": {
@@ -29177,8 +29177,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "6715448001846817199"
+                      "version": "0.45.15.27210",
+                      "templateHash": "3303748358923315881"
                     }
                   },
                   "parameters": {
@@ -29340,8 +29340,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "2563730588707091687"
+                      "version": "0.45.15.27210",
+                      "templateHash": "13058032099310447838"
                     }
                   },
                   "parameters": {
@@ -30112,8 +30112,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "7860369337695668955"
+                      "version": "0.45.15.27210",
+                      "templateHash": "9262552868271250054"
                     }
                   },
                   "definitions": {
@@ -33234,8 +33234,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "7860369337695668955"
+                      "version": "0.45.15.27210",
+                      "templateHash": "9262552868271250054"
                     }
                   },
                   "definitions": {
@@ -36383,8 +36383,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "15520898487171778502"
+                      "version": "0.45.15.27210",
+                      "templateHash": "3890790255801604274"
                     }
                   },
                   "parameters": {
@@ -38716,8 +38716,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "8750708162978576025"
+                      "version": "0.45.15.27210",
+                      "templateHash": "3215519417659672748"
                     }
                   },
                   "parameters": {
@@ -38948,8 +38948,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "13380366634079855193"
+                      "version": "0.45.15.27210",
+                      "templateHash": "4431226019255775255"
                     }
                   },
                   "definitions": {
@@ -47751,8 +47751,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "17369709875643050730"
+                      "version": "0.45.15.27210",
+                      "templateHash": "14655724525550577174"
                     }
                   },
                   "parameters": {
@@ -53980,8 +53980,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "10682329477286775732"
+                      "version": "0.45.15.27210",
+                      "templateHash": "5846678773431897698"
                     }
                   },
                   "parameters": {
@@ -57112,8 +57112,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9605065204581122454"
+                      "version": "0.45.15.27210",
+                      "templateHash": "12026204306075110528"
                     }
                   },
                   "parameters": {
@@ -61211,8 +61211,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "3495426566798916205"
+                      "version": "0.45.15.27210",
+                      "templateHash": "1786125815674947096"
                     }
                   },
                   "parameters": {
@@ -62635,8 +62635,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9228260855977834295"
+                      "version": "0.45.15.27210",
+                      "templateHash": "17599168815727942183"
                     }
                   },
                   "parameters": {
@@ -64507,8 +64507,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9228260855977834295"
+                      "version": "0.45.15.27210",
+                      "templateHash": "17599168815727942183"
                     }
                   },
                   "parameters": {
@@ -66374,8 +66374,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9228260855977834295"
+                      "version": "0.45.15.27210",
+                      "templateHash": "17599168815727942183"
                     }
                   },
                   "parameters": {
@@ -68239,8 +68239,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "15172128219492395336"
+                      "version": "0.45.15.27210",
+                      "templateHash": "15984063284559956915"
                     }
                   },
                   "parameters": {
@@ -71111,8 +71111,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "17843393384553666629"
+                      "version": "0.45.15.27210",
+                      "templateHash": "15297330273700012534"
                     }
                   },
                   "parameters": {
@@ -71844,8 +71844,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.45.6.27763",
-              "templateHash": "17825528649897167003"
+              "version": "0.45.15.27210",
+              "templateHash": "12393462909709176343"
             }
           },
           "parameters": {
@@ -72184,8 +72184,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "11002597945617550070"
+                      "version": "0.45.15.27210",
+                      "templateHash": "5391405737735698917"
                     }
                   },
                   "parameters": {
@@ -72285,8 +72285,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "12829235775567600920"
+                      "version": "0.45.15.27210",
+                      "templateHash": "1562511690153284384"
                     }
                   },
                   "parameters": {
@@ -72417,8 +72417,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "17497827752064117634"
+                      "version": "0.45.15.27210",
+                      "templateHash": "1396979465821863055"
                     }
                   },
                   "parameters": {
@@ -72578,8 +72578,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "6434598355203707033"
+                      "version": "0.45.15.27210",
+                      "templateHash": "2061702784288856091"
                     }
                   },
                   "parameters": {
@@ -72705,8 +72705,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "8511660641005875858"
+                      "version": "0.45.15.27210",
+                      "templateHash": "9158340857418869969"
                     }
                   },
                   "parameters": {
@@ -72953,8 +72953,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "6715448001846817199"
+                      "version": "0.45.15.27210",
+                      "templateHash": "3303748358923315881"
                     }
                   },
                   "parameters": {
@@ -73087,8 +73087,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "11137493015322811197"
+                      "version": "0.45.15.27210",
+                      "templateHash": "5129257976568532117"
                     }
                   },
                   "parameters": {
@@ -73278,8 +73278,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "11137493015322811197"
+                      "version": "0.45.15.27210",
+                      "templateHash": "5129257976568532117"
                     }
                   },
                   "parameters": {
@@ -73464,8 +73464,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "778242983230747658"
+                      "version": "0.45.15.27210",
+                      "templateHash": "17915224445383853819"
                     }
                   },
                   "parameters": {
@@ -73653,8 +73653,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.6.27763",
-                              "templateHash": "16237442077230849366"
+                              "version": "0.45.15.27210",
+                              "templateHash": "3599592075727945573"
                             }
                           },
                           "parameters": {
@@ -73872,8 +73872,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "8750708162978576025"
+                      "version": "0.45.15.27210",
+                      "templateHash": "3215519417659672748"
                     }
                   },
                   "parameters": {
@@ -74048,8 +74048,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "3805522015217584231"
+                      "version": "0.45.15.27210",
+                      "templateHash": "4181428258858303885"
                     }
                   },
                   "parameters": {
@@ -74152,6 +74152,16 @@
                       "metadata": {
                         "description": "Optional. Managed identity configuration for the resource."
                       }
+                    },
+                    "networkAcls": {
+                      "type": "object",
+                      "defaultValue": {
+                        "defaultAction": "Allow",
+                        "bypass": "AzureServices"
+                      },
+                      "metadata": {
+                        "description": "Network ACLs for the storage account."
+                      }
                     }
                   },
                   "resources": [
@@ -74173,6 +74183,7 @@
                         "minimumTlsVersion": "TLS1_2",
                         "supportsHttpsTrafficOnly": true,
                         "isHnsEnabled": "[parameters('enableHierarchicalNamespace')]",
+                        "networkAcls": "[parameters('networkAcls')]",
                         "encryption": {
                           "services": {
                             "blob": {
@@ -74295,8 +74306,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "16072023559576139398"
+                      "version": "0.45.15.27210",
+                      "templateHash": "183685311511410868"
                     }
                   },
                   "parameters": {
@@ -74514,8 +74525,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "4725167800447971598"
+                      "version": "0.45.15.27210",
+                      "templateHash": "10348311396020817822"
                     }
                   },
                   "parameters": {
@@ -74790,8 +74801,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "3642175882744648536"
+                      "version": "0.45.15.27210",
+                      "templateHash": "17394234730827433787"
                     }
                   },
                   "parameters": {
@@ -74992,8 +75003,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "9627541354766452151"
+                      "version": "0.45.15.27210",
+                      "templateHash": "4011306878782005340"
                     }
                   },
                   "parameters": {
@@ -75186,8 +75197,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "8459883375249998054"
+                      "version": "0.45.15.27210",
+                      "templateHash": "211022699849388763"
                     }
                   },
                   "parameters": {
@@ -75485,8 +75496,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "8459883375249998054"
+                      "version": "0.45.15.27210",
+                      "templateHash": "211022699849388763"
                     }
                   },
                   "parameters": {
@@ -75779,8 +75790,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "8459883375249998054"
+                      "version": "0.45.15.27210",
+                      "templateHash": "211022699849388763"
                     }
                   },
                   "parameters": {
@@ -76028,41 +76039,6 @@
                   },
                   "topicType": {
                     "value": "Microsoft.Storage.StorageAccounts"
-                  },
-                  "storageAccountName": {
-                    "value": "[reference('storageAccount').outputs.name.value]"
-                  },
-                  "eventSubscriptions": {
-                    "value": [
-                      {
-                        "name": "blob-created-to-blob-events",
-                        "deliveryWithResourceIdentity": {
-                          "identity": {
-                            "type": "SystemAssigned"
-                          },
-                          "destination": {
-                            "endpointType": "StorageQueue",
-                            "properties": {
-                              "resourceId": "[reference('storageAccount').outputs.resourceId.value]",
-                              "queueName": "[variables('blobEventsQueueName')]"
-                            }
-                          }
-                        },
-                        "filter": {
-                          "includedEventTypes": [
-                            "Microsoft.Storage.BlobCreated",
-                            "Microsoft.Storage.BlobDeleted"
-                          ],
-                          "subjectBeginsWith": "[format('/blobServices/default/containers/{0}/', variables('documentsContainerName'))]",
-                          "enableAdvancedFilteringOnArrays": true
-                        },
-                        "eventDeliverySchema": "EventGridSchema",
-                        "retryPolicy": {
-                          "maxDeliveryAttempts": 30,
-                          "eventTimeToLiveInMinutes": 1440
-                        }
-                      }
-                    ]
                   }
                 },
                 "template": {
@@ -76071,8 +76047,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "11425953557830972171"
+                      "version": "0.45.15.27210",
+                      "templateHash": "11772422603609590132"
                     }
                   },
                   "parameters": {
@@ -76114,13 +76090,6 @@
                         "description": "The type of the event source. E.g., Microsoft.Storage.StorageAccounts."
                       }
                     },
-                    "eventSubscriptions": {
-                      "type": "array",
-                      "defaultValue": [],
-                      "metadata": {
-                        "description": "Event subscriptions to create on the system topic."
-                      }
-                    },
                     "identity": {
                       "type": "object",
                       "defaultValue": {
@@ -76129,19 +76098,12 @@
                       "metadata": {
                         "description": "Optional. Managed identity configuration for the resource."
                       }
-                    },
-                    "storageAccountName": {
-                      "type": "string",
-                      "defaultValue": "",
-                      "metadata": {
-                        "description": "Name of the storage account used to scope the Storage Queue Data Message Sender role assignment. Required when eventSubscriptions use identity-based (deliveryWithResourceIdentity) delivery."
-                      }
                     }
                   },
                   "resources": [
                     {
                       "type": "Microsoft.EventGrid/systemTopics",
-                      "apiVersion": "2025-07-15-preview",
+                      "apiVersion": "2025-02-15",
                       "name": "[parameters('name')]",
                       "location": "[parameters('location')]",
                       "tags": "[parameters('tags')]",
@@ -76150,83 +76112,6 @@
                         "source": "[parameters('source')]",
                         "topicType": "[parameters('topicType')]"
                       }
-                    },
-                    {
-                      "condition": "[and(not(empty(parameters('storageAccountName'))), not(empty(parameters('eventSubscriptions'))))]",
-                      "type": "Microsoft.Authorization/roleAssignments",
-                      "apiVersion": "2022-04-01",
-                      "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
-                      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')]",
-                      "properties": {
-                        "principalId": "[reference(resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), '2025-07-15-preview', 'full').identity.principalId]",
-                        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a')]",
-                        "principalType": "ServicePrincipal"
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.EventGrid/systemTopics', parameters('name'))]"
-                      ]
-                    },
-                    {
-                      "condition": "[not(empty(parameters('eventSubscriptions')))]",
-                      "type": "Microsoft.Resources/deployments",
-                      "apiVersion": "2025-04-01",
-                      "name": "[take(format('module.event-grid-subs.{0}', parameters('name')), 64)]",
-                      "properties": {
-                        "expressionEvaluationOptions": {
-                          "scope": "inner"
-                        },
-                        "mode": "Incremental",
-                        "parameters": {
-                          "systemTopicName": {
-                            "value": "[parameters('name')]"
-                          },
-                          "eventSubscriptions": {
-                            "value": "[parameters('eventSubscriptions')]"
-                          }
-                        },
-                        "template": {
-                          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                          "contentVersion": "1.0.0.0",
-                          "metadata": {
-                            "_generator": {
-                              "name": "bicep",
-                              "version": "0.45.6.27763",
-                              "templateHash": "9009322501700799140"
-                            }
-                          },
-                          "parameters": {
-                            "systemTopicName": {
-                              "type": "string",
-                              "metadata": {
-                                "description": "Name of the existing Event Grid System Topic to attach subscriptions to."
-                              }
-                            },
-                            "eventSubscriptions": {
-                              "type": "array",
-                              "defaultValue": [],
-                              "metadata": {
-                                "description": "Event subscriptions to create on the system topic."
-                              }
-                            }
-                          },
-                          "resources": [
-                            {
-                              "copy": {
-                                "name": "systemTopicSubscriptions",
-                                "count": "[length(parameters('eventSubscriptions'))]"
-                              },
-                              "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
-                              "apiVersion": "2025-07-15-preview",
-                              "name": "[format('{0}/{1}', parameters('systemTopicName'), parameters('eventSubscriptions')[copyIndex()].name)]",
-                              "properties": "[union(createObject('filter', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'filter'), createObject()), 'eventDeliverySchema', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'eventDeliverySchema'), 'EventGridSchema'), 'retryPolicy', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'retryPolicy'), createObject('maxDeliveryAttempts', 30, 'eventTimeToLiveInMinutes', 1440))), if(not(equals(tryGet(parameters('eventSubscriptions')[copyIndex()], 'deliveryWithResourceIdentity'), null())), createObject('deliveryWithResourceIdentity', parameters('eventSubscriptions')[copyIndex()].deliveryWithResourceIdentity), createObject('destination', parameters('eventSubscriptions')[copyIndex()].destination)))]"
-                            }
-                          ]
-                        }
-                      },
-                      "dependsOn": [
-                        "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), 'c6a89b2d-59bc-44d0-9896-0f6e12d7b80a'))]",
-                        "[resourceId('Microsoft.EventGrid/systemTopics', parameters('name'))]"
-                      ]
                     }
                   ],
                   "outputs": {
@@ -76249,7 +76134,7 @@
                       "metadata": {
                         "description": "System-assigned principal ID (if enabled)."
                       },
-                      "value": "[if(and(contains(parameters('identity'), 'type'), contains(parameters('identity').type, 'SystemAssigned')), reference(resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), '2025-07-15-preview', 'full').identity.principalId, '')]"
+                      "value": "[if(and(contains(parameters('identity'), 'type'), contains(parameters('identity').type, 'SystemAssigned')), reference(resourceId('Microsoft.EventGrid/systemTopics', parameters('name')), '2025-02-15', 'full').identity.principalId, '')]"
                     }
                   }
                 }
@@ -76307,6 +76192,9 @@
                     "value": "[reference('functionContainerApp').outputs.principalId.value]"
                   },
                   "searchPrincipalId": "[if(variables('isCosmos'), createObject('value', reference('aiSearch').outputs.identityPrincipalId.value), createObject('value', ''))]",
+                  "eventGridPrincipalId": {
+                    "value": "[reference('eventGridSystemTopic').outputs.systemAssignedMIPrincipalId.value]"
+                  },
                   "deployingUserPrincipalId": {
                     "value": "[variables('deployingUserPrincipalId')]"
                   },
@@ -76320,8 +76208,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.45.6.27763",
-                      "templateHash": "10180491622999521618"
+                      "version": "0.45.15.27210",
+                      "templateHash": "13516959090498150239"
                     }
                   },
                   "parameters": {
@@ -76414,6 +76302,13 @@
                         "description": "Principal ID of the Function App system-assigned identity."
                       }
                     },
+                    "eventGridPrincipalId": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Principal ID of the Event Grid system topic system-assigned identity. When provided, Storage Queue Data Message Sender is granted on the storage account so identity-based delivery works."
+                      }
+                    },
                     "searchPrincipalId": {
                       "type": "string",
                       "defaultValue": "",
@@ -76447,6 +76342,7 @@
                       "storageBlobDataContributor": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
                       "storageBlobDataOwner": "b7e6dc6d-f1e8-4753-8033-0f276bb0955b",
                       "storageQueueDataContributor": "974c5e8b-45b9-4653-ba55-5f855dd0fb88",
+                      "storageQueueDataMessageSender": "c6a89b2d-59bc-44d0-9896-0f6e12d7b80a",
                       "storageAccountContributor": "17d1049b-9a84-46fb-8f53-869881c3d3ab"
                     },
                     "cosmosDataContributorRoleId": "00000000-0000-0000-0000-000000000002",
@@ -76467,7 +76363,7 @@
                         "roleDefinitionId": "[variables('roleIds').cognitiveServicesUser]"
                       }
                     ],
-                    "storageRoleAssignments": "[union(createArray(createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataContributor), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageAccountContributor), createObject('principalId', parameters('foundryProjectPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor), createObject('principalId', parameters('functionPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataOwner), createObject('principalId', parameters('functionPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataContributor), createObject('principalId', parameters('functionPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageAccountContributor), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').storageBlobDataContributor)), if(parameters('isCosmos'), createArray(createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor)), createArray()))]",
+                    "storageRoleAssignments": "[union(union(createArray(createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataContributor), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageAccountContributor), createObject('principalId', parameters('foundryProjectPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor), createObject('principalId', parameters('functionPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataOwner), createObject('principalId', parameters('functionPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataContributor), createObject('principalId', parameters('functionPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageAccountContributor), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').storageBlobDataContributor)), if(parameters('isCosmos'), createArray(createObject('principalId', parameters('searchPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageBlobDataContributor)), createArray())), if(not(empty(parameters('eventGridPrincipalId'))), createArray(createObject('principalId', parameters('eventGridPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').storageQueueDataMessageSender)), createArray()))]",
                     "searchRoleAssignments": "[if(parameters('isCosmos'), createArray(createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', parameters('uamiPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchServiceContributor), createObject('principalId', parameters('foundryProjectPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataReader), createObject('principalId', parameters('foundryProjectPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', parameters('foundryProjectPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchServiceContributor), createObject('principalId', parameters('foundryAccountPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', parameters('foundryAccountPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchIndexDataReader), createObject('principalId', parameters('foundryAccountPrincipalId'), 'principalType', 'ServicePrincipal', 'roleDefinitionId', variables('roleIds').searchServiceContributor), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').searchIndexDataContributor), createObject('principalId', parameters('deployingUserPrincipalId'), 'principalType', parameters('deployingUserPrincipalType'), 'roleDefinitionId', variables('roleIds').searchServiceContributor)), createArray())]",
                     "cosmosSqlRoleAssignments": "[if(parameters('isCosmos'), createArray(createObject('principalId', parameters('uamiPrincipalId'), 'roleDefinitionId', variables('cosmosDataContributorRoleId'))), createArray())]"
                   },
@@ -76601,8 +76497,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.45.6.27763",
-                              "templateHash": "2854771089996466249"
+                              "version": "0.45.15.27210",
+                              "templateHash": "6381374613030863702"
                             }
                           },
                           "parameters": {
@@ -76665,10 +76561,103 @@
                 "aiProject",
                 "aiSearch",
                 "contentSafety",
+                "eventGridSystemTopic",
                 "existingAIProject",
                 "functionContainerApp",
                 "speechService",
                 "userAssignedIdentity"
+              ]
+            },
+            "eventGridSubscriptions": {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "[take(format('module.event-grid-subs.{0}', parameters('solutionName')), 64)]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "systemTopicName": {
+                    "value": "[reference('eventGridSystemTopic').outputs.name.value]"
+                  },
+                  "eventSubscriptions": {
+                    "value": [
+                      {
+                        "name": "blob-created-to-doc-processing",
+                        "deliveryWithResourceIdentity": {
+                          "identity": {
+                            "type": "SystemAssigned"
+                          },
+                          "destination": {
+                            "endpointType": "StorageQueue",
+                            "properties": {
+                              "resourceId": "[reference('storageAccount').outputs.resourceId.value]",
+                              "queueName": "[variables('blobEventsQueueName')]",
+                              "queueMessageTimeToLiveInSeconds": 86400
+                            }
+                          }
+                        },
+                        "filter": {
+                          "includedEventTypes": [
+                            "Microsoft.Storage.BlobCreated",
+                            "Microsoft.Storage.BlobDeleted"
+                          ],
+                          "subjectBeginsWith": "[format('/blobServices/default/containers/{0}/', variables('documentsContainerName'))]",
+                          "enableAdvancedFilteringOnArrays": true
+                        },
+                        "eventDeliverySchema": "EventGridSchema",
+                        "retryPolicy": {
+                          "maxDeliveryAttempts": 30,
+                          "eventTimeToLiveInMinutes": 1440
+                        }
+                      }
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.45.15.27210",
+                      "templateHash": "2360502060837083798"
+                    }
+                  },
+                  "parameters": {
+                    "systemTopicName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the existing Event Grid System Topic to attach subscriptions to."
+                      }
+                    },
+                    "eventSubscriptions": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "Event subscriptions to create on the system topic."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "copy": {
+                        "name": "systemTopicSubscriptions",
+                        "count": "[length(parameters('eventSubscriptions'))]"
+                      },
+                      "type": "Microsoft.EventGrid/systemTopics/eventSubscriptions",
+                      "apiVersion": "2025-02-15",
+                      "name": "[format('{0}/{1}', parameters('systemTopicName'), parameters('eventSubscriptions')[copyIndex()].name)]",
+                      "properties": "[union(createObject('filter', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'filter'), createObject()), 'eventDeliverySchema', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'eventDeliverySchema'), 'EventGridSchema'), 'retryPolicy', coalesce(tryGet(parameters('eventSubscriptions')[copyIndex()], 'retryPolicy'), createObject('maxDeliveryAttempts', 30, 'eventTimeToLiveInMinutes', 1440))), if(not(equals(tryGet(parameters('eventSubscriptions')[copyIndex()], 'deliveryWithResourceIdentity'), null())), createObject('deliveryWithResourceIdentity', parameters('eventSubscriptions')[copyIndex()].deliveryWithResourceIdentity), createObject('destination', parameters('eventSubscriptions')[copyIndex()].destination)))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "eventGridSystemTopic",
+                "roleAssignments",
+                "storageAccount"
               ]
             }
           },

@@ -25,7 +25,7 @@ import { useCallback, useEffect, useState, type JSX } from "react";
 import { Delete16Regular, Edit16Regular } from "@fluentui/react-icons";
 import type { HistoryConversation } from "@/models/chat";
 import { userIdHeaders } from "@/api/auth";
-import { getBackendUrl } from "@/api/runtimeConfig";
+import { getBackendUrl, loadRuntimeConfig } from "@/api/runtimeConfig";
 import styles from "./HistoryPanel.module.css";
 
 interface LoadState {
@@ -75,6 +75,10 @@ export function HistoryPanel({
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     try {
+      await loadRuntimeConfig();
+      if (signal?.aborted) {
+        return;
+      }
       const init: RequestInit = signal ? { signal } : {};
       const list = await fetchJson<HistoryConversation[]>(
         "/api/history/conversations",
