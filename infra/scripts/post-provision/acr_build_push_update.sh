@@ -216,19 +216,33 @@ for dockerfile in "${IMAGE_DEFINITIONS[@]}"; do
     image_name="${dockerfile##*:}"
     full_tag="${image_name}:${IMAGE_TAG}"
 
+    # Create a minimal build context (src/, docker/, pyproject.toml, uv.lock only)
+    # to avoid sending the full repo tree to ACR Tasks.
+    context_dir="$(mktemp -d)"
+
+    cp -r "${REPO_ROOT}/src"            "${context_dir}/"
+    cp -r "${REPO_ROOT}/docker"         "${context_dir}/"
+    cp    "${REPO_ROOT}/pyproject.toml" "${context_dir}/"
+    cp    "${REPO_ROOT}/uv.lock"        "${context_dir}/"
+
     # az.exe needs native paths for --file and the build context; convert when
     # running under Git Bash/MSYS (no-op on Linux/macOS).
-    dockerfile_native="$(to_native_path "${REPO_ROOT}/${dockerfile_path}")"
-    build_context_native="$(to_native_path "${REPO_ROOT}")"
+    dockerfile_native="$(to_native_path "${context_dir}/${dockerfile_path}")"
+    context_native="$(to_native_path "${context_dir}")"
 
     echo "[$image_name] Submitting remote build to ACR '$ACR_NAME' ..."
-    az acr build \
+    if ! az acr build \
         --registry "$ACR_NAME" \
         --image "$full_tag" \
         --file "$dockerfile_native" \
-        "$build_context_native"
+        "$context_native"; then
+        rm -rf "$context_dir"
+        echo "ERROR: Remote build failed for ${image_name}." >&2
+        exit 1
+    fi
 
-    echo "[$image_name] OK"
+    rm -rf "$context_dir"
+    echo "[$image_name] OK Done"
 done
 
 # =============================================================================
