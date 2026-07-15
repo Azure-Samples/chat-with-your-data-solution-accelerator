@@ -69,7 +69,10 @@ def _validate_public_http_url(url: str) -> None:
             raise httpx.InvalidURL("URL host resolves to a non-public IP.")
         return
     except ValueError:
-        pass
+        logger.debug(
+            "Host %r is not an IP address literal; proceeding to DNS resolution.",
+            host,
+        )
     try:
         infos = socket.getaddrinfo(host, parsed.port, type=socket.SOCK_STREAM)
     except socket.gaierror as exc:

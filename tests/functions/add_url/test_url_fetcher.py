@@ -14,6 +14,19 @@ def _mock_client(handler: object) -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))  # type: ignore[arg-type]
 
 
+@pytest.fixture(autouse=True)
+def _bypass_ssrf_validation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Patch out the SSRF DNS check so tests can use .invalid hostnames.
+
+    Tests in this file exercise HTTP behavior (status codes, error handling,
+    body decoding) via ``httpx.MockTransport`` — they are not testing SSRF
+    protection. Bypassing ``_validate_public_http_url`` prevents
+    ``socket.getaddrinfo`` from failing on ``.invalid`` TLD domains that are
+    intentionally unresolvable (RFC 6761).
+    """
+    monkeypatch.setattr(module_under_test, "_validate_public_http_url", lambda _url: None)
+
+
 @pytest.mark.asyncio
 async def test_returns_response_bytes_on_2xx() -> None:
     expected_body = b"<html>hello world</html>"

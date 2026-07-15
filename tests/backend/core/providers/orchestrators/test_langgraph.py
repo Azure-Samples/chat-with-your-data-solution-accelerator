@@ -226,10 +226,12 @@ async def test_run_with_search_emits_citations_for_referenced_markers_only() -> 
 
     events = [e async for e in orch.run([ChatMessage(role="user", content="what?")])]
     channels = [e.channel for e in events]
-    # Production emits all retrieved citations then the answer.
-    assert channels == ["citation", "citation", "answer"]
+    # Only [doc1] is referenced in the reply; [doc2] is filtered out and the
+    # emitted list is renumbered to 1-based sequential so parseAnswer maps
+    # correctly by index.
+    assert channels == ["citation", "answer"]
     citation_ids = [e.metadata["id"] for e in events if e.channel == "citation"]
-    assert citation_ids == ["[doc1]", "[doc2]"]
+    assert citation_ids == ["[doc1]"]
     assert events[-1].content == "From [doc1] we learn the answer."
     # Search was called with the latest user text.
     assert fake_search.calls == ["what?"]
@@ -419,9 +421,10 @@ async def test_run_with_search_drops_unreferenced_citations() -> None:
 
     events = [e async for e in orch.run([ChatMessage(role="user", content="?")])]
     citation_events = [e for e in events if e.channel == "citation"]
-    # Production emits all retrieved citations regardless of reply markers.
-    assert len(citation_events) == 2
-    assert {e.metadata["id"] for e in citation_events} == {"[doc1]", "[doc2]"}
+    # Only [doc2] was referenced; it is renumbered to [doc1] and the
+    # unreferenced source-a citation is dropped entirely.
+    assert len(citation_events) == 1
+    assert citation_events[0].metadata["id"] == "[doc1]"
 
 
 # ---------------------------------------------------------------------------
