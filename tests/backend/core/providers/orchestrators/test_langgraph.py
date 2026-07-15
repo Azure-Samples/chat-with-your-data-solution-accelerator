@@ -85,7 +85,7 @@ class _FakeLLM(BaseLLMProvider):
         # ``self._settings``) to mirror the non-reasoning path: record
         # the call and yield a single ``answer`` event with the canned
         # reply. Subclasses can override this to inject reasoning /
-        # error events for the streaming tests.
+        # error events for the streaming tests
         self.calls.append(list(messages))
         self.complete_calls.append(
             {"temperature": temperature, "max_tokens": max_tokens}
