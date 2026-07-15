@@ -16,6 +16,6 @@ Caller pattern:
 from ._instance import registry as registry  # noqa: F401
 from . import text_parser  # noqa: F401  # pyright: ignore[reportUnusedImport]
 from . import html_parser  # noqa: F401  # pyright: ignore[reportUnusedImport]
-from . import (
+from . import (  # noqa: F401  # pyright: ignore[reportUnusedImport]
     document_intelligence_parser,
-)  # noqa: F401  # pyright: ignore[reportUnusedImport]
+)
