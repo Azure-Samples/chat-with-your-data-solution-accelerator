@@ -13,11 +13,13 @@ the App Service runs this module via uvicorn (see the `appCommandLine`
 on the frontend site in `infra/main.bicep`).
 """
 
+import base64
+import json
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Header
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 # `DIST_DIR` env var lets tests point at a fixture without rebuilding.
@@ -51,6 +53,45 @@ def get_config() -> FrontendConfig:
     return FrontendConfig(backend_url=os.environ.get("BACKEND_API_URL", ""))
 
 
+@app.get("/.auth/me")
+def auth_me(
+    principal: str = Header(default="", alias="x-ms-client-principal"),
+    principal_id: str = Header(default="", alias="x-ms-client-principal-id"),
+    principal_name: str = Header(default="", alias="x-ms-client-principal-name"),
+) -> JSONResponse:
+    """Serve the Easy Auth /.auth/me claims payload.
+
+    Container Apps Easy Auth injects ``X-MS-CLIENT-PRINCIPAL`` (base64-
+    encoded JSON with the full claim set), ``X-MS-CLIENT-PRINCIPAL-ID``
+    (user object id or UPN), and ``X-MS-CLIENT-PRINCIPAL-NAME`` into every
+    request from an authenticated user.  For unauthenticated requests Easy
+    Auth blocks the call before it reaches this handler (``RedirectToLoginPage``
+    mode).  We decode those headers and return the same array shape that App
+    Service Easy Auth produces, so the SPA's ``getUserInfo()`` works without
+    any browser-side changes.
+    """
+    if not principal:
+        return JSONResponse(content=[])
+    try:
+        # base64 padding may be stripped -- add == to be safe.
+        decoded = json.loads(
+            base64.b64decode(principal + "==").decode("utf-8", errors="replace")
+        )
+        claims: list[dict[str, str]] = decoded.get("claims", [])
+        provider_name: str = decoded.get("auth_typ", "aad")
+    except Exception:
+        return JSONResponse(content=[])
+    return JSONResponse(
+        content=[
+            {
+                "user_id": principal_id or principal_name,
+                "user_claims": claims,
+                "provider_name": provider_name,
+            }
+        ]
+    )
+
+
 @app.get("/{full_path:path}")
 def serve_spa(full_path: str) -> FileResponse:
     """Serve a built file when it exists, else the SPA `index.html`.
@@ -59,6 +100,13 @@ def serve_spa(full_path: str) -> FileResponse:
     inside `dist/` (guards against `..` path traversal); every other
     request (unknown client routes, deep links, refreshes) resolves
     to `index.html` so the browser-side router can take over.
+
+    Cache-control policy:
+    - ``index.html``: ``no-store`` so the browser always re-fetches it,
+      ensuring a new deployment is picked up immediately.
+    - Hashed assets (``/assets/*``): ``max-age=31536000, immutable``
+      so long-lived cache hits are safe (Vite embeds a content hash in
+      every asset filename).
     """
     dist_root = _DIST_DIR.resolve()
     normalized_path = os.path.normpath(full_path).lstrip("/\\")
@@ -67,8 +115,20 @@ def serve_spa(full_path: str) -> FileResponse:
         or normalized_path.startswith("../")
         or normalized_path.startswith("..\\")
     ):
-        return FileResponse(dist_root / "index.html")
+        return FileResponse(
+            dist_root / "index.html",
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+        )
     candidate = (dist_root / normalized_path).resolve()
     if candidate.is_file() and candidate.is_relative_to(dist_root):
-        return FileResponse(candidate)
-    return FileResponse(dist_root / "index.html")
+        # Vite hashes asset filenames — safe to cache for a year.
+        cache = (
+            "public, max-age=31536000, immutable"
+            if normalized_path.startswith("assets/")
+            else "no-store, no-cache, must-revalidate"
+        )
+        return FileResponse(candidate, headers={"Cache-Control": cache})
+    return FileResponse(
+        dist_root / "index.html",
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )

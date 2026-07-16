@@ -114,11 +114,21 @@ async def fetch_url(
             translate it into a 502 response.
     """
     _validate_public_http_url(url)
+    # A descriptive User-Agent is required by many sites (e.g. Wikipedia
+    # blocks the default python-httpx UA with 403). The string follows the
+    # convention used by other Azure SA bots.
+    _headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (compatible; CWYD-Bot/1.0; "
+            "+https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator)"
+        )
+    }
     try:
         if client is None:
             async with httpx.AsyncClient(
                 timeout=timeout_seconds,
                 follow_redirects=True,
+                headers=_headers,
             ) as owned_client:
                 response = await owned_client.get(url)
         else:

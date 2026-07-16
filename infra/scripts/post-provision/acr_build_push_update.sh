@@ -1,63 +1,83 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
-# acr_build_push_update.sh
-# -----------------------------------------------------------------------------
-# Builds the v2 application container images, pushes them to the per-deployment
-# Azure Container Registry (ACR), and updates the deployed Container Apps:
-#   - Container Apps : frontend, backend, function
+# SYNOPSIS
+#   Builds the v2 container images, pushes them to ACR, and rolls out new
+#   revisions to all three Container Apps (frontend, backend, function).
 #
-# The function service is deployed as a Container App (not an App Service
-# Function App), so all three services are updated through the same path.
+# DESCRIPTION
+#   Uses ACR Tasks (remote build — no local Docker required) to build images
+#   from docker/Dockerfile.*, then updates the deployed Container Apps.
+#   Works for both plain and WAF (private networking) deployments: the ACR
+#   is temporarily unlocked for the remote build and re-locked on exit.
 #
-# Images are built remotely with ACR Tasks (`az acr build`), so no local Docker
-# daemon is required.
+# OPTIONS
+#   -g, --resource-group  Azure resource group that contains the ACR and
+#                         Container Apps (required)
+#   -t, --tag             Image tag to push (default: latest)
 #
-# Usage:
-#   ./infra/scripts/post-provision/acr_build_push_update.sh <resource-group> [--tag TAG]
-#
-# Examples:
-#   ./infra/scripts/post-provision/acr_build_push_update.sh "rg-cwyd-dev"
-#   ./infra/scripts/post-provision/acr_build_push_update.sh "rg-cwyd-dev" --tag v1.0.0
-# -----------------------------------------------------------------------------
+# EXAMPLES
+#   ./infra/scripts/post-provision/acr_build_push_update.sh -g rg-cwyd-dev
+#   ./infra/scripts/post-provision/acr_build_push_update.sh -g rg-cwyd-dev -t v1.2.0
 
 set -euo pipefail
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
+# Prevent MSYS/Git Bash from mangling Windows paths passed to az.exe
 export MSYS_NO_PATHCONV=1
 
 # =============================================================================
-# Defaults & constants
+# Argument parsing
 # =============================================================================
-RESOURCE_GROUP=""
-IMAGE_TAG="latest"
 
-# Tracks whether this script temporarily opened a locked-down (WAF) ACR so the
-# EXIT trap knows whether it needs to re-lock it.
+RESOURCE_GROUP_NAME=""
+TAG="latest"
+
+usage() {
+    echo "Usage: $0 -g <ResourceGroupName> [-t <Tag>]"
+    echo "  -g, --resource-group  Azure resource group (required)"
+    echo "  -t, --tag             Image tag (default: latest)"
+    exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -g|--resource-group) RESOURCE_GROUP_NAME="$2"; shift 2 ;;
+        -t|--tag)            TAG="$2";                 shift 2 ;;
+        -h|--help)           usage ;;
+        *) echo "Unknown option: $1" >&2; usage ;;
+    esac
+done
+
+if [[ -z "$RESOURCE_GROUP_NAME" ]]; then
+    echo "Error: -g <ResourceGroupName> is required." >&2
+    usage
+fi
+
+SCRIPT_START=$(date +%s)
+
+# =============================================================================
+# Service definitions — one entry per deployable service.
+# Add a row here to onboard a new service; nothing else needs to change.
+# =============================================================================
+# Parallel arrays: Name, Dockerfile, ServiceTag
+SVC_NAMES=(       "rag-frontend"              "rag-backend"              "rag-functions"             )
+SVC_DOCKERFILES=( "docker/Dockerfile.frontend" "docker/Dockerfile.backend" "docker/Dockerfile.functions" )
+SVC_TAGS=(        "frontend"                  "backend"                  "function"                  )
+
+# Tracks whether THIS run temporarily opened a WAF-locked ACR (for cleanup)
 ACR_OPENED_FOR_BUILD=false
-
-# Image map: "<dockerfile path>:<image name>".
-# Matches the docker/ Dockerfiles at the repo root and the bicep-defined image
-# names.
-IMAGE_DEFINITIONS=(
-    "docker/Dockerfile.frontend:rag-frontend"
-    "docker/Dockerfile.backend:rag-backend"
-    "docker/Dockerfile.functions:rag-functions"
-)
-
-# Service discovery map for the update phase: "<azd-service-name>:<image name>".
-CONTAINER_APP_SERVICES=(
-    "frontend:rag-frontend"
-    "backend:rag-backend"
-    "function:rag-functions"
-)
+ACR_NAME=""
+ACR_LOGIN_SERVER=""
 
 # =============================================================================
-# Helper functions
+# Helpers — path conversion (Git Bash / MSYS on Windows)
 # =============================================================================
 
-# ---- Path helpers ------------------------------------------------------------
-
-# Convert a path to a native Windows path when running under MSYS/Git Bash/Cygwin
-# (where `az.exe` expects C:\... rather than /c/...). On Linux/macOS `cygpath`
-# does not exist, so the original POSIX path is returned unchanged.
+# Convert a POSIX path to a Windows-native path when running under Git Bash or
+# MSYS. az.exe is a Windows binary and, with MSYS_NO_PATHCONV=1, it receives
+# raw POSIX paths that it cannot resolve. On Linux/macOS cygpath is absent, so
+# the path is returned unchanged.
 to_native_path() {
     if command -v cygpath >/dev/null 2>&1; then
         cygpath -w "$1"
@@ -66,230 +86,233 @@ to_native_path() {
     fi
 }
 
-# ---- ACR public access (WAF auto-detect; try/finally pattern from CGSA) ------
+# =============================================================================
+# Helpers — print utilities (ANSI colours)
+# =============================================================================
 
-# Temporarily enable public network access on the ACR when it is locked down
-# (WAF mode) so the remote build can reach the registry.
+CY='\033[0;36m'   # Cyan
+GR='\033[0;32m'   # Green
+YL='\033[0;33m'   # Yellow
+WH='\033[1;37m'   # White
+DG='\033[0;90m'   # Dark gray
+RS='\033[0m'      # Reset
+
+write_step() {
+    local number=$1 total=$2 title=$3
+    echo ""
+    echo -e "${CY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RS}"
+    echo -e "${CY}  Step ${number} / ${total}  |  ${title}${RS}"
+    echo -e "${CY}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RS}"
+}
+
+write_success() { echo -e "${GR}  [OK]  $1${RS}"; }
+write_info()    { echo -e "${WH}  >>   $1${RS}"; }
+write_warn()    { echo -e "${YL}  [!]  $1${RS}"; }
+write_elapsed() {
+    local now elapsed mins secs
+    now=$(date +%s)
+    elapsed=$(( now - SCRIPT_START ))
+    mins=$(( elapsed / 60 ))
+    secs=$(( elapsed % 60 ))
+    echo -e "${DG}  Elapsed: $(printf '%02d:%02d' $mins $secs)${RS}"
+}
+
+# =============================================================================
+# Helpers — ACR public-access management (WAF deployments)
+# =============================================================================
+
 enable_acr_public_access() {
     local public_access
     public_access=$(az acr show -n "$ACR_NAME" --query publicNetworkAccess --output tsv 2>/dev/null || true)
     if [[ "$public_access" == "Disabled" ]]; then
-        echo "===== ACR public access is disabled (WAF mode) - temporarily enabling for build ====="
-        az acr update -n "$ACR_NAME" --public-network-enabled true --default-action Allow --output none --only-show-errors
+        write_warn "ACR is WAF-locked — temporarily enabling public network access for build"
+        az acr update -n "$ACR_NAME" --public-network-enabled true --default-action Allow \
+            --output none --only-show-errors
         ACR_OPENED_FOR_BUILD=true
-        echo "Waiting 45s for network rule propagation..."
+        write_warn "Waiting 45s for network rule propagation..."
         sleep 45
+    else
+        write_info "ACR public access: ${public_access:-unknown} (no WAF unlock needed)"
     fi
 }
 
-# Re-lock the ACR if (and only if) this script opened it. Registered on the EXIT
-# trap so the registry is restored on both success and failure.
 restore_acr_public_access() {
     if [[ "$ACR_OPENED_FOR_BUILD" == "true" ]]; then
-        echo "===== Re-locking ACR (disabling public network access) ====="
-        az acr update -n "$ACR_NAME" --public-network-enabled false --default-action Deny --output none --only-show-errors || \
-            echo "WARNING: Failed to re-disable ACR public access. Re-lock manually: az acr update -n $ACR_NAME --public-network-enabled false --default-action Deny"
+        ACR_OPENED_FOR_BUILD=false
+        write_warn "Re-locking ACR (disabling public network access)"
+        if az acr update -n "$ACR_NAME" --public-network-enabled false --default-action Deny \
+                --output none --only-show-errors; then
+            write_success "ACR re-locked"
+        else
+            write_warn "Failed to re-lock. Run manually: az acr update -n $ACR_NAME --public-network-enabled false --default-action Deny"
+        fi
     fi
 }
 
-# ---- Service updates ---------------------------------------------------------
+# Ensure ACR is re-locked on any exit (success or failure)
+trap restore_acr_public_access EXIT
 
-# Update a Container App (v2 frontend + backend) to a new image. Bicep already
-# wires the ACR registry with the UAMI, so only the image is set here.
+# =============================================================================
+# Helper — roll out a new revision to a Container App
+# =============================================================================
+
 update_container_app() {
-    local app_name="$1"
-    local image_name="$2"
+    local app_name=$1 image_name=$2
+    local full_image="${ACR_LOGIN_SERVER}/${image_name}:${TAG}"
+    local rev_suffix
+    rev_suffix=$(date -u +%Y%m%d%H%M%S)
 
-    local full_image="${ACR_LOGIN_SERVER}/${image_name}:${IMAGE_TAG}"
-    local revision_suffix="$(date +%Y%m%d%H%M%S)"
-    echo "  Updating Container App: $app_name"
-    echo "    Image: $full_image"
-    echo "    Revision suffix: $revision_suffix"
+    write_info "Deploying  : $app_name"
+    write_info "  Image    : $full_image"
+    write_info "  Suffix   : $rev_suffix"
 
     az containerapp update \
-        --name "$app_name" \
-        --resource-group "$RESOURCE_GROUP" \
-        --image "$full_image" \
-        --revision-suffix "$revision_suffix" \
+        --name            "$app_name" \
+        --resource-group  "$RESOURCE_GROUP_NAME" \
+        --image           "$full_image" \
+        --revision-suffix "$rev_suffix" \
         --output none
+    write_success "$app_name updated"
 }
 
 # =============================================================================
-# 1. Parse command line arguments
+# Banner
 # =============================================================================
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --tag)
-            IMAGE_TAG="$2"
-            shift 2
-            ;;
-        --*)
-            echo "Unknown option: $1" >&2
-            exit 1
-            ;;
-        *)
-            if [[ -z "$RESOURCE_GROUP" ]]; then
-                RESOURCE_GROUP="$1"
-            else
-                echo "Unexpected argument: $1" >&2
-                exit 1
-            fi
-            shift
-            ;;
-    esac
-done
 
-if [[ -z "$RESOURCE_GROUP" ]]; then
-    read -rp "Enter the resource group name: " RESOURCE_GROUP
-    if [[ -z "$RESOURCE_GROUP" ]]; then
-        echo "ERROR: Resource group name is required." >&2
-        exit 1
-    fi
-fi
+TOTAL_STEPS=4
+SVC_LIST="${SVC_NAMES[*]}"
+SVC_LIST="${SVC_LIST// /, }"
 
-# =============================================================================
-# 2. Resolve repo root
-# =============================================================================
-# Script lives at <repo>/infra/scripts/post-provision/, so walk up 3 levels for
-# the repo root.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." >/dev/null 2>&1 && pwd)"
-
-# =============================================================================
-# 3. Resource group is authoritative
-# =============================================================================
 echo ""
-echo "=============================================="
-echo " Build, Push & Update Images"
-echo " Resource Group : ${RESOURCE_GROUP}"
-echo " Image Tag      : ${IMAGE_TAG}"
-echo " Repo Root      : ${REPO_ROOT}"
-echo "=============================================="
-echo ""
+echo -e "${CY}  CWYD v2  |  Build - Push - Deploy${RS}"
+echo -e "${CY}  Resource Group : $RESOURCE_GROUP_NAME${RS}"
+echo -e "${CY}  Image Tag      : $TAG${RS}"
+echo -e "${CY}  Services       : $SVC_LIST${RS}"
 
 # =============================================================================
-# 4. Discover shared resources (ACR, managed identity, subscription)
+# Step 1 - Discover resources
 # =============================================================================
-echo "Discovering resources in resource group '${RESOURCE_GROUP}'..."
+write_step 1 "$TOTAL_STEPS" "Discover ACR and Container Apps"
 
-if [[ -z "${ACR_NAME:-}" ]]; then
-    ACR_NAME=$(az acr list --resource-group "$RESOURCE_GROUP" --query "[0].name" --output tsv 2>/dev/null || true)
-fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+write_info "Repo root : $REPO_ROOT"
 
-if [[ -z "${ACR_NAME:-}" ]]; then
-    echo "ERROR: No Azure Container Registry found in resource group '${RESOURCE_GROUP}'." >&2
-    echo "Run 'azd provision' to create infrastructure first." >&2
+ACR_NAME=$(az acr list --resource-group "$RESOURCE_GROUP_NAME" --query "[0].name" --output tsv 2>/dev/null || true)
+if [[ -z "$ACR_NAME" ]]; then
+    echo "Error: No ACR found in '$RESOURCE_GROUP_NAME'. Run 'azd provision' first." >&2
     exit 1
 fi
+ACR_LOGIN_SERVER="${ACR_NAME}.azurecr.io"
+write_success "ACR : $ACR_LOGIN_SERVER"
 
-if [[ -z "${ACR_LOGIN_SERVER:-}" ]]; then
-    ACR_LOGIN_SERVER="${ACR_NAME}.azurecr.io"
+MI_CLIENT_ID=$(az identity list --resource-group "$RESOURCE_GROUP_NAME" --query "[0].clientId" --output tsv 2>/dev/null || true)
+if [[ -z "$MI_CLIENT_ID" ]]; then
+    write_warn "No UAMI found — image pulls may fail if Bicep UAMI wiring is missing"
+else
+    write_success "UAMI client id : $MI_CLIENT_ID"
 fi
-
-MI_CLIENT_ID=$(az identity list --resource-group "$RESOURCE_GROUP" --query "[0].clientId" --output tsv 2>/dev/null || true)
-
-if [[ -z "${MI_CLIENT_ID:-}" ]]; then
-    echo "ERROR: No user-assigned managed identity found in resource group '${RESOURCE_GROUP}'." >&2
-    exit 1
-fi
-
-SUBSCRIPTION_ID=$(az account show --query id --output tsv)
-
-echo "  ACR             : $ACR_LOGIN_SERVER"
-echo "  Managed identity: $MI_CLIENT_ID"
-echo ""
+write_elapsed
 
 # =============================================================================
-# 5. Build and push images (remote ACR Tasks build)
+# Step 2 - Remote ACR build (one image at a time)
 # =============================================================================
-echo ""
-echo "--- REMOTE BUILD (ACR Tasks - no local Docker required) ---"
-echo "    Note: your Azure identity needs Contributor or AcrPush access on the ACR."
-echo ""
+write_step 2 "$TOTAL_STEPS" "Remote Build via ACR Tasks (no local Docker needed)"
+write_info "Your Azure identity needs 'AcrPush' or 'Contributor' on the ACR."
 
-# Ensure the ACR is re-locked on exit (success or failure), then open it if WAF.
-trap restore_acr_public_access EXIT
+BUILD_COUNT=0
+TOTAL_BUILDS=${#SVC_NAMES[@]}
+
 enable_acr_public_access
 
-for dockerfile in "${IMAGE_DEFINITIONS[@]}"; do
-    dockerfile_path="${dockerfile%%:*}"
-    image_name="${dockerfile##*:}"
-    full_tag="${image_name}:${IMAGE_TAG}"
+for i in "${!SVC_NAMES[@]}"; do
+    SVC_NAME="${SVC_NAMES[$i]}"
+    SVC_DOCKERFILE="${SVC_DOCKERFILES[$i]}"
 
-    # Create a minimal build context (src/, docker/, pyproject.toml, uv.lock only)
-    # to avoid sending the full repo tree to ACR Tasks.
-    context_dir="$(mktemp -d)"
+    BUILD_COUNT=$(( BUILD_COUNT + 1 ))
+    echo ""
+    echo -e "${WH}  [$BUILD_COUNT/$TOTAL_BUILDS] $SVC_NAME${RS}"
+    write_info "  Dockerfile : $SVC_DOCKERFILE"
+    write_info "  Target tag : $ACR_LOGIN_SERVER/$SVC_NAME:$TAG"
 
-    cp -r "${REPO_ROOT}/src"            "${context_dir}/"
-    cp -r "${REPO_ROOT}/docker"         "${context_dir}/"
-    cp    "${REPO_ROOT}/pyproject.toml" "${context_dir}/"
-    cp    "${REPO_ROOT}/uv.lock"        "${context_dir}/"
+    CONTEXT_DIR="$(mktemp -d "/tmp/acr-ctx-${SVC_NAME}-XXXX")"
+    write_info "  Copying build context to $CONTEXT_DIR..."
 
-    # az.exe needs native paths for --file and the build context; convert when
-    # running under Git Bash/MSYS (no-op on Linux/macOS).
-    dockerfile_native="$(to_native_path "${context_dir}/${dockerfile_path}")"
-    context_native="$(to_native_path "${context_dir}")"
+    cp -r "$REPO_ROOT/src"            "$CONTEXT_DIR/"
+    cp -r "$REPO_ROOT/docker"         "$CONTEXT_DIR/"
+    cp    "$REPO_ROOT/pyproject.toml" "$CONTEXT_DIR/"
+    cp    "$REPO_ROOT/uv.lock"        "$CONTEXT_DIR/"
 
-    echo "[$image_name] Submitting remote build to ACR '$ACR_NAME' ..."
-    if ! az acr build \
+    write_info "  Submitting to ACR Tasks — streaming build log..."
+    build_exit=0
+    az acr build \
         --registry "$ACR_NAME" \
-        --image "$full_tag" \
-        --file "$dockerfile_native" \
-        "$context_native"; then
-        rm -rf "$context_dir"
-        echo "ERROR: Remote build failed for ${image_name}." >&2
+        --image    "${SVC_NAME}:${TAG}" \
+        --file     "$(to_native_path "${CONTEXT_DIR}/${SVC_DOCKERFILE}")" \
+        "$(to_native_path "$CONTEXT_DIR")" || build_exit=$?
+
+    rm -rf "$CONTEXT_DIR"
+
+    if [[ $build_exit -ne 0 ]]; then
+        echo "Error: Build failed for $SVC_NAME. See ACR Task log above." >&2
         exit 1
     fi
-
-    rm -rf "$context_dir"
-    echo "[$image_name] OK Done"
+    write_success "${SVC_NAME}:${TAG} pushed"
 done
 
-# =============================================================================
-# 6. Build & push summary
-# =============================================================================
-echo ""
-echo "=============================================="
-echo " Build & Push Complete"
-echo "=============================================="
-echo " Images pushed to ${ACR_LOGIN_SERVER}:"
-echo "   ${ACR_LOGIN_SERVER}/rag-frontend:${IMAGE_TAG}"
-echo "   ${ACR_LOGIN_SERVER}/rag-backend:${IMAGE_TAG}"
-echo "   ${ACR_LOGIN_SERVER}/rag-functions:${IMAGE_TAG}"
+write_elapsed
 
 # =============================================================================
-# 7. Discover and update Container Apps (frontend + backend + function)
+# Step 3 - Deploy new revisions to Container Apps
 # =============================================================================
-echo ""
-echo "Updating Container Apps..."
+write_step 3 "$TOTAL_STEPS" "Deploy New Revisions to Container Apps"
 
-CA_LIST_JSON=$(az containerapp list --resource-group "$RESOURCE_GROUP" --output json 2>/dev/null || true)
+CA_COUNT=$(az containerapp list --resource-group "$RESOURCE_GROUP_NAME" --query "length(@)" --output tsv 2>/dev/null || echo "0")
+write_info "Found $CA_COUNT Container App(s) in '$RESOURCE_GROUP_NAME'"
 
-for pair in "${CONTAINER_APP_SERVICES[@]}"; do
-    service_tag="${pair%%:*}"
-    image_name="${pair##*:}"
+for i in "${!SVC_NAMES[@]}"; do
+    SVC_NAME="${SVC_NAMES[$i]}"
+    SVC_SERVICE_TAG="${SVC_TAGS[$i]}"
 
-    # Discover the app via az server-side JMESPath (no jq dependency).
-    # Prefer the azd-service-name tag; fall back to the ca-<service>-<suffix> name pattern.
-    APP_NAME=$(az containerapp list --resource-group "$RESOURCE_GROUP" \
-        --query "[?tags.\"azd-service-name\"=='${service_tag}'].name | [0]" \
+    echo ""
+    # Primary: azd-service-name tag set by azd provision
+    APP_NAME=$(az containerapp list \
+        --resource-group "$RESOURCE_GROUP_NAME" \
+        --query "[?tags.\"azd-service-name\"=='${SVC_SERVICE_TAG}'].name | [0]" \
         --output tsv 2>/dev/null || true)
 
+    # Fallback: Bicep naming convention ca-<service>-<suffix>
     if [[ -z "$APP_NAME" || "$APP_NAME" == "None" ]]; then
-        APP_NAME=$(az containerapp list --resource-group "$RESOURCE_GROUP" \
-            --query "[?starts_with(name, 'ca-${service_tag}-')].name | [0]" \
+        APP_NAME=$(az containerapp list \
+            --resource-group "$RESOURCE_GROUP_NAME" \
+            --query "[?starts_with(name, 'ca-${SVC_SERVICE_TAG}-')].name | [0]" \
             --output tsv 2>/dev/null || true)
     fi
 
     if [[ -z "$APP_NAME" || "$APP_NAME" == "None" ]]; then
-        echo "  WARNING: No Container App for azd-service-name='$service_tag' in RG '$RESOURCE_GROUP' - skipping."
+        write_warn "No Container App found for service tag '${SVC_SERVICE_TAG}' — skipping"
         continue
     fi
 
-    update_container_app "$APP_NAME" "$image_name"
+    update_container_app "$APP_NAME" "$SVC_NAME"
 done
 
+write_elapsed
+
+# =============================================================================
+# Step 4 - Summary
+# =============================================================================
+write_step 4 "$TOTAL_STEPS" "Done"
+
+NOW=$(date +%s)
+ELAPSED=$(( NOW - SCRIPT_START ))
+MINS=$(( ELAPSED / 60 ))
+SECS=$(( ELAPSED % 60 ))
+
 echo ""
-echo "=============================================="
-echo " ACR Build, Push & Update complete"
-echo "=============================================="
+echo -e "${GR}  Images deployed to $ACR_LOGIN_SERVER :${RS}"
+for SVC_NAME in "${SVC_NAMES[@]}"; do
+    echo -e "${GR}    $ACR_LOGIN_SERVER/$SVC_NAME:$TAG${RS}"
+done
+echo ""
+write_success "Completed in $(printf '%02d:%02d' $MINS $SECS)"

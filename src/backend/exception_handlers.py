@@ -44,6 +44,7 @@ import logging
 from typing import Any
 
 import asyncpg  # pyright: ignore[reportMissingTypeStubs]
+import httpx
 import openai
 from azure.core.exceptions import AzureError
 from azure.cosmos.exceptions import CosmosHttpResponseError
@@ -58,6 +59,7 @@ _OPENAI_DETAIL = "Upstream model error."
 _COSMOS_DETAIL = "Database temporarily unavailable."
 _POSTGRES_DETAIL = "Database temporarily unavailable."
 _AZURE_DETAIL = "Azure dependency temporarily unavailable."
+_HTTPX_FETCH_DETAIL = "Failed to fetch the requested URL (the remote server returned an error)."
 _INTERNAL_DETAIL = "Internal server error."
 
 
@@ -152,6 +154,20 @@ async def _config_resolution_error_handler(
     )
 
 
+async def _httpx_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Map an upstream HTTP fetch failure to a 502 response.
+
+    ``httpx.HTTPError`` covers ``HTTPStatusError`` (4xx/5xx from the remote
+    site, e.g. Wikipedia 403), ``ConnectError``, ``TimeoutException``, and
+    all other httpx transport failures raised by ``url_fetcher.fetch_url``.
+    """
+    logger.exception(
+        "httpx.HTTPError surfaced at router boundary",
+        extra={**_request_extras(request), "exception_class": type(exc).__name__},
+    )
+    return JSONResponse(status_code=502, content={"detail": _HTTPX_FETCH_DETAIL})
+
+
 async def _unhandled_exception_handler(  # noqa: BLE001 -- final safety net
     request: Request, exc: Exception
 ) -> JSONResponse:
@@ -184,4 +200,7 @@ def install_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(asyncpg.PostgresError, _postgres_error_handler)
     app.add_exception_handler(AzureError, _azure_error_handler)
     app.add_exception_handler(ConfigResolutionError, _config_resolution_error_handler)
+    # httpx errors from URL ingestion: HTTPStatusError (403/5xx from remote),
+    # ConnectError, TimeoutException etc. -> 502 instead of 500.
+    app.add_exception_handler(httpx.HTTPError, _httpx_error_handler)
     app.add_exception_handler(Exception, _unhandled_exception_handler)

@@ -49,7 +49,6 @@ import {
   Select,
   Switch,
   Textarea,
-  Tooltip,
 } from "@fluentui/react-components";
 import type {
   SwitchOnChangeData,
@@ -898,18 +897,18 @@ export function Configuration(): JSX.Element {
                         >
                           <div className={styles.fieldLabel}>
                             <Label htmlFor={inputId}>{spec.label}</Label>
-                            <Tooltip
-                              content={spec.tooltip}
-                              relationship="label"
-                              withArrow
-                            >
+                            <span className={styles.infoWrapper}>
                               <Button
                                 type="button"
                                 appearance="transparent"
                                 size="small"
                                 icon={<Info16Regular />}
+                                aria-label={spec.tooltip}
                               />
-                            </Tooltip>
+                              <span className={styles.infoPopup} role="tooltip">
+                                {spec.tooltip}
+                              </span>
+                            </span>
                           </div>
                           {spec.kind === "text" && spec.multiline === true ? (
                             <Textarea

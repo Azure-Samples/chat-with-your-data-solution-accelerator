@@ -40,7 +40,7 @@ export function resolveDisplayName(
       return value;
     }
   }
-  return GUEST_NAME;
+  return userInfo.userId || GUEST_NAME;
 }
 
 /**

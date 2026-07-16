@@ -68,7 +68,7 @@ export async function getUserInfo(): Promise<UserInfo | null> {
     }
     const userId = principal.user_claims.find(
       (claim) => claim.typ === OBJECT_ID_CLAIM,
-    )?.val;
+    )?.val ?? principal.user_id;
     if (!userId) {
       return null;
     }

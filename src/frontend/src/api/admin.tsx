@@ -21,7 +21,7 @@ import type {
   UploadResponse,
 } from "@/models/admin";
 import { userIdHeaders } from "@/api/auth";
-import { getBackendUrl } from "@/api/runtimeConfig";
+import { getBackendUrl, loadRuntimeConfig } from "@/api/runtimeConfig";
 
 const ADMIN_STATUS_URL = "/api/admin/status";
 const ADMIN_CONFIG_URL = "/api/admin/config";
@@ -45,8 +45,11 @@ function backendUrl(): string {
   return getBackendUrl();
 }
 
-/** Join the backend base (trailing slash trimmed) with an API path. */
-function apiUrl(path: string): string {
+/** Join the backend base (trailing slash trimmed) with an API path.
+ * Awaits `loadRuntimeConfig()` so the URL is always resolved against
+ * the real backend origin, never the SPA catch-all. */
+async function apiUrl(path: string): Promise<string> {
+  await loadRuntimeConfig();
   return `${backendUrl().replace(/\/$/, "")}${path}`;
 }
 
@@ -112,7 +115,7 @@ async function parseErrorBody(
  * (authenticated but not in the "admin" role), 5xx (backend down).
  */
 export async function getAdminStatus(): Promise<AdminStatus> {
-  const response = await fetch(apiUrl(ADMIN_STATUS_URL), {
+  const response = await fetch(await apiUrl(ADMIN_STATUS_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -136,7 +139,7 @@ export async function getAdminStatus(): Promise<AdminStatus> {
  */
 export async function addDocumentUrl(url: string): Promise<IngestUrlResponse> {
   const requestBody: IngestUrlRequest = { url };
-  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_INGEST_URL), {
+  const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_INGEST_URL), {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -167,7 +170,7 @@ export async function addDocumentUrl(url: string): Promise<IngestUrlResponse> {
 export async function uploadDocument(file: File): Promise<UploadResponse> {
   const formData = new FormData();
   formData.append("file", file, file.name);
-  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_URL), {
+  const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_URL), {
     method: "POST",
     headers: { Accept: "application/json", ...userIdHeaders() },
     body: formData,
@@ -190,7 +193,7 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
  * 401/403 RBAC, 5xx backend down).
  */
 export async function reprocessAll(): Promise<ReprocessResponse> {
-  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_REPROCESS_URL), {
+  const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_REPROCESS_URL), {
     method: "POST",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -215,7 +218,7 @@ export async function reprocessAll(): Promise<ReprocessResponse> {
  * 5xx backend / search backend down).
  */
 export async function listDocuments(): Promise<ListDocumentsResponse> {
-  const response = await fetch(apiUrl(ADMIN_DOCUMENTS_URL), {
+  const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -243,7 +246,7 @@ export async function listDocuments(): Promise<ListDocumentsResponse> {
 export async function deleteDocument(
   source: string,
 ): Promise<DeleteDocumentResponse> {
-  const url = apiUrl(`${ADMIN_DOCUMENTS_URL}/${encodeURIComponent(source)}`);
+  const url = await apiUrl(`${ADMIN_DOCUMENTS_URL}/${encodeURIComponent(source)}`);
   const response = await fetch(url, {
     method: "DELETE",
     headers: { Accept: "application/json", ...userIdHeaders() },
@@ -269,7 +272,7 @@ export async function deleteDocument(
  * @throws Error on non-2xx (401/403 RBAC, 5xx backend down).
  */
 export async function getAdminConfig(): Promise<AdminConfig> {
-  const response = await fetch(apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
+  const response = await fetch(await apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -294,7 +297,7 @@ export async function getAdminConfig(): Promise<AdminConfig> {
  * @throws Error on non-2xx (401/403 RBAC, 5xx backend down).
  */
 export async function getAssistantTypePresets(): Promise<AssistantTypePresets> {
-  const response = await fetch(apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
+  const response = await fetch(await apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
     method: "GET",
     headers: { Accept: "application/json", ...userIdHeaders() },
   });
@@ -328,7 +331,7 @@ export async function getAssistantTypePresets(): Promise<AssistantTypePresets> {
 export async function patchAdminConfig(
   patch: AdminConfigPatch,
 ): Promise<RuntimeConfig> {
-  const response = await fetch(apiUrl(ADMIN_CONFIG_URL), {
+  const response = await fetch(await apiUrl(ADMIN_CONFIG_URL), {
     method: "PATCH",
     headers: {
       Accept: "application/json",

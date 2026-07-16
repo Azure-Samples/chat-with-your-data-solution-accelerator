@@ -113,6 +113,37 @@
   color: var(--colorNeutralForeground1);
 }
 
+/* CSS-only tooltip: no Fluent portal, no blank-page interaction. */
+.infoWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.infoPopup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  max-width: 320px;
+  width: max-content;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  box-shadow: var(--shadow4);
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightRegular);
+  color: var(--colorNeutralForeground1);
+  white-space: normal;
+  pointer-events: none;
+}
+
+.infoWrapper:hover .infoPopup,
+.infoWrapper:focus-within .infoPopup {
+  display: block;
+}
+
 .fieldHint {
   margin: 0;
   font-size: var(--fontSizeBase200);

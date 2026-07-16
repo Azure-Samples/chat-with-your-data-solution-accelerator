@@ -1,20 +1,20 @@
-<#
+﻿<#
 .SYNOPSIS
-    Builds the v2 application container images, pushes them to the per-deployment ACR,
-    and updates the Container Apps (frontend, backend, function). The function
-    service runs as a Container App, so all three are updated the same way.
+    Builds the v2 container images, pushes them to ACR, and rolls out new
+    revisions to all three Container Apps (frontend, backend, function).
 .DESCRIPTION
-    Uses ACR Tasks (remote build - no local Docker required) to build three images
-    from docker/Dockerfile.frontend, docker/Dockerfile.backend, docker/Dockerfile.functions,
-    then updates the deployed services discovered by their azd-service-name tags.
+    Uses ACR Tasks (remote build — no local Docker required) to build images
+    from docker/Dockerfile.*, then updates the deployed Container Apps.
+    Works for both plain and WAF (private networking) deployments: the ACR
+    is temporarily unlocked for the remote build and re-locked on exit.
 .PARAMETER ResourceGroupName
-    The name of the Azure resource group containing the deployed resources.
+    Azure resource group that contains the ACR and Container Apps.
 .PARAMETER Tag
-    Image tag to apply. Defaults to 'latest'.
+    Image tag to push. Defaults to 'latest'.
 .EXAMPLE
     .\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "rg-cwyd-dev"
 .EXAMPLE
-    .\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "rg-cwyd-dev" -Tag v1.0.0
+    .\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "rg-cwyd-dev" -Tag v1.2.0
 #>
 
 param(
@@ -26,260 +26,237 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$ScriptStart = [datetime]::UtcNow
 
-# =============================================================================
-# Console encoding (UTF-8 for clean output from az / python)
-# =============================================================================
+# --- UTF-8 output (clean az / python output) ---------------------------------
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
-try { chcp 65001 > $null 2>$null } catch {}
+try { chcp 65001 > $null 2>&1 } catch {}
 $env:PYTHONIOENCODING = 'utf-8'
-$env:PYTHONUTF8 = '1'
+$env:PYTHONUTF8       = '1'
 
 # =============================================================================
-# Constants
+# Service definitions — one entry per deployable service.
+# Add a row here to onboard a new service; nothing else needs to change.
 # =============================================================================
-
-# v2 image map: matches docker/ Dockerfiles at repo root and bicep-defined image names.
-# (Bicep hard-codes rag-functions for the function app; frontend/backend are updated by this script.)
-$Images = @(
-    [pscustomobject]@{ Name = 'rag-frontend';  Dockerfile = 'docker/Dockerfile.frontend' },
-    [pscustomobject]@{ Name = 'rag-backend';   Dockerfile = 'docker/Dockerfile.backend' },
-    [pscustomobject]@{ Name = 'rag-functions'; Dockerfile = 'docker/Dockerfile.functions' }
+$Services = @(
+    [pscustomobject]@{ Name = 'rag-frontend';  Dockerfile = 'docker/Dockerfile.frontend';  ServiceTag = 'frontend' },
+    [pscustomobject]@{ Name = 'rag-backend';   Dockerfile = 'docker/Dockerfile.backend';   ServiceTag = 'backend'  },
+    [pscustomobject]@{ Name = 'rag-functions'; Dockerfile = 'docker/Dockerfile.functions'; ServiceTag = 'function' }
 )
 
-# Service discovery map for the update phase: azd-service-name -> image name.
-$ContainerAppServiceMap = @(
-    [pscustomobject]@{ ServiceTag = 'frontend'; ImageName = 'rag-frontend' },
-    [pscustomobject]@{ ServiceTag = 'backend';  ImageName = 'rag-backend' },
-    [pscustomobject]@{ ServiceTag = 'function'; ImageName = 'rag-functions' }
-)
-
-# Tracks whether this script temporarily opened a locked-down (WAF) ACR so the
-# finally block knows whether it needs to re-lock it.
+# Tracks whether THIS run temporarily opened a WAF-locked ACR (for cleanup)
 $script:AcrOpenedForBuild = $false
 
 # =============================================================================
-# Helper functions
+# Helpers — print utilities
 # =============================================================================
 
-# Get a Bicep deployment output value from the most recent RG deployment.
-# Fallback discovery helper; returns $null when unavailable.
-function Get-DeploymentOutput {
-    param(
-        [string]$OutputName,
-        [string]$ResourceGroup
-    )
-
-    try {
-        $deploymentName = az deployment group list `
-            --resource-group $ResourceGroup `
-            --query "[0].name" `
-            --output tsv 2>$null
-
-        if ([string]::IsNullOrWhiteSpace($deploymentName)) {
-            return $null
-        }
-
-        $output = az deployment group show `
-            --name $deploymentName `
-            --resource-group $ResourceGroup `
-            --query "properties.outputs.$OutputName.value" `
-            --output tsv 2>$null
-
-        return $output
-    } catch {
-        return $null
-    }
+function Write-Step {
+    param([int]$Number, [int]$Total, [string]$Title)
+    Write-Host ""
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+    Write-Host "  Step $Number / $Total  |  $Title" -ForegroundColor Cyan
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 }
 
-# ---- ACR public access (WAF auto-detect; try/finally pattern from CGSA) ------
+function Write-Success { param([string]$Msg)  Write-Host "  [OK]  $Msg" -ForegroundColor Green  }
+function Write-Info    { param([string]$Msg)  Write-Host "  >>   $Msg" -ForegroundColor White  }
+function Write-Warn    { param([string]$Msg)  Write-Host "  [!]  $Msg" -ForegroundColor Yellow }
+function Write-Elapsed {
+    $elapsed = [datetime]::UtcNow - $ScriptStart
+    Write-Host ("  Elapsed: {0:mm\:ss}" -f $elapsed) -ForegroundColor DarkGray
+}
 
-# Temporarily enable public network access on the ACR when it is locked down
-# (WAF mode) so the remote build can reach the registry.
+# =============================================================================
+# Helpers — ACR public-access management (WAF deployments)
+# =============================================================================
+
 function Enable-AcrPublicAccess {
     $publicAccess = az acr show -n $AcrName --query publicNetworkAccess --output tsv 2>$null
     if ($publicAccess -eq 'Disabled') {
-        Write-Host "===== ACR public access is disabled (WAF mode) - temporarily enabling for build =====" -ForegroundColor Yellow
-        az acr update -n $AcrName --public-network-enabled true --default-action Allow --output none --only-show-errors
-        if ($LASTEXITCODE -ne 0) { Write-Error "Failed to enable ACR public access."; exit 1 }
+        Write-Warn "ACR is WAF-locked — temporarily enabling public network access for build"
+        az acr update -n $AcrName --public-network-enabled true --default-action Allow `
+            --output none --only-show-errors
+        if ($LASTEXITCODE -ne 0) { Write-Error "Could not enable ACR public access."; exit 1 }
         $script:AcrOpenedForBuild = $true
-        Write-Host "Waiting 45s for network rule propagation..." -ForegroundColor Yellow
+        Write-Warn "Waiting 45 s for network rule propagation..."
         Start-Sleep -Seconds 45
+    } else {
+        Write-Info "ACR public access: $publicAccess (no WAF unlock needed)"
     }
 }
 
-# Re-lock the ACR if (and only if) this script opened it.
 function Restore-AcrPublicAccess {
     if ($script:AcrOpenedForBuild) {
-        Write-Host "===== Re-locking ACR (disabling public network access) =====" -ForegroundColor Yellow
-        az acr update -n $AcrName --public-network-enabled false --default-action Deny --output none --only-show-errors
+        Write-Warn "Re-locking ACR (disabling public network access)"
+        az acr update -n $AcrName --public-network-enabled false --default-action Deny `
+            --output none --only-show-errors
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Failed to re-disable ACR public access. Re-lock manually: az acr update -n $AcrName --public-network-enabled false --default-action Deny"
+            Write-Warn "Failed to re-lock. Run manually: az acr update -n $AcrName --public-network-enabled false --default-action Deny"
+        } else {
+            Write-Success "ACR re-locked"
         }
     }
 }
 
-# ---- Service updates ---------------------------------------------------------
-# Update a Container App (v2 frontend + backend) to a new image. Bicep already
-# wires the ACR registry with the UAMI, so only the image is set here.
-function Update-ContainerApp {
-    param(
-        [string]$AppName,
-        [string]$ImageName
-    )
+# =============================================================================
+# Helper — roll out a new revision to a Container App
+# =============================================================================
 
-    $FullImage = "${AcrLoginServer}/${ImageName}:${Tag}"
-    $RevisionSuffix = Get-Date -Format "yyyyMMddHHmmss"
-    Write-Host "  Updating Container App: $AppName"
-    Write-Host "    Image: $FullImage"
-    Write-Host "    Revision suffix: $RevisionSuffix"
+function Update-ContainerApp {
+    param([string]$AppName, [string]$ImageName)
+
+    $fullImage = "${AcrLoginServer}/${ImageName}:${Tag}"
+    $revSuffix = Get-Date -Format "yyyyMMddHHmmss"
+
+    Write-Info "Deploying  : $AppName"
+    Write-Info "  Image    : $fullImage"
+    Write-Info "  Suffix   : $revSuffix"
 
     az containerapp update `
-        --name $AppName `
-        --resource-group $ResourceGroupName `
-        --image $FullImage `
-        --revision-suffix $RevisionSuffix `
+        --name            $AppName `
+        --resource-group  $ResourceGroupName `
+        --image           $fullImage `
+        --revision-suffix $revSuffix `
         --output none
     if ($LASTEXITCODE -ne 0) { Write-Error "Failed to update Container App '$AppName'."; exit 1 }
+    Write-Success "$AppName updated"
 }
 
 # =============================================================================
-# 1. Resolve repo root (Resource group is authoritative for all discovery)
+# Banner
 # =============================================================================
-# Script lives at <repo>/infra/scripts/post-provision/, so walk up 3 levels for the repo root.
+
+$totalSteps = 4
+$svcList    = ($Services | ForEach-Object { $_.Name }) -join ', '
+Write-Host ""
+Write-Host "  CWYD v2  |  Build - Push - Deploy" -ForegroundColor Cyan
+Write-Host "  Resource Group : $ResourceGroupName" -ForegroundColor Cyan
+Write-Host "  Image Tag      : $Tag" -ForegroundColor Cyan
+Write-Host "  Services       : $svcList" -ForegroundColor Cyan
+
+# =============================================================================
+# Step 1 - Discover resources
+# =============================================================================
+Write-Step 1 $totalSteps "Discover ACR and Container Apps"
+
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
-
-Write-Host "=============================================="
-Write-Host " Build, Push & Update Images"
-Write-Host " Resource Group : $ResourceGroupName"
-Write-Host " Image Tag      : $Tag"
-Write-Host " Repo Root      : $RepoRoot"
-Write-Host "=============================================="
-
-# =============================================================================
-# 2. Discover shared resources (ACR, managed identity, subscription)
-# =============================================================================
-Write-Host "Discovering resources in resource group '$ResourceGroupName'..."
+$RepoRoot  = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
+Write-Info "Repo root : $RepoRoot"
 
 if (-not $AcrName) {
-    $AcrName = az acr list `
-        --resource-group $ResourceGroupName `
-        --query "[0].name" `
-        --output tsv 2>$null
+    $AcrName = az acr list --resource-group $ResourceGroupName --query "[0].name" --output tsv 2>$null
 }
-
 if ([string]::IsNullOrWhiteSpace($AcrName)) {
-    Write-Error "No Azure Container Registry found in resource group '$ResourceGroupName'.`nRun 'azd provision' to create infrastructure first."
+    Write-Error "No ACR found in '$ResourceGroupName'. Run 'azd provision' first."
     exit 1
 }
+if (-not $AcrLoginServer) { $AcrLoginServer = "$AcrName.azurecr.io" }
+Write-Success "ACR : $AcrLoginServer"
 
-if (-not $AcrLoginServer) {
-    $AcrLoginServer = "$AcrName.azurecr.io"
-}
-
-$MiClientId = az identity list `
-    --resource-group $ResourceGroupName `
-    --query "[0].clientId" `
-    --output tsv 2>$null
-
+$MiClientId = az identity list --resource-group $ResourceGroupName --query "[0].clientId" --output tsv 2>$null
 if ([string]::IsNullOrWhiteSpace($MiClientId)) {
-    Write-Error "No user-assigned managed identity found in resource group '$ResourceGroupName'."
-    exit 1
+    Write-Warn "No UAMI found — image pulls may fail if Bicep UAMI wiring is missing"
+} else {
+    Write-Success "UAMI client id : $MiClientId"
 }
-
-$SubscriptionId = az account show --query id --output tsv
-
-Write-Host "  ACR             : $AcrLoginServer"
-Write-Host "  Managed identity: $MiClientId"
-Write-Host ""
+Write-Elapsed
 
 # =============================================================================
-# 3. Build and push images (remote ACR Tasks build)
+# Step 2 - Remote ACR build (one image at a time)
 # =============================================================================
-Write-Host ""
-Write-Host "--- REMOTE BUILD (ACR Tasks - no local Docker required) ---"
-Write-Host "    Note: your Azure identity needs Contributor or AcrPush access on the ACR."
-Write-Host ""
+Write-Step 2 $totalSteps "Remote Build via ACR Tasks (no local Docker needed)"
+Write-Info "Your Azure identity needs 'AcrPush' or 'Contributor' on the ACR."
+
+$buildCount  = 0
+$totalBuilds = $Services.Count
 
 try {
     Enable-AcrPublicAccess
 
-    foreach ($img in $Images) {
-        $FullTag    = "$($img.Name):${Tag}"
-        $ContextDir = Join-Path $env:TEMP "acr-build-context-$($img.Name)"
+    foreach ($svc in $Services) {
+        $buildCount++
+        Write-Host ""
+        Write-Host "  [$buildCount/$totalBuilds] $($svc.Name)" -ForegroundColor White
+        Write-Info "  Dockerfile : $($svc.Dockerfile)"
+        Write-Info "  Target tag : $AcrLoginServer/$($svc.Name):$Tag"
 
-        Remove-Item $ContextDir -Recurse -Force -ErrorAction SilentlyContinue
-        $null = New-Item -ItemType Directory -Path $ContextDir
-        Copy-Item -Path (Join-Path $RepoRoot 'src')            -Destination $ContextDir -Recurse
-        Copy-Item -Path (Join-Path $RepoRoot 'docker')         -Destination $ContextDir -Recurse
-        Copy-Item -Path (Join-Path $RepoRoot 'pyproject.toml') -Destination $ContextDir
-        Copy-Item -Path (Join-Path $RepoRoot 'uv.lock')        -Destination $ContextDir
+        # Minimal build context: only files each Dockerfile actually needs
+        $contextDir = Join-Path $env:TEMP "acr-ctx-$($svc.Name)"
+        Remove-Item $contextDir -Recurse -Force -ErrorAction SilentlyContinue
+        $null = New-Item -ItemType Directory -Path $contextDir
 
-        Write-Host "[$($img.Name)] Submitting remote build to ACR '$AcrName' ..."
+        Write-Info "  Copying build context..."
+        Copy-Item -Path (Join-Path $RepoRoot 'src')            -Destination $contextDir -Recurse
+        Copy-Item -Path (Join-Path $RepoRoot 'docker')         -Destination $contextDir -Recurse
+        Copy-Item -Path (Join-Path $RepoRoot 'pyproject.toml') -Destination $contextDir
+        Copy-Item -Path (Join-Path $RepoRoot 'uv.lock')        -Destination $contextDir
+
+        Write-Info "  Submitting to ACR Tasks — streaming build log..."
         az acr build `
-            --registry  $AcrName `
-            --image     $FullTag `
-            --file      $img.Dockerfile `
-            $ContextDir
-        if ($LASTEXITCODE -ne 0) {
-            Remove-Item $ContextDir -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Error "Remote build failed for $($img.Name)."
+            --registry $AcrName `
+            --image    "$($svc.Name):$Tag" `
+            --file     $svc.Dockerfile `
+            $contextDir
+        $buildExit = $LASTEXITCODE
+        Remove-Item $contextDir -Recurse -Force -ErrorAction SilentlyContinue
+
+        if ($buildExit -ne 0) {
+            Write-Error "Build failed for $($svc.Name). See ACR Task log above."
             exit 1
         }
-
-        Remove-Item $ContextDir -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Host "[$($img.Name)] OK Done"
+        Write-Success "$($svc.Name):$Tag pushed"
     }
 } finally {
     Restore-AcrPublicAccess
 }
+Write-Elapsed
 
 # =============================================================================
-# 4. Build & push summary
+# Step 3 - Deploy new revisions to Container Apps
 # =============================================================================
-Write-Host ""
-Write-Host "=============================================="
-Write-Host " Build & Push Complete"
-Write-Host "=============================================="
-Write-Host " Images pushed to ${AcrLoginServer}:"
-foreach ($img in $Images) {
-    Write-Host "   ${AcrLoginServer}/$($img.Name):${Tag}"
-}
+Write-Step 3 $totalSteps "Deploy New Revisions to Container Apps"
 
-# =============================================================================
-# 5. Discover and update Container Apps (frontend + backend + function)
-# =============================================================================
-Write-Host ""
-Write-Host "Updating Container Apps..."
-
-$ContainerAppListJson = az containerapp list --resource-group $ResourceGroupName --output json 2>$null
 $containerApps = @()
-if (-not [string]::IsNullOrWhiteSpace($ContainerAppListJson)) {
-    $containerApps = $ContainerAppListJson | ConvertFrom-Json
+$caJson = az containerapp list --resource-group $ResourceGroupName --output json 2>$null
+if (-not [string]::IsNullOrWhiteSpace($caJson)) {
+    $containerApps = $caJson | ConvertFrom-Json
 }
+Write-Info "Found $($containerApps.Count) Container App(s) in '$ResourceGroupName'"
 
-foreach ($entry in $ContainerAppServiceMap) {
-    $AppName = ($containerApps `
-        | Where-Object { $_.tags -and $_.tags.'azd-service-name' -eq $entry.ServiceTag } `
-        | Select-Object -First 1).name
+foreach ($svc in $Services) {
+    Write-Host ""
+    # Primary: azd-service-name tag set by azd provision
+    $appName = ($containerApps |
+        Where-Object { $_.tags -and $_.tags.'azd-service-name' -eq $svc.ServiceTag } |
+        Select-Object -First 1).name
 
-    # Fallback: name pattern (Bicep uses ca-<service>-<suffix>)
-    if ([string]::IsNullOrWhiteSpace($AppName)) {
-        $AppName = ($containerApps `
-            | Where-Object { $_.name -like "ca-$($entry.ServiceTag)-*" } `
-            | Select-Object -First 1).name
+    # Fallback: Bicep naming convention  ca-<service>-<suffix>
+    if ([string]::IsNullOrWhiteSpace($appName)) {
+        $appName = ($containerApps |
+            Where-Object { $_.name -like "ca-$($svc.ServiceTag)-*" } |
+            Select-Object -First 1).name
     }
 
-    if ([string]::IsNullOrWhiteSpace($AppName)) {
-        Write-Host "  WARNING: No Container App for azd-service-name='$($entry.ServiceTag)' in RG '$ResourceGroupName' - skipping."
+    if ([string]::IsNullOrWhiteSpace($appName)) {
+        Write-Warn "No Container App found for service tag '$($svc.ServiceTag)' — skipping"
         continue
     }
-
-    Update-ContainerApp -AppName $AppName -ImageName $entry.ImageName
+    Update-ContainerApp -AppName $appName -ImageName $svc.Name
 }
+Write-Elapsed
 
+# =============================================================================
+# Step 4 - Summary
+# =============================================================================
+Write-Step 4 $totalSteps "Done"
+
+$elapsed = [datetime]::UtcNow - $ScriptStart
 Write-Host ""
-Write-Host "=============================================="
-Write-Host " ACR Build, Push & Update complete"
-Write-Host "=============================================="
+Write-Host "  Images deployed to $AcrLoginServer :" -ForegroundColor Green
+foreach ($svc in $Services) {
+    Write-Host "    $AcrLoginServer/$($svc.Name):$Tag" -ForegroundColor Green
+}
+Write-Host ""
+Write-Success ("Completed in {0:mm\:ss}" -f $elapsed)
+
