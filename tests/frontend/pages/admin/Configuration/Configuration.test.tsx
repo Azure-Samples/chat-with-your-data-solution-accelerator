@@ -2,7 +2,7 @@
  * Vitest suite for the admin Configuration page. Mocks
  * `src/api/admin.tsx` so each scenario (loading / loaded / dirty /
  * saving / save success / save failure) is asserted against the
- * typed client surface without hitting the network.
+ * typed client surface without hitting the network..
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
