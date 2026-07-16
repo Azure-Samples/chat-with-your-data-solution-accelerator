@@ -133,10 +133,10 @@ describe("resolveDisplayName", () => {
     ).toBe("ada@example.com");
   });
 
-  it("returns Guest when no name-bearing claim is present", () => {
+  it("falls back to userId when no name-bearing claim is present", () => {
     expect(
       resolveDisplayName({ userId: "x", claims: [{ typ: "roles", val: "admin" }] }),
-    ).toBe("Guest");
+    ).toBe("x");
   });
 });
 

@@ -1045,7 +1045,7 @@ describe("Configuration -- field tooltips", () => {
     }
   });
 
-  it("reveals the field's tooltip text on hover (not click)", async () => {
+  it("renders the field's tooltip text in the DOM", async () => {
     getMock.mockResolvedValueOnce(CONFIG_FIXTURE);
 
     render(<Configuration />);
@@ -1053,15 +1053,15 @@ describe("Configuration -- field tooltips", () => {
     await waitFor(() => {
       expect(screen.getByTestId("config-form")).toBeInTheDocument();
     });
-    // Tooltip content is portaled in only while visible, so it is absent
-    // until the pointer hovers the info trigger.
-    expect(
-      screen.queryByText(/Choose which persona preset/i),
-    ).not.toBeInTheDocument();
+    // The CSS-only tooltip span is always present in the DOM; visibility is
+    // controlled by :hover via CSS (not testable in JSDOM). Verify the text
+    // is rendered and the trigger button carries the accessible aria-label.
     const field = screen.getByTestId("config-field-ai_assistant_type");
-    fireEvent.pointerEnter(within(field).getByRole("button"));
     expect(
-      await screen.findByText(/Choose which persona preset/i),
+      within(field).getByRole("tooltip"),
+    ).toHaveTextContent(/Choose which persona preset/i);
+    expect(
+      within(field).getByRole("button", { name: /Choose which persona preset/i }),
     ).toBeInTheDocument();
   });
 });

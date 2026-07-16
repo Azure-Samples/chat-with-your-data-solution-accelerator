@@ -96,7 +96,7 @@ describe("getUserInfo", () => {
     expect(await getUserInfo()).toBeNull();
   });
 
-  it("returns null when no object-identifier claim is present", async () => {
+  it("falls back to user_id when no object-identifier claim is present", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse([
         {
@@ -106,7 +106,10 @@ describe("getUserInfo", () => {
         },
       ]),
     );
-    expect(await getUserInfo()).toBeNull();
+    expect(await getUserInfo()).toEqual({
+      userId: "user@contoso.example.com",
+      claims: [{ typ: "name", val: "Ada Lovelace" }],
+    });
   });
 
   it("returns null when fetch rejects (network error)", async () => {

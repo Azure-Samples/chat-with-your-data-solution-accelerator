@@ -28,6 +28,18 @@ import type {
   UploadResponse,
 } from "@/models/admin";
 
+// loadRuntimeConfig is mocked to a no-op for every test in this file so that
+// apiUrl() does not consume a test's fetch mock with a /config preflight.
+// The "admin backendUrl runtime /config seam" describe block temporarily
+// restores the real implementation to validate the runtime-URL seam.
+vi.mock("@/api/runtimeConfig", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@/api/runtimeConfig")>();
+  return {
+    ...mod,
+    loadRuntimeConfig: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
 function jsonResponse(body: unknown, { status = 200 }: { status?: number } = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -981,12 +993,18 @@ describe("principal id header forwarding", () => {
 describe("admin backendUrl runtime /config seam", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Restore the real loadRuntimeConfig so these tests can validate
+    // that apiUrl() uses the URL fetched from /config.
+    const realMod = await vi.importActual<typeof import("@/api/runtimeConfig")>("@/api/runtimeConfig");
+    vi.mocked(loadRuntimeConfig).mockImplementation(realMod.loadRuntimeConfig);
+    resetRuntimeConfig();
     fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
+    vi.mocked(loadRuntimeConfig).mockResolvedValue(undefined);
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
