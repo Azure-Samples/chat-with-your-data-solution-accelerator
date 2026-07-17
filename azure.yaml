@@ -23,6 +23,16 @@ hooks:
         Write-Host ""
       shell: pwsh
       interactive: true
+    posix:
+      run: |
+        printf '\n'
+        printf '\033[33m  ---------------------------------------------------------------------------------------------------\033[0m\n'
+        printf '\033[33m  Note: If deployment fails or you encounter an issue, please open an issue with the deployment logs.\033[0m\n'
+        printf '\033[36m  https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/issues\033[0m\n'
+        printf '\033[33m  ---------------------------------------------------------------------------------------------------\033[0m\n'
+        printf '\n'
+      shell: sh
+      interactive: true
   postdeploy:
     windows:
       shell: pwsh
