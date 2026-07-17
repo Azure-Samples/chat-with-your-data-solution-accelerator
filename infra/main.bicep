@@ -1324,9 +1324,12 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.9.1' =
     location: location
     tags: allTags
     enableTelemetry: enableTelemetry
-    acrSku: enableScalability || enableRedundancy ? 'Standard' : 'Basic'
+    acrSku: enablePrivateNetworking || enableScalability || enableRedundancy ? 'Premium' : 'Standard'
     acrAdminUserEnabled: false
     publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    // Export policy can only be disabled when public network access is also disabled.
+    // Align it with the network mode to avoid DisableExport_PublicNetworkAccessMustBeDisabled.
+    exportPolicyStatus: enablePrivateNetworking ? 'disabled' : 'enabled'
     roleAssignments: [
       {
         // AcrPull: allows the managed identity to pull images from this registry at runtime
