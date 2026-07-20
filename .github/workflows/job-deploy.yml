@@ -69,7 +69,7 @@ on:
       DATABASE_TYPE:
         description: 'Type of database to use'
         required: false
-        default: 'PostgreSQL'
+        default: 'postgresql'
         type: string
     outputs:
       RESOURCE_GROUP_NAME:
@@ -172,14 +172,14 @@ jobs:
 
           # Validate DATABASE_TYPE (specific allowed values)
           if [[ -n "$INPUT_DATABASE_TYPE" ]]; then
-            if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
-              echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
+            if [[ "$INPUT_DATABASE_TYPE" != "postgresql" && "$INPUT_DATABASE_TYPE" != "cosmosdb" ]]; then
+              echo "❌ ERROR: DATABASE_TYPE must be one of: postgresql, cosmosdb, got: '$INPUT_DATABASE_TYPE'"
               VALIDATION_FAILED=true
             else
               echo "✅ DATABASE_TYPE: '$INPUT_DATABASE_TYPE' is valid"
             fi
           else
-            echo "✅ DATABASE_TYPE: Not provided (will use default 'PostgreSQL')"
+            echo "✅ DATABASE_TYPE: Not provided (will use default 'postgresql')"
           fi
 
           # Validate waf_enabled (boolean)
@@ -584,7 +584,7 @@ jobs:
     needs: [azure-setup, deploy-linux, deploy-windows, post-deployment-setup]
     if: |
       always() &&
-      inputs.DATABASE_TYPE == 'PostgreSQL' &&
+      inputs.DATABASE_TYPE == 'postgresql' &&
       (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success') &&
       needs.post-deployment-setup.result == 'success'
     uses: ./.github/workflows/import-sample-data-postgresql.yml
@@ -598,7 +598,7 @@ jobs:
     needs: [azure-setup, deploy-linux, deploy-windows, post-deployment-setup]
     if: |
       always() &&
-      inputs.DATABASE_TYPE == 'CosmosDB' &&
+      inputs.DATABASE_TYPE == 'cosmosdb' &&
       (needs.deploy-linux.result == 'success' || needs.deploy-windows.result == 'success') &&
       needs.post-deployment-setup.result == 'success'
     uses: ./.github/workflows/import-sample-data-cosmosdb.yml

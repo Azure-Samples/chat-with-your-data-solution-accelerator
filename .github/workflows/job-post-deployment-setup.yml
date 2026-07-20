@@ -43,6 +43,14 @@ jobs:
         run: |
           pip install psycopg2-binary azure-identity
 
+      - name: Build, Push, and Update Container Images
+        shell: bash
+        env:
+          RESOURCE_GROUP: ${{ inputs.RESOURCE_GROUP_NAME }}
+        run: |
+          chmod +x infra/scripts/post-provision/acr_build_push_update.sh
+          bash infra/scripts/post-provision/acr_build_push_update.sh -g "$RESOURCE_GROUP"
+
       - name: Run Post-Deployment Setup
         shell: bash
         env:

@@ -7,7 +7,6 @@ on:
       - demo
     paths:
       - 'infra/**'
-      - 'scripts/**'
       - 'azure.yaml'
       - 'pyproject.toml'
       - 'Makefile'
@@ -35,9 +34,9 @@ on:
         required: false
         type: choice
         options:
-          - 'PostgreSQL'
-          - 'CosmosDB'
-        default: 'PostgreSQL'
+          - 'postgresql'
+          - 'cosmosdb'
+        default: 'postgresql'
 
       waf_enabled:
         description: 'Deploy WAF'
@@ -203,10 +202,10 @@ jobs:
           fi
 
           # Validate DATABASE_TYPE (specific allowed values)
-          DATABASE_TYPE="${INPUT_DATABASE_TYPE:-PostgreSQL}"
-          if [[ "$DATABASE_TYPE" != "PostgreSQL" && "$DATABASE_TYPE" != "CosmosDB" ]]; then
-            echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$DATABASE_TYPE'"
-            VALIDATION_ERRORS="${VALIDATION_ERRORS}| DATABASE_TYPE | \`$DATABASE_TYPE\` | Must be one of: PostgreSQL, CosmosDB |\n"
+          DATABASE_TYPE="${INPUT_DATABASE_TYPE:-postgresql}"
+          if [[ "$DATABASE_TYPE" != "postgresql" && "$DATABASE_TYPE" != "cosmosdb" ]]; then
+            echo "❌ ERROR: DATABASE_TYPE must be one of: postgresql, cosmosdb, got: '$DATABASE_TYPE'"
+            VALIDATION_ERRORS="${VALIDATION_ERRORS}| DATABASE_TYPE | \`$DATABASE_TYPE\` | Must be one of: postgresql, cosmosdb |\n"
             VALIDATION_FAILED=true
           else
             echo "✅ DATABASE_TYPE: '$DATABASE_TYPE' is valid"
@@ -406,5 +405,5 @@ jobs:
       AZURE_SEARCH_USE_INTEGRATED_VECTORIZATION: ${{ needs.validate-inputs.outputs.azure_search_use_integrated_vectorization || 'false' }}
       AZURE_SEARCH_USE_SEMANTIC_SEARCH: ${{ needs.validate-inputs.outputs.azure_search_use_semantic_search || 'false' }}
       USE_ADVANCED_IMAGE_PROCESSING: ${{ needs.validate-inputs.outputs.use_advanced_image_processing || 'false' }}
-      DATABASE_TYPE: ${{ needs.validate-inputs.outputs.database_type || 'PostgreSQL' }}
+      DATABASE_TYPE: ${{ needs.validate-inputs.outputs.database_type || 'postgresql' }}
     secrets: inherit
