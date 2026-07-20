@@ -59,7 +59,9 @@ _OPENAI_DETAIL = "Upstream model error."
 _COSMOS_DETAIL = "Database temporarily unavailable."
 _POSTGRES_DETAIL = "Database temporarily unavailable."
 _AZURE_DETAIL = "Azure dependency temporarily unavailable."
-_HTTPX_FETCH_DETAIL = "Failed to fetch the requested URL (the remote server returned an error)."
+_HTTPX_FETCH_DETAIL = (
+    "Failed to fetch the requested URL (the remote server returned an error)."
+)
 _INTERNAL_DETAIL = "Internal server error."
 
 

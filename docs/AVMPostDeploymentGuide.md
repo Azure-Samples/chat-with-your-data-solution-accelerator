@@ -12,24 +12,56 @@ Ensure you have a **Deployed Infrastructure** - A successful Chat with your data
 
 ## Post Deployment Steps
 
-### Step 1: Run the Post-Deployment Setup Script
+### Step 1: Build, Push, and Update Container Images
 
-Run the post-deployment setup script to configure the Function App client key and create PostgreSQL tables (if applicable). Open [Azure Cloud Shell](https://shell.azure.com) (Bash) and run:
+Open [Azure Cloud Shell](https://shell.azure.com) (Bash) or a local terminal and clone the repository first if you haven't already:
 
 ```bash
 az login
 git clone https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator.git
 cd chat-with-your-data-solution-accelerator
-bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
 ```
 
-### Step 2: Configure App Authentication
+> **Important:** The post-deployment scripts require **Azure CLI version 2.87.0 or later**.
+> Check your version with `az version` and upgrade with `az upgrade` if needed.
+
+Then build and push the application images to your Azure Container Registry and update the App Services:
+
+*Bash (Cloud Shell / Linux / macOS):*
+```bash
+bash infra/scripts/post-provision/acr_build_push_update.sh -g "<your-resource-group-name>"
+```
+
+*PowerShell (Windows):*
+```powershell
+.\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+> By default, images are built remotely using `az acr build` (no local Docker required). To build locally with Docker instead, use `--mode local` in Bash or `-Mode local` in PowerShell.
+
+### Step 2: Run the Post-Deployment Setup Script
+
+Run the post-deployment setup script to configure the Function App client key and create PostgreSQL tables (if applicable):
+
+*Bash (Cloud Shell / Linux / macOS):*
+```bash
+bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group-name>"
+```
+
+*PowerShell (Windows):*
+```powershell
+.\infra\scripts\post-provision\post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+> **Note:** The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
+
+### Step 3: Configure App Authentication
 
 1. After deployment is complete, navigate to your Azure App Service in the Azure portal
-2. Follow the detailed instructions in [Set Up Authentication in Azure App Service](./azure_app_service_auth_setup.md) to add authentication to your web app
+2. Follow the detailed instructions in [Set Up Authentication in Azure App Service](./authentication_setup.md) to add authentication to your web app
 3. This will ensure only authorized users can access your application
 
-### Step 3: Access and Configure the Admin Site
+### Step 4: Access and Configure the Admin Site
 
 1. **Navigate to the admin site** using the following URL pattern:
    ```
@@ -47,7 +79,7 @@ bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
    - Wait for the documents to be processed and indexed
    - Verify successful ingestion through the admin interface
 
-### Step 4: Access the Chat Application
+### Step 5: Access the Chat Application
 
 1. **Navigate to the main chat application** using this URL pattern:
    ```
@@ -58,13 +90,8 @@ bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
    - Start a conversation by asking questions about your uploaded documents
    - Verify that the AI responds with relevant information from your data
 
-   ![Chat application interface](./images/web-unstructureddata.png)
-
 ## Next Steps
 
 Consider these additional configurations for enhanced functionality:
 
-- 📚 **[Advanced Image Processing](./advanced_image_processing.md)** - Enable enhanced document processing
-- 🔄 **[Integrated Vectorization](./integrated_vectorization.md)** - Configure advanced AI search features
-- 💬 **[Conversation Flow Options](./conversation_flow_options.md)** - Customize the chat experience
 - 🎤 **[Speech-to-Text](./speech_to_text.md)** - Add voice interaction capabilities
