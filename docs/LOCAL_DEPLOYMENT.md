@@ -5,7 +5,7 @@
 
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
 
-⚠️ **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the [Non DevContainer Setup](./NON_DEVCONTAINER_SETUP.md) instructions to run the accelerator locally.
+⚠️ **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the Option B (Local Environment) instructions below to run the accelerator locally.
 
 **Prerequisites:**
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
@@ -31,7 +31,6 @@
   - [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
   - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
   - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-  - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) **Optional**
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/)
 - [Node.js LTS](https://nodejs.org/en)
 - [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
@@ -57,7 +56,7 @@
 
     - Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
     - Type `Python: Select Interpreter`.
-    - Select the Python 3.11 environment created by Poetry.
+    - Select the Python 3.11 environment created by `uv`.
 6. Proceed to [Step 3: Configure Azure Resources](#step-3-configure-deployment-settings)
 
 **PowerShell Users:** If you encounter script execution issues, run:
@@ -122,7 +121,7 @@ To optimize costs and integrate with your existing Azure infrastructure, you can
 
 **Supported Resources for Reuse:**
 
-- **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring. [Configuration Guide](./re-use-log-analytics.md)
+- **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring.
 
 - **Resource Group:** Leverage an existing resource group to organize resources within your current Azure infrastructure. Follow the [setup steps here](./re-use-resource-group.md) before running `azd up`
 
@@ -230,12 +229,12 @@ az login --tenant-id <tenant-id>
 
 **PowerShell (Windows):**
 ```powershell
-./scripts/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
 **Bash (Linux/macOS/WSL):**
 ```bash
-bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
+bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group-name>"
 ```
 
 > **Note:** The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
@@ -248,12 +247,12 @@ When deploying with `hostingModel=container`, the App Services start with a plac
 
 *PowerShell (Windows):*
 ```powershell
-.\scripts\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
+.\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
 *Bash (Linux/macOS/WSL):*
 ```bash
-bash scripts/acr_build_push_update.sh "<your-resource-group-name>"
+bash infra/scripts/post-provision/acr_build_push_update.sh -g "<your-resource-group-name>"
 ```
 
 This script:
@@ -269,7 +268,7 @@ This script:
 
 **This step is mandatory for Chat Application access:**
 
-1. Follow [App Authentication Configuration](./azure_app_service_auth_setup.md)
+1. Follow [App Authentication Configuration](./authentication_setup.md)
 2. Wait up to 10 minutes for authentication changes to take effect
 
 ### 5.4 Verify Deployment
@@ -407,12 +406,8 @@ Now that your deployment is complete and tested, explore these resources to enha
 
 📚 **Learn More:**
 - [Model Configuration](./model_configuration.md) - Configure AI models and parameters
-- [Conversation Flow Options](./conversation_flow_options.md) - Customize conversation flow behavior
 - [Best Practices](./best_practices.md) - Best practices for deployment and usage
 - [Local Development Setup](./LocalDevelopmentSetup.md) - Set up your local development environment
-- [Advanced Image Processing](./advanced_image_processing.md) - Enable and configure vision capabilities
-- [Integrated Vectorization](./integrated_vectorization.md) - Understanding integrated vectorization
-- [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
 
 ## Need Help?
 - 🛠️  **Troubleshooting: ** Refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document
