@@ -10,6 +10,7 @@ from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_
 from azure.ai.ml import MLClient
 from .azure_credential_utils import get_azure_credential
 from .env_helper import EnvHelper
+from .openai_utils import build_completion_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -45,27 +46,33 @@ class LLMHelper:
         logger.info("Initializing LLMHelper completed")
 
     def get_llm(self):
+        completion_kwargs = build_completion_kwargs(
+            self.llm_model, self.llm_max_tokens
+        )
         if self.auth_type_keys:
             return AzureChatOpenAI(
                 deployment_name=self.llm_model,
                 temperature=0,
-                max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 api_key=self.env_helper.OPENAI_API_KEY,
+                **completion_kwargs,
             )
         else:
             return AzureChatOpenAI(
                 deployment_name=self.llm_model,
                 temperature=0,
-                max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
                 azure_ad_token_provider=self.token_provider,
+                **completion_kwargs,
             )
 
     # TODO: This needs to have a custom callback to stream back to the UI
     def get_streaming_llm(self):
+        completion_kwargs = build_completion_kwargs(
+            self.llm_model, self.llm_max_tokens
+        )
         if self.auth_type_keys:
             return AzureChatOpenAI(
                 azure_endpoint=self.env_helper.AZURE_OPENAI_ENDPOINT,
@@ -74,8 +81,8 @@ class LLMHelper:
                 callbacks=[StreamingStdOutCallbackHandler],
                 deployment_name=self.llm_model,
                 temperature=0,
-                max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
+                **completion_kwargs,
             )
         else:
             return AzureChatOpenAI(
@@ -85,9 +92,9 @@ class LLMHelper:
                 callbacks=[StreamingStdOutCallbackHandler],
                 deployment_name=self.llm_model,
                 temperature=0,
-                max_tokens=self.llm_max_tokens,
                 openai_api_version=self.openai_client._api_version,
                 azure_ad_token_provider=self.token_provider,
+                **completion_kwargs,
             )
 
     def get_embedding_model(self):
@@ -143,6 +150,7 @@ class LLMHelper:
             messages=messages,
             functions=functions,
             function_call=function_call,
+            **build_completion_kwargs(self.llm_model, self.llm_max_tokens),
         )
 
     def get_chat_completion(
@@ -151,7 +159,7 @@ class LLMHelper:
         return self.openai_client.chat.completions.create(
             model=model or self.llm_model,
             messages=messages,
-            max_tokens=self.llm_max_tokens,
+            **build_completion_kwargs(model or self.llm_model, self.llm_max_tokens),
             **kwargs
         )
 
@@ -174,12 +182,13 @@ class LLMHelper:
             )
 
     def get_sk_service_settings(self, service: AzureChatCompletion):
+        completion_kwargs = build_completion_kwargs(self.llm_model, self.llm_max_tokens)
         return cast(
             AzureChatPromptExecutionSettings,
             service.instantiate_prompt_execution_settings(
                 service_id=service.service_id,
                 temperature=0,
-                max_tokens=self.llm_max_tokens,
+                **completion_kwargs,
             ),
         )
 

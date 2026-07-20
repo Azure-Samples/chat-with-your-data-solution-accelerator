@@ -187,6 +187,8 @@ module functions 'appservice.bicep' = {
       healthCheckPath: healthCheckPath
       minTlsVersion: '1.2'
       ftpsState: 'FtpsOnly'
+      acrUseManagedIdentityCreds: useDocker ? true : null
+      acrUserManagedIdentityID: useDocker && !empty(userAssignedIdentityClientId) ? userAssignedIdentityClientId : null
     }
     serverFarmResourceId: serverFarmResourceId
     configs: appConfigs

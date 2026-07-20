@@ -21,6 +21,7 @@ from backend.batch.utilities.helpers.env_helper import EnvHelper
 from backend.batch.utilities.helpers.azure_search_helper import AzureSearchHelper
 from backend.batch.utilities.helpers.orchestrator_helper import Orchestrator
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
+from backend.batch.utilities.helpers.openai_utils import build_completion_kwargs
 from backend.batch.utilities.helpers.config.conversation_flow import ConversationFlow
 from backend.batch.utilities.helpers.prompt_utils import get_current_date_suffix
 from backend.api.chat_history import bp_chat_history_response
@@ -202,8 +203,11 @@ def conversation_with_data(conversation: Request, env_helper: EnvHelper):
         model=env_helper.AZURE_OPENAI_MODEL,
         messages=messages,
         temperature=float(env_helper.AZURE_OPENAI_TEMPERATURE),
-        max_tokens=int(env_helper.AZURE_OPENAI_MAX_TOKENS),
         top_p=float(env_helper.AZURE_OPENAI_TOP_P),
+        **build_completion_kwargs(
+            env_helper.AZURE_OPENAI_MODEL,
+            int(env_helper.AZURE_OPENAI_MAX_TOKENS),
+        ),
         stop=(
             env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
             if env_helper.AZURE_OPENAI_STOP_SEQUENCE
@@ -366,8 +370,11 @@ def conversation_without_data(conversation: Request, env_helper: EnvHelper):
         model=env_helper.AZURE_OPENAI_MODEL,
         messages=messages,
         temperature=float(env_helper.AZURE_OPENAI_TEMPERATURE),
-        max_tokens=int(env_helper.AZURE_OPENAI_MAX_TOKENS),
         top_p=float(env_helper.AZURE_OPENAI_TOP_P),
+        **build_completion_kwargs(
+            env_helper.AZURE_OPENAI_MODEL,
+            int(env_helper.AZURE_OPENAI_MAX_TOKENS),
+        ),
         stop=(
             env_helper.AZURE_OPENAI_STOP_SEQUENCE.split("|")
             if env_helper.AZURE_OPENAI_STOP_SEQUENCE

@@ -240,20 +240,45 @@ bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
 
 > **Note:** The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
 
-### 5.2 Configure Authentication (Required for Chat Application)
+### 5.2 Build, Push, and Update Container Images (Container Model Only)
+
+> **📌 Skip this step** if you deployed with the default `hostingModel=code`.
+
+When deploying with `hostingModel=container`, the App Services start with a placeholder hello-world image. After provisioning, run the combined container workflow to build and push the application images to your Azure Container Registry and update the App Services to use them.
+
+*PowerShell (Windows):*
+```powershell
+.\scripts\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+*Bash (Linux/macOS/WSL):*
+```bash
+bash scripts/acr_build_push_update.sh "<your-resource-group-name>"
+```
+
+This script:
+- Builds and pushes the images to your ACR
+- Updates each App Service to pull its image from your private ACR using managed-identity authentication
+- Restarts all services
+
+> By default, images are built remotely using `az acr build` (no local Docker required). To build locally with Docker instead, use `-Mode local` in PowerShell or `--mode local` in Bash. You can also set a custom tag with `-Tag` or `--tag`.
+
+> **Re-deployment note:** If you re-run `azd provision`, run this script again to restore the correct container images.
+
+### 5.3 Configure Authentication (Required for Chat Application)
 
 **This step is mandatory for Chat Application access:**
 
 1. Follow [App Authentication Configuration](./azure_app_service_auth_setup.md)
 2. Wait up to 10 minutes for authentication changes to take effect
 
-### 5.3 Verify Deployment
+### 5.4 Verify Deployment
 
 1. Access your application using the URL from Step 4.3
 2. Confirm the application loads successfully
 3. Verify you can sign in with your authenticated account
 
-### 5.4 Test the Application
+### 5.5 Test the Application
 
 **Quick Test Steps:**
 1. Navigate to the admin site, where you can upload documents. Then select Ingest Data and add your data. You can find sample data in the [data](../data) directory.

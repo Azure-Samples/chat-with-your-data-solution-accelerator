@@ -42,7 +42,7 @@ if os.getenv("APPLICATIONINSIGHTS_ENABLED", "false").lower() == "true":
         provider.add_span_processor(ConversationSpanProcessor())
 
     # Suppress noisy Azure SDK loggers AFTER configure_azure_monitor()
-    # to prevent it from overriding our levels
+    # to prevent it from overriding our levels.
     _NOISY_AZURE_LOGGERS = [
         "azure.core.pipeline.policies.http_logging_policy",
         "azure.monitor.opentelemetry.exporter",

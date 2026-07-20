@@ -108,6 +108,22 @@ def test_get_sk_service_settings():
     assert settings.max_tokens == int(AZURE_OPENAI_MAX_TOKENS)
 
 
+def test_get_chat_completion_uses_max_completion_tokens_for_gpt_5_models(
+    azure_openai_mock, env_helper_mock
+):
+    # given
+    env_helper_mock.AZURE_OPENAI_MODEL = "gpt-5.1"
+    llm_helper = LLMHelper()
+
+    # when
+    llm_helper.get_chat_completion([{"role": "user", "content": "hello"}])
+
+    # then
+    call_kwargs = azure_openai_mock.return_value.chat.completions.create.call_args.kwargs
+    assert call_kwargs["max_completion_tokens"] == int(AZURE_OPENAI_MAX_TOKENS)
+    assert "max_tokens" not in call_kwargs
+
+
 def test_generate_embeddings_embeds_input(azure_openai_mock):
     # given
     llm_helper = LLMHelper()

@@ -45,11 +45,17 @@ hooks:
         Write-Host "1. Login to Azure CLI (required for post-deployment script):" -ForegroundColor Yellow
         Write-Host "   az login" -ForegroundColor Cyan
         Write-Host ""
-        Write-Host "2. Run the ACR build/push/update script:" -ForegroundColor Yellow
-        Write-Host "   ./infra/scripts/post-provision/acr_build_push_update.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host "2. If you deployed with container hosting, run the combined ACR build/push/update script:" -ForegroundColor Yellow
+        Write-Host "   ./scripts/acr_build_push_update.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "   Or using Bash:" -ForegroundColor Yellow
-        Write-Host "   bash infra/scripts/post-provision/acr_build_push_update.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host "   bash scripts/acr_build_push_update.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "3. Run the post-deployment setup script:" -ForegroundColor Yellow
+        Write-Host "   ./scripts/post_deployment_setup.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "   Or using Bash:" -ForegroundColor Yellow
+        Write-Host "   bash infra/scripts/post-provision/acr_build_push_update.sh -g `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
         Write-Host ""
         Write-Host "3. Run the post-deployment setup script:" -ForegroundColor Yellow
         Write-Host "   ./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
@@ -71,7 +77,7 @@ hooks:
         echo "   az login"
         echo ""
         echo "2. Run the ACR build/push/update script:"
-        echo "   bash infra/scripts/post-provision/acr_build_push_update.sh \"$AZURE_RESOURCE_GROUP\""
+        echo "   bash infra/scripts/post-provision/acr_build_push_update.sh -g \"$AZURE_RESOURCE_GROUP\""
         echo ""
         echo "3. Run the post-deployment setup script:"
         echo "   bash infra/scripts/post-provision/post_deployment_setup.sh \"$AZURE_RESOURCE_GROUP\""

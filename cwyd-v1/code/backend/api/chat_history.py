@@ -9,6 +9,7 @@ from backend.batch.utilities.chat_history.auth_utils import (
 )
 from backend.batch.utilities.helpers.config.config_helper import ConfigHelper
 from backend.batch.utilities.helpers.env_helper import EnvHelper
+from backend.batch.utilities.helpers.openai_utils import build_completion_kwargs
 from backend.batch.utilities.chat_history.database_factory import DatabaseFactory
 from backend.batch.utilities.loggers.event_utils import track_event_if_configured
 
@@ -516,7 +517,7 @@ async def generate_title(conversation_messages):
             model=env_helper.AZURE_OPENAI_MODEL,
             messages=messages,
             temperature=1,
-            max_tokens=64,
+            **build_completion_kwargs(env_helper.AZURE_OPENAI_MODEL, 64),
         )
 
         # Ensure response contains valid choices and content

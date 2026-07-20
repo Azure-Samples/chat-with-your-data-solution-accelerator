@@ -52,6 +52,9 @@ param kind string = 'app,linux'
 @description('Optional. The managed identity definition for this resource.')
 param userAssignedIdentityResourceId string = ''
 
+@description('Optional. The client ID of the user assigned managed identity. Used to configure ACR managed identity pull for container-hosted apps.')
+param userAssignedIdentityClientId string = ''
+
 @description('Optional. Diagnostic settings for the resource.')
 param diagnosticSettings array = []
 
@@ -89,6 +92,8 @@ var siteConfig = {
     allowedOrigins: allowedOrigins
   }
   minTlsVersion: '1.2'
+  acrUseManagedIdentityCreds: useDocker ? true : null
+  acrUserManagedIdentityID: useDocker && !empty(userAssignedIdentityClientId) ? userAssignedIdentityClientId : null
 }
 
 // Build the configs array expected by the child module (appsettings config)
