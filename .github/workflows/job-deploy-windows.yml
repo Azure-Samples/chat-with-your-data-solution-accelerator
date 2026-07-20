@@ -47,7 +47,7 @@ on:
       DATABASE_TYPE:
         required: false
         type: string
-        default: 'postgresql'
+        default: 'PostgreSQL'
     outputs:
       WEB_APPURL:
         description: "Container Web App URL"
@@ -217,8 +217,8 @@ jobs:
           fi
 
           # Validate DATABASE_TYPE (specific allowed values)
-          if [[ "$INPUT_DATABASE_TYPE" != "postgresql" && "$INPUT_DATABASE_TYPE" != "cosmosdb" ]]; then
-            echo "❌ ERROR: DATABASE_TYPE must be one of: postgresql, cosmosdb, got: '$INPUT_DATABASE_TYPE'"
+          if [[ "$INPUT_DATABASE_TYPE" != "PostgreSQL" && "$INPUT_DATABASE_TYPE" != "CosmosDB" ]]; then
+            echo "❌ ERROR: DATABASE_TYPE must be one of: PostgreSQL, CosmosDB, got: '$INPUT_DATABASE_TYPE'"
             VALIDATION_FAILED=true
           else
             echo "✅ DATABASE_TYPE: '$INPUT_DATABASE_TYPE' is valid"
@@ -264,8 +264,21 @@ jobs:
 
       - name: Install azd
         uses: Azure/setup-azd@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          version: 'stable'  # azure.yaml requires >= 1.18.0 != 1.23.9; 'stable' tracks the latest non-preview release
+          python-version: '3.11'
+
+      - name: Install Poetry
+        shell: pwsh
+        run: |
+          (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+          $poetryPath = "$env:APPDATA\Python\Scripts"
+          echo "$poetryPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $env:Path = "$poetryPath;$env:Path"
+          poetry --version
+          poetry self add poetry-plugin-export
 
       - name: Login to AZD
         id: login-azure
@@ -341,35 +354,34 @@ jobs:
 
           azd env get-values
 
-          $FrontendWebsiteName = azd env get-value AZURE_FRONTEND_URL
+          $FrontendWebsiteName = azd env get-value FRONTEND_WEBSITE_NAME
           echo "FRONTEND_WEBSITE_NAME=$FrontendWebsiteName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-          $AdminWebsiteName = azd env get-value AZURE_FRONTEND_URL
+          $AdminWebsiteName = azd env get-value ADMIN_WEBSITE_NAME
           echo "ADMIN_WEBSITE_NAME=$AdminWebsiteName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           # Export values based on DATABASE_TYPE
-          if ($env:INPUT_DATABASE_TYPE -eq 'postgresql') {
-            $PostgresqlHostName = azd env get-value AZURE_POSTGRES_HOST
+          if ($env:INPUT_DATABASE_TYPE -eq 'PostgreSQL') {
+            $PostgresqlHostName = azd env get-value AZURE_POSTGRESQL_HOST_NAME
             echo "AZURE_POSTGRESQL_HOST_NAME=$PostgresqlHostName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          } elseif ($env:INPUT_DATABASE_TYPE -eq 'cosmosdb') {
-            $SearchService = azd env get-value AZURE_AI_SEARCH_NAME
+          } elseif ($env:INPUT_DATABASE_TYPE -eq 'CosmosDB') {
+            $SearchService = azd env get-value AZURE_SEARCH_SERVICE
             echo "AZURE_SEARCH_SERVICE=$SearchService" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-            $BlobAccountName = azd env get-value AZURE_STORAGE_ACCOUNT_NAME
+            $BlobAccountName = azd env get-value AZURE_BLOB_ACCOUNT_NAME
             echo "AZURE_BLOB_ACCOUNT_NAME=$BlobAccountName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-            $SearchIndex = azd env get-value AZURE_AI_SEARCH_INDEX
+            $SearchIndex = azd env get-value AZURE_SEARCH_INDEX
             echo "AZURE_SEARCH_INDEX=$SearchIndex" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
       - name: Disable Authentication with Script
-        continue-on-error: true
         shell: bash
         run: |
-          export FRONTEND_WEBSITE_URL=$(azd env get-value AZURE_FRONTEND_URL)
-          export ADMIN_WEBSITE_URL=$(azd env get-value AZURE_FRONTEND_URL)
-          chmod +x infra/scripts/post-provision/disable_auth.sh 2>/dev/null || true
-          [ -f infra/scripts/post-provision/disable_auth.sh ] && ./infra/scripts/post-provision/disable_auth.sh || echo "disable_auth.sh not found; skipping auth disable"
+          export FRONTEND_WEBSITE_URL=$(azd env get-value FRONTEND_WEBSITE_NAME)
+          export ADMIN_WEBSITE_URL=$(azd env get-value ADMIN_WEBSITE_NAME)
+          chmod +x scripts/disable_auth.sh
+          ./scripts/disable_auth.sh
 
       - name: Generate Deploy Job Summary
         if: always()
