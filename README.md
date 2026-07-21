@@ -1,25 +1,4 @@
----
-name: Chat with your data - Solution accelerator (Python)
-description: Chat with your data using Azure AI Foundry and Azure AI Search with Python, deployed to Azure Container Apps with the Azure Developer CLI.
-languages:
-- python
-- typescript
-- bicep
-- azdeveloper
-products:
-- azure-container-apps
-- azure-ai-foundry
-- azure-openai
-- azure-cognitive-search
-- document-intelligence
-- azure-functions
-- azure-storage-accounts
-- azure-speech
-- azure
-page_type: sample
-urlFragment: chat-with-your-data-solution-accelerator
 
----
 <!-- YAML front-matter schema: https://review.learn.microsoft.com/en-us/help/contribute/samples/process/onboarding?branch=main#supported-metadata-fields-for-readmemd -->
 
 # Chat with Your Data
@@ -28,20 +7,22 @@ Ground a conversational assistant in your own documents and get answers with inl
 
 Organizations hold vast unstructured knowledge in contracts, policies, product manuals, and benefit guides that is hard to search and slow to answer questions from. Chat with Your Data indexes that content and puts a natural-language chat experience in front of it, so people find grounded answers in seconds instead of digging through files. Everything deploys into your own Azure subscription with a single `azd up`.
 
+<br/>
+
 <div align="center">
 
-[Solution overview](#solution-overview) &nbsp;&bull;&nbsp; [Key features](#key-features) &nbsp;&bull;&nbsp; [Deploy](#deploy) &nbsp;&bull;&nbsp; [Documentation](#supporting-documentation)
+[**SOLUTION OVERVIEW**](#solution-overview) &nbsp;|&nbsp; [**QUICK DEPLOY**](#quick-deploy) &nbsp;|&nbsp; [**BUSINESS SCENARIO**](#business-scenario) &nbsp;|&nbsp; [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
 
 </div>
 
+<br/>
+
 > [!NOTE]
-> This accelerator is a starting point, not a turnkey production system. Evaluate retrieval quality, answer accuracy, and responsible-AI considerations against your own data before you rely on it. See the [Responsible AI Transparency FAQ](#responsible-ai-transparency-faq).
+> With any AI solution you create using these templates, you are responsible for assessing all associated risks and complying with all applicable laws and safety standards. This accelerator is a starting point, not a turnkey production system. Evaluate retrieval quality, answer accuracy, and responsible-AI considerations against your own data before you rely on it. See the [Responsible AI Transparency FAQ](#responsible-ai-transparency-faq).
 
 ## Solution overview
 
 ### Architecture
-
-<!-- Screenshot slot: replace the Mermaid diagram below with a rendered architecture screenshot if you prefer a static image. -->
 
 ```mermaid
 flowchart LR
@@ -94,65 +75,39 @@ You ask a question in natural language. The backend retrieves the most relevant 
 - [Azure Functions documentation](https://learn.microsoft.com/azure/azure-functions/)
 - [Azure Developer CLI (azd) documentation](https://learn.microsoft.com/azure/developer/azure-developer-cli/)
 
-## Key features
+## Features
 
-- **Grounded answers with citations**: responses are grounded in your indexed content and cite the source documents inline.
-- **Document ingestion pipeline**: upload files or index public web pages; the pipeline parses, chunks, and embeds many [file types](docs/supported_file_types.md).
-- **Database flexibility**: choose Azure AI Search with Cosmos DB or PostgreSQL with pgvector at deploy time.
-- **Managed-identity security**: a single user-assigned managed identity and Azure RBAC, with no Key Vault and no application secrets. See [Managed identity and RBAC](docs/managed_identity.md).
-- **Conversational web app**: a single-page chat interface with streaming responses and persistent [chat history](docs/chat_history.md).
-- **Admin and configuration surface**: ingest, inspect, and configure your dataset and prompts from the built-in [admin experience](docs/admin.md).
-- **Speech-to-text input**: ask questions by voice with [speech-to-text](docs/speech_to_text.md).
+### Key features
 
-## Deploy
+<details open>
+<summary>Click to learn more about the key features this solution enables</summary>
 
-### Prerequisites
+- Responses are grounded in your indexed content with inline citations back to the source documents.
+- Upload files or index public web pages through a document ingestion pipeline that parses, chunks, and embeds many [supported file types](docs/supported_file_types.md).
+- Choose Azure AI Search with Cosmos DB or PostgreSQL with pgvector as your retrieval and persistence engine, selected at deploy time.
+- A single user-assigned managed identity and Azure RBAC authorize every downstream call, with no Key Vault and no application secrets to manage. See [Managed identity and RBAC](docs/managed_identity.md).
+- A single-page chat interface streams answers to the browser and retains [chat history](docs/chat_history.md) across sessions.
+- An [admin experience](docs/admin.md) lets you ingest, inspect, and configure your dataset and prompts without touching code.
+- Voice input is available through [speech-to-text](docs/speech_to_text.md) on any supported browser.
 
-| Requirement | Details |
-|-------------|---------|
-| Azure subscription | With rights to create resources and role assignments (Owner, or Contributor plus User Access Administrator). [Create one for free](https://azure.microsoft.com/free/). |
-| Azure Developer CLI (azd) | Version `>= 1.18.0` (and not `1.23.9`). [Install azd](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd). |
-| Azure CLI (az) | Used for sign-in and supporting commands. [Install the Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli). |
-| Docker | Required for local development. Not required for `azd up`, which builds the container images remotely. [Install Docker Desktop](https://www.docker.com/products/docker-desktop/). |
-| Model capacity | Deploy to a region with Azure AI Foundry model capacity. Check availability first with the [quota check](docs/QuotaCheck.md) and [model quota settings](docs/azure_openai_model_quota_settings.md) guides. |
+</details>
 
-### Deploy with azd
+<br/>
 
-`azd up` is the only supported deployment path. From the repository root:
+## Quick deploy
 
-```bash
-azd auth login
-azd up
-```
+### How to install or deploy
 
-`azd up` provisions the infrastructure, builds and pushes the container images, deploys the three services, and seeds the sample corpus. It prompts you for:
+Follow the quick deploy steps on the deployment guide to deploy this solution to your own Azure subscription. [Click here to launch the deployment guide](docs/DeploymentGuide.md)
 
-- Environment name, target Azure subscription, and deployment location.
-- Database engine: `cosmosdb` (Cosmos DB with Azure AI Search) or `postgresql` (PostgreSQL with pgvector). This choice is locked after deploy.
-- Azure AI service location: the region for Azure AI Foundry models.
-- Optional hardening flags: monitoring, scalability, redundancy, and private networking.
+| [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Azure-Samples/chat-with-your-data-solution-accelerator) | [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator) | [![Open in Visual Studio Code (Web)](https://img.shields.io/static/v1?style=for-the-badge&label=Visual%20Studio%20Code%20%28Web%29&message=Open&color=blue&logo=visualstudiocode&logoColor=white)](https://vscode.dev/github/Azure-Samples/chat-with-your-data-solution-accelerator) |
+|---|---|---|
 
-When it finishes, `azd` prints the application URL. For the full walkthrough, prerequisites, and post-deployment verification, see the [deployment guide](docs/LOCAL_DEPLOYMENT.md). To change parameters before deploying, see [Customizing azd parameters](docs/customizing_azd_parameters.md).
-
-### Costs
-
-This accelerator deploys several billable services. Estimate cost with the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) and review the per-service pricing below.
-
-| Service | Purpose | Pricing |
-|---------|---------|---------|
-| Azure Container Apps | Hosts the web app, backend API, and ingestion worker. | [Pricing](https://azure.microsoft.com/pricing/details/container-apps/) |
-| Azure Container Registry | Stores the container images the workload pulls. | [Pricing](https://azure.microsoft.com/pricing/details/container-registry/) |
-| Azure AI Foundry | Chat, embedding, and retrieval models. | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/) |
-| Azure AI Search | Retrieval index in `cosmosdb` mode. | [Pricing](https://azure.microsoft.com/pricing/details/search/) |
-| Azure Document Intelligence | Parses uploaded documents. | [Pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/) |
-| Azure Storage | Stores ingestion blobs and processing queues. | [Pricing](https://azure.microsoft.com/pricing/details/storage/blobs/) |
-| Azure Functions | Runs the ingestion pipeline. | [Pricing](https://azure.microsoft.com/pricing/details/functions/) |
-| Azure Cosmos DB or PostgreSQL | Chat history and, in `postgresql` mode, the index. | [Cosmos DB](https://azure.microsoft.com/pricing/details/cosmos-db/), [PostgreSQL](https://azure.microsoft.com/pricing/details/postgresql/flexible-server/) |
-| Azure AI Speech | Speech-to-text input. | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/) |
-| Application Insights | Optional monitoring and diagnostics. | [Pricing](https://azure.microsoft.com/pricing/details/monitor/) |
+> [!NOTE]
+> Some tenants may have additional security restrictions that run periodically and could impact the application (for example, blocking public network access). If you experience issues or the application stops working, check if these restrictions are the cause. Consider deploying the WAF-supported version to ensure compliance. To configure, see the [post-deployment hardening guide](docs/AVMPostDeploymentGuide.md).
 
 > [!IMPORTANT]
-> Resources continue to incur charges until you delete them. Run `azd down` when you are finished to avoid ongoing costs.
+> Check Azure OpenAI quota availability before deploying. Follow the [quota check instructions guide](docs/QuotaCheck.md) to confirm sufficient capacity in your subscription.
 
 ### Clean up
 
@@ -162,6 +117,77 @@ Remove every resource this accelerator created:
 azd down
 ```
 
+## Guidance
+
+### Prerequisites and costs
+
+To deploy this solution accelerator, ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the necessary permissions to create resource groups, resources, app registrations, and assign roles at the resource group level. You need Contributor role at the subscription level and Role Based Access Control role on the subscription or resource group level. Follow the steps in [Azure Account Set Up](docs/azure_account_setup.md).
+
+Example regions where the required services are available: East US, East US 2, Australia East, UK South, France Central.
+
+Check the [Azure Products by Region](https://azure.microsoft.com/explore/global-infrastructure/products-by-region/?products=all&regions=all) page and select a region where all required services are available.
+
+Pricing varies by region and usage, so it is not possible to predict exact costs. Use the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculator/) to estimate your costs and review the per-service pricing table below.
+
+> [!IMPORTANT]
+> Resources continue to incur charges until you delete them. Run `azd down` when you are finished to avoid ongoing costs.
+
+## Resources
+
+| Service | Purpose | Pricing |
+|---------|---------|---------|
+| [Azure Container Apps](https://learn.microsoft.com/azure/container-apps/) | Hosts the web app, backend API, and ingestion worker. | [Pricing](https://azure.microsoft.com/pricing/details/container-apps/) |
+| [Azure Container Registry](https://learn.microsoft.com/azure/container-registry/) | Stores the container images the workload pulls. | [Pricing](https://azure.microsoft.com/pricing/details/container-registry/) |
+| [Azure AI Foundry](https://learn.microsoft.com/azure/ai-foundry/) | Chat, embedding, and retrieval models. | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/openai-service/) |
+| [Azure AI Search](https://learn.microsoft.com/azure/search/) | Retrieval index in `cosmosdb` mode. | [Pricing](https://azure.microsoft.com/pricing/details/search/) |
+| [Azure Document Intelligence](https://learn.microsoft.com/azure/ai-services/document-intelligence/) | Parses uploaded documents. | [Pricing](https://azure.microsoft.com/pricing/details/ai-document-intelligence/) |
+| [Azure Storage](https://learn.microsoft.com/azure/storage/) | Stores ingestion blobs and processing queues. | [Pricing](https://azure.microsoft.com/pricing/details/storage/blobs/) |
+| [Azure Functions](https://learn.microsoft.com/azure/azure-functions/) | Runs the ingestion pipeline. | [Pricing](https://azure.microsoft.com/pricing/details/functions/) |
+| [Azure Cosmos DB](https://learn.microsoft.com/azure/cosmos-db/) | Chat history in `cosmosdb` mode. | [Pricing](https://azure.microsoft.com/pricing/details/cosmos-db/) |
+| [Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/) | Index and chat history in `postgresql` mode. | [Pricing](https://azure.microsoft.com/pricing/details/postgresql/flexible-server/) |
+| [Azure AI Speech](https://learn.microsoft.com/azure/ai-services/speech-service/) | Speech-to-text input. | [Pricing](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/) |
+| [Azure Monitor / Application Insights](https://learn.microsoft.com/azure/azure-monitor/) | Optional monitoring and diagnostics. | [Pricing](https://azure.microsoft.com/pricing/details/monitor/) |
+
+<br/>
+
+## Business scenario
+
+| ![Admin UI](docs/images/admin-site.png) |
+|---|
+
+Organizations hold large volumes of unstructured content including contracts, policies, and internal documentation that employees must search manually to answer questions or complete work. Chat with Your Data ingests that content and provides a grounded chat interface so employees and professionals get accurate, cited answers in seconds.
+
+> [!NOTE]
+> The sample data shipped with this accelerator is synthetic and generated using Azure OpenAI Service. It is intended for demonstration purposes only.
+
+### Business value
+
+<details>
+<summary>Click to learn more about the value this solution provides</summary>
+
+- Employees get accurate, grounded answers immediately instead of spending time searching through documents manually.
+- Inline citations let users verify answers against source material, reducing the risk of acting on incorrect information.
+- The admin experience lets teams configure personas, tune system prompts, and update the knowledge base without engineering involvement.
+- A modular, plug-and-play architecture supports swapping retrieval backends and orchestrators so teams adapt the solution to their own infrastructure with minimal code changes.
+- Deployment to your own Azure subscription keeps your data under your control and within your compliance boundary.
+
+</details>
+
+### Use cases
+
+<details>
+<summary>Click to learn more about the use cases this solution provides</summary>
+
+| Use case | Persona | Challenges | Summary |
+|---|---|---|---|
+| Contract review and summarization | Legal professional, compliance officer | Reading and extracting key terms from large document sets is slow and error-prone. | Index contracts and enable users to query them in natural language, surfacing obligations, deadlines, and clauses with citations. See [Contract Review and Summarization Assistant](docs/contract_assistance.md). |
+| Employee and HR assistance | HR professional, employee | Finding the right policy documents or benefits information across large knowledge bases takes too long. | Index HR policies and employee handbooks, then answer questions with citations to the source document. See [Employee Assistant](docs/employee_assistance.md). |
+| Customer intelligence | Customer success manager, analyst | Synthesizing account history and customer feedback from unstructured notes is time-consuming. | Ground the assistant on customer-facing documents and notes, making account context instantly accessible. See [Customer truth](docs/customer_truth.md). |
+
+</details>
+
+<br/>
+
 ## Supporting documentation
 
 ### Documentation index
@@ -169,14 +195,15 @@ azd down
 | Guide | What it covers |
 |-------|----------------|
 | [Architecture overview](docs/architecture.md) | How the solution is composed on Azure. |
-| [Deploy with azd](docs/LOCAL_DEPLOYMENT.md) | Full `azd up` walkthrough and verification. |
+| [Deployment guide](docs/DeploymentGuide.md) | Full `azd up` walkthrough and verification. |
 | [Customize azd parameters](docs/customizing_azd_parameters.md) | Parameters to set before deploying. |
 | [Local development](docs/LocalDevelopmentSetup.md) | Run the stack locally with Docker Compose. |
 | [Admin and configuration](docs/admin.md) | Ingest, inspect, and configure your data and prompts. |
 | [Document ingestion](docs/document_ingestion.md) | How documents are parsed, chunked, and indexed. |
 | [Supported file types](docs/supported_file_types.md) | File formats the pipeline accepts. |
-| [Streaming responses](docs/streaming_responses.md) | How answers stream to the browser. |
+| [Streaming responses](docs/streaming_responses.md) | How answers stream to the browser over SSE. |
 | [Chat history](docs/chat_history.md) | How conversations are stored and retrieved. |
+| [Best practices](docs/best_practices.md) | Retrieval, chunking, and production guidance. |
 | [Managed identity and RBAC](docs/managed_identity.md) | The identity model and role assignments. |
 | [Authentication setup](docs/authentication_setup.md) | Add end-user sign-in to the web app. |
 | [Model configuration](docs/model_configuration.md) | Configure models and prompts. |
@@ -188,17 +215,32 @@ azd down
 | [Troubleshooting](docs/TroubleShootingSteps.md) | Common issues and fixes. |
 | [Responsible AI FAQ](docs/transparency_faq.md) | Responsible-AI transparency information. |
 
-### Security
+### Security guidelines
 
 Chat with Your Data authenticates to Azure with a single user-assigned managed identity, and every downstream call is authorized through Azure RBAC. There is no Key Vault and there are no application secrets to store or rotate. See [Managed identity and RBAC](docs/managed_identity.md) for the identity model and role assignments.
 
-- Keep secret scanning enabled on your fork so credentials are never committed.
-- For stricter isolation, enable the private-networking hardening flag at deploy time to place data-plane resources behind a virtual network and private endpoints.
-- Consider Microsoft Defender for Cloud for continuous posture monitoring.
+Additional security considerations include:
 
-## Legacy release
+- Enabling [GitHub secret scanning](https://docs.github.com/code-security/secret-scanning/about-secret-scanning) on any fork of this repository so credentials are never accidentally committed.
+- Enabling the private-networking hardening flag at deploy time to place data-plane resources behind a virtual network and private endpoints for stricter isolation.
+- Enabling [Microsoft Defender for Cloud](https://learn.microsoft.com/azure/defender-for-cloud) for continuous posture monitoring.
 
-An earlier release of this accelerator lives under [`cwyd-v1/`](cwyd-v1/). It used a different hosting model and a one-click deployment button in the Azure portal, and is retained for reference only. New deployments should use the `azd up` flow described above.
+### Cross references
+
+Check out similar solution accelerators:
+
+| Solution accelerator | Description |
+|---|---|
+| [Document knowledge mining](https://github.com/microsoft/Document-Knowledge-Mining-Solution-Accelerator) | Identify relevant documents, summarize unstructured information, and generate document templates. |
+| [Conversation knowledge mining](https://github.com/microsoft/Conversation-Knowledge-Mining-Solution-Accelerator) | Gain actionable insights from large volumes of conversational data by identifying key themes, patterns, and relationships. |
+| [Content processing](https://github.com/microsoft/document-generation-solution-accelerator) | Extract data from multi-modal content, map it to schemas with confidence scoring, and enable accurate processing of documents like contracts, claims, and invoices. |
+
+Want to learn more about Microsoft's AI and Data Engineering best practices? Check out our playbooks:
+
+| Playbook | Description |
+|---|---|
+| [AI playbook](https://learn.microsoft.com/ai/playbook/) | Solutions, capabilities, and code developed to solve real-world AI problems. |
+| [Data playbook](https://learn.microsoft.com/data-engineering/playbook/understanding-data-playbook) | Enterprise software engineering solutions developed with and validated by Microsoft's largest customers and partners. |
 
 ## Provide feedback
 

@@ -18,6 +18,7 @@ on:
 
 jobs:
   docker-build:
+    if: false  # Workflow disabled
     runs-on: ubuntu-latest
     environment: production
     steps:

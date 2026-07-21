@@ -29,13 +29,14 @@ status (502 for SDK errors per the policy in
 import ipaddress
 import logging
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_TIMEOUT_SECONDS = 30.0
+_MAX_REDIRECTS = 5
 
 
 def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
@@ -97,7 +98,7 @@ async def fetch_url(
     contract of :func:`functions.batch_push.blob_fetcher.download_blob`,
     the trigger owns the client lifecycle when it wants connection
     reuse across multiple URLs). When ``client`` is ``None`` the
-    helper constructs a per-call client with ``follow_redirects=True``
+    helper constructs a per-call client with ``follow_redirects=False``
     and the documented default timeout, then closes it on exit.
 
     ``timeout_seconds`` is ignored when ``client`` is supplied;
@@ -123,16 +124,44 @@ async def fetch_url(
             "+https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator)"
         )
     }
+
+    async def _get_with_validated_redirects(
+        active_client: httpx.AsyncClient,
+    ) -> httpx.Response:
+        """Follow redirects manually, re-validating every destination URL.
+
+        Automatic redirect following (``follow_redirects=True``) would bypass
+        the SSRF guard: an attacker-controlled server could issue a 302 to an
+        internal address AFTER the initial ``_validate_public_http_url`` check.
+        By disabling auto-follow and validating each ``Location`` header we
+        ensure every hop satisfies the same public-IP constraint.
+        """
+        current_url = url
+        for _ in range(_MAX_REDIRECTS + 1):
+            response = await active_client.get(current_url, follow_redirects=False)
+            if response.is_redirect:
+                location = response.headers.get("location")
+                if not location:
+                    raise httpx.InvalidURL("Redirect response missing location header.")
+                next_url = urljoin(str(response.request.url), location)
+                _validate_public_http_url(next_url)
+                current_url = next_url
+                continue
+            return response
+        raise httpx.TooManyRedirects(
+            f"Exceeded max redirects ({_MAX_REDIRECTS})."
+        )
+
     try:
         if client is None:
             async with httpx.AsyncClient(
                 timeout=timeout_seconds,
-                follow_redirects=True,
+                follow_redirects=False,
                 headers=_headers,
             ) as owned_client:
-                response = await owned_client.get(url)
+                response = await _get_with_validated_redirects(owned_client)
         else:
-            response = await client.get(url)
+            response = await _get_with_validated_redirects(client)
         response.raise_for_status()
         return response.content
     except httpx.HTTPError:

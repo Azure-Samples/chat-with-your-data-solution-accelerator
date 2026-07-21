@@ -40,6 +40,7 @@ permissions:
 
 jobs:
   check-changes:
+    if: false  # Workflow disabled
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.filter.outputs.docker_related }}
