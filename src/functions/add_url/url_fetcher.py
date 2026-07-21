@@ -148,9 +148,7 @@ async def fetch_url(
                 current_url = next_url
                 continue
             return response
-        raise httpx.TooManyRedirects(
-            f"Exceeded max redirects ({_MAX_REDIRECTS})."
-        )
+        raise httpx.TooManyRedirects(f"Exceeded max redirects ({_MAX_REDIRECTS}).")
 
     try:
         if client is None:
