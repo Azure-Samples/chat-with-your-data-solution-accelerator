@@ -244,9 +244,7 @@ export function MessageInput() {
     dispatch({ type: "reset" });
   }
 
-  const clearDisabled =
-    state.messages.some((m) => m.streaming === true) ||
-    state.messages.length === 0;
+  const clearDisabled = isStreaming || state.messages.length === 0;
 
   const micLabel =
     speech.error !== null
