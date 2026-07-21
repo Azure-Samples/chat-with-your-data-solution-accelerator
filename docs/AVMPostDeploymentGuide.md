@@ -25,7 +25,7 @@ cd chat-with-your-data-solution-accelerator
 > **Important:** The post-deployment scripts require **Azure CLI version 2.87.0 or later**.
 > Check your version with `az version` and upgrade with `az upgrade` if needed.
 
-Then build and push the application images to your Azure Container Registry and update the App Services:
+Then build and push the application images to your Azure Container Registry and update the Container Apps:
 
 *Bash (Cloud Shell / Linux / macOS):*
 ```bash
@@ -57,15 +57,15 @@ bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group
 
 ### Step 3: Configure App Authentication
 
-1. After deployment is complete, navigate to your Azure App Service in the Azure portal
-2. Follow the detailed instructions in [Set Up Authentication in Azure App Service](./authentication_setup.md) to add authentication to your web app
+1. After deployment is complete, navigate to your Container App in the Azure portal
+2. Follow the detailed instructions in [Set Up Authentication](./authentication_setup.md) to add authentication to your web app
 3. This will ensure only authorized users can access your application
 
-### Step 4: Access and Configure the Admin Site
+### Step 4: Access and Configure the Admin Interface
 
-1. **Navigate to the admin site** using the following URL pattern:
+1. **Navigate to the admin interface** at the `/admin` path of your frontend Container App:
    ```
-   https://web-{unique-token}-admin.azurewebsites.net/
+   https://<frontend-container-app-name>.<region>.azurecontainerapps.io/admin
    ```
 
 2. **Upload your documents**:
@@ -73,7 +73,7 @@ bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group
    - Upload your documents using the drag-and-drop interface
    - For testing purposes, you can use the sample data located in the `/data` directory of this repository
 
-   ![Admin site interface](./images/admin-site.png)
+   ![Admin interface](./images/admin-site.png)
 
 3. **Monitor the ingestion process**:
    - Wait for the documents to be processed and indexed
@@ -81,9 +81,9 @@ bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group
 
 ### Step 5: Access the Chat Application
 
-1. **Navigate to the main chat application** using this URL pattern:
+1. **Navigate to the chat application** at the root of your frontend Container App:
    ```
-   https://web-{unique-token}.azurewebsites.net/
+   https://<frontend-container-app-name>.<region>.azurecontainerapps.io/
    ```
 
 2. **Test the chat functionality**:

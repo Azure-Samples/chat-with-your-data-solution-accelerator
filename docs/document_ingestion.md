@@ -18,8 +18,9 @@ Ingestion turns your documents into a searchable vector index. When an admin upl
 ```mermaid
 flowchart LR
   UP[Admin uploads doc or URL<br/>frontend admin page] --> BLOB[(Storage blob)]
-  BLOB --> EG[Event Grid] --> Q1[[blob-events queue]]
-  Q1 --> BS[batch_start] --> Q2[[doc-processing queue]]
+  BLOB -->|default: direct_enqueue| Q2[[doc-processing queue]]
+  BLOB -.optional: event_grid.-> EG[Event Grid] --> Q1[[blob-events queue]]
+  Q1 --> BS[batch_start] --> Q2
   ADDURL[add_url] --> Q2
   Q2 --> BP[batch_push<br/>parse, chunk, embed]
   BP --> IDX[(Vector index<br/>AI Search or pgvector)]
@@ -29,7 +30,7 @@ flowchart LR
 ## Stages
 
 1. **Upload.** An admin uploads a document or submits a URL from the admin pages. Files land in a storage blob; URLs enter the pipeline directly.
-2. **Detect.** A new blob raises an Event Grid event that is placed on the blob-events queue.
+2. **Detect.** How a new blob is picked up depends on the `ingestionTrigger` deploy-time setting. By default (`direct_enqueue`), the backend enqueues the document-processing message itself when it writes the blob, with no Event Grid in the path. In the optional `event_grid` mode, a storage Event Grid subscription raises a blob event onto the blob-events queue, which the ingestion worker translates into a processing message.
 3. **Batch.** The pipeline expands a blob or batch into per-document work items on the processing queue.
 4. **Process.** The ingestion worker parses each document, splits it into chunks, generates embeddings, and writes the chunks to the vector index.
 5. **Index.** Processed chunks are written to Azure AI Search in `cosmosdb` mode, or to PostgreSQL with `pgvector` in `postgresql` mode.

@@ -36,8 +36,9 @@ flowchart LR
   BE --> FDRY[Azure AI Foundry<br/>models + retrieval]
   BE --> CS[Content Safety]
   BE --> SPX[Speech]
-  BE --> STORE[(Azure Storage<br/>blobs + queues)]
-  STORE --> EG[Event Grid] --> FN
+  BE -->|upload + enqueue| STORE[(Azure Storage<br/>blobs + queues)]
+  STORE -->|queue trigger| FN
+  STORE -.optional Event Grid.-> FN
   FN --> FDRY
   subgraph STORES[Retrieval + chat history: deploy-time choice]
     direction TB
@@ -85,10 +86,14 @@ You ask a question in natural language. The backend retrieves the most relevant 
 - Responses are grounded in your indexed content with inline citations back to the source documents.
 - Upload files or index public web pages through a document ingestion pipeline that parses, chunks, and embeds many [supported file types](docs/supported_file_types.md).
 - Choose Azure AI Search with Cosmos DB or PostgreSQL with pgvector as your retrieval and persistence engine, selected at deploy time.
+- Choose between two interchangeable orchestrators, Agent Framework or LangGraph, that share the same retrieval and grounding pipeline and are selected at deploy time.
+- A collapsible reasoning panel shows the model's intermediate steps alongside the answer as they stream in.
+- Azure AI Content Safety screens prompts and responses to help keep the experience within your policy boundaries.
 - A single user-assigned managed identity and Azure RBAC authorize every downstream call, with no Key Vault and no application secrets to manage. See [Managed identity and RBAC](docs/managed_identity.md).
 - A single-page chat interface streams answers to the browser and retains [chat history](docs/chat_history.md) across sessions.
 - An [admin experience](docs/admin.md) lets you ingest, inspect, and configure your dataset and prompts without touching code.
 - Voice input is available through [speech-to-text](docs/speech_to_text.md) on any supported browser.
+- Optional end-user sign-in secures the web app through Microsoft Entra ID. See [Authentication setup](docs/authentication_setup.md).
 
 </details>
 
@@ -108,6 +113,14 @@ Follow the quick deploy steps on the deployment guide to deploy this solution to
 
 > [!IMPORTANT]
 > Check Azure OpenAI quota availability before deploying. Follow the [quota check instructions guide](docs/QuotaCheck.md) to confirm sufficient capacity in your subscription.
+
+### After you deploy
+
+Once `azd up` finishes, it prints the web app URL. Open it, then:
+
+1. Go to the [admin experience](docs/admin.md) to upload documents or index web pages so the assistant has content to ground on.
+2. Wait for ingestion to finish, then return to the chat page and ask a question about your data.
+3. Confirm answers include inline citations that link back to the source documents.
 
 ### Clean up
 

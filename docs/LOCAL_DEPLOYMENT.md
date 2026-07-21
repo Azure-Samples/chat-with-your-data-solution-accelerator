@@ -181,18 +181,19 @@ azd up
 
 ### 4.3 Get Application URL
 
-After successful deployment, locate your application URLs:
+After successful deployment, locate your application URL:
 
 1. Open the [Azure Portal](https://portal.azure.com/)
 2. Navigate to your resource group
-3. Locate the **App Services** - you'll find two deployments:
-   - **Chat Application:** App Service without "admin" suffix - Main chat interface
-   - **Admin Application:** App Service with "admin" suffix - Data management interface
-4. Click on each App Service and copy its **Default Domain** URL from the overview page
+3. Locate the **Container Apps** - you will find three services:
+   - **Frontend:** the React web app, with the admin interface built in at the `/admin` path
+   - **Backend:** the FastAPI API
+   - **Functions:** the ingestion worker
+4. Open the frontend Container App and copy its **Application Url** from the overview page
 
 **Example URLs:**
-- Chat App: `https://app-<unique-text>.azurewebsites.net`
-- Admin App: `https://app-<unique-text>-admin.azurewebsites.net`
+- Application: `https://<frontend-container-app-name>.<region>.azurecontainerapps.io/`
+- Admin interface: `https://<frontend-container-app-name>.<region>.azurecontainerapps.io/admin`
 
 ⚠️ **Important:** Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
 
@@ -243,7 +244,7 @@ bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group
 
 > **📌 Skip this step** if you deployed with the default `hostingModel=code`.
 
-When deploying with `hostingModel=container`, the App Services start with a placeholder hello-world image. After provisioning, run the combined container workflow to build and push the application images to your Azure Container Registry and update the App Services to use them.
+When deploying with `hostingModel=container`, the Container Apps start with a placeholder image. After provisioning, run the combined container workflow to build and push the application images to your Azure Container Registry and update the Container Apps to use them.
 
 *PowerShell (Windows):*
 ```powershell
@@ -257,7 +258,7 @@ bash infra/scripts/post-provision/acr_build_push_update.sh -g "<your-resource-gr
 
 This script:
 - Builds and pushes the images to your ACR
-- Updates each App Service to pull its image from your private ACR using managed-identity authentication
+- Updates each Container App to pull its image from your private ACR using managed-identity authentication
 - Restarts all services
 
 > By default, images are built remotely using `az acr build` (no local Docker required). To build locally with Docker instead, use `-Mode local` in PowerShell or `--mode local` in Bash. You can also set a custom tag with `-Tag` or `--tag`.
@@ -280,8 +281,8 @@ This script:
 ### 5.5 Test the Application
 
 **Quick Test Steps:**
-1. Navigate to the admin site, where you can upload documents. Then select Ingest Data and add your data. You can find sample data in the [data](../data) directory.
-2. Navigate to the Chat web app to start chatting on top of your data.
+1. Open the admin interface at the `/admin` path, where you can upload documents. Select Ingest Data and add your data. You can find sample data in the [data](../data) directory.
+2. Return to the chat web app to start chatting on top of your data.
 
 ## Step 6: Clean Up (Optional)
 

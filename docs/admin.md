@@ -11,7 +11,7 @@ ms.topic: how-to
 
 ## Overview
 
-Administration is part of the web app. There is no separate admin site to deploy or sign in to. The admin area appears in the same application under `/admin`, where you can ingest documents, remove them, and adjust application settings.
+Administration is part of the web app. There is no separate admin site to deploy or sign in to. The admin area appears in the same application under `/admin`, which redirects to the Ingest page at `/admin/ingest`. From there you can ingest documents, remove them, and adjust application settings.
 
 > [!NOTE]
 > Replace the images below with screenshots of your deployment.
@@ -24,13 +24,13 @@ End users sign in interactively through the Container Apps built-in authenticati
 
 The admin area has three pages.
 
-| Page | Purpose |
-|------|---------|
-| Ingest | Upload documents or submit a URL to add content to the index. |
-| Delete | Remove documents from the index and their source blobs. |
-| Configuration | Review and adjust application settings, including the chat orchestrator. |
+| Page | Route | Purpose |
+|------|-------|---------|
+| Ingest | `/admin/ingest` | Upload documents or submit a URL to add content to the index. |
+| Delete | `/admin/delete` | Remove documents from the index and their source blobs. |
+| Configuration | `/admin/config` | Review and adjust application settings, including the chat orchestrator. |
 
-![Admin ingest page](images/admin-ingest.png)
+![Admin ingest page](images/admin-site.png)
 
 ## Ingest documents
 
