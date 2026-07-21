@@ -739,7 +739,10 @@ describe("MessageInput clear-conversation button", () => {
     await waitFor(() => {
       expect(probeMessages()).toHaveLength(2);
     });
-    expect(getClear()).toBeEnabled();
+    // Wait for finish_stream to clear the streaming flag before checking the button.
+    await waitFor(() => {
+      expect(getClear()).toBeEnabled();
+    });
 
     await submit("second");
     await waitFor(() => {
