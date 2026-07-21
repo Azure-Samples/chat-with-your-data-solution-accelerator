@@ -1,12 +1,3 @@
----
-title: Deployment Guide
-description: Step-by-step guide to deploy the Chat with Your Data solution accelerator to Azure using the Azure Developer CLI.
-ms.date: 2026-07-21
-ms.topic: how-to
----
-
-[Back to *Chat with your data* README](../README.md)
-
 # Deployment Guide
 
 ## Overview
@@ -317,16 +308,15 @@ azd up
 flowchart TD
   A[azd auth login] --> B[azd up]
   B --> C[Provision infra via Bicep]
-  C --> D[Post-provision script]
-  D --> E[Build and deploy 3 container images]
-  E --> F[Post-deploy script seeds sample data]
-  F --> G[Application URL printed]
+  C --> D[Print post-deployment steps]
+  D --> E[Application URL printed]
 ```
 
-1. Provisions the resource group contents described in [Architecture overview](architecture.md) using Bicep.
-2. Runs the post-provision script to prepare data-plane state, such as enabling the `pgvector` extension or seeding the knowledge base.
-3. Builds the backend, frontend, and ingestion images remotely in the container registry (no local Docker required) and updates the Container Apps.
-4. Runs the post-deploy script to seed a sample document set so chat returns grounded answers immediately.
+`azd up` provisions the Azure infrastructure only. It does not build the application images or ingest data — those are manual steps you complete in [Step 5](#step-5-post-deployment-configuration).
+
+1. Provisions the resource group contents described in [Architecture overview](architecture.md) using Bicep — Container Apps, container registry, Azure OpenAI, the search or database resources, and supporting services.
+2. Creates the three Container Apps (frontend, backend, ingestion) running a temporary placeholder image.
+3. Prints the post-deployment commands you run next to build the application images and configure the data plane.
 
 ### 4.3 Get application URL
 
@@ -334,27 +324,21 @@ After successful deployment, `azd` prints the application URL in the terminal. Y
 
 1. Open the [Azure Portal](https://portal.azure.com/)
 2. Navigate to your resource group
-3. Find the **Container Apps** — you will see the frontend and backend services
+3. Find the **Container Apps** — you will see the frontend, backend, and ingestion (function) services
 4. Click the frontend Container App and copy its **Application URL** from the overview page
 
 > [!IMPORTANT]
 > Complete [Post-Deployment Steps](#step-5-post-deployment-configuration) before accessing the application.
 
-### 4.4 Redeploy a single service
+### 4.4 Redeploy the application images
 
-After the first `azd up`, you can redeploy one service without reprovisioning:
-
-```bash
-azd deploy backend
-azd deploy frontend
-azd deploy function
-```
+`azd up` provisions infrastructure only, so there is no `azd deploy` step for this accelerator. To rebuild the application images and roll out new revisions to all three Container Apps after code changes, re-run the container workflow described in [Step 5.1](#51-build-push-and-update-container-images-required).
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Run post-deployment setup script (Required)
+### 5.1 Build, push, and update container images (Required)
 
-After deployment completes, run the post-deployment script to configure the Function App client key and create PostgreSQL tables (if applicable).
+`azd up` provisions the Container Apps with a temporary placeholder image. Run the combined container workflow to build the application images, push them to your Azure Container Registry, and roll out new revisions to all three Container Apps (frontend, backend, ingestion).
 
 **Login to Azure CLI:**
 
@@ -367,6 +351,30 @@ az login
 ```shell
 az login --tenant-id <tenant-id>
 ```
+
+**PowerShell (Windows):**
+
+```powershell
+.\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+**Bash (Linux/macOS/WSL):**
+
+```bash
+bash infra/scripts/post-provision/acr_build_push_update.sh -g "<your-resource-group-name>"
+```
+
+This script builds and pushes the images to your ACR using ACR Tasks (remote build — no local Docker required), updates each Container App to pull its image from your private ACR using managed-identity authentication, and restarts all services. It works for both standard and private-networking (WAF) deployments by temporarily unlocking the registry for the build and re-locking it afterwards.
+
+> [!TIP]
+> Pass a custom image tag with `-Tag <tag>` in PowerShell or `-t <tag>` in Bash (default: `latest`).
+
+> [!NOTE]
+> If you re-run `azd provision`, run this script again to restore the correct container images.
+
+### 5.2 Run post-deployment setup script (Required)
+
+Run the post-deployment script to configure the Function App client key and create the PostgreSQL tables (when `databaseType=postgresql`).
 
 > [!IMPORTANT]
 > The post-deployment script requires **Azure CLI version 2.87.0 or later**. Check your installed version with `az version`. If it is earlier than 2.87.0, upgrade first with `az upgrade`.
@@ -386,33 +394,6 @@ bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group
 > [!NOTE]
 > The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
 
-### 5.2 Build, push, and update container images (Container model only)
-
-> [!NOTE]
-> Skip this step if you deployed with the default `hostingModel=code`.
-
-When deploying with `hostingModel=container`, the Container Apps start with a placeholder image. After provisioning, run the combined container workflow to build and push the application images to your Azure Container Registry and update the services.
-
-**PowerShell (Windows):**
-
-```powershell
-.\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
-```
-
-**Bash (Linux/macOS/WSL):**
-
-```bash
-bash infra/scripts/post-provision/acr_build_push_update.sh -g "<your-resource-group-name>"
-```
-
-This script builds and pushes the images to your ACR, updates each Container App to pull its image from your private ACR using managed-identity authentication, and restarts all services.
-
-> [!TIP]
-> By default, images are built remotely using `az acr build` — no local Docker required. To build locally with Docker instead, use `-Mode local` in PowerShell or `--mode local` in Bash. You can also set a custom tag with `-Tag` or `--tag`.
-
-> [!NOTE]
-> If you re-run `azd provision`, run this script again to restore the correct container images.
-
 ### 5.3 Configure authentication (Required for chat application)
 
 Authentication is mandatory for the chat application to be accessible:
@@ -428,7 +409,7 @@ Authentication is mandatory for the chat application to be accessible:
 
 ### 5.5 Test the application
 
-1. Navigate to the admin site, upload documents via **Ingest Data**, and add your data. Sample data is available in the [`data/`](../data) directory.
+1. Navigate to the admin experience at `/admin` on your application URL, upload documents via **Ingest Data**, and add your data. Sample data is available in the [`data/`](../data) directory.
 2. Navigate to the chat application and start chatting on top of your data.
 
 ## Step 6: Clean Up (Optional)
