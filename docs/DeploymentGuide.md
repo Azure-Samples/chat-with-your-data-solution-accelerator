@@ -336,7 +336,29 @@ After successful deployment, `azd` prints the application URL in the terminal. Y
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Build, push, and update container images (Required)
+### 5.1 Run post-deployment setup script (Required)
+
+Run the post-deployment script to configure the Function App client key and create the PostgreSQL tables (when `databaseType=postgresql`).
+
+> [!IMPORTANT]
+> The post-deployment script requires **Azure CLI version 2.87.0 or later**. Check your installed version with `az version`. If it is earlier than 2.87.0, upgrade first with `az upgrade`.
+
+**PowerShell (Windows):**
+
+```powershell
+.\infra\scripts\post-provision\post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+**Bash (Linux/macOS/WSL):**
+
+```bash
+bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group-name>"
+```
+
+> [!NOTE]
+> The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
+
+### 5.2 Build, push, and update container images (Required)
 
 `azd up` provisions the Container Apps with a temporary placeholder image. Run the combined container workflow to build the application images, push them to your Azure Container Registry, and roll out new revisions to all three Container Apps (frontend, backend, ingestion).
 
@@ -371,28 +393,6 @@ This script builds and pushes the images to your ACR using ACR Tasks (remote bui
 
 > [!NOTE]
 > If you re-run `azd provision`, run this script again to restore the correct container images.
-
-### 5.2 Run post-deployment setup script (Required)
-
-Run the post-deployment script to configure the Function App client key and create the PostgreSQL tables (when `databaseType=postgresql`).
-
-> [!IMPORTANT]
-> The post-deployment script requires **Azure CLI version 2.87.0 or later**. Check your installed version with `az version`. If it is earlier than 2.87.0, upgrade first with `az upgrade`.
-
-**PowerShell (Windows):**
-
-```powershell
-.\infra\scripts\post-provision\post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
-```
-
-**Bash (Linux/macOS/WSL):**
-
-```bash
-bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group-name>"
-```
-
-> [!NOTE]
-> The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
 
 ### 5.3 Configure authentication (Required for chat application)
 
