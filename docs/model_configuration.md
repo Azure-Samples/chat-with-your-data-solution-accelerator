@@ -11,7 +11,7 @@ ms.topic: reference
 
 ## Overview
 
-Chat with Your Data uses two Azure AI Foundry model deployments (a chat model and an embedding model) as its single inference surface. The backend calls Foundry with the workload's managed identity, so there are no model API keys to store. This guide lists the settings that control which models are deployed and how they are sized.
+Chat with Your Data uses Azure AI Foundry model deployments (a chat model, a reasoning model, and an embedding model) as its single inference surface. The backend calls Foundry with the workload's managed identity, so there are no model API keys to store. This guide lists the settings that control which models are deployed and how they are sized.
 
 ## Available models
 
@@ -21,35 +21,45 @@ For the models and versions available in each region, see the [Azure AI Foundry 
 
 | Purpose | Model | Version | Deployment type | Capacity (TPM, thousands) |
 |---------|-------|---------|-----------------|---------------------------|
-| Chat | `gpt-5.1` | `2025-11-13` | GlobalStandard | 150 |
-| Embeddings | `text-embedding-3-large` | `1` | Standard | 100 |
+| Chat | `gpt-5.4-mini` | `2026-03-17` | GlobalStandard | 50 |
+| Reasoning | `gpt-5-mini` | `2025-08-07` | GlobalStandard | 50 |
+| Embeddings | `text-embedding-3-small` | `1` | Standard | 100 |
 
 ## Chat model parameters
 
 | Parameter | Example | Purpose |
 |-----------|---------|---------|
-| `AZURE_ENV_GPT_MODEL_NAME` | `gpt-5.1` | Chat model name. |
-| `AZURE_ENV_GPT_MODEL_VERSION` | `2025-11-13` | Chat model version. |
-| `AZURE_ENV_GPT_MODEL_SKU` | `GlobalStandard` | Chat model deployment type. |
-| `AZURE_ENV_GPT_MODEL_CAPACITY` | `150` | Tokens-per-minute limit (thousands). |
+| `AZURE_GPT_MODEL_NAME` | `gpt-5.4-mini` | Chat model name. |
+| `AZURE_GPT_MODEL_VERSION` | `2026-03-17` | Chat model version. |
+| `AZURE_GPT_MODEL_DEPLOYMENT_TYPE` | `GlobalStandard` | Chat model deployment type. |
+| `AZURE_GPT_MODEL_CAPACITY` | `50` | Tokens-per-minute limit (thousands). |
+
+## Reasoning model parameters
+
+| Parameter | Example | Purpose |
+|-----------|---------|---------|
+| `AZURE_REASONING_MODEL_NAME` | `gpt-5-mini` | Reasoning model name. |
+| `AZURE_REASONING_MODEL_VERSION` | `2025-08-07` | Reasoning model version. |
+| `AZURE_REASONING_MODEL_DEPLOYMENT_TYPE` | `GlobalStandard` | Reasoning model deployment type. |
+| `AZURE_REASONING_MODEL_CAPACITY` | `50` | Tokens-per-minute limit (thousands). |
 
 ## Embedding model parameters
 
 | Parameter | Example | Purpose |
 |-----------|---------|---------|
-| `AZURE_ENV_EMBEDDING_MODEL_NAME` | `text-embedding-3-large` | Embedding model name. |
-| `AZURE_ENV_EMBEDDING_MODEL_VERSION` | `1` | Embedding model version. |
-| `AZURE_ENV_EMBEDDING_MODEL_SKU` | `Standard` | Embedding model deployment type. |
-| `AZURE_ENV_EMBEDDING_MODEL_CAPACITY` | `100` | Tokens-per-minute limit (thousands). |
+| `AZURE_EMBEDDING_MODEL_NAME` | `text-embedding-3-small` | Embedding model name. |
+| `AZURE_EMBEDDING_MODEL_VERSION` | `1` | Embedding model version. |
+| `AZURE_EMBEDDING_MODEL_DEPLOYMENT_TYPE` | `Standard` | Embedding model deployment type. |
+| `AZURE_EMBEDDING_MODEL_CAPACITY` | `100` | Tokens-per-minute limit (thousands). |
 
-The embedding model sets the vector dimensions written to the retrieval index. `text-embedding-3-large` produces 3072-dimensional vectors. In PostgreSQL mode, the vector column width is set from this dimension when the index is first created; see [PostgreSQL](postgreSQL.md).
+The embedding model sets the vector dimensions written to the retrieval index. `text-embedding-3-small` produces 1536-dimensional vectors. In PostgreSQL mode, the vector column width is set from this dimension when the index is first created; see [PostgreSQL](postgreSQL.md).
 
 ## API version parameters
 
 | Parameter | Example | Purpose |
 |-----------|---------|---------|
-| `AZURE_ENV_OPENAI_API_VERSION` | `2025-01-01-preview` | API version for chat and embedding calls. |
-| `AZURE_ENV_AI_AGENT_API_VERSION` | `2025-05-01` | API version for the Foundry agent runtime. |
+| `AZURE_OPENAI_API_VERSION` | `2025-01-01-preview` | API version for chat and embedding calls. |
+| `AZURE_AI_AGENT_API_VERSION` | `2025-05-01` | API version for the Foundry agent runtime. |
 
 ## Set and read parameters
 

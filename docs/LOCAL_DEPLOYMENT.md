@@ -1,5 +1,3 @@
----
-
 <details>
 <summary><b>Option A: VS Code Dev Containers (Recommended)</b></summary>
 

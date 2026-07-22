@@ -11,14 +11,15 @@ ms.topic: how-to
 
 ## Overview
 
-Chat with Your Data deploys two Azure AI Foundry model deployments: a chat model and an embedding model. Each deployment draws on the quota assigned to your subscription in the deployment region. If quota is short, `azd up` can fail with an `InsufficientQuota` error, so it is worth confirming capacity before you deploy and adjusting it afterward.
+Chat with Your Data deploys three Azure AI Foundry model deployments: a chat model, a reasoning model, and an embedding model. Each deployment draws on the quota assigned to your subscription in the deployment region. If quota is short, `azd up` can fail with an `InsufficientQuota` error, so it is worth confirming capacity before you deploy and adjusting it afterward.
 
 The default deployments are:
 
 | Purpose | Model | Deployment type | Default capacity (TPM, thousands) |
 |---------|-------|-----------------|-----------------------------------|
-| Chat | `gpt-5.1` | GlobalStandard | 150 |
-| Embeddings | `text-embedding-3-large` | Standard | 100 |
+| Chat | `gpt-5.4-mini` | GlobalStandard | 50 |
+| Reasoning | `gpt-5-mini` | GlobalStandard | 50 |
+| Embeddings | `text-embedding-3-small` | Standard | 100 |
 
 You can change the model, version, deployment type, and capacity through azd parameters. See [Model configuration](model_configuration.md) and [Customizing azd parameters](customizing_azd_parameters.md).
 
@@ -32,7 +33,7 @@ Follow the [quota check guide](QuotaCheck.md) to confirm capacity by region befo
 2. Select **View all resources** and find the Azure AI Services resource for this deployment.
 3. Open **Quota** from the management section.
 4. Select the deployment type (for example, **GlobalStandard**) from the dropdown.
-5. Choose the model (the chat model `gpt-5.1` or the embedding model `text-embedding-3-large`) and the region where you deployed.
+5. Choose the model (the chat model `gpt-5.4-mini` or the embedding model `text-embedding-3-small`) and the region where you deployed.
 6. Request more quota, or delete unused model deployments to free capacity.
 
 ## Adjust capacity through azd
@@ -40,8 +41,8 @@ Follow the [quota check guide](QuotaCheck.md) to confirm capacity by region befo
 To change a deployment's capacity, set the matching azd parameter before you deploy:
 
 ```bash
-azd env set AZURE_ENV_GPT_MODEL_CAPACITY 200
-azd env set AZURE_ENV_EMBEDDING_MODEL_CAPACITY 150
+azd env set AZURE_GPT_MODEL_CAPACITY 200
+azd env set AZURE_EMBEDDING_MODEL_CAPACITY 150
 azd up
 ```
 

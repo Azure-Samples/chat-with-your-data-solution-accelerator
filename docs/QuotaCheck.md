@@ -13,7 +13,7 @@ ms.topic: how-to
 
 Before deploying the accelerator, **ensure sufficient quota availability** for the Azure OpenAI model deployed to Azure AI Foundry.
 
-> **For Global Standard GPT-5.1, ensure at least 150k tokens of capacity post-deployment for optimal performance.**
+> **For Global Standard gpt-5.4-mini, ensure at least 50k tokens of capacity post-deployment for optimal performance.**
 
 The quota-check script (`quota_check_params.sh`) is provided by the upstream [chat-with-your-data-solution-accelerator](https://github.com/Azure-Samples/chat-with-your-data-solution-accelerator/blob/main/scripts/quota_check_params.sh) repository. This fork does not vendor a local copy, so the steps below download it before running.
 
@@ -25,7 +25,7 @@ azd auth login
 
 ### 📌 Default Models & Capacities:
 ```
-gpt-5.1:150, text-embedding-3-large:100
+gpt-5.4-mini:50, text-embedding-3-small:100
 ```
 ### 📌 Default Regions:
 ```
@@ -51,7 +51,7 @@ australiaeast, eastus2, japaneast, uksouth
    ```
 ✔️ Check specific model(s) in default regions:
   ```
-  ./quota_check_params.sh --models gpt-5.1:150,text-embedding-3-large:100
+  ./quota_check_params.sh --models gpt-5.4-mini:50,text-embedding-3-small:100
   ```
 ✔️ Check default models in specific region(s):
 ```
@@ -59,11 +59,11 @@ australiaeast, eastus2, japaneast, uksouth
 ```
 ✔️ Passing both models and regions:
 ```
-./quota_check_params.sh --models gpt-5.1:150 --regions eastus2,japaneast
+./quota_check_params.sh --models gpt-5.4-mini:50 --regions eastus2,japaneast
 ```
 ✔️ All parameters combined:
 ```
-./quota_check_params.sh --models gpt-5.1:150,text-embedding-3-large:100 --regions eastus2,japaneast --verbose
+./quota_check_params.sh --models gpt-5.4-mini:50,text-embedding-3-small:100 --regions eastus2,japaneast --verbose
 ```
 
 ### **Sample Output**

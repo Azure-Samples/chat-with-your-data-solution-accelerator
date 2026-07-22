@@ -20,7 +20,7 @@ The following is the Chat With Your Data configuration that we suggest to optimi
 
 - **Azure AI Search semantic ranking**: Enable semantic ranking so Azure AI Search surfaces the most relevant handbook and policy passages for each query.
 - **Top K 15**: Retrieve the top 15 most relevant chunks so the assistant has enough context to answer precisely without diluting relevance.
-- **Azure OpenAI GPT-5.1 model**: The solution deploys the Azure OpenAI GPT-5.1 model for advanced natural language processing. This model handles nuanced policy questions and produces clear, contextually appropriate responses.
+- **Azure OpenAI gpt-5.4-mini model**: The solution deploys the Azure OpenAI gpt-5.4-mini model for advanced natural language processing. This model handles nuanced policy questions and produces clear, contextually appropriate responses.
 
 By applying this configuration, you can improve the efficiency, accuracy, and overall performance of the Chat With Your Data Employee Assistant, so it meets the expectations of professionals.
 
@@ -33,7 +33,7 @@ Configure the assistant from the admin **Configuration** page in the web app:
 - Set **Top K** to `15`.
 - Save the configuration.
 
-The GPT-5.1 chat model is selected at deployment time through the `azd` environment, so no runtime change is required.
+The gpt-5.4-mini chat model is selected at deployment time through the `azd` environment, so no runtime change is required.
 
 ## Admin Configuration
 The admin **Configuration** page includes an **Assistant Type** dropdown. The options are:

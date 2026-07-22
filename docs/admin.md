@@ -52,7 +52,7 @@ The store is fixed at deployment and is not an admin-page choice. The orchestrat
 
 ```mermaid
 flowchart TD
-    Deploy["Deploy time: databaseType / AZURE_ENV_DATABASE_TYPE<br/>fixes the store, cosmosdb or postgresql.<br/>Not selectable on the admin page."]
+    Deploy["Deploy time: databaseType / DATABASE_TYPE<br/>fixes the store, cosmosdb or postgresql.<br/>Not selectable on the admin page."]
     Default["Deploy-time default orchestrator, databaseType-derived:<br/>postgresql starts on langgraph, cosmosdb starts on agent_framework"]
     Admin["Admin Configuration page:<br/>select the orchestrator at runtime, no redeploy"]
     Request["Chat request routed to the selected orchestrator"]

@@ -21,8 +21,6 @@ By default the deployment uses your environment name as a prefix to keep Azure r
 |------|------|---------|---------|
 | `AZURE_ENV_NAME` | string | (prompted) | Environment name prefix for all resources (3–16 alphanumeric characters). |
 | `AZURE_LOCATION` | string | (prompted) | Region for the resource group and regional resources. |
-| `AZURE_ENV_SOLUTION_NAME` | string | (env name) | Solution name used when composing resource names. |
-| `AZURE_ENV_UNIQUE_TEXT` | string | (generated) | Override for the unique suffix applied to resource names. |
 
 ## Database
 
@@ -30,7 +28,7 @@ The database type is chosen once and is locked after deployment. It sets both th
 
 | Name | Type | Default | Purpose |
 |------|------|---------|---------|
-| `AZURE_ENV_DATABASE_TYPE` | string | `cosmosdb` | `cosmosdb` (Cosmos DB + Azure AI Search) or `postgresql` (PostgreSQL Flexible Server + pgvector). |
+| `DATABASE_TYPE` | string | `postgresql` | `postgresql` (PostgreSQL Flexible Server + pgvector) or `cosmosdb` (Cosmos DB + Azure AI Search). |
 
 See [Chat history](chat_history.md) and [PostgreSQL](postgreSQL.md).
 
@@ -38,15 +36,21 @@ See [Chat history](chat_history.md) and [PostgreSQL](postgreSQL.md).
 
 | Name | Type | Default | Purpose |
 |------|------|---------|---------|
-| `AZURE_ENV_AI_SERVICE_LOCATION` | string | (`AZURE_LOCATION`) | Region for Azure AI Services and Foundry; restricted to regions with capacity for the chat model. |
-| `AZURE_ENV_GPT_MODEL_NAME` | string | `gpt-5.1` | Chat model name. |
-| `AZURE_ENV_GPT_MODEL_VERSION` | string | `2025-11-13` | Chat model version. |
-| `AZURE_ENV_GPT_MODEL_SKU` | string | `GlobalStandard` | Chat model deployment type. |
-| `AZURE_ENV_GPT_MODEL_CAPACITY` | integer | `150` | Chat model capacity (TPM, thousands). |
-| `AZURE_ENV_EMBEDDING_MODEL_NAME` | string | `text-embedding-3-large` | Embedding model name. |
-| `AZURE_ENV_EMBEDDING_MODEL_VERSION` | string | `1` | Embedding model version. |
-| `AZURE_ENV_EMBEDDING_MODEL_SKU` | string | `Standard` | Embedding model deployment type. |
-| `AZURE_ENV_EMBEDDING_MODEL_CAPACITY` | integer | `100` | Embedding model capacity (TPM, thousands). |
+| `AZURE_AI_SERVICE_LOCATION` | string | (`AZURE_LOCATION`) | Region for Azure AI Services and Foundry; restricted to regions with capacity for the chat model. |
+| `AZURE_GPT_MODEL_NAME` | string | `gpt-5.4-mini` | Chat model name. |
+| `AZURE_GPT_MODEL_VERSION` | string | `2026-03-17` | Chat model version. |
+| `AZURE_GPT_MODEL_DEPLOYMENT_TYPE` | string | `GlobalStandard` | Chat model deployment type. |
+| `AZURE_GPT_MODEL_CAPACITY` | integer | `50` | Chat model capacity (TPM, thousands). |
+| `AZURE_REASONING_MODEL_NAME` | string | `gpt-5-mini` | Reasoning model name. |
+| `AZURE_REASONING_MODEL_VERSION` | string | `2025-08-07` | Reasoning model version. |
+| `AZURE_REASONING_MODEL_DEPLOYMENT_TYPE` | string | `GlobalStandard` | Reasoning model deployment type. |
+| `AZURE_REASONING_MODEL_CAPACITY` | integer | `50` | Reasoning model capacity (TPM, thousands). |
+| `AZURE_EMBEDDING_MODEL_NAME` | string | `text-embedding-3-small` | Embedding model name. |
+| `AZURE_EMBEDDING_MODEL_VERSION` | string | `1` | Embedding model version. |
+| `AZURE_EMBEDDING_MODEL_DEPLOYMENT_TYPE` | string | `Standard` | Embedding model deployment type. |
+| `AZURE_EMBEDDING_MODEL_CAPACITY` | integer | `100` | Embedding model capacity (TPM, thousands). |
+| `AZURE_OPENAI_API_VERSION` | string | `2025-01-01-preview` | API version for chat and embedding calls. |
+| `AZURE_AI_AGENT_API_VERSION` | string | `2025-05-01` | API version for the Foundry agent runtime. |
 
 See [Model configuration](model_configuration.md) and [Model quota settings](azure_openai_model_quota_settings.md).
 
@@ -54,35 +58,33 @@ See [Model configuration](model_configuration.md) and [Model quota settings](azu
 
 | Name | Type | Default | Purpose |
 |------|------|---------|---------|
-| `AZURE_ENV_INGESTION_TRIGGER` | string | `direct_enqueue` | How ingestion starts: `direct_enqueue` (admin uploads enqueue work) or `event_grid` (blob events trigger ingestion). |
+| `INGESTION_TRIGGER` | string | `direct_enqueue` | How ingestion starts: `direct_enqueue` (admin uploads enqueue work) or `event_grid` (blob events trigger ingestion). |
 
 See [Document ingestion](document_ingestion.md).
 
 ## Reliability and security
 
-These flags align the deployment with the Well-Architected Framework. They are surfaced as prompts by `azd up` and default to `false` for a cost-efficient baseline.
+These flags align the deployment with the Well-Architected Framework and apply to the WAF deployment profile (`main.waf.parameters.json`).
 
 | Name | Type | Default | Purpose |
 |------|------|---------|---------|
-| `AZURE_ENV_ENABLE_MONITORING` | boolean | `false` | Deploy Log Analytics and Application Insights and wire diagnostic settings. |
-| `AZURE_ENV_ENABLE_SCALABILITY` | boolean | `false` | Higher SKUs and autoscale on Container Apps, Azure AI Search, and PostgreSQL. |
-| `AZURE_ENV_ENABLE_REDUNDANCY` | boolean | `false` | Zone-redundant and paired-region failover on the data and compute resources. |
-| `AZURE_ENV_ENABLE_PRIVATE_NETWORKING` | boolean | `false` | Deploy a virtual network, private endpoints, and Bastion, and disable public network access on data-plane resources. |
+| `ENABLE_TELEMETRY` | boolean | `true` | Send anonymized module usage telemetry. |
+| `ENABLE_MONITORING` | boolean | `false` | Deploy Log Analytics and Application Insights and wire diagnostic settings. |
+| `ENABLE_SCALABILITY` | boolean | `true` | Higher SKUs and autoscale on Container Apps, Azure AI Search, and PostgreSQL. |
+| `ENABLE_REDUNDANCY` | boolean | `false` | Zone-redundant and paired-region failover on the data and compute resources. |
+| `ENABLE_PRIVATE_NETWORKING` | boolean | `true` | Deploy a virtual network, private endpoints, and Bastion, and disable public network access on data-plane resources. |
+| `AZURE_ENV_VM_ADMIN_USERNAME` | string | (empty) | Jumpbox VM admin username (used when private networking is enabled). |
+| `AZURE_ENV_VM_ADMIN_PASSWORD` | string | (empty) | Jumpbox VM admin password (used when private networking is enabled). |
+| `AZURE_ENV_JUMPBOX_SIZE` | string | `Standard_D2s_v5` | Jumpbox VM size (used when private networking is enabled). |
 
 ## Bring your own resources
 
-To reuse existing resources instead of provisioning new ones, set the matching name. Leave a value empty to have the deployment create the resource.
+To reuse existing resources instead of provisioning new ones, set the matching resource ID. Leave a value empty to have the deployment create the resource.
 
 | Name | Type | Default | Purpose |
 |------|------|---------|---------|
-| `AZURE_ENV_EXISTING_OPENAI_NAME` | string | (empty) | Reuse an existing Azure AI Services or OpenAI account. |
-| `AZURE_ENV_EXISTING_SEARCH_NAME` | string | (empty) | Reuse an existing Azure AI Search service (`cosmosdb` mode). |
-| `AZURE_ENV_SEARCH_SERVICE_LOCATION` | string | (empty) | Region for a newly created Azure AI Search service. |
-| `AZURE_ENV_EXISTING_COSMOS_NAME` | string | (empty) | Reuse an existing Cosmos DB account (`cosmosdb` mode). |
-| `AZURE_ENV_EXISTING_STORAGE_NAME` | string | (empty) | Reuse an existing storage account. |
-| `AZURE_ENV_EXISTING_EVENT_GRID_TOPIC_NAME` | string | (empty) | Reuse an existing Event Grid system topic. |
-
-In `postgresql` mode, the person who runs the deployment is set as the PostgreSQL Entra administrator by default. Override with `AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_ID`, `AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_NAME`, and `AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_TYPE`.
+| `AZURE_ENV_LOG_ANALYTICS_WORKSPACE_ID` | string | (empty) | Resource ID of an existing Log Analytics workspace. |
+| `AZURE_EXISTING_AIPROJECT_RESOURCE_ID` | string | (empty) | Resource ID of an existing AI Foundry project. |
 
 ## How to set a parameter
 
@@ -103,14 +105,14 @@ azd env set AZURE_LOCATION eastus2
 Deploy in PostgreSQL mode:
 
 ```bash
-azd env set AZURE_ENV_DATABASE_TYPE postgresql
+azd env set DATABASE_TYPE postgresql
 ```
 
 Turn on monitoring and private networking:
 
 ```bash
-azd env set AZURE_ENV_ENABLE_MONITORING true
-azd env set AZURE_ENV_ENABLE_PRIVATE_NETWORKING true
+azd env set ENABLE_MONITORING true
+azd env set ENABLE_PRIVATE_NETWORKING true
 ```
 
 ## Notes

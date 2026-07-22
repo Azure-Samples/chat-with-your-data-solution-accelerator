@@ -35,7 +35,7 @@ flowchart LR
 Set the database type before you deploy:
 
 ```bash
-azd env set AZURE_ENV_DATABASE_TYPE postgresql
+azd env set DATABASE_TYPE postgresql
 azd up
 ```
 
@@ -43,7 +43,7 @@ The choice is locked after deployment. To switch, deploy a new environment.
 
 ## Passwordless authentication
 
-The PostgreSQL server is configured for Microsoft Entra authentication only; password authentication is disabled. The application connects with the workload's user-assigned managed identity and a short-lived Entra token that is refreshed automatically, so there are no database passwords or connection-string secrets to store or rotate. The person who runs the deployment is set as the PostgreSQL Entra administrator by default; override this with the `AZURE_ENV_POSTGRES_ADMIN_PRINCIPAL_*` parameters. See [Managed identity and RBAC](managed_identity.md).
+The PostgreSQL server is configured for Microsoft Entra authentication only; password authentication is disabled. The application connects with the workload's user-assigned managed identity and a short-lived Entra token that is refreshed automatically, so there are no database passwords or connection-string secrets to store or rotate. The person who runs the deployment is registered as the PostgreSQL Entra administrator automatically, derived from the deploying identity. See [Managed identity and RBAC](managed_identity.md).
 
 ## Vector index
 
