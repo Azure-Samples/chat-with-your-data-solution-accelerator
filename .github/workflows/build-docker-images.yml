@@ -40,7 +40,6 @@ permissions:
 
 jobs:
   check-changes:
-    if: false  # Workflow disabled
     runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.filter.outputs.docker_related }}
@@ -69,13 +68,20 @@ jobs:
 
   docker-build:
     needs: check-changes
-    if: needs.check-changes.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         include:
+          # Legacy entries required by branch protection (old check names)
+          - app_name: rag-adminwebapp
+            dockerfile: docker/Admin.Dockerfile
+          - app_name: rag-backend
+            dockerfile: docker/Backend.Dockerfile
+          - app_name: rag-webapp
+            dockerfile: docker/Frontend.Dockerfile
+          # Current entries
           - app_name: rag-frontend
             dockerfile: docker/Dockerfile.frontend
-          - app_name: rag-backend
+          - app_name: rag-backend-v2
             dockerfile: docker/Dockerfile.backend
           - app_name: rag-functions
             dockerfile: docker/Dockerfile.functions
@@ -84,5 +90,5 @@ jobs:
       new_registry: 'cwydcontainerreg.azurecr.io'
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
-      push: ${{ github.ref_name == 'main' || github.ref_name == 'dev' || github.ref_name == 'demo'|| github.ref_name == 'dependabotchanges' }}
+      push: false
     secrets: inherit
