@@ -1,8 +1,0 @@
-pytest-playwright
-pytest-reporter-html1
-python-dotenv
-pytest-check
-pytest-html
-pytest-rerunfailures
-py
-beautifulsoup4

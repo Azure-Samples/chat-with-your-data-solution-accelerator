@@ -1,0 +1,60 @@
+/*
+ * Composer row (text input + send + mic). Sits inside the
+ * .composerColumn from ChatPage.module.css, so it owns only the row's
+ * internal layout, not the centering / max-width.
+ */
+
+.form {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalS);
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusXLarge);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.form:focus-within {
+  border-color: var(--colorCompoundBrandStroke);
+  box-shadow: 0 0 0 1px var(--colorCompoundBrandStroke);
+}
+
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.field {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  font: inherit;
+  color: var(--colorNeutralForeground1);
+  background: transparent;
+  border: 0;
+  outline: none;
+  resize: none;
+}
+
+.field::placeholder {
+  color: var(--colorNeutralForeground3);
+}
+
+.field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Send + Mic are Fluent <Button>/<ToggleButton>; size + flex hooks only. */
+.send,
+.mic {
+  flex: 0 0 auto;
+}

@@ -1,0 +1,44 @@
+# CWYD v2 smoke overlay -- Path A (router smoke)
+#
+# Overlays `docker-compose.dev.yml` for the `backend-only` profile.
+# Purpose: make the backend boot from a clean room with dummy
+# values for every operator-supplied env var, so a developer's
+# `.env` (which may contain real Azure credentials) cannot
+# influence the smoke run. CI uses the same overlay.
+#
+# Path A scope: this overlay does NOT spin up a mock OpenAI / mock
+# Foundry sidecar. The smoke tests under `tests/smoke/` exercise
+# only non-LLM paths (`/api/health`, `/openapi.json`, and
+# `/api/conversation` with an invalid body -> 422).
+#
+# Usage:
+#   docker compose \
+#     -f docker/docker-compose.dev.yml \
+#     -f docker/docker-compose.smoke.yml \
+#     --profile backend-only up -d --build
+
+services:
+  backend:
+    # Override env_file: clean-room boot must not pick up a developer's
+    # local .env. Use an inline list with `required: false` so the
+    # file is simply ignored if present.
+    env_file: !reset []
+    environment:
+      # --- AppSettings: Foundry / OpenAI ---------------------------------
+      # Dummy values satisfy AppSettings field validators without
+      # opening any real connection. The Foundry SDK clients are lazy
+      # (no HTTP session until first `.chat()` call), and Path A smoke
+      # tests never trigger that call -- so these stay unreachable.
+      AZURE_AI_PROJECT_ENDPOINT: https://smoke-foundry.invalid/api/projects/cwyd
+      AZURE_OPENAI_GPT_DEPLOYMENT: gpt-smoke
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: embed-smoke
+      AZURE_OPENAI_API_VERSION: "2024-12-01-preview"
+      # --- AppSettings: search (pgvector mode, no AzureSearch) -----------
+      AZURE_AI_SEARCH_INDEX: cwyd-smoke-index
+      # --- Identity (no real UAMI; lifespan handles unset gracefully) ----
+      AZURE_TENANT_ID: 00000000-0000-0000-0000-000000000000
+      AZURE_UAMI_CLIENT_ID: ""
+      # --- Orchestrator default (matches .env.sample) --------------------
+      CWYD_ORCHESTRATOR_NAME: langgraph
+      # --- Quiet logs in CI ----------------------------------------------
+      AZURE_LOG_LEVEL: WARNING

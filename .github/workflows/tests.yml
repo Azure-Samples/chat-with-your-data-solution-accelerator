@@ -5,18 +5,18 @@ on:
   push:
     branches: [main, dev, demo]
     paths:
-      - 'code/**'
+      - 'src/**'
+      - 'tests/**'
       - 'pyproject.toml'
       - 'package.json'
-      - 'pytest.ini'
       - '.github/workflows/tests.yml'
   pull_request:
     branches: [main, dev, demo]
     paths:
-      - 'code/**'
+      - 'src/**'
+      - 'tests/**'
       - 'pyproject.toml'
       - 'package.json'
-      - 'pytest.ini'
       - '.github/workflows/tests.yml'
     types:
       - opened
@@ -32,17 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Install Poetry
-        run: pip install poetry
-      - name: Setup python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.11"
-          architecture: x64
-          cache: 'poetry'
-      - name: Install dependencies through poetry
-        run: |
-          poetry install
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - name: Install dependencies
+        run: uv sync --frozen --group dev
       - name: Get coverage artifact ID
         id: coverage-artifact
         uses: actions/github-script@v8
@@ -91,7 +87,7 @@ jobs:
 
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
       - name: Run Python Tests
-        run: make python-test optional_args="--junitxml=coverage-junit.xml --cov=code --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=${{ steps.coverage-value.outputs.MIN_COVERAGE }} ./code/tests"
+        run: uv run pytest --junitxml=coverage-junit.xml --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=${{ steps.coverage-value.outputs.MIN_COVERAGE }}
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
@@ -105,8 +101,8 @@ jobs:
         with:
           node-version: 20
           cache: "npm"
-          cache-dependency-path: "code/frontend/package-lock.json"
+          cache-dependency-path: "package-lock.json"
       - name: Run frontend unit tests
-        run: make unittest-frontend
+        run: npm ci && npm test -- --run
       - name: Lint
         run: make lint

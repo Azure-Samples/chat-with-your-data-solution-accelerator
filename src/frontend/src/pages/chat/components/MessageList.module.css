@@ -1,0 +1,232 @@
+/*
+ * Chat surface layout. Color/spacing tokens come from Fluent v9 via
+ * `<FluentProvider>`. The `cwydThink` keyframe stays defined here (it
+ * doesn't ship in the Fluent token set).
+ */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacingVerticalM);
+  text-align: center;
+  color: var(--colorNeutralForeground3);
+  padding: var(--spacingVerticalXXXL) var(--spacingHorizontalL);
+}
+
+.emptyIcon {
+  color: var(--colorBrandForeground1);
+  opacity: 0.85;
+}
+
+.emptyText {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalL);
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  max-width: 100%;
+}
+
+.item[data-role="user"] {
+  align-items: flex-end;
+}
+
+.item[data-role="assistant"] {
+  align-items: stretch;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--spacingHorizontalS);
+  max-width: 100%;
+}
+
+.item[data-role="user"] .row {
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  max-width: min(80%, 560px);
+}
+
+.item[data-role="assistant"] .row {
+  width: 100%;
+}
+
+/* Assistant content column: the reasoning panel, the answer bubble, and
+   the citation panel stack vertically to the right of the avatar so the
+   avatar lines up with the column's first item. */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.avatar[data-role="user"] {
+  background: var(--colorBrandBackground);
+  color: var(--colorNeutralForegroundOnBrand);
+}
+
+.avatar[data-role="assistant"] {
+  background: var(--colorNeutralBackground3);
+  color: var(--colorBrandForeground1);
+}
+
+.bubble {
+  font-size: var(--fontSizeBase300);
+  line-height: var(--lineHeightBase300);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.item[data-role="user"] .bubble {
+  display: inline-block;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  border-radius: var(--borderRadiusXLarge);
+  background: var(--colorBrandBackground2);
+  color: var(--colorNeutralForeground1);
+  border-bottom-right-radius: var(--borderRadiusSmall);
+}
+
+.item[data-role="assistant"] .bubble {
+  padding-top: 4px; /* Optical alignment with avatar */
+  background: transparent;
+  color: var(--colorNeutralForeground1);
+  /* The answer renders through MarkdownContent, which emits its own
+     block-level breaks (and <br> for the model's hard breaks); collapse
+     soft source newlines so pre-wrap doesn't double the line spacing. */
+  white-space: normal;
+}
+
+/* Static, small, muted disclaimer rendered under a finished assistant
+   answer (above the reference block). */
+.disclaimer {
+  margin: 2px 0 0;
+  font-size: var(--fontSizeBase200);
+  line-height: var(--lineHeightBase200);
+  color: var(--colorNeutralForeground3);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.reasoning {
+  /* Left edge sits flush with the list-item edge so it lines up with the
+     assistant avatar and the citation panel below it (both at margin 0),
+     rather than indenting into the bubble column. Spans the full assistant
+     content column so the reasoning panel is as wide as the answer prose. */
+  margin: 0;
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  background: var(--colorNeutralBackground2);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.reasoning summary {
+  cursor: pointer;
+  font-weight: var(--fontWeightMedium);
+  color: var(--colorNeutralForeground1);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+}
+
+.reasoning summary[data-streaming="true"] {
+  color: var(--colorBrandForeground1);
+  list-style: none;
+}
+
+.reasoning summary[data-streaming="true"]::-webkit-details-marker {
+  display: none;
+}
+
+.reasoningBody {
+  margin: var(--spacingVerticalXS) 0 0;
+  white-space: pre-wrap;
+  line-height: var(--lineHeightBase200);
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.thinkingDots {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-left: 2px;
+}
+
+.thinkingDots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  animation: cwydThink 1.2s ease-in-out infinite;
+}
+
+.thinkingDots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinkingDots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes cwydThink {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-2px); }
+}
+
+.error {
+  margin: 0 0 0 36px;
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  background: var(--colorPaletteRedBackground1);
+  color: var(--colorPaletteRedForeground1);
+  border-radius: var(--borderRadiusMedium);
+  font-size: var(--fontSizeBase200);
+  max-width: min(80%, 560px);
+}

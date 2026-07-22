@@ -12,31 +12,40 @@ This repository uses GitHub's in-built [Releases](https://docs.github.com/en/rep
 
 # Automated releases
 
-In order to automate the generation of a change log, the creation of a release, and the bumping of a version number, we use the [Conventional Changelog Action](https://github.com/TriPSs/conventional-changelog-action).
+In order to automate the generation of a change log, the creation of a release, and the bumping of a version number, we use an in-house release script (`./.github/scripts/release.sh`) that relies only on `git`, `bash`, and `curl` against the GitHub REST API. There are no external libraries, npm packages, or third-party GitHub Actions involved in the release logic.
 
 It works by inferring from the commit history what changes have been made, and hence what version should be assigned. This is why it is important for Pull Request titles to adhere to the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification, which many repositories use. This convention uses types such as `docs`, `fix`, `feat`, etc to label commits and PRs.
 
 From these, the [semantic version](https://semver.org/) of a release can be identified. For example a release which consists of a PR which adds a feature (`feat`) would result in an increment of the Minor part of the semantic version, e.g. 1.1.0 -> 1.2.0.
 
-Using the Conventional Changelog Action along with GitHub Releases takes all of the manual work out of creating a release.
+Using the in-house release script along with GitHub Releases takes all of the manual work out of creating a release.
 
-# Conventional Changelog Action
+# In-house release script
 
 ## Usage
 
-We use the [Conventional Changelog](https://github.com/TriPSs/conventional-changelog-action) GitHub Action, which you can find in `./github/workflows/create-release.yml`.
+We use the release script at `./.github/scripts/release.sh`, invoked from `./.github/workflows/create-release.yml`. All of its behaviour lives in that single script — no configuration file or external tooling is required.
 
-Once a PR is merged to `main`, the Action will automatically run. It will automatically generate a changelog, and if that changelog is empty, then no release is made. This would be the case for merges to `main` that include `docs`, `chore`, etc.
+Once the `Validate Deployment` workflow completes successfully on `main`, the workflow will automatically run the script. It analyses the commits since the last `vX.Y.Z` tag, generates a changelog, and if there are no releasable changes then no release is made. This would be the case for merges to `main` that only include `docs`, `chore`, etc.
 
 Once a merge to `main` is completed that would result in a major/minor/patch version increase (such as `feat`, `fix`, etc.) then a changelog will be generated, and this will trigger a release to be published automatically with the appropriate version number.
 
-By default, `semantic-release` only includes `fix`, `feat`, and `perf` commit types in the release. Our project includes all commit types in their release notes, while still using `semantic-release`'s commit analyzer to only create releases for `fix`, `feat`, and `perf` commits.
+The script includes **all** commit types in the release notes (grouping `docs`, `style`, `chore`, `refactor`, `test`, `build`, and `ci` under "Other Updates"), while still only creating releases for `feat`, `fix`, `perf`, `revert`, and breaking changes. The exact bump rules are:
 
-Note that, it is not possible to automate the update of a `CHANGELOG` as this would require the GitHub token to have permissions to push commits to the repository, which cannot be enabled.
+  * breaking change (`!` suffix or a `BREAKING CHANGE` note) → **major**
+  * `feat` → **minor**
+  * `fix`, `perf`, `revert` → **patch**
+  * any other type alone → **no release**
+
+The first ever release (when no `vX.Y.Z` tag exists yet) is published as `1.0.0`.
+
+For each released Pull Request (and referenced issue), the script also adds a `released` label and posts a comment noting which version it shipped in — matching the previous behaviour of `@semantic-release/github`. The release notes include a compare link, autolinked PR/issue references, and autolinked commit SHAs.
+
+Note that, it is not possible to automate the update of a `CHANGELOG` file as this would require the GitHub token to have permissions to push commits to the repository, which cannot be enabled. The generated changelog therefore lives on the GitHub Release only.
 
 ## Security
 
-The GitHub Action to create the release requires only the GitHub token, as this has sufficient permissions for it to checkout main (and read the commit history) and to create a release for the repository.
+The release script requires only the GitHub token, as this has sufficient permissions for it to checkout `main` (and read the commit history) and to create a release for the repository. Because the release logic is entirely in-house (`git` + `curl` + the GitHub REST API), there is no third-party action or package in the release path to trust or keep patched.
 
 # Conventional Commits
 

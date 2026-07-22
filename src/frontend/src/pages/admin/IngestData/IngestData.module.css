@@ -1,0 +1,218 @@
+/*
+ * Page layout for the admin Ingest Data view. Three stacked sections
+ * (Upload, Add URL, Reprocess) share spacing tokens with the rest of
+ * the v2 frontend. All colors / spacing / radii / focus rings come
+ * from Fluent v9 design tokens injected by `<FluentProvider>`.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXL);
+  padding: var(--spacingVerticalL) var(--spacingHorizontalXL);
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--colorNeutralForeground1);
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  padding-bottom: var(--spacingVerticalM);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--fontSizeHero700);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.pageHint {
+  margin: 0;
+  color: var(--colorNeutralForeground3);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalM);
+  padding: var(--spacingVerticalL);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusLarge);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.sectionHint {
+  margin: 0;
+  color: var(--colorNeutralForeground3);
+  font-size: var(--fontSizeBase200);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacingVerticalS);
+  padding: var(--spacingVerticalXXL) var(--spacingHorizontalL);
+  border: 2px dashed var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground2);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.dropzone[data-dragging="true"] {
+  border-color: var(--colorCompoundBrandStroke);
+  background: var(--colorBrandBackground2);
+}
+
+.dropzoneText {
+  margin: 0;
+  color: var(--colorNeutralForeground2);
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.entryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+}
+
+.entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacingHorizontalS);
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground2);
+}
+
+.entryName {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: var(--fontWeightSemibold);
+  word-break: break-all;
+}
+
+.entryMeta {
+  color: var(--colorNeutralForeground3);
+  font-size: var(--fontSizeBase200);
+}
+
+.entryStatus {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--fontSizeBase100);
+  font-weight: var(--fontWeightSemibold);
+  padding: 2px var(--spacingHorizontalS);
+  border-radius: var(--borderRadiusSmall);
+  background: var(--colorSubtleBackground);
+  color: var(--colorNeutralForeground2);
+}
+
+.entry[data-status="success"] .entryStatus {
+  background: var(--colorPaletteGreenBackground2);
+  color: var(--colorPaletteGreenForeground1);
+}
+
+.entry[data-status="failed"] .entryStatus {
+  background: var(--colorPaletteRedBackground2);
+  color: var(--colorPaletteRedForeground1);
+}
+
+.entryError {
+  flex: 1 1 100%;
+  color: var(--colorPaletteRedForeground1);
+  font-size: var(--fontSizeBase200);
+}
+
+.urlForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacingHorizontalS);
+}
+
+.urlLabel {
+  flex: 0 0 auto;
+  font-weight: var(--fontWeightSemibold);
+}
+
+.urlInput {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.urlError {
+  margin: 0;
+  color: var(--colorPaletteRedForeground1);
+  font-size: var(--fontSizeBase200);
+}
+
+.reprocessSuccess {
+  margin: 0;
+  color: var(--colorPaletteGreenForeground1);
+}
+
+.reprocessError {
+  margin: 0;
+  color: var(--colorPaletteRedForeground1);
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalM);
+  padding: var(--spacingVerticalXL) var(--spacingHorizontalXXL);
+  background: var(--colorNeutralBackground1);
+  border-radius: var(--borderRadiusLarge);
+  max-width: 480px;
+  width: calc(100% - var(--spacingHorizontalXL));
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacingHorizontalS);
+}

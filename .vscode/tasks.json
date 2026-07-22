@@ -7,27 +7,53 @@
 			"command": "host start",
 			"problemMatcher": "$func-python-watch",
 			"isBackground": true,
-			"dependsOn": "poetry install",
+			"dependsOn": "uv sync",
 			"options": {
-				"cwd": "${workspaceFolder}/code/backend/batch"
+				"cwd": "${workspaceFolder}/src/functions",
+				"env": {
+					"VIRTUAL_ENV": "${workspaceFolder}/.venv",
+					"PYTHONPATH": "${workspaceFolder}/src",
+					"PATH": "${workspaceFolder}/.venv/Scripts;${env:PATH}"
+				}
 			}
 		},
 		{
-			"label": "poetry install",
+			"label": "uv sync",
 			"type": "shell",
-			"command": "poetry install",
+			"command": "uv sync",
 			"problemMatcher": [],
 			"options": {
 				"cwd": "${workspaceFolder}"
 			}
 		},
 		{
-			"label": "npm install",
+			"label": "npm install frontend",
 			"type": "shell",
 			"command": "npm install",
 			"problemMatcher": [],
 			"options": {
-				"cwd": "${workspaceFolder}/code/frontend"
+				"cwd": "${workspaceFolder}/src/frontend"
+			}
+		},
+		{
+			"label": "frontend dev",
+			"type": "shell",
+			"command": "npm run dev",
+			"isBackground": true,
+			"dependsOn": "npm install frontend",
+			"problemMatcher": {
+				"owner": "vite",
+				"pattern": {
+					"regexp": "^$"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "VITE",
+					"endsPattern": "Local:"
+				}
+			},
+			"options": {
+				"cwd": "${workspaceFolder}/src/frontend"
 			}
 		}
 	]

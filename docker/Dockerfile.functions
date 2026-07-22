@@ -1,0 +1,45 @@
+# Azure Functions image: Python 3.11 (Functions-on-ACA deploy + docker-compose dev).
+#
+# Reproduces the deploy layout the Functions Python host requires (sys.path
+# is the deploy root /home/site/wwwroot):
+#   /home/site/wwwroot/function_app.py    host entry point
+#   /home/site/wwwroot/host.json          runtime configuration
+#   /home/site/wwwroot/functions/<sub>/   blueprint subpackages (`from functions.<sub>...`)
+#   /home/site/wwwroot/backend/           shared tree (`from backend.core...`)
+#
+# Blueprints nest under a functions/ package (not flattened) because they
+# import each other as `from functions.<sub>.<mod>`. Dependencies come from
+# pyproject.toml [project.dependencies], read with stdlib tomllib so the
+# repo-root readme (outside the build context) is never touched.
+FROM mcr.microsoft.com/azure-functions/python:4-python3.11
+
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
+    AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
+    PYTHONPATH=/home/site/wwwroot
+
+WORKDIR /home/site/wwwroot
+
+# Runtime dependencies from the single-source dependency list. tomllib
+# (stdlib, Python 3.11) reads only [project.dependencies]; pip installs them
+# into the system Python the Functions worker uses.
+COPY pyproject.toml ./pyproject.toml
+RUN python -c "import tomllib, pathlib; deps = tomllib.loads(pathlib.Path('pyproject.toml').read_text('utf-8'))['project']['dependencies']; pathlib.Path('requirements.txt').write_text('\n'.join(deps) + '\n', 'utf-8')" \
+    && pip install --no-cache-dir -r requirements.txt \
+    && rm -f pyproject.toml requirements.txt
+
+# Host entry point + runtime config at the deploy root.
+COPY src/functions/function_app.py src/functions/host.json ./
+
+# Blueprint subpackages nested under functions/ so `from functions.<sub>...`
+# resolves. Listed explicitly so a stray directory under src/functions/ never
+# lands in the image.
+COPY src/functions/add_url      ./functions/add_url
+COPY src/functions/batch_push   ./functions/batch_push
+COPY src/functions/batch_start  ./functions/batch_start
+COPY src/functions/blob_event   ./functions/blob_event
+COPY src/functions/search_skill ./functions/search_skill
+COPY src/functions/core         ./functions/core
+RUN printf '"""Azure Functions ingestion blueprints package."""\n' > ./functions/__init__.py
+
+# Shared backend tree so the blueprints' `from backend.core...` imports resolve.
+COPY src/backend ./backend

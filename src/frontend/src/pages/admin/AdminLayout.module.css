@@ -1,0 +1,67 @@
+/*
+ * Layout chrome for the admin section: a secondary navigation bar
+ * (back-home button + per-page links) stacked above the routed admin
+ * page rendered through <Outlet/>. All colors / spacing / radii come
+ * from Fluent v9 design tokens injected by <FluentProvider>, so the
+ * admin frame flips with light/dark theme for free.
+ */
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalM);
+  padding: var(--spacingVerticalS) var(--spacingHorizontalXL);
+  background: var(--colorNeutralBackgroundAlpha);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  flex-shrink: 0;
+}
+
+.backHome {
+  flex-shrink: 0;
+}
+
+.subnav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.link {
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalM);
+  border-radius: var(--borderRadiusMedium);
+  color: var(--colorNeutralForeground2);
+  font-size: var(--fontSizeBase300);
+  font-weight: var(--fontWeightRegular);
+  line-height: var(--lineHeightBase300);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.link:hover {
+  background: var(--colorNeutralBackground1Hover);
+  color: var(--colorNeutralForeground1);
+}
+
+.linkActive {
+  background: var(--colorNeutralBackground1Selected);
+  color: var(--colorNeutralForeground1);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}

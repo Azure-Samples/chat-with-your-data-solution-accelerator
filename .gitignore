@@ -7,6 +7,22 @@
 code/dist/
 code/frontend/coverage
 
+# Scratch / audit files written by tooling at repo root. Never commit these.
+# See v2/docs/adr/0019-no-env-specific-content-in-tracked-files.md.
+audit-results.txt
+*-audit*.txt
+audit-*.txt
+*.scratch.txt
+*.scratch.md
+/scratch/
+
+# Test-runner output captures written at repo root.
+vitest-out.txt
+
+# HVE task-tracking scratch (plans, details, research, changes, reviews).
+# Tooling-written working notes that can carry env-specific identifiers.
+.copilot-tracking/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -98,6 +114,10 @@ StyleCopReport.xml
 *.vspscc
 *.vssscc
 .builds
+# Bicep transient build output (az bicep build --outdir)
+.build/
+infra/.build/
+build-functions/
 *.pidb
 *.svclog
 *.scc
@@ -431,3 +451,7 @@ tests/integration/ui/cypress/screenshots/
 .idea/
 Pipfile
 Pipfile.lock
+
+# Ignore sample code folder
+data/sample_code/
+.azurite/

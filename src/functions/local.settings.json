@@ -1,0 +1,32 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    "AzureFunctionsJobHost__extensions__queues__messageEncoding": "none",
+    "AzureWebJobsStorage__blobServiceUri": "https://stcwydpgdbsl3gg.blob.core.windows.net",
+    "AzureWebJobsStorage__queueServiceUri": "https://stcwydpgdbsl3gg.queue.core.windows.net",
+
+    "AZURE_TENANT_ID": "",
+    "AZURE_UAMI_CLIENT_ID": "",
+
+    "AZURE_AI_PROJECT_ENDPOINT": "https://aisa-cwydpgdbsl3gg.services.ai.azure.com/api/projects/proj-cwydpgdbsl3gg",
+    "AZURE_AI_SERVICES_ENDPOINT": "https://aisa-cwydpgdbsl3gg.cognitiveservices.azure.com/",
+    "AZURE_OPENAI_GPT_DEPLOYMENT": "gpt-5.1",
+    "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-large",
+    "AZURE_OPENAI_API_VERSION": "2025-01-01-preview",
+
+    "AZURE_DB_TYPE": "postgresql",
+    "AZURE_INDEX_STORE": "pgvector",
+    "AZURE_POSTGRES_ENDPOINT": "postgresql://psql-cwydpgdbsl3gg.postgres.database.azure.com:5432/cwyd?sslmode=require",
+    "AZURE_POSTGRES_HOST": "psql-cwydpgdbsl3gg.postgres.database.azure.com",
+    "AZURE_POSTGRES_NAME": "psql-cwydpgdbsl3gg",
+    "AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME": "friesco@MngEnvMCAP993385.onmicrosoft.com",
+
+    "AZURE_STORAGE_ACCOUNT_NAME": "stcwydpgdbsl3gg",
+    "AZURE_DOCUMENTS_CONTAINER": "documents",
+    "AZURE_DOC_PROCESSING_QUEUE": "doc-processing-local",
+
+    "AZURE_LOG_LEVEL": "INFO"
+  }
+}

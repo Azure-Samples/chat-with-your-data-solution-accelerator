@@ -1,3 +1,14 @@
+---
+title: Disable Log Analytics replication before deletion
+description: Disable Log Analytics workspace replication so the workspace and resource group can be deleted.
+ms.date: 2026-07-03
+ms.topic: how-to
+---
+
+[Back to *Chat with your data* README](../README.md)
+
+![Supporting documentation](images/supportingDocuments.png)
+
 # 🛠 Handling Log Analytics Workspace Deletion with Replication Enabled
 
 If redundancy (replication) is enabled for your Log Analytics workspace, you must disable it before deleting the workspace or resource group. Otherwise, deletion will fail.
@@ -24,3 +35,8 @@ You can safely delete:
 - The Log Analytics workspace (manual)
 - The resource group (manual), or
 - All provisioned resources via `azd down`
+
+## Related documentation
+
+* [Delete a resource group](delete_resource_group.md)
+* [Troubleshooting](TroubleShootingSteps.md)

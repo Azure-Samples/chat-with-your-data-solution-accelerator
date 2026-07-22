@@ -1,0 +1,170 @@
+# CWYD v2 local dev stack
+#
+# Default profile (no --profile): backend + frontend + functions + azurite + postgres + otel-collector
+# Profiles:
+#   - backend-only:  spin up backend + dependencies, omit frontend (plug-and-play proof)
+#   - frontend-only: spin up frontend pointing at VITE_BACKEND_URL (external backend)
+#   - cosmos:        adds the Cosmos DB Linux emulator (preview, flaky on Windows)
+#
+# Usage:
+#   docker compose -f docker/docker-compose.dev.yml up
+#   docker compose -f docker/docker-compose.dev.yml --profile backend-only up
+#   docker compose -f docker/docker-compose.dev.yml --profile frontend-only up
+#   docker compose -f docker/docker-compose.dev.yml --profile cosmos up
+
+name: cwyd-v2-dev
+
+services:
+  backend:
+    profiles: ["", "backend-only"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    image: cwyd-v2-backend:dev
+    container_name: cwyd-v2-backend
+    # Dev-only --reload override. The image's CMD is deploy-ready (no
+    # --reload) so the same Dockerfile.backend ships unchanged to
+    # Container Apps via azd; the watcher is opt-in per environment.
+    command: ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--app-dir", "/app/src"]
+    # Loads .env (operator-supplied; copy from .env.sample). Marked
+    # `required: false` (compose v2.24+) so a clean checkout can boot the
+    # backend-only profile without first creating the file. Single source
+    # of truth at repo root.
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      AZURE_DB_TYPE: postgresql
+      # Match backend/core/settings.py: AzurePostgresSettings reads AZURE_POSTGRES_ENDPOINT.
+      AZURE_POSTGRES_ENDPOINT: postgresql://cwyd:cwyd@postgres:5432/cwyd?sslmode=disable
+      # AppSettings validator: AZURE_DB_TYPE=postgresql requires AZURE_INDEX_STORE=pgvector.
+      AZURE_INDEX_STORE: pgvector
+      # This stack is pgvector, which has no Azure AI Search index for a Foundry
+      # IQ Knowledge Base, so agent_framework cannot ground here. Pin langgraph
+      # (overriding any agent_framework value in .env) -- otherwise
+      # resolve_effective_config rejects the first chat with HTTP 409 (ADR 0022).
+      CWYD_ORCHESTRATOR_NAME: langgraph
+      AZURE_STORAGE_BLOB_URL: http://azurite:10000/devstoreaccount1
+      AZURE_STORAGE_QUEUE_URL: http://azurite:10001/devstoreaccount1
+      # Telemetry: when AZURE_APP_INSIGHTS_CONNECTION_STRING is set in .env,
+      # azure-monitor-opentelemetry exports directly to App Insights.
+      # AppSettings reads AZURE_LOG_LEVEL (env_prefix=AZURE_); a bare LOG_LEVEL
+      # is silently ignored.
+      AZURE_LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the backend source for live reload.
+      - ../src/backend:/app/src/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/api/health'); sys.exit(0)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  frontend:
+    profiles: ["", "frontend-only"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+      target: dev
+    image: cwyd-v2-frontend:dev
+    container_name: cwyd-v2-frontend
+    environment:
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8000}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../src/frontend:/app
+      - /app/node_modules
+
+  functions:
+    profiles: [""]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.functions
+    image: cwyd-v2-functions:dev
+    container_name: cwyd-v2-functions
+    # See backend service note on `required: false` + .env path.
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      AzureWebJobsStorage: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+      FUNCTIONS_WORKER_RUNTIME: python
+    ports:
+      - "7071:80"
+    volumes:
+      # Reproduce the image's nested deploy layout so `from functions.<sub>.blueprint
+      # import ...` resolves: function_app.py + host.json at the wwwroot root, and each
+      # blueprint subpackage under wwwroot/functions/. Mounting the subdirs (not
+      # functions/ itself) preserves the image-generated functions/__init__.py.
+      - ../src/functions/function_app.py:/home/site/wwwroot/function_app.py
+      - ../src/functions/host.json:/home/site/wwwroot/host.json
+      - ../src/functions/add_url:/home/site/wwwroot/functions/add_url
+      - ../src/functions/batch_push:/home/site/wwwroot/functions/batch_push
+      - ../src/functions/batch_start:/home/site/wwwroot/functions/batch_start
+      - ../src/functions/blob_event:/home/site/wwwroot/functions/blob_event
+      - ../src/functions/search_skill:/home/site/wwwroot/functions/search_skill
+      - ../src/functions/core:/home/site/wwwroot/functions/core
+      # functions imports backend.core; mount the backend tree at
+      # /home/site/wwwroot/backend so PYTHONPATH picks it up.
+      - ../src/backend:/home/site/wwwroot/backend
+    depends_on:
+      azurite:
+        condition: service_started
+
+  azurite:
+    profiles: ["", "backend-only"]
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: cwyd-v2-azurite
+    command: "azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data --skipApiVersionCheck"
+    ports:
+      - "10000:10000" # blob
+      - "10001:10001" # queue
+      - "10002:10002" # table
+    volumes:
+      - azurite-data:/data
+
+  postgres:
+    profiles: ["", "backend-only"]
+    image: pgvector/pgvector:pg16
+    container_name: cwyd-v2-postgres
+    environment:
+      POSTGRES_USER: cwyd
+      POSTGRES_PASSWORD: cwyd
+      POSTGRES_DB: cwyd
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cwyd -d cwyd"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cosmos-emulator:
+    profiles: ["cosmos"]
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    container_name: cwyd-v2-cosmos
+    tty: true
+    mem_limit: 3g
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "3"
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+    ports:
+      - "8081:8081"
+      - "10250-10255:10250-10255"
+    volumes:
+      - cosmos-data:/tmp/cosmos/appdata
+
+volumes:
+  azurite-data:
+  postgres-data:
+  cosmos-data:

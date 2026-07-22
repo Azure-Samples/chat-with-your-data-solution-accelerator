@@ -1,4 +1,4 @@
-[← Back to *LOCAL_DEPLOYMENT* guide](../docs/LOCAL_DEPLOYMENT.md)
+[← Back to *LOCAL_DEPLOYMENT* guide](LOCAL_DEPLOYMENT.md)
 
 # Reusing an Existing Resource Group
 
@@ -32,4 +32,4 @@ Replace `<location>` with the desired Azure region.
 
 ### 4. Continue Deployment
 
-Proceed with the next steps in the [Chat with your data local deployment guide](../docs/LOCAL_DEPLOYMENT.md).
+Proceed with the next steps in the [Chat with your data local deployment guide](LOCAL_DEPLOYMENT.md).

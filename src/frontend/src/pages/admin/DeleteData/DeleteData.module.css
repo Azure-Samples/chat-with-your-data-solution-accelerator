@@ -1,0 +1,194 @@
+/*
+ * Page layout for the admin Delete Data view. One stacked section
+ * hosting the source listing table, error/empty/loading states, and a
+ * modal confirmation dialog. Shares spacing tokens with IngestData
+ * so the two admin pages look identical when toggled.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXL);
+  padding: var(--spacingVerticalL) var(--spacingHorizontalXL);
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--colorNeutralForeground1);
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  padding-bottom: var(--spacingVerticalM);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--fontSizeHero700);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.pageHint {
+  margin: 0;
+  color: var(--colorNeutralForeground3);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalM);
+  padding: var(--spacingVerticalL);
+  background: var(--colorNeutralBackground1);
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusLarge);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacingHorizontalM);
+}
+
+.sectionActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalS);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.sectionHint {
+  margin: 0;
+  color: var(--colorNeutralForeground3);
+  font-size: var(--fontSizeBase200);
+}
+
+.statusMessage {
+  margin: 0;
+  padding: var(--spacingVerticalM) var(--spacingHorizontalM);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground2);
+  color: var(--colorNeutralForeground2);
+  font-size: var(--fontSizeBase300);
+}
+
+.errorMessage {
+  composes: statusMessage;
+  background: var(--colorPaletteRedBackground1);
+  color: var(--colorPaletteRedForeground1);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fontSizeBase300);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.selectColumn {
+  width: 84px;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.selectAllControl {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  color: var(--colorNeutralForeground2);
+  font-weight: var(--fontWeightRegular);
+}
+
+.table th {
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground2);
+  background: var(--colorNeutralBackground2);
+}
+
+.table tr[data-status="deleting"] {
+  opacity: 0.6;
+}
+
+.table tr[data-status="failed"] td {
+  background: var(--colorPaletteRedBackground1);
+}
+
+.rowSource {
+  font-weight: var(--fontWeightSemibold);
+  word-break: break-all;
+}
+
+.rowMeta {
+  color: var(--colorNeutralForeground3);
+  white-space: nowrap;
+}
+
+.rowError {
+  color: var(--colorPaletteRedForeground1);
+  font-size: var(--fontSizeBase200);
+  margin-top: var(--spacingVerticalXXS);
+}
+
+.rowActions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog {
+  background: var(--colorNeutralBackground1);
+  border-radius: var(--borderRadiusLarge);
+  box-shadow: var(--shadow28);
+  padding: var(--spacingVerticalXL) var(--spacingHorizontalXL);
+  max-width: 520px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalM);
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+}
+
+.dialogBody {
+  margin: 0;
+  color: var(--colorNeutralForeground2);
+}
+
+.dialogTarget {
+  margin: 0;
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1);
+  overflow-wrap: anywhere;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacingHorizontalS);
+}

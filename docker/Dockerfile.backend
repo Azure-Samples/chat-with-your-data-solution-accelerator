@@ -1,0 +1,30 @@
+# Backend image: FastAPI + uv (shared by docker-compose.dev + azd deploy)
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv
+
+WORKDIR /app
+
+# Copy only manifests first for cache efficiency
+COPY pyproject.toml uv.lock ./
+
+RUN uv sync --frozen --no-install-project || uv sync --no-install-project
+
+COPY src /app/src
+
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app/src"
+
+EXPOSE 8000
+
+# Single deploy-ready CMD (no --reload). Dev hot-reload is re-injected
+# via the `command:` override in docker/docker-compose.dev.yml.
+CMD ["uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000", "--app-dir", "/app/src"]

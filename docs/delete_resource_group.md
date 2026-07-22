@@ -2,6 +2,8 @@
 
 If your deployment fails and you need to clean up the resources manually, follow these steps in the Azure Portal.
 
+If you deployed with `azd`, run `azd down` from the repository root to remove every resource this accelerator created. The manual portal steps below are for cleaning up a failed or partial deployment where `azd down` cannot complete.
+
 ---
 
 ## **1. Navigate to the Azure Portal**
@@ -37,7 +39,7 @@ If you don’t want to delete the entire resource group, follow these steps:
 
 1. Open **Azure Portal** and go to the **Resource groups** section.
 2. Click on the specific **resource group**.
-3. Select the **resource** you want to delete (e.g., App Service, Storage Account).
+3. Select the **resource** you want to delete (for example, a Container App, Storage account, or Azure AI Search service).
 4. Click **Delete** at the top.
 
 ![Delete Individual Resource](./images/deleteservices.png)

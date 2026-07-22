@@ -1,0 +1,100 @@
+/*
+ * CitationPanel styling. A lightweight collapsible reference block that
+ * sits under the answer body and reads as secondary content. All colors
+ * and spacing come from Fluent v9 design tokens served by
+ * `<FluentProvider>`.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalXS);
+  margin-top: var(--spacingVerticalS);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  align-self: flex-start;
+  margin: 0;
+  padding: var(--spacingVerticalXXS) var(--spacingHorizontalXS);
+  border: none;
+  border-radius: var(--borderRadiusSmall);
+  background: transparent;
+  color: var(--colorBrandForegroundLink);
+  font-family: inherit;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--colorBrandForegroundLinkHover);
+  background: var(--colorSubtleBackgroundHover);
+}
+
+.toggleLabel {
+  line-height: var(--lineHeightBase200);
+}
+
+.chipList {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacingHorizontalXS);
+}
+
+/* When the toggle is collapsed the list carries the `hidden` attribute.
+ * An explicit `display` on `.chipList` overrides the user-agent
+ * `[hidden] { display: none }` rule, so restate it here to actually hide
+ * the references when collapsed. */
+.chipList[hidden] {
+  display: none;
+}
+
+/* Each reference is a bordered, rounded chip the user can click to
+ * open the source detail column. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  max-width: 100%;
+  margin: 0;
+  padding: var(--spacingVerticalXXS) var(--spacingHorizontalS);
+  border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+  border-radius: var(--borderRadiusMedium);
+  background: var(--colorNeutralBackground1);
+  color: var(--colorBrandForegroundLink);
+  font-family: inherit;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--colorSubtleBackgroundHover);
+  border-color: var(--colorNeutralStroke1Hover);
+}
+
+.chipNumber {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  border-radius: var(--borderRadiusCircular);
+  background: var(--colorBrandBackground2);
+  color: var(--colorBrandForeground1);
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  line-height: 1;
+}
+
+.chipLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,7 +1,19 @@
+---
+title: Best practices
+description: Retrieval, chunking, and production guidance for Chat with Your Data across its Azure AI Search and PostgreSQL storage backends.
+ms.date: 2026-07-03
+ms.topic: concept
+---
+
 [Back to *Chat with your data* README](../README.md)
 
 ![Supporting documentation](images/supportingDocuments.png)
-# Best practices
+
+## Overview
+
+These practices help you get reliable, grounded answers from Chat with Your Data. They apply across both storage backends: Azure AI Search and PostgreSQL with the `pgvector` extension. Two orchestrators ship with the application. In `cosmosdb` mode, `agent_framework` grounds through the Azure AI Foundry knowledge base (Foundry IQ), while `langgraph` and the `pgvector` backend use app-side retrieval. For how the orchestrators differ, see [Architecture overview](architecture.md#orchestrators).
+
+## Best practices
 
 **Evaluate your data first**
 It is important that you evaluate the retrieval/search and the generation of the answers for your data and tune these configurations accordingly before you use this repo in production. For a starting point to understand and perform RAG evaluations, we encourage you to look into the [RAG Experiment Accelerator](https://github.com/microsoft/rag-experiment-accelerator).
@@ -20,13 +32,15 @@ The more limited the data set, the broader the questions should be. If the data 
 
 **Numerical queries**
 
- The accelerator is optimized to summarize unstructured data, such as PDFs or text files. The ChatGPT 3.5 Turbo model is not currently optimized to handle queries about specific numerical data. The ChatGPT 4 model may be better able to handle numerical queries.
+ The accelerator is optimized to summarize unstructured data, such as PDFs or text files. Queries about specific numerical data are harder for a language model to answer reliably, so review numeric answers against the source documents before relying on them.
 
 **Use your own judgement**
 
  AI-generated content may be incorrect and should be reviewed before usage.
 
 **Azure AI Search used as retriever in RAG**
+
+The guidance in this section and the next applies when your deployment uses the Azure AI Search backend (`cosmosdb` mode). On the PostgreSQL backend (`postgresql` mode), retrieval runs on the `pgvector` HNSW index instead; see [PostgreSQL](postgreSQL.md).
 
 Azure AI Search, when used as a retriever in the Retrieval-Augmented Generation (RAG) pattern, plays a key role in fetching relevant information from a large corpus of data. The RAG pattern involves two key steps: retrieval of documents and generation of responses. Azure AI Search, in the retrieval phase, filters and ranks the most relevant documents from the dataset based on a given query.
 
@@ -36,12 +50,18 @@ Azure AI Search allows for fine-tuning the relevance of search results through f
 
 Moreover, optimizing the data in the index also enhances the efficiency, the speed of the retrieval process and increases relevance which is an integral part of the RAG pattern.
 
-**Azure AI Search**
+**Hardening the Azure AI Search backend (`cosmosdb` mode)**
 
 - Consider switching security keys and using [RBAC](https://learn.microsoft.com/azure/search/search-security-rbac) instead for authentication.
 - Consider setting up a [firewall](https://learn.microsoft.com/azure/search/service-configure-firewall), [private endpoints](https://learn.microsoft.com/azure/search/service-create-private-endpoint) for inbound connections and [shared private links](https://learn.microsoft.com/azure/search/search-indexer-howto-access-trusted-service-exception) for [built-in pull indexers](https://learn.microsoft.com/en-us/azure/search/search-indexer-overview).
 - For the best results, prepare your index data and consider [analyzers](https://learn.microsoft.com/azure/search/search-analyzers).
 - Analyze your [resource capacity needs](https://learn.microsoft.com/azure/search/search-capacity-planning).
+
+**Hardening the PostgreSQL backend (`postgresql` mode)**
+
+- Keep Microsoft Entra authentication only and connect with the workload's managed identity, so there are no database passwords to rotate. See [Managed identity and RBAC](managed_identity.md).
+- Restrict network access with private networking and firewall rules; the `enablePrivateNetworking` deployment option keeps data-plane traffic off the public internet.
+- Size the server compute tier and storage for your document volume and query concurrency, and keep the `pgvector` HNSW index on the retrieval column.
 
 **Before deploying Azure RAG implementations to production**
 
@@ -52,12 +72,18 @@ Moreover, optimizing the data in the index also enhances the efficiency, the spe
 - Follow the [Responsible AI best practices](https://www.microsoft.com/en-us/ai/tools-practices).
 - Understand the [levels of access of your users and application](https://techcommunity.microsoft.com/t5/azure-ai-services-blog/access-control-in-generative-ai-applications-with-azure/ba-p/3956408).
 
-**Chunking: Importance for RAG and strategies implemented as part of this repo**
+**Chunking: automatic and format-driven**
 
-Chunking is essential for managing large data sets, optimizing relevance, preserving context, integrating workflows, and enhancing the user experience. See [How to chunk documents](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents) for more information.
+Chunking is essential for managing large data sets, optimizing relevance, preserving context, and enhancing the user experience. See [How to chunk documents](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents) for background.
 
-These are the chunking strategy options you can choose from:
-- **Layout**: An AI approach to determine a good chunking strategy.
--  **Page**: This strategy involves breaking down long documents into pages.
-- **Fixed-Size Overlap**: This strategy involves defining a fixed size that’s sufficient for semantically meaningful paragraphs (for example, 250 words) and allows for some overlap (for example, 10-25% of the content). This usually helps creating good inputs for embedding vector models. Overlapping a small amount of text between chunks can help preserve the semantic context.
--  **Paragraph**: This strategy allows breaking down a difficult text into more manageable pieces and rewrite these “chunks” with a summarization of all of them.
+In this accelerator, chunking is automatic and driven by document format during ingestion, so there is no chunking strategy to select. Each parser applies the approach that fits its content:
+- Paragraph chunking groups semantically related paragraphs for text, Markdown, JSON, and HTML sources.
+- Page chunking splits PDFs and images into pages, using Azure AI Document Intelligence to read layout and text.
+- A fixed-size grouping fallback handles Office formats by grouping content up to a target size, with no overlap between chunks.
+
+## Related documentation
+
+* [Architecture overview](architecture.md)
+* [Document ingestion](document_ingestion.md)
+* [Model configuration](model_configuration.md)
+* [Admin and configuration](admin.md)

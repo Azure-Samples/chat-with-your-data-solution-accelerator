@@ -1,0 +1,84 @@
+/*
+ * CitationDetailPanel styling. A full-height right column that reads as
+ * a secondary surface next to the chat transcript. All colors, spacing,
+ * and type come from Fluent v9 design tokens served by
+ * `<FluentProvider>`.
+ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacingVerticalS);
+  height: 100%;
+  padding: var(--spacingVerticalL) var(--spacingHorizontalL);
+  border-left: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+  background: var(--colorNeutralBackground1);
+  /* The panel itself never scrolls; only `.body` does, so the header,
+     title, and link stay pinned and always visible. */
+  overflow: hidden;
+}
+
+.header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacingHorizontalS);
+}
+
+.heading {
+  font-size: var(--fontSizeBase300);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground2);
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: var(--spacingVerticalXXS);
+  border: none;
+  border-radius: var(--borderRadiusSmall);
+  background: transparent;
+  color: var(--colorNeutralForeground2);
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  background: var(--colorSubtleBackgroundHover);
+  color: var(--colorNeutralForeground1);
+}
+
+.title {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--fontSizeBase500);
+  font-weight: var(--fontWeightSemibold);
+  line-height: var(--lineHeightBase500);
+  color: var(--colorNeutralForeground1);
+  word-break: break-word;
+}
+
+.link {
+  flex: 0 0 auto;
+  display: inline-block;
+  font-size: var(--fontSizeBase200);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorBrandForegroundLink);
+  text-decoration: underline;
+}
+
+.link:hover {
+  color: var(--colorBrandForegroundLinkHover);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  font-size: var(--fontSizeBase300);
+  line-height: var(--lineHeightBase300);
+  color: var(--colorNeutralForeground1);
+  word-wrap: break-word;
+}

@@ -1,0 +1,42 @@
+# CI validation image: runs Bicep build, what-if preview, pytest, frontend tests, lints.
+#
+# Build: docker build -f docker/Dockerfile.ci-validate -t cwyd-ci .
+# Run:   docker run --rm -v $PWD:/work -w /work cwyd-ci
+
+FROM python:3.11-slim
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy
+
+# System deps (libicu-dev satisfies the .NET globalization runtime that
+# `az bicep` needs on Debian slim).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl ca-certificates git unzip gnupg lsb-release jq libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Azure CLI (native Debian install) + bicep: puts `az` on PATH so the
+# ci-entrypoint `az bicep build` / `az deployment what-if` steps resolve.
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
+    && az bicep install
+
+# azd
+RUN curl -fsSL https://aka.ms/install-azd.sh | bash
+
+# tflint (terraform optional but useful for cross-IaC checks)
+RUN curl -fsSL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+# Python tooling
+RUN pip install --no-cache-dir uv pre-commit
+
+WORKDIR /work
+
+COPY docker/ci-entrypoint.sh /usr/local/bin/ci-entrypoint
+RUN chmod +x /usr/local/bin/ci-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/ci-entrypoint"]

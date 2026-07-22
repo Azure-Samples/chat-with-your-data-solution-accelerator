@@ -1,0 +1,52 @@
+# Frontend image, single-runtime production image.
+#
+# One runtime per container (uvicorn serves the built assets). The
+# frontend-only profile boots independently with zero backend connectivity;
+# VITE_BACKEND_URL is baked at build time. No nginx or reverse proxy.
+#
+# Stages:
+#   - dev:   Vite dev server with HMR, used by docker-compose.dev.yml
+#   - build: produce static assets from the Vite app
+#   - prod:  Python 3.11 + uvicorn ASGI app serving the built /dist
+
+# ---- dev stage ----
+# The frontend is a self-contained npm package: its package.json carries
+# every runtime + build dependency, so the dev server starts standalone with
+# zero coupling to the npm workspace or the sibling test package. The
+# workspace (package.json) exists only so the Vitest tree under
+# tests/frontend can resolve the frontend's deps from one hoisted
+# node_modules; the deployable frontend never needs it.
+FROM node:20-alpine AS dev
+WORKDIR /app
+COPY src/frontend/package.json ./
+RUN npm install
+COPY src/frontend ./
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+
+# ---- build stage ----
+# Standalone production build (see dev-stage note). The reproducible,
+# lockfile-pinned install lives at the workspace root (package-lock.json)
+# and is exercised by CI; this image installs from the frontend package.json
+# so the frontend-only build stays independent per the plug-and-play
+# rationale at the top of this file.
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY src/frontend/package.json ./
+RUN npm install
+COPY src/frontend ./
+ARG VITE_BACKEND_URL=""
+ENV VITE_BACKEND_URL=${VITE_BACKEND_URL}
+RUN npm run build
+
+# ---- prod stage: Python + uvicorn ----
+FROM python:3.11-slim AS prod
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+WORKDIR /usr/src/app
+RUN pip install --no-cache-dir uvicorn fastapi
+# Static assets from the build stage; small ASGI app serves them.
+COPY --from=build /app/dist /usr/src/app/dist
+COPY src/frontend/frontend_app.py /usr/src/app/frontend_app.py
+EXPOSE 80
+CMD ["uvicorn", "frontend_app:app", "--host", "0.0.0.0", "--port", "80"]

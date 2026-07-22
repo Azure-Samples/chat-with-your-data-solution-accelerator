@@ -1,0 +1,103 @@
+/*
+ * Page layout for the chat shell. Header lives in App.tsx; this file
+ * owns the body grid: optional history sidebar docked on the LEFT
+ * (closed by default, toggled from the header history button) +
+ * centered main column (max 768px) with the message list scrolling
+ * above a fixed input bar. Page height is governed by the parent
+ * `<CoralShellRow>` so this shell simply fills 100%.
+ */
+
+.shell {
+  display: grid;
+  grid-template-columns: var(--history-col, 0) 1fr var(--citation-col, 0);
+  grid-template-rows: 1fr;
+  width: 100%;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--colorNeutralBackground3);
+}
+
+.shell[data-history-open="true"] {
+  --history-col: 280px;
+}
+
+.shell[data-citation-open="true"] {
+  --citation-col: minmax(320px, 30%);
+}
+
+.sidebar {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.shell[data-history-open="false"] .sidebar {
+  display: none;
+}
+
+.main {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.citationColumn {
+  grid-column: 3;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.shell[data-citation-open="false"] .citationColumn {
+  display: none;
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.centeredColumn {
+  width: 100%;
+  max-width: 1024px;
+}
+
+.column {
+  composes: centeredColumn;
+  padding: var(--spacingVerticalXL) var(--spacingHorizontalL);
+}
+
+.composer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--colorNeutralStroke2);
+  background: var(--colorNeutralBackground1);
+}
+
+.composerColumn {
+  composes: centeredColumn;
+  padding: var(--spacingVerticalM) var(--spacingHorizontalL)
+    var(--spacingVerticalL);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

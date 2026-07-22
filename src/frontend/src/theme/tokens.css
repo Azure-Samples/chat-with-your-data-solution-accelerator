@@ -1,0 +1,43 @@
+/*
+ * Minimal global reset. All design tokens come from Fluent v9 via
+ * <FluentProvider> in App.tsx so component CSS Modules can reference
+ * --colorNeutralBackground1, --spacingHorizontalM, --borderRadiusMedium,
+ * --fontSizeBase300, etc. directly.
+ *
+ * Kept v2-specific:
+ *   - Universal box-sizing reset.
+ *   - html/body baseline (zero margin, system font fallback before
+ *     <FluentProvider> mounts so the very first paint isn't Times).
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/*
+ * Fluent v9's <FluentProvider> renders a real wrapper <div> between
+ * #root and the app shell. Without an explicit height it defaults to
+ * height:auto, breaking the 100% height chain and forcing the shell to
+ * fall back to 100vh (which double-scrolls the page once a horizontal
+ * scrollbar appears). Continue the chain here so the shell can use
+ * height:100% and own its own overflow.
+ */
+.appFluentRoot {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+      overflow-y: hidden;
+}

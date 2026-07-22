@@ -1,0 +1,160 @@
+/*
+ * Visual styling for HistoryPanel.tsx. The outer column primitive
+ * (background, border-right, height) is owned by the parent
+ * `<PanelLeft>` so this file just sizes the inner panel content
+ * (header / list / states). Per-row Rename + Delete actions stay on
+ * the Slack/Outlook hover-reveal pattern: hidden by default, fade in
+ * on row hover or keyboard focus so the list stays calm when the
+ * user is just scanning titles.
+ *
+ * All colors / spacing / radii / focus rings come from Fluent v9
+ * design tokens injected by `<FluentProvider>`.
+ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: var(--colorNeutralForeground1);
+  font-size: var(--fontSizeBase300);
+}
+
+.header {
+  padding: var(--spacingVerticalM) var(--spacingHorizontalM)
+    var(--spacingVerticalS);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacingHorizontalS);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fontSizeBase400);
+  font-weight: var(--fontWeightSemibold);
+  color: var(--colorNeutralForeground1);
+}
+
+.dbType {
+  margin: var(--spacingVerticalXS) 0 0;
+  font-size: var(--fontSizeBase200);
+  color: var(--colorNeutralForeground3);
+}
+
+.note {
+  margin: 0;
+  padding: var(--spacingVerticalM) var(--spacingHorizontalM);
+  color: var(--colorNeutralForeground3);
+}
+
+.error {
+  margin: 0;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+  color: var(--colorPaletteRedForeground1);
+  background: var(--colorPaletteRedBackground1);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacingVerticalXS);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Coral .tab chip */
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacingHorizontalXS);
+  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  border-radius: var(--borderRadiusMedium);
+  transition: background-color 120ms ease;
+  position: relative;
+}
+
+.item:hover {
+  background: var(--colorSubtleBackgroundHover);
+}
+
+.item[data-selected="true"] {
+  background: var(--colorNeutralBackground1Selected);
+  box-shadow: inset 2px 0 0 var(--colorCompoundBrandStroke);
+}
+
+.selectButton {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selectButton:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 1px;
+  border-radius: var(--borderRadiusSmall);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.item:hover .actions,
+.item:focus-within .actions,
+.item[data-selected="true"] .actions {
+  opacity: 1;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--borderRadiusMedium);
+  background: transparent;
+  color: var(--colorNeutralForeground2);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.iconButton:hover {
+  background: var(--colorSubtleBackgroundHover);
+  color: var(--colorNeutralForeground1);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 1px;
+}
+
+.headerRow .iconButton {
+  width: 32px;
+  height: 32px;
+  color: var(--colorNeutralForeground1);
+}

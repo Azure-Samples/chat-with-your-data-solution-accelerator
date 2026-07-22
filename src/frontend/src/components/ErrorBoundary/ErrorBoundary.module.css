@@ -1,0 +1,28 @@
+/* Styles for the chat error-boundary fallback. Centered column with a
+   heading, the error message, and a retry button. Fluent v9 design
+   tokens only -- no raw colors, so the fallback themes light/dark for
+   free. */
+
+.container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 0;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--fontSizeHero700);
+  color: var(--colorNeutralForeground1);
+}
+
+.message {
+  max-width: 560px;
+  font-size: var(--fontSizeBase400);
+  color: var(--colorNeutralForeground2);
+}

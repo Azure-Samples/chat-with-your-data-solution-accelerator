@@ -1,97 +1,3 @@
-# Local Deployment Guide
-
-## Overview
-
-This guide walks you through deploying the Chat with your Data solution accelerator to Azure from you local environment. The deployment process takes approximately 40-50 minutes for the default Development/Testing configuration and includes both infrastructure provisioning and application setup.
-
-<!-- 🆘 **Need Help?** If you encounter any issues during setup, check our [Troubleshooting Guide](./TroubleShootingSteps.md) for solutions to common problems. -->
-
-> **Note**: Some tenants may have additional security restrictions that run periodically and could impact the application (e.g., blocking public network access). If you experience issues or the application stops working, check if these restrictions are the cause. In such cases, consider deploying the WAF-supported version to ensure compliance. To configure, [Click here](#31-choose-deployment-type-optional).
-
-## Step 1: Prerequisites & Setup
-
-### 1.1 Azure Account Requirements
-
-Ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the following permissions:
-
-| **Required Permission/Role** | **Scope** | **Purpose** |
-|------------------------------|-----------|-------------|
-| **Contributor** | Subscription level | Create and manage Azure resources |
-| **User Access Administrator** | Subscription level | Manage user access and role assignments |
-| **Role Based Access Control Admin** | Subscription/Resource Group level | Configure RBAC permissions |
-| **App Registration Creation** | Azure Active Directory | Create and configure authentication |
-
-**🔍 How to Check Your Permissions:**
-
-1. Go to [Azure Portal](https://portal.azure.com/)
-2. Navigate to **Subscriptions** (search for "subscriptions" in the top search bar)
-3. Click on your target subscription
-4. In the left menu, click **Access control (IAM)**
-5. Scroll down to see the table with your assigned roles - you should see:
-   - **Contributor**
-   - **User Access Administrator**
-   - **Role Based Access Control Administrator** (or similar RBAC role)
-
-**For App Registration permissions:**
-1. Go to **Microsoft Entra ID** → **Manage** → **App registrations**
-2. Try clicking **New registration**
-3. If you can access this page, you have the required permissions
-4. Cancel without creating an app registration
-
-📖 **Detailed Setup:** Follow [Azure Account Set Up](./azure_account_setup.md) for complete configuration.
-
-### 1.2 Check Service Availability & Quota
-
-⚠️ **CRITICAL:** Before proceeding, ensure your chosen region has all required services available:
-
-**Required Azure Services:**
-- [Azure OpenAI Service](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
-- [Azure Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence)
-- [Azure Function App](https://learn.microsoft.com/en-us/azure/azure-functions/)
-- [Azure App Service](https://learn.microsoft.com/en-us/azure/app-service/)
-- [Azure Search Service](https://learn.microsoft.com/en-us/azure/search/)
-- [Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/)
-- [Azure PostgreSQL](https://learn.microsoft.com/en-us/azure/postgresql/)
-- [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/)
-- [Azure Queue Storage](https://learn.microsoft.com/en-us/azure/storage/queues/)
-- [gpt-4.1, text-embeddings-ada-002 Model Capacity](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure)
-- [Azure Bot](https://learn.microsoft.com/en-us/azure/bot-service) (optional: Teams extension only)
-- [Teams](https://learn.microsoft.com/en-us/microsoftteams/teams-overview) (optional: Teams extension only)
-
-**Recommended Regions:** East US, East US2, Australia East, UK South, France Central
-
-🔍 **Check Availability:** Use [Azure Products by Region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/) to verify service availability.
-
-### 1.3 Quota Check (Optional)
-
-💡 **RECOMMENDED:** Check your Azure OpenAI quota availability before deployment for optimal planning.
-
-📖 **Follow:** [Quota Check Instructions](./QuotaCheck.md) to ensure sufficient capacity.
-
-**Recommended Configuration:**
-
-| **Model** | **Minimum Capacity** | **Recommended Capacity** |
-|-----------|---------------------|--------------------------|
-| **gpt-4.1** | 150k tokens | 200k tokens (for best performance) |
-| **text-embedding-3-small** | 100k tokens | 150k tokens (for best performance) |
-
-> **Note:** When you run `azd up`, the deployment will automatically show you regions with available quota, so this pre-check is optional but helpful for planning purposes. You can customize these settings later in [Step 3.3: Advanced Configuration](#33-advanced-configuration-optional).
-
-📖 **Adjust Quota:** Follow [Azure AI Model Quota Settings](./azure_openai_model_quota_settings.md) if needed.
-
-## Step 2: Choose Your Development Environment
-
-Select one of the following options to set up your Chat with your Data local deployment environment:
-
-### Environment Comparison
-
-| **Option** | **Best For** | **Prerequisites** | **Setup Time** |
-|------------|--------------|-------------------|----------------|
-| **VS Code Dev Containers** | Fastest setup, all tools included | Docker Desktop, VS Code | ~5-10 minutes |
-| **Local Environment** | Full control, custom setup | All tools individually | ~15-30 minutes |
-
-**💡 Recommendation:** For local development, start with **VS Code Dev Containers** - includes all tools pre-configured.
-
 ---
 
 <details>
@@ -99,7 +5,7 @@ Select one of the following options to set up your Chat with your Data local dep
 
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/azure-samples/chat-with-your-data-solution-accelerator)
 
-⚠️ **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the [Non DevContainer Setup](./NON_DEVCONTAINER_SETUP.md) instructions to run the accelerator locally.
+⚠️ **Note for macOS Developers**: If you are using macOS on Apple Silicon (ARM64) the DevContainer will **not** work. This is due to a limitation with the Azure Functions Core Tools (see [here](https://github.com/Azure/azure-functions-core-tools/issues/3112)). We recommend using the Option B (Local Environment) instructions below to run the accelerator locally.
 
 **Prerequisites:**
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
@@ -125,7 +31,6 @@ Select one of the following options to set up your Chat with your Data local dep
   - [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
   - [Pylance](https://marketplace.visualstudio.com/items?itemName=ms-python.vscode-pylance)
   - [Python](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-  - [Teams Toolkit](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension) **Optional**
 - [Python 3.11](https://www.python.org/downloads/release/python-3119/)
 - [Node.js LTS](https://nodejs.org/en)
 - [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) <small>(v1.18.0+)</small>
@@ -151,7 +56,7 @@ Select one of the following options to set up your Chat with your Data local dep
 
     - Open the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
     - Type `Python: Select Interpreter`.
-    - Select the Python 3.11 environment created by Poetry.
+    - Select the Python 3.11 environment created by `uv`.
 6. Proceed to [Step 3: Configure Azure Resources](#step-3-configure-deployment-settings)
 
 **PowerShell Users:** If you encounter script execution issues, run:
@@ -216,7 +121,7 @@ To optimize costs and integrate with your existing Azure infrastructure, you can
 
 **Supported Resources for Reuse:**
 
-- **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring. [Configuration Guide](./re-use-log-analytics.md)
+- **Log Analytics Workspace:** Integrate with your existing monitoring infrastructure by reusing an established Log Analytics workspace for centralized logging and monitoring.
 
 - **Resource Group:** Leverage an existing resource group to organize resources within your current Azure infrastructure. Follow the [setup steps here](./re-use-resource-group.md) before running `azd up`
 
@@ -324,12 +229,12 @@ az login --tenant-id <tenant-id>
 
 **PowerShell (Windows):**
 ```powershell
-./scripts/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
 **Bash (Linux/macOS/WSL):**
 ```bash
-bash scripts/post_deployment_setup.sh "<your-resource-group-name>"
+bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group-name>"
 ```
 
 > **Note:** The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
@@ -342,12 +247,12 @@ When deploying with `hostingModel=container`, the App Services start with a plac
 
 *PowerShell (Windows):*
 ```powershell
-.\scripts\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
+.\infra\scripts\post-provision\acr_build_push_update.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
 *Bash (Linux/macOS/WSL):*
 ```bash
-bash scripts/acr_build_push_update.sh "<your-resource-group-name>"
+bash infra/scripts/post-provision/acr_build_push_update.sh -g "<your-resource-group-name>"
 ```
 
 This script:
@@ -363,7 +268,7 @@ This script:
 
 **This step is mandatory for Chat Application access:**
 
-1. Follow [App Authentication Configuration](./azure_app_service_auth_setup.md)
+1. Follow [App Authentication Configuration](./authentication_setup.md)
 2. Wait up to 10 minutes for authentication changes to take effect
 
 ### 5.4 Verify Deployment
@@ -501,12 +406,8 @@ Now that your deployment is complete and tested, explore these resources to enha
 
 📚 **Learn More:**
 - [Model Configuration](./model_configuration.md) - Configure AI models and parameters
-- [Conversation Flow Options](./conversation_flow_options.md) - Customize conversation flow behavior
 - [Best Practices](./best_practices.md) - Best practices for deployment and usage
 - [Local Development Setup](./LocalDevelopmentSetup.md) - Set up your local development environment
-- [Advanced Image Processing](./advanced_image_processing.md) - Enable and configure vision capabilities
-- [Integrated Vectorization](./integrated_vectorization.md) - Understanding integrated vectorization
-- [Teams Extension](./teams_extension.md) - Integrating with Microsoft Teams
 
 ## Need Help?
 - 🛠️  **Troubleshooting: ** Refer to the [TroubleShootingSteps](TroubleShootingSteps.md) document
@@ -516,3 +417,90 @@ Now that your deployment is complete and tested, explore these resources to enha
 ---
 
 [Back to *Chat with your data* README](../README.md)
+
+![Supporting documentation](images/supportingDocuments.png)
+
+## Overview
+
+Chat with Your Data deploys to Azure with the Azure Developer CLI (`azd`). One command provisions every resource, builds the three container images, deploys them to Azure Container Apps, and seeds a sample corpus so chat works on the first run. There is no portal template and no one-click button to configure.
+
+Estimated time: 20 to 40 minutes, most of which is unattended provisioning.
+
+## Prerequisites
+
+* An Azure subscription with permission to create resources and assign roles. See [Managed identity and RBAC](managed_identity.md) for the roles the deployment assigns.
+* [Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) version 1.18.0 or later. Version 1.23.9 is not supported.
+* [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli).
+* Model capacity for the chat and embedding models in your target region. See [Azure OpenAI model quota settings](azure_openai_model_quota_settings.md) and [Quota check](QuotaCheck.md).
+
+> [!TIP]
+> The default AI service region is `eastus2`. Choose a region that has capacity for the configured models, or set a different region at the prompt.
+
+## Deploy with azd
+
+Sign in, then provision and deploy in one step.
+
+```bash
+azd auth login
+azd up
+```
+
+`azd up` prompts for a few typed parameters and stores them in your azd environment.
+
+| Prompt | Values | Notes |
+|--------|--------|-------|
+| `databaseType` | `cosmosdb` (default), `postgresql` | Chooses the retrieval index and chat history platform. Locked after deployment. |
+| `azureAiServiceLocation` | Azure region | Region for the Azure AI Foundry models. Defaults to `eastus2`. |
+| `enableMonitoring` | `true`, `false` | Adds Log Analytics and Application Insights. Defaults to `false`. |
+| `enableScalability` | `true`, `false` | Reliability and scale flag. Defaults to `false`. |
+| `enableRedundancy` | `true`, `false` | Redundancy flag. Defaults to `false`. |
+| `enablePrivateNetworking` | `true`, `false` | Adds a virtual network, private DNS, and a bastion host. Defaults to `false`. |
+
+See [Customizing azd parameters](customizing_azd_parameters.md) for the complete list of options.
+
+## What azd up does
+
+```mermaid
+flowchart TD
+  A[azd auth login] --> B[azd up]
+  B --> C[Provision infra<br/>Bicep main.bicep]
+  C --> D[postprovision hook<br/>post-provision script]
+  D --> E[Deploy 3 services<br/>images built in ACR remoteBuild]
+  E --> F[postdeploy hook<br/>upload-sample-data seeds corpus]
+  F --> G[Application URL ready]
+```
+
+1. **Provision.** Bicep (`infra/main.bicep`) creates the resource group contents described in [Architecture overview](architecture.md).
+2. **Post-provision.** A script prepares data-plane state, such as enabling the `pgvector` extension in `postgresql` mode or seeding the knowledge base in `cosmosdb` mode.
+3. **Deploy.** The backend, frontend, and ingestion images build remotely in the container registry, so you do not need Docker installed. The Container Apps are then updated to the new images.
+4. **Post-deploy.** A script seeds a sample document set and enqueues it for ingestion so chat returns grounded answers immediately.
+
+When the command finishes, `azd` prints the application URL.
+
+## Deploy changes to a single service
+
+After the first `azd up`, you can redeploy one service without reprovisioning.
+
+```bash
+azd deploy backend
+azd deploy frontend
+azd deploy function
+```
+
+## Clean up
+
+Delete every resource created by the deployment when you are done.
+
+```bash
+azd down
+```
+
+> [!WARNING]
+> `azd down` permanently deletes the deployed resources and all ingested data. Export anything you need first.
+
+## Related documentation
+
+* [Architecture overview](architecture.md)
+* [Local development](LocalDevelopmentSetup.md)
+* [Customizing azd parameters](customizing_azd_parameters.md)
+* [Troubleshooting steps](TroubleShootingSteps.md)

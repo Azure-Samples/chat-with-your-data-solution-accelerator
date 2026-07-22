@@ -1,77 +1,74 @@
+---
+title: Model configuration
+description: Configure the Azure AI Foundry chat and embedding models used by Chat with Your Data.
+ms.date: 2026-07-03
+ms.topic: reference
+---
+
 [Back to *Chat with your data* README](../README.md)
 
-# Overview
+![Supporting documentation](images/supportingDocuments.png)
 
-This document outlines the necessary steps and configurations required for setting up and using models within the solution. It serves as a guide for developers to configure and customize model settings according to the project's needs.
+## Overview
 
-# Model Selection
+Chat with Your Data uses two Azure AI Foundry model deployments (a chat model and an embedding model) as its single inference surface. The backend calls Foundry with the workload's managed identity, so there are no model API keys to store. This guide lists the settings that control which models are deployed and how they are sized.
 
-## Available Models
+## Available models
 
-- For a list of available models, see the [Microsoft Azure AI Services - OpenAI Models documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models).
+For the models and versions available in each region, see the [Azure AI Foundry models documentation](https://learn.microsoft.com/azure/ai-foundry/concepts/models-featured).
 
-## Environment Variables (as listed in Azure AI Studio)
-- You can access the Environment Variables section of the `LOCAL_DEPLOYMENT.md` file by clicking on this link: [Environment Variables section in LOCAL_DEPLOYMENT.md](LOCAL_DEPLOYMENT.md#environment-variables).
+## Default deployments
 
-### LLM
-- `AZURE_OPENAI_MODEL`: The Azure OpenAI Model Deployment Name
-    - example: `my-gpt-4.1`
-- `AZURE_OPENAI_MODEL_NAME`: The Azure OpenAI Model Name
-    - example: `gpt-4.1`
-- `AZURE_OPENAI_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `2025-04-14`
-- `AZURE_OPENAI_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
-    - example: `30`
+| Purpose | Model | Version | Deployment type | Capacity (TPM, thousands) |
+|---------|-------|---------|-----------------|---------------------------|
+| Chat | `gpt-5.1` | `2025-11-13` | GlobalStandard | 150 |
+| Embeddings | `text-embedding-3-large` | `1` | Standard | 100 |
 
-### VISION
-- `AZURE_OPENAI_VISION_MODEL`: The Azure OpenAI Model Deployment Name
-    - example: `my-gpt-4`
-- `AZURE_OPENAI_VISION_MODEL_NAME`: The Azure OpenAI Model Name
-    - example: `gpt-4.1`
-- `AZURE_OPENAI_VISION_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `2025-04-14`
-- `AZURE_OPENAI_VISION_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
-    - example: `10`
+## Chat model parameters
 
-### EMBEDDINGS
-- `AZURE_OPENAI_EMBEDDING_MODEL`: The Azure OpenAI Model Deployment Name
-    - example: `my-text-embedding-3-small`
-- `AZURE_OPENAI_EMBEDDING_MODEL_NAME`: The Azure OpenAI Model Name
-    - example: `text-embedding-3-small`
-- `AZURE_OPENAI_EMBEDDING_MODEL_VERSION`: The Azure OpenAI Model Version
-    - example: `1`
-- `AZURE_OPENAI_EMBEDDING_MODEL_CAPACITY`: The Tokens per Minute Rate Limit (thousands)
-    - example: `30`
-- `AZURE_SEARCH_DIMENSIONS`: Azure OpenAI Embeddings dimensions. A full list of dimensions can be found [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#embeddings-models).
-    - example: `1536`
+| Parameter | Example | Purpose |
+|-----------|---------|---------|
+| `AZURE_ENV_GPT_MODEL_NAME` | `gpt-5.1` | Chat model name. |
+| `AZURE_ENV_GPT_MODEL_VERSION` | `2025-11-13` | Chat model version. |
+| `AZURE_ENV_GPT_MODEL_SKU` | `GlobalStandard` | Chat model deployment type. |
+| `AZURE_ENV_GPT_MODEL_CAPACITY` | `150` | Tokens-per-minute limit (thousands). |
 
-### OPENAI API Configuration
-- `AZURE_OPENAI_API_VERSION`: The Azure OpenAI API Version
-    - example: `2024-02-01`
-- `AZURE_OPENAI_MAX_TOKENS`: The Maximum Tokens per Request
-    - example: `1000`
-- `AZURE_OPENAI_TEMPERATURE`: The Sampling Temperature (from 0 to 1)
-    - example: `0`
-- `AZURE_OPENAI_TOP_P`: The Top P Sampling Probability
-    - example: `1`
+## Embedding model parameters
 
-# Model Configuration
-- To set an environment variable, you can use the following command:
-    - `azd env set <ENVIRONMENT_VARIABLE_NAME> <ENVIRONMENT_VARIABLE_VALUE>`
+| Parameter | Example | Purpose |
+|-----------|---------|---------|
+| `AZURE_ENV_EMBEDDING_MODEL_NAME` | `text-embedding-3-large` | Embedding model name. |
+| `AZURE_ENV_EMBEDDING_MODEL_VERSION` | `1` | Embedding model version. |
+| `AZURE_ENV_EMBEDDING_MODEL_SKU` | `Standard` | Embedding model deployment type. |
+| `AZURE_ENV_EMBEDDING_MODEL_CAPACITY` | `100` | Tokens-per-minute limit (thousands). |
 
-- To get the value of an environment variable, you can use the following command:
-    - `azd env get <ENVIRONMENT_VARIABLE_NAME>`
+The embedding model sets the vector dimensions written to the retrieval index. `text-embedding-3-large` produces 3072-dimensional vectors. In PostgreSQL mode, the vector column width is set from this dimension when the index is first created; see [PostgreSQL](postgreSQL.md).
 
-## GPT-4.1 & Text-Embeddings-3-Large
-- The following environment variables are set for the GPT-4.1 and Text-Embeddings-3-Large models:
-    - `AZURE_OPENAI_API_VERSION`: `2024-05-01-preview`
-    - `AZURE_OPENAI_MODEL`: `my-gpt-4.1`
-    - `AZURE_OPENAI_MODEL_NAME`: `gpt-4.1`
-    - `AZURE_OPENAI_MODEL_VERSION`: `2025-04-14`
-    - `AZURE_OPENAI_EMBEDDING_MODEL`: `my-text-embedding-3-large`
-    - `AZURE_OPENAI_EMBEDDING_MODEL_NAME`: `text-embedding-3-large`
-    - `AZURE_OPENAI_EMBEDDING_MODEL_VERSION`: `1`
-    - `AZURE_SEARCH_DIMENSIONS`: `3072`
-    - `AZURE_MAX_TOKENS`: `4096`
+## API version parameters
 
----
+| Parameter | Example | Purpose |
+|-----------|---------|---------|
+| `AZURE_ENV_OPENAI_API_VERSION` | `2025-01-01-preview` | API version for chat and embedding calls. |
+| `AZURE_ENV_AI_AGENT_API_VERSION` | `2025-05-01` | API version for the Foundry agent runtime. |
+
+## Set and read parameters
+
+Set a parameter before `azd up`:
+
+```bash
+azd env set <NAME> <VALUE>
+```
+
+Read the current values for your environment:
+
+```bash
+azd env get-values
+```
+
+For the full parameter list, including quota and region settings, see [Customizing azd parameters](customizing_azd_parameters.md) and [Model quota settings](azure_openai_model_quota_settings.md).
+
+## Related documentation
+
+* [Customizing azd parameters](customizing_azd_parameters.md)
+* [Model quota settings](azure_openai_model_quota_settings.md)
+* [PostgreSQL](postgreSQL.md)
