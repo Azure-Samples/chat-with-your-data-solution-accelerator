@@ -382,7 +382,7 @@ Run the post-deployment script to configure the Function App client key and crea
 **PowerShell (Windows):**
 
 ```powershell
-./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+.\infra\scripts\post-provision\post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
 **Bash (Linux/macOS/WSL):**

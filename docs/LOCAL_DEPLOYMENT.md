@@ -228,7 +228,7 @@ az login --tenant-id <tenant-id>
 
 **PowerShell (Windows):**
 ```powershell
-./infra/scripts/post-provision/post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
+.\infra\scripts\post-provision\post_deployment_setup.ps1 -ResourceGroupName "<your-resource-group-name>"
 ```
 
 **Bash (Linux/macOS/WSL):**

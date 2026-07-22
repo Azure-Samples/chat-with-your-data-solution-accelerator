@@ -12,7 +12,7 @@
     The name of the Azure resource group containing the deployed resources.
 
 .EXAMPLE
-    ./post_deployment_setup.ps1 -ResourceGroupName "my-rg"
+    .\post_deployment_setup.ps1 -ResourceGroupName "my-rg"
 #>
 
 param(
