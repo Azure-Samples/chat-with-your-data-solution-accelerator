@@ -13,7 +13,7 @@ ms.topic: reference
 
 By default the deployment uses your environment name as a prefix to keep Azure resource names unique. The parameters below show their default values; you only need to set a parameter when you want to change it.
 
-`azd up` prompts you for a few decisions that cannot be defaulted safely: the database type, the AI service region, and the reliability and security flags. Every parameter can also be set ahead of time. To override any parameter, run `azd env set <NAME> <VALUE>` before `azd up`. On the first `azd` command you are prompted for the environment name; choose a 3–16 character alphanumeric name.
+`azd up` prompts you only for values that are unset and have no default, such as the environment name and the deployment region. Every other parameter listed below ships with a safe default (shown in the tables) and is used unless you override it. To override any parameter, run `azd env set <NAME> <VALUE>` before `azd up`. On the first `azd` command you are prompted for the environment name; choose a 3–16 character alphanumeric name.
 
 ## Core configuration
 

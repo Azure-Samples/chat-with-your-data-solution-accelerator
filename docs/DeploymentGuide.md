@@ -1,3 +1,12 @@
+---
+title: Deployment Guide
+description: Step-by-step guide to deploy the Chat with Your Data solution accelerator to Azure using the Azure Developer CLI.
+ms.date: 2026-07-23
+ms.topic: how-to
+---
+
+[Back to *Chat with your data* README](../README.md)
+
 # Deployment Guide
 
 ## Overview
