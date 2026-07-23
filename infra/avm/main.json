@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.45.15.27210",
-      "templateHash": "12691086923828584004"
+      "templateHash": "12270433528816504082"
     }
   },
   "parameters": {
@@ -47212,9 +47212,9 @@
       },
       "dependsOn": [
         "logAnalyticsWorkspace",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').file)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').queue)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)]",
         "userAssignedIdentity",
         "virtualNetwork"
       ]
@@ -62136,7 +62136,7 @@
           },
           "scaleSettings": {
             "value": {
-              "minReplicas": "[if(parameters('enableScalability'), 1, 0)]",
+              "minReplicas": 1,
               "maxReplicas": "[if(parameters('enableScalability'), 10, 3)]"
             }
           },

@@ -13,8 +13,7 @@
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
-		"ghcr.io/azure/azure-dev/azd:latest": {},
-		"ghcr.io/rchaganti/vsc-devcontainer-features/azurebicep:1.0.5": {}
+		"ghcr.io/azure/azure-dev/azd:latest": {}
 	},
 
 	"postCreateCommand": "./.devcontainer/setupEnv.sh",
@@ -34,13 +33,10 @@
 				"ms-python.pylint",
 				"ms-toolsai.jupyter",
 				"ms-vscode.vscode-node-azure-pack",
-				"TeamsDevApp.ms-teams-vscode-extension",
-				"zeshuaro.vscode-python-poetry",
-				"prompt-flow.prompt-flow"
+				"dbaeumer.vscode-eslint"
 			],
 			"settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
-				"python.pythonPath": "/usr/local/bin/python",
+                "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 				"remote.autoForwardPortsFallback": 0,
 				"remote.autoForwardPortsSource": "process"
             }

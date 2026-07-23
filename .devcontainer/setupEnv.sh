@@ -1,20 +1,14 @@
 #!/bin/bash
+set -e
 
-pip install --upgrade pip
+# v2 uses uv (not Poetry) for Python dependency management.
+uv sync
 
-pip install --upgrade poetry
+# Install pre-commit hooks. pre-commit is standalone dev tooling (not a project
+# dependency), so install it as a uv-managed tool; the git hook it writes then
+# resolves to a persistent interpreter at commit time.
+uv tool install pre-commit
+uv tool run pre-commit install
 
-# https://pypi.org/project/poetry-plugin-export/
-pip install --upgrade poetry-plugin-export
-
-poetry env use python3.11
-
-poetry config warnings.export false
-
-poetry install --with dev
-
-poetry run pre-commit install
-
-(cd ./code/frontend; npm install)
-
-(cd ./tests/integration/ui; npm install)
+# Install frontend dependencies (v2 frontend lives under src/frontend).
+(cd ./src/frontend && npm install)

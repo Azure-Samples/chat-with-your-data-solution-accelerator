@@ -1079,7 +1079,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
     workloadProfileName: 'Consumption'
     ingressTargetPort: 8000
     scaleSettings: {
-      minReplicas: enableScalability ? 1 : 0
+      minReplicas: 1
       maxReplicas: enableScalability ? 10 : 3
     }
     containers: [

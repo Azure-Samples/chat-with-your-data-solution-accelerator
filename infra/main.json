@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.45.15.27210",
-      "templateHash": "2309682989942346037"
+      "templateHash": "17948190337731856959"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -480,7 +480,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.45.15.27210",
-              "templateHash": "16341738384772812212"
+              "templateHash": "1019599034745970786"
             }
           },
           "parameters": {
@@ -62610,7 +62610,7 @@
                   },
                   "scaleSettings": {
                     "value": {
-                      "minReplicas": "[if(parameters('enableScalability'), 1, 0)]",
+                      "minReplicas": 1,
                       "maxReplicas": "[if(parameters('enableScalability'), 10, 3)]"
                     }
                   },
@@ -71845,7 +71845,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.45.15.27210",
-              "templateHash": "12393462909709176343"
+              "templateHash": "17591266640237568115"
             }
           },
           "parameters": {
@@ -75172,7 +75172,7 @@
                   },
                   "scaleSettings": {
                     "value": {
-                      "minReplicas": 0,
+                      "minReplicas": 1,
                       "maxReplicas": 3
                     }
                   },
@@ -75765,7 +75765,7 @@
                   },
                   "scaleSettings": {
                     "value": {
-                      "minReplicas": 0,
+                      "minReplicas": 1,
                       "maxReplicas": 3
                     }
                   },

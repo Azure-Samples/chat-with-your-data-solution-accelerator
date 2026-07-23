@@ -501,7 +501,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
     workloadProfileName: 'Consumption'
     ingressTargetPort: 8000
     scaleSettings: {
-      minReplicas: 0
+      minReplicas: 1
       maxReplicas: 3
     }
     containers: [
@@ -628,7 +628,7 @@ module functionContainerApp './modules/compute/container-app.bicep' = {
     workloadProfileName: 'Consumption'
     ingressTargetPort: 80
     scaleSettings: {
-      minReplicas: 0
+      minReplicas: 1
       maxReplicas: 3
     }
     containers: [

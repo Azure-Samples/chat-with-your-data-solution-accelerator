@@ -13,12 +13,27 @@ repos:
 
   - repo: local
     hooks:
-      - id: bicep
-        name: bicep
-        description: Lint and build Bicep files
-        entry: ./scripts/generate_arm_templates.sh
-        language: script
+      - id: bicep-main
+        name: bicep-main
+        description: Build ARM template from the orchestrator Bicep entrypoint
+        entry: az bicep build --file infra/main.bicep
+        language: system
         files: \.bicep$
+        pass_filenames: false
         require_serial: true
-        args: # Bicep files that we want to generate ARM templates from
-          - -f=./infra/main.bicep
+      - id: bicep-flavor
+        name: bicep-flavor
+        description: Build ARM template from the Bicep (non-AVM) flavor entrypoint
+        entry: az bicep build --file infra/bicep/main.bicep
+        language: system
+        files: \.bicep$
+        pass_filenames: false
+        require_serial: true
+      - id: bicep-avm
+        name: bicep-avm
+        description: Build ARM template from the AVM flavor entrypoint
+        entry: az bicep build --file infra/avm/main.bicep
+        language: system
+        files: \.bicep$
+        pass_filenames: false
+        require_serial: true
