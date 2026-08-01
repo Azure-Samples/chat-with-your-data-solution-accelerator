@@ -667,14 +667,14 @@ typing-extensions = ">=4.0.1"
 
 [[package]]
 name = "azure-ai-ml"
-version = "1.34.0"
+version = "1.34.1"
 description = "Microsoft Azure Machine Learning Client Library for Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "prompt-flow"]
 files = [
-    {file = "azure_ai_ml-1.34.0-py3-none-any.whl", hash = "sha256:bcefb2e4a9e9dd88da0f88cb4f24c1d1f829e49a21cb90413f803b3787a0f4b9"},
-    {file = "azure_ai_ml-1.34.0.tar.gz", hash = "sha256:7b11e66a494d328022847e9b9367db34a744ffba23a2198c7b587028b296572c"},
+    {file = "azure_ai_ml-1.34.1-py3-none-any.whl", hash = "sha256:f1bfb239314f73e2426be247fc16d1a9a687d24d3443139432cb17efe9506978"},
+    {file = "azure_ai_ml-1.34.1.tar.gz", hash = "sha256:c09938aa07094b393ff7775fa2c81c446f6d77639c8136195233446e1a5ea9c9"},
 ]
 
 [package.dependencies]
@@ -770,14 +770,14 @@ opentelemetry-api = ">=1.12.0"
 
 [[package]]
 name = "azure-cosmos"
-version = "4.16.1"
+version = "4.16.2"
 description = "Microsoft Azure Cosmos Client Library for Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "prompt-flow"]
 files = [
-    {file = "azure_cosmos-4.16.1-py3-none-any.whl", hash = "sha256:43717215ec1433c1ea0f0e3d465f9182fb5afff3ae2331e595367122297872f1"},
-    {file = "azure_cosmos-4.16.1.tar.gz", hash = "sha256:fa15d13702b470265a67e2dd9c0794021e6b776856dac6c223dcacc4d8e1d8d1"},
+    {file = "azure_cosmos-4.16.2-py3-none-any.whl", hash = "sha256:bff91af867e1a6b47df215e9ed153fa5192da6ac4bae07ceb5c53632fcf9aceb"},
+    {file = "azure_cosmos-4.16.2.tar.gz", hash = "sha256:2586cf98b736ffd5147cd76fe610d9ffc6fbd2abce4864edb1b364655f7d4b88"},
 ]
 
 [package.dependencies]
@@ -1173,18 +1173,6 @@ groups = ["main", "prompt-flow"]
 files = [
     {file = "blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc"},
     {file = "blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf"},
-]
-
-[[package]]
-name = "cachetools"
-version = "7.0.6"
-description = "Extensible memoizing collections and decorators"
-optional = false
-python-versions = ">=3.10"
-groups = ["main"]
-files = [
-    {file = "cachetools-7.0.6-py3-none-any.whl", hash = "sha256:4e94956cfdd3086f12042cdd29318f5ced3893014f7d0d059bf3ead3f85b7f8b"},
-    {file = "cachetools-7.0.6.tar.gz", hash = "sha256:e5d524d36d65703a87243a26ff08ad84f73352adbeafb1cde81e207b456aaf24"},
 ]
 
 [[package]]
@@ -5297,18 +5285,15 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "pgvector"
-version = "0.4.2"
+version = "0.5.0"
 description = "pgvector support for Python"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pgvector-0.4.2-py3-none-any.whl", hash = "sha256:549d45f7a18593783d5eec609ea1684a724ba8405c4cb182a0b2b08aeff04e08"},
-    {file = "pgvector-0.4.2.tar.gz", hash = "sha256:322cac0c1dc5d41c9ecf782bd9991b7966685dee3a00bc873631391ed949513a"},
+    {file = "pgvector-0.5.0-py3-none-any.whl", hash = "sha256:fedc9800894e6da2be51358d7b7c574bf34f247ca741a5a09513622135f5964f"},
+    {file = "pgvector-0.5.0.tar.gz", hash = "sha256:07a9dcf735696879406983afc6eba9a787cef7c0cf6c367ca1a5779f036dee74"},
 ]
-
-[package.dependencies]
-numpy = "*"
 
 [[package]]
 name = "pillow"
@@ -5460,14 +5445,14 @@ ssv = ["swagger-spec-validator (>=3.0.4,<3.1.0)"]
 
 [[package]]
 name = "pre-commit"
-version = "4.6.0"
+version = "4.6.1"
 description = "A framework for managing and maintaining multi-language pre-commit hooks."
 optional = false
 python-versions = ">=3.10"
 groups = ["dev"]
 files = [
-    {file = "pre_commit-4.6.0-py2.py3-none-any.whl", hash = "sha256:e2cf246f7299edcabcf15f9b0571fdce06058527f0a06535068a86d38089f29b"},
-    {file = "pre_commit-4.6.0.tar.gz", hash = "sha256:718d2208cef53fdc38206e40524a6d4d9576d103eb16f0fec11c875e7716e9d9"},
+    {file = "pre_commit-4.6.1-py2.py3-none-any.whl", hash = "sha256:0e3b2942510d1fb34eec167a3ec57331bf8442122f1153a9fb8b58f5c49b2717"},
+    {file = "pre_commit-4.6.1.tar.gz", hash = "sha256:03e809865c7d178b9979d06c761fcbfe6808fdaded8581a745bb110e52050421"},
 ]
 
 [package.dependencies]
@@ -7752,45 +7737,44 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "streamlit"
-version = "1.58.0"
+version = "1.60.0"
 description = "A faster way to build and share data apps"
 optional = false
 python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "streamlit-1.58.0-py3-none-any.whl", hash = "sha256:4ca8a7afc5bd16a5f176ccf4be1e34e8121cad0240becd127fb58a103ea3178d"},
-    {file = "streamlit-1.58.0.tar.gz", hash = "sha256:78a22e7085b053af7ce544442bf4b670771e68c509ba1bdaa056ba0708f49c3d"},
+    {file = "streamlit-1.60.0-py3-none-any.whl", hash = "sha256:d167d67cf94537600a6e378d8aa0c31eabab26beb243e2a51de9842e2872e393"},
+    {file = "streamlit-1.60.0.tar.gz", hash = "sha256:09f2fdd2aabbd3b3560953795681dd675d5479ac82c21fc2dceadaf9bd484ea3"},
 ]
 
 [package.dependencies]
 altair = ">=4.0,<5.4.0 || >5.4.0,<5.4.1 || >5.4.1,<7"
-anyio = ">=4.0.0"
+anyio = ">=4.0.0,<5"
 blinker = ">=1.5.0,<2"
-cachetools = ">=5.5,<8"
 click = ">=7.0,<9"
 gitpython = ">=3.0.7,<3.1.19 || >3.1.19,<4"
-httptools = ">=0.6.3"
-itsdangerous = ">=2.1.2"
+httptools = ">=0.6.3,<1"
+itsdangerous = ">=2.1.2,<3"
 numpy = ">=1.23,<3"
 packaging = ">=20"
 pandas = ">=1.4.0,<4"
 pillow = ">=7.1.0,<13"
 protobuf = ">=3.20,<8"
-pyarrow = ">=7.0"
+pyarrow = ">=7.0,<25"
 pydeck = ">=0.8.0b4,<1"
-python-multipart = ">=0.0.10"
+python-multipart = ">=0.0.10,<1"
 requests = ">=2.27,<3"
-starlette = ">=0.40.0"
+starlette = ">=0.40.0,<2"
 tenacity = ">=8.1.0,<10"
 toml = ">=0.10.1,<2"
 typing-extensions = ">=4.10.0,<5"
-uvicorn = ">=0.30.0"
+uvicorn = ">=0.30.0,<1"
 watchdog = {version = ">=2.1.5,<7", markers = "platform_system != \"Darwin\""}
-websockets = ">=12.0.0"
+websockets = ">=12.0.0,<17"
 
 [package.extras]
 all = ["rich (>=11.0.0)", "streamlit[auth,charts,pdf,performance,snowflake,sql]"]
-auth = ["Authlib (>=1.3.2)"]
+auth = ["Authlib (>=1.3.2)", "httpx (>=0.24.1)"]
 charts = ["graphviz (>=0.19.0)", "matplotlib (>=3.0.0)", "orjson (>=3.5.0)", "plotly (>=4.0.0)"]
 pdf = ["streamlit-pdf (>=1.0.0)"]
 performance = ["orjson (>=3.5.0)", "uvloop (>=0.15.2) ; sys_platform != \"win32\" and sys_platform != \"cygwin\" and platform_python_implementation != \"PyPy\""]
@@ -8708,4 +8692,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "a1b2c00e57242adc6e2cab60158f5eb8c616b0e2b174cc3096df933762b514b8"
+content-hash = "4ee019c6b18be73e5e80ddd29283622877dfb6408175af923c864e54d315311d"
