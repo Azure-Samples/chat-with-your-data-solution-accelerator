@@ -35,7 +35,7 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
       - name: Setup python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           architecture: x64
@@ -101,7 +101,7 @@ jobs:
             coverage.xml
           if-no-files-found: error
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: "npm"
