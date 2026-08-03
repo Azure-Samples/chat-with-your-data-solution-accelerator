@@ -211,7 +211,7 @@ param vmSize string = 'Standard_D2s_v5'
 // ============================================================================
 
 @description('Optional. Tags applied to every deployed resource.')
-param tags object = {SecurityControl: 'Ignore'}
+param tags object = {}
 
 @description('Optional. Identifier of the user creating the deployment, recorded in the resource group tags.')
 param createdBy string = contains(deployer(), 'userPrincipalName')
