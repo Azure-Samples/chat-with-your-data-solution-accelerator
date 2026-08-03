@@ -27,6 +27,6 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.60.1",
     "vite": "^7.0.0",
-    "vitest": "^2.1.0"
+    "vitest": "^3.2.6"
   }
 }
