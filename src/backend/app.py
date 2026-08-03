@@ -1,4 +1,4 @@
-"""FastAPI app factory.
+"""FastAPI app factory
 
 Backend must boot headless (no frontend dependency). Telemetry is
 configured to export *directly* to Application Insights when
