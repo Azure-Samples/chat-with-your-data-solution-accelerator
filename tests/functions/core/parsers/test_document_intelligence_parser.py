@@ -48,6 +48,16 @@ def _make_fake_paragraph(content: str | None) -> SimpleNamespace:
 
 
 def _make_fake_client_with_result(result: Any) -> MagicMock:
+    if not hasattr(result, "tables"):
+        result.tables = None
+    for page in getattr(result, "pages", None) or []:
+        for line in getattr(page, "lines", None) or []:
+            if not hasattr(line, "spans"):
+                line.spans = []
+    for table in result.tables or []:
+        for cell in getattr(table, "cells", None) or []:
+            if not hasattr(cell, "spans"):
+                cell.spans = []
     poller = MagicMock()
     poller.result = AsyncMock(return_value=result)
     client = MagicMock()
@@ -249,6 +259,222 @@ async def test_parse_returns_one_chunk_per_page_with_deterministic_ids() -> None
             index=1,
         ),
     ]
+
+
+@pytest.mark.asyncio
+async def test_parse_normalizes_wrapped_identifier_in_table_cell() -> None:
+    def _line(content: str, offset: int, length: int) -> SimpleNamespace:
+        return SimpleNamespace(
+            content=content,
+            spans=[SimpleNamespace(offset=offset, length=length)],
+        )
+
+    def _cell(
+        row: int, column: int, content: str, offset: int, length: int
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            row_index=row,
+            column_index=column,
+            content=content,
+            spans=[SimpleNamespace(offset=offset, length=length)],
+        )
+
+    # Real Document Intelligence shape: the wrapped value lands in one cell as
+    # space-joined text, while the two visual fragments are separate lines.
+    fake_result = SimpleNamespace(
+        pages=[
+            SimpleNamespace(
+                page_number=1,
+                lines=[
+                    _line("State Contract Number:", 0, 22),
+                    _line("MA24000000466", 23, 13),
+                    _line("9", 37, 1),
+                    _line("Name:", 39, 5),
+                    _line("Propane", 45, 7),
+                ],
+            )
+        ],
+        tables=[
+            SimpleNamespace(
+                row_count=1,
+                column_count=4,
+                bounding_regions=[SimpleNamespace(page_number=1)],
+                cells=[
+                    _cell(0, 0, "State Contract Number:", 0, 22),
+                    _cell(0, 1, "MA24000000466 9", 23, 15),
+                    _cell(0, 2, "Name:", 39, 5),
+                    _cell(0, 3, "Propane", 45, 7),
+                ],
+            )
+        ],
+    )
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=_make_fake_client_with_result(fake_result),
+    )
+
+    chunks = await parser.parse(b"...", source="propane.pdf")
+
+    assert "State Contract Number: MA240000004669" in chunks[0].content
+    assert "MA24000000466 9" not in chunks[0].content
+    assert "Name: Propane" in chunks[0].content
+
+
+@pytest.mark.asyncio
+async def test_parse_drops_table_covered_lines_so_wrapped_value_is_not_resplit() -> (
+    None
+):
+    def _line(content: str, offset: int, length: int) -> SimpleNamespace:
+        return SimpleNamespace(
+            content=content,
+            spans=[SimpleNamespace(offset=offset, length=length)],
+        )
+
+    def _cell(
+        row: int, column: int, content: str, offset: int, length: int
+    ) -> SimpleNamespace:
+        return SimpleNamespace(
+            row_index=row,
+            column_index=column,
+            content=content,
+            spans=[SimpleNamespace(offset=offset, length=length)],
+        )
+
+    fake_result = SimpleNamespace(
+        pages=[
+            SimpleNamespace(
+                page_number=1,
+                lines=[
+                    _line("State of Alabama", 0, 16),
+                    _line("State Contract Number:", 100, 22),
+                    _line("MA23000000424", 123, 13),
+                    _line("7", 137, 1),
+                    _line("Name:", 139, 5),
+                    _line("Southland Transportation Group", 145, 30),
+                ],
+            )
+        ],
+        tables=[
+            SimpleNamespace(
+                row_count=1,
+                column_count=4,
+                bounding_regions=[SimpleNamespace(page_number=1)],
+                cells=[
+                    _cell(0, 0, "State Contract Number:", 100, 22),
+                    _cell(0, 1, "MA23000000424 7", 123, 15),
+                    _cell(0, 2, "Name:", 139, 5),
+                    _cell(0, 3, "Southland Transportation Group", 145, 30),
+                ],
+            )
+        ],
+    )
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=_make_fake_client_with_result(fake_result),
+    )
+
+    content = (await parser.parse(b"...", source="purchase.pdf"))[0].content
+
+    assert "MA230000004247" in content
+    assert "MA23000000424 7" not in content
+    assert "MA23000000424\n7" not in content
+    assert "State of Alabama" in content
+
+
+@pytest.mark.asyncio
+async def test_parse_keeps_space_at_letter_to_digit_wrap() -> None:
+    # A word followed by a number across a wrap (e.g. "Chassis" + "19,000")
+    # must keep its space; only digit-to-digit breaks collapse.
+    def _line(content: str, offset: int, length: int) -> SimpleNamespace:
+        return SimpleNamespace(
+            content=content,
+            spans=[SimpleNamespace(offset=offset, length=length)],
+        )
+
+    fake_result = SimpleNamespace(
+        pages=[
+            SimpleNamespace(
+                page_number=1,
+                lines=[
+                    _line("Chassis", 0, 7),
+                    _line("19,000", 8, 6),
+                ],
+            )
+        ],
+        tables=[
+            SimpleNamespace(
+                row_count=1,
+                column_count=1,
+                bounding_regions=[SimpleNamespace(page_number=1)],
+                cells=[
+                    SimpleNamespace(
+                        row_index=0,
+                        column_index=0,
+                        content="Chassis 19,000",
+                        spans=[SimpleNamespace(offset=0, length=14)],
+                    ),
+                ],
+            )
+        ],
+    )
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=_make_fake_client_with_result(fake_result),
+    )
+
+    content = (await parser.parse(b"...", source="wrap.pdf"))[0].content
+
+    assert "Chassis 19,000" in content
+    assert "Chassis19,000" not in content
+
+
+@pytest.mark.asyncio
+async def test_parse_keeps_space_between_two_wrapped_words() -> None:
+    def _line(content: str, offset: int, length: int) -> SimpleNamespace:
+        return SimpleNamespace(
+            content=content,
+            spans=[SimpleNamespace(offset=offset, length=length)],
+        )
+
+    fake_result = SimpleNamespace(
+        pages=[
+            SimpleNamespace(
+                page_number=1,
+                lines=[
+                    _line("Master", 0, 6),
+                    _line("Agreement", 7, 9),
+                ],
+            )
+        ],
+        tables=[
+            SimpleNamespace(
+                row_count=1,
+                column_count=1,
+                bounding_regions=[SimpleNamespace(page_number=1)],
+                cells=[
+                    SimpleNamespace(
+                        row_index=0,
+                        column_index=0,
+                        content="Master Agreement",
+                        spans=[SimpleNamespace(offset=0, length=16)],
+                    ),
+                ],
+            )
+        ],
+    )
+    parser = DocumentIntelligenceParser(
+        settings=_make_settings(),
+        credential=_make_credential(),
+        client=_make_fake_client_with_result(fake_result),
+    )
+
+    content = (await parser.parse(b"...", source="words.pdf"))[0].content
+
+    assert "Master Agreement" in content
+    assert "MasterAgreement" not in content
 
 
 @pytest.mark.asyncio
