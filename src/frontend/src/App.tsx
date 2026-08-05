@@ -30,7 +30,7 @@ import {
   Routes,
   useLocation,
   useNavigate,
-} from "react-router-dom";
+} from "react-router";
 import { Header } from "./components/Header/Header";
 import { CoralShellColumn } from "./components/CoralShell/CoralShellColumn";
 import { CoralShellRow } from "./components/CoralShell/CoralShellRow";

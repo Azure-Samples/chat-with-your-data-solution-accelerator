@@ -12,5 +12,18 @@
     "test": "npm run test --workspace cwyd-frontend-tests",
     "test:watch": "npm run test:watch --workspace cwyd-frontend-tests",
     "lint": "npm run lint --workspaces --if-present"
+  },
+  "overrides": {
+    "@eslint/eslintrc@3.3.5": {
+      "js-yaml": "4.3.0"
+    },
+    "esbuild": "0.28.1",
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.18"
+    },
+    "minimatch@10.2.5": {
+      "brace-expansion": "5.0.9"
+    },
+    "postcss": "8.5.25"
   }
 }

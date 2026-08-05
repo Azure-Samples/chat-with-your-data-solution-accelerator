@@ -11,7 +11,7 @@
  * the operator on a fresh chat.
  */
 import { type JSX } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router";
 import { Button } from "@fluentui/react-components";
 import { Home20Regular } from "@fluentui/react-icons";
 import { Section, SectionPath } from "@/models/sections";

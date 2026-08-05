@@ -12,11 +12,11 @@
   "dependencies": {
     "@fluentui/react-components": "^9.73.8",
     "@fluentui/react-icons": "^2.0.326",
-    "microsoft-cognitiveservices-speech-sdk": "^1.49.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.51.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.1.0",
+    "react-router": "8.3.0",
     "remark-gfm": "^4.0.1",
     "remark-supersub": "^1.0.0"
   },
@@ -24,7 +24,7 @@
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -32,6 +32,6 @@
     "globals": "^15.15.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.60.1",
-    "vite": "^7.0.0"
+    "vite": "8.2.0"
   }
 }
