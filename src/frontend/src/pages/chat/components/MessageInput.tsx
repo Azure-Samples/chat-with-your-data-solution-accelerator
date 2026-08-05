@@ -95,6 +95,12 @@ export function MessageInput() {
   // on top of already-typed text instead of replacing it.
   const baseDraftRef = useRef("");
 
+  // The text field is disabled while a stream is in flight, which drops
+  // focus. Hold a ref so focus can be returned to the field once the
+  // stream finishes and the input re-enables, letting the user type the
+  // next question without clicking back into the box.
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Holds the AbortController for the in-flight stream so the Cancel
   // button can abort it. Cleared in the submit `finally` so a stale
   // controller can't fire a no-op abort against a closed stream.
@@ -107,6 +113,15 @@ export function MessageInput() {
     const separator = base.length > 0 && transcript.length > 0 ? " " : "";
     setDraft(base + separator + transcript);
   }, [speech.isListening, speech.transcript]);
+
+  // Return focus to the text field once the stream ends and dictation is
+  // idle, so the field re-enables under the cursor and the user can type
+  // the next question immediately.
+  useEffect(() => {
+    if (!isStreaming && !speech.isListening) {
+      inputRef.current?.focus();
+    }
+  }, [isStreaming, speech.isListening]);
 
   const trimmed = draft.trim();
   const canSend =
@@ -267,6 +282,7 @@ export function MessageInput() {
         Message
       </label>
       <input
+        ref={inputRef}
         id="message-input-field"
         type="text"
         value={draft}
