@@ -650,6 +650,9 @@ module aiProjectPrivateEndpoint './modules/networking/private-endpoint.bicep' = 
   }
 }
 
+// The Web socket from front end application connects to Speech service over a public internet and it does not work over a Private endpoint.
+// So public access is enabled even if AVM WAF is enabled.
+var enablePrivateNetworkingSpeech = false
 module speechService './modules/ai/ai-services.bicep' = {
   name: take('module.ai-services.SpeechServices.${solutionName}', 64)
   params: {
@@ -660,7 +663,7 @@ module speechService './modules/ai/ai-services.bicep' = {
     tags: allTags
     enableTelemetry: enableTelemetry
     kind: 'SpeechServices'
-    publicNetworkAccess: enablePrivateNetworking ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: enablePrivateNetworkingSpeech ? 'Disabled' : 'Enabled'
     diagnosticSettings: monitoringDiagnosticSettings
     roleAssignments: [
       {
@@ -670,7 +673,7 @@ module speechService './modules/ai/ai-services.bicep' = {
         roleDefinitionIdOrName: 'f2dc8367-1007-4938-bd23-fe263f013447'
       }
     ]
-    privateEndpoints: enablePrivateNetworking
+    privateEndpoints: enablePrivateNetworkingSpeech
       ? [
           {
             name: 'pep-spch-${solutionSuffix}'
