@@ -23,7 +23,7 @@
     "jsdom": "^25.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.1.0",
+    "react-router-dom": "^7.18.2",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.60.1",
     "vite": "^7.0.0",
