@@ -76,7 +76,7 @@ dev = [
     "pytest-cov>=7.0,<8.0",
     "pytest-asyncio>=1.2,<2.0",
     "pytest-httpserver>=1.1,<2.0",
-    "black>=25.12,<26.0",
+    "black>=26.3.1,<27.0",
     "flake8>=7.3,<8.0",
     "trustme>=1.2,<2.0",
     # Q13 (2026-05-05): CI-enforced static type checking. Pinned to a
