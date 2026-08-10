@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     # Core web + Functions runtime
-    "fastapi==0.133.0",
+    "fastapi==0.141.1",
     "uvicorn[standard]>=0.34,<1.0",
     "azure-functions>=1.24,<2.0",
     "httpx>=0.28,<1.0",
@@ -19,12 +19,12 @@ dependencies = [
     "jsonschema>=4.25,<5.0",
 
     # Foundry IQ + Azure AI
-    "azure-ai-projects==2.2.0",
+    "azure-ai-projects==2.4.0",
     "azure-ai-agents==1.2.0b6",
     "azure-ai-documentintelligence>=1.0,<2.0",
     "azure-ai-contentsafety>=1.0,<2.0",
     "azure-search-documents>=11.6.0b1",
-    "openai==2.32.0",
+    "openai==2.53.0",
     "tiktoken>=0.12,<1.0",
 
     # LangChain / LangGraph orchestrators
@@ -41,8 +41,8 @@ dependencies = [
     # backtracks indefinitely and never completes. Only `agent_framework`
     # (core) and `agent_framework_foundry` are imported in this codebase;
     # `agent-framework-foundry` supplies the Foundry hosted-agent integration.
-    "agent-framework-core==1.7.0",
-    "agent-framework-foundry==1.7.0",
+    "agent-framework-core==1.13.0",
+    "agent-framework-foundry==1.10.4",
 
     # Azure data plane (passwordless via Managed Identity)
     "azure-identity>=1.25,<2.0",
@@ -61,7 +61,7 @@ dependencies = [
     # Document parsers
     "python-docx>=1.2,<2.0",
     "beautifulsoup4>=4.14,<5.0",
-    "chardet>=5.2,<6.0",
+    "chardet>=5.2,<8.0",
     "fake-useragent>=2.2,<3.0",
     "requests>=2.32,<3.0",
 
@@ -76,7 +76,7 @@ dev = [
     "pytest-cov>=7.0,<8.0",
     "pytest-asyncio>=1.2,<2.0",
     "pytest-httpserver>=1.1,<2.0",
-    "black>=25.12,<26.0",
+    "black>=25.12,<27.0",
     "flake8>=7.3,<8.0",
     "trustme>=1.2,<2.0",
     # Q13 (2026-05-05): CI-enforced static type checking. Pinned to a
