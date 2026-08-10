@@ -27,7 +27,7 @@ jobs:
     environment: production
     name: azd template validation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: microsoft/template-validation-action@Latest
         with:
