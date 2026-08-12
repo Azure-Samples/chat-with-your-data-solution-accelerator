@@ -20,7 +20,6 @@ NOT a registry domain. Tools are imported directly:
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.types import ChatMessage, ChatRole
 
-
 DEFAULT_SYSTEM_PROMPT = (
     "You are a concise, accurate text-processing assistant. Apply the "
     "requested operation to the provided text and return only the "
