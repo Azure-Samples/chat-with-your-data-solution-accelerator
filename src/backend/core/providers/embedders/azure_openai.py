@@ -18,7 +18,6 @@ from backend.core.types import Chunk, EmbeddingResult
 from .base import BaseEmbedder
 from .registry import registry
 
-
 logger = logging.getLogger(__name__)
 
 # Azure OpenAI rejects an embeddings request whose ``input`` array is longer

@@ -20,7 +20,6 @@ from backend.services.health import (
     run_health_checks,
 )
 
-
 COSMOS_ENV: dict[str, str] = {
     "AZURE_SOLUTION_SUFFIX": "cwyd001",
     "AZURE_RESOURCE_GROUP": "rg-cwyd-001",

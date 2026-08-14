@@ -25,7 +25,6 @@ from azure.core.credentials_async import AsyncTokenCredential
 from backend.core.settings import AppSettings
 from backend.core.types import AadScope
 
-
 logger = logging.getLogger(__name__)
 
 
