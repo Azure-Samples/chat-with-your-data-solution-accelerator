@@ -236,6 +236,28 @@ try {
         $env:AZURE_POSTGRES_DEPLOYER_PRINCIPAL_NAME = $DeployerUpn
     }
 
+    # -------------------------------------------------------
+    # Grant the deployer Container Apps Contributor at the resource group so the
+    # Microsoft identity provider (Easy Auth) can be configured manually on any
+    # container app in the RG. A direct (non-group) grant sidesteps the
+    # group-based-RBAC listSecrets validation failure. Idempotent.
+    # -------------------------------------------------------
+    $DeployerObjectId = az ad signed-in-user show --query "id" -o tsv 2>$null
+    if ($LASTEXITCODE -ne 0) { $DeployerObjectId = "" }
+    $ResourceGroupId = az group show --name $ResourceGroupName --query "id" -o tsv 2>$null
+    if ($LASTEXITCODE -ne 0) { $ResourceGroupId = "" }
+    if ($DeployerObjectId -and $ResourceGroupId) {
+        Write-Host "[OK] Granting Container Apps Contributor to deployer on '$ResourceGroupName'..."
+        az role assignment create `
+            --assignee-object-id $DeployerObjectId `
+            --assignee-principal-type User `
+            --role "358470bc-b998-42bd-ab17-a7e34c199c0f" `
+            --scope $ResourceGroupId 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "Could not grant Container Apps Contributor (needs Owner or User Access Administrator). Configuring Easy Auth manually may fail until this role is assigned."
+            }
+    }
+
     Write-Host ""
     Write-Host "--- Running post_provision.py ---"
     Write-Host ""
