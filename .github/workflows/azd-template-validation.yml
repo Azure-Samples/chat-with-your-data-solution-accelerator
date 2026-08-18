@@ -27,9 +27,9 @@ jobs:
     environment: production
     name: azd template validation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: microsoft/template-validation-action@Latest
+      - uses: microsoft/template-validation-action@bae4895d0a8abd4f0d5aad68ae8647b3027f4c91 # Latest
         with:
           validateAzd: ${{ vars.TEMPLATE_VALIDATE_AZD }}
           useDevContainer: ${{ vars.TEMPLATE_USE_DEV_CONTAINER }}

@@ -32,13 +32,13 @@ jobs:
       should_deploy: ${{ steps.filter.outputs.deploy_related }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
 
       - name: Check for relevant changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         with:
           filters: |
             deploy_related:
@@ -76,13 +76,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Install azd
-        uses: Azure/setup-azd@v2
+        uses: Azure/setup-azd@0b7e3a35ab00f2eee7080c845eb39c3f0ebfa553 # v2
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -173,7 +173,7 @@ jobs:
           echo "Generated SOLUTION_SUFFIX: ${UNIQUE_SOLUTION_SUFFIX}"
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -194,7 +194,7 @@ jobs:
           fi
 
       - name: Pre-build image and deploy
-        uses: devcontainers/ci@v0.3
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         env:
                       AZURE_ENV_NAME: ${{ env.SOLUTION_SUFFIX }}
                       AZURE_LOCATION: ${{ env.AZURE_LOCATION }}
@@ -349,7 +349,7 @@ jobs:
                 echo "Port: 5432 (hardcoded)"
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
                 python-version: '3.11'
 
@@ -448,10 +448,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Destroy resources
-        uses: devcontainers/ci@v0.3
+        uses: devcontainers/ci@513af61f4de4f75d37e4438f184ba4358f0fc1ca # v0.3
         with:
           push: never
           imageName: ghcr.io/azure-samples/chat-with-your-data-solution-accelerator
