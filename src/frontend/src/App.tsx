@@ -43,6 +43,7 @@ import { getAdminStatus } from "./api/admin";
 import { getBackendUrl, loadRuntimeConfig } from "./api/runtimeConfig";
 import { getUserInfo } from "./api/auth";
 import { useAuth } from "./hooks/useAuth";
+import { AuthPhase } from "./models/auth";
 import { Section, SectionPath } from "./models/sections";
 import { FluentThemeBridge } from "./theme/FluentThemeBridge";
 import { ThemeProvider } from "./theme/themeContext";
@@ -111,19 +112,23 @@ function AppShell(): JSX.Element {
     // rather than its own App Service host.
     void loadRuntimeConfig()
       .then(() => fetchHealth(controller.signal))
-      .then(async (next) => {
+      .then((next) => {
         // Skip the state update if the component unmounted mid-flight
         // (the cleanup aborts the fetch and flips `cancelled`).
         if (!cancelled) {
           setHealth(next);
         }
-        // Resolve identity from the Easy Auth /.auth/me lookup: a
-        // principal yields the real user id, otherwise the default user.
-        const userInfo = await getUserInfo();
-        if (!cancelled) {
-          resolve(userInfo);
-        }
       });
+    // Resolve identity in parallel with config+health. /.auth/me is a
+    // same-origin Easy Auth call that doesn't depend on the backend URL,
+    // so it must not wait behind the health probe -- the chat route is
+    // gated on this resolving, so the sooner it settles the sooner
+    // history loads under the correct partition.
+    void getUserInfo().then((userInfo) => {
+      if (!cancelled) {
+        resolve(userInfo);
+      }
+    });
     return () => {
       cancelled = true;
       controller.abort();
@@ -217,7 +222,16 @@ function AppShell(): JSX.Element {
         <Routes>
           <Route
             path={SectionPath[Section.Chat]}
-            element={<ChatPage key={newChatNonce} historyOpen={historyOpen} />}
+            element={
+              // Hold the chat mount until identity resolves; mounting
+              // during AuthPhase.Loading fires history requests under the
+              // zero-GUID fallback partition, not the signed-in user.
+              auth.phase === AuthPhase.Resolved ? (
+                <ChatPage key={newChatNonce} historyOpen={historyOpen} />
+              ) : (
+                <p data-testid="auth-loading">Loading…</p>
+              )
+            }
           />
           <Route path={ADMIN_BASE_PATH} element={<AdminLayout />}>
             <Route

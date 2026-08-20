@@ -85,6 +85,11 @@ dev = [
     "pyright>=1.1.380,<2.0",
 ]
 
+[[tool.uv.index]]
+name = "microsoft"
+url = "https://packagefeedproxy.microsoft.io/pypi/simple"
+default = true
+
 [tool.uv]
 prerelease = "if-necessary-or-explicit"
 # Security floors for transitive dependencies. None of these packages are

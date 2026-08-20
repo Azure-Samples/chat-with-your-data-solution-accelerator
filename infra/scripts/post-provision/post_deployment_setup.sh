@@ -222,9 +222,11 @@ echo ""
 echo "--- Running post_provision.py ---"
 echo ""
 
-# Run the Python script (uses uv if available, falls back to python)
+# Run the Python script (uses uv if available, falls back to python).
+# `--no-sync` reuses the env already created by `uv sync` (VS Code Web init
+# or the developer's local sync) instead of re-syncing.
 if command -v uv &> /dev/null; then
-    uv run python "$SCRIPT_DIR/post_provision.py"
+    uv run --no-sync python "$SCRIPT_DIR/post_provision.py"
 elif command -v python3 &> /dev/null; then
     python3 "$SCRIPT_DIR/post_provision.py"
 else

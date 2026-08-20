@@ -92,6 +92,56 @@ describe("AppShell auth bootstrap", () => {
     expect(getUserId()).toBe(DEFAULT_USER_ID);
   });
 
+  it("does not fetch history until /.auth/me resolves, then uses the resolved id", async () => {
+    // Hold /.auth/me pending so the shell stays in AuthPhase.Loading.
+    let releaseAuthMe: (() => void) | undefined;
+    const authMePending = new Promise<void>((resolve) => {
+      releaseAuthMe = resolve;
+    });
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/.auth/me")) {
+        await authMePending;
+        return jsonResponse(principalPayload());
+      }
+      if (url.includes("/api/health")) {
+        return jsonResponse({ status: "pass", version: "v2", checks: [] });
+      }
+      if (url.includes("/api/admin/status")) {
+        return jsonResponse({}, 401);
+      }
+      return jsonResponse([]);
+    });
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    const historyCalls = () =>
+      fetchMock.mock.calls.filter((args) =>
+        String(args[0]).includes("/api/history/conversations"),
+      );
+
+    render(<App />);
+
+    // While auth is loading, the chat route must not mount its history panel.
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    expect(historyCalls()).toHaveLength(0);
+
+    // Resolve identity; now the chat route mounts and history loads.
+    releaseAuthMe?.();
+    await waitFor(() => {
+      expect(getUserId()).toBe(RESOLVED_OID);
+    });
+    await waitFor(() => {
+      expect(historyCalls().length).toBeGreaterThan(0);
+    });
+    for (const call of historyCalls()) {
+      const init = call[1] as RequestInit | undefined;
+      const headers = new Headers(init?.headers);
+      expect(headers.get("x-ms-client-principal-id")).toBe(RESOLVED_OID);
+    }
+  });
+
   it("queries the Easy Auth /.auth/me endpoint on the SPA origin", async () => {
     stubFetch({ signedIn: true });
     render(<App />);

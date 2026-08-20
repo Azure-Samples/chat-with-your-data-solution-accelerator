@@ -205,7 +205,9 @@ describe("App navigation", () => {
     await waitFor(() => {
       expect(window.location.pathname).toBe("/");
     });
-    expect(screen.getByTestId("chat-page")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId("chat-page")).toBeInTheDocument();
+    });
   });
 
   it("opens the admin section via the header admin button", async () => {
