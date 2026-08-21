@@ -71,6 +71,17 @@ dependencies = [
 ]
 
 [dependency-groups]
+# Minimal set the azd post-provision hook (infra/scripts/post-provision/
+# post_provision.py) imports. The vscode_web sandbox syncs only this group
+# (`uv sync --only-group provision`) so it does not install the full runtime
+# graph just to run the post-deployment step. Versions mirror the direct
+# dependencies above; keep them in lockstep.
+provision = [
+    "httpx>=0.28,<1.0",
+    "psycopg2-binary>=2.9,<3.0",
+    "azure-identity>=1.25,<2.0",
+    "azure-search-documents>=11.6.0b1",
+]
 dev = [
     "pytest>=9.0,<10.0",
     "pytest-cov>=7.0,<8.0",
