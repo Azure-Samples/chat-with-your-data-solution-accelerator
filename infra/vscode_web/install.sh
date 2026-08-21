@@ -6,7 +6,7 @@ pip install -r requirements.txt --user -q
 curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 
-azd init -t PadhiAjit-Microsoft/chat-with-your-data-solution-accelerator -b vsweb-deployment-fix
+azd init -t Azure-Samples/chat-with-your-data-solution-accelerator
 
 # azd init clones the template into a subdirectory; sync from inside it.
 cd chat-with-your-data-solution-accelerator
