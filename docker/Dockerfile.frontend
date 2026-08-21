@@ -18,6 +18,8 @@
 # node_modules; the deployable frontend never needs it.
 FROM node:20-alpine AS dev
 WORKDIR /app
+# npm resolves from the Microsoft mirror, not the default registry.
+ENV NPM_CONFIG_REGISTRY=https://pkgs.dev.azure.com/ms-feed-12/1es-public/_packaging/npm-public/npm/registry/
 COPY src/frontend/package.json ./
 RUN npm install
 COPY src/frontend ./
@@ -32,6 +34,8 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 # rationale at the top of this file.
 FROM node:20-alpine AS build
 WORKDIR /app
+# npm resolves from the Microsoft mirror, not the default registry.
+ENV NPM_CONFIG_REGISTRY=https://pkgs.dev.azure.com/ms-feed-12/1es-public/_packaging/npm-public/npm/registry/
 COPY src/frontend/package.json ./
 RUN npm install
 COPY src/frontend ./
@@ -41,8 +45,10 @@ RUN npm run build
 
 # ---- prod stage: Python + uvicorn ----
 FROM python:3.11-slim AS prod
+# pip resolves from the Microsoft mirror, not default PyPI.
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple
 WORKDIR /usr/src/app
 RUN pip install --no-cache-dir uvicorn fastapi
 # Static assets from the build stage; small ASGI app serves them.

@@ -13,9 +13,11 @@
 # repo-root readme (outside the build context) is never touched.
 FROM mcr.microsoft.com/azure-functions/python:4-python3.11
 
+# pip resolves the runtime deps from the Microsoft mirror, not default PyPI.
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
     AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
-    PYTHONPATH=/home/site/wwwroot
+    PYTHONPATH=/home/site/wwwroot \
+    PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple
 
 WORKDIR /home/site/wwwroot
 
