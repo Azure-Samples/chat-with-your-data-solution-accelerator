@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "11594359438356913742"
+      "templateHash": "3004382601760399753"
     },
     "name": "Chat With Your Data v2",
     "description": "Foundry-first RAG accelerator. Single databaseType parameter selects chat history + vector index. Two orchestrators (Agent Framework, LangGraph) on a shared Foundry Project."
@@ -480,7 +480,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "9141985131231540814"
+              "templateHash": "1252850125242654873"
             }
           },
           "parameters": {
@@ -855,7 +855,7 @@
               }
             ],
             "useExistingLogAnalytics": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
-            "virtualMachineAvailabilityZone": 1,
+            "virtualMachineAvailabilityZone": -1,
             "aiFoundryResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
             "aiFoundrySubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
             "enablePrivateNetworkingSpeech": false,
@@ -47687,9 +47687,9 @@
               },
               "dependsOn": [
                 "logAnalyticsWorkspace",
-                "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').queue)]",
                 "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)]",
                 "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').file)]",
+                "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').queue)]",
                 "userAssignedIdentity",
                 "virtualNetwork"
               ]

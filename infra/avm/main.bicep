@@ -472,7 +472,7 @@ module windowsVmDataCollectionRules './modules/monitoring/data-collection-rule.b
 }
 
 // WAF: Proximity Placement Group for VM
-var virtualMachineAvailabilityZone = 1
+var virtualMachineAvailabilityZone = -1
 module proximityPlacementGroup './modules/compute/proximity-placement-group.bicep' = if (enablePrivateNetworking) {
   name: take('module.proximity-placement-group.${solutionName}', 64)
   params: {

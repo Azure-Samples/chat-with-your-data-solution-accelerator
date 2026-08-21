@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "9141985131231540814"
+      "templateHash": "4726995640779420330"
     }
   },
   "parameters": {
@@ -381,7 +381,7 @@
       }
     ],
     "useExistingLogAnalytics": "[not(empty(parameters('existingLogAnalyticsWorkspaceId')))]",
-    "virtualMachineAvailabilityZone": 1,
+    "virtualMachineAvailabilityZone": -1,
     "aiFoundryResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
     "aiFoundrySubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
     "enablePrivateNetworkingSpeech": false,
@@ -47213,8 +47213,8 @@
       },
       "dependsOn": [
         "logAnalyticsWorkspace",
-        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').queue)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').blob)]",
+        "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').queue)]",
         "[format('privateDnsZoneDeployments[{0}]', variables('dnsZoneIndex').file)]",
         "userAssignedIdentity",
         "virtualNetwork"
