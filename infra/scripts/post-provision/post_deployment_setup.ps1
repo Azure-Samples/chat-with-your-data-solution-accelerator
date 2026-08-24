@@ -263,10 +263,13 @@ try {
     Write-Host ""
 
     # Run the Python script (uses uv if available, falls back to python).
-    # `--no-sync` reuses the env already created by `uv sync` (VS Code Web
-    # init or the developer's local sync) instead of re-syncing.
+    # `--only-group provision` installs exactly the deps post_provision.py
+    # imports (httpx, psycopg2-binary, azure-identity, azure-search-documents);
+    # `--inexact` leaves any already-installed packages untouched. This
+    # guarantees httpx is present whether the sandbox synced provision-only,
+    # the full graph, or nothing.
     if (Get-Command uv -ErrorAction SilentlyContinue) {
-        uv run --no-sync python "$ScriptDir\post_provision.py"
+        uv run --only-group provision --inexact python "$ScriptDir\post_provision.py"
     } elseif (Get-Command python3 -ErrorAction SilentlyContinue) {
         python3 "$ScriptDir\post_provision.py"
     } else {

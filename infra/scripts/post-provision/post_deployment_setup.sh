@@ -223,10 +223,12 @@ echo "--- Running post_provision.py ---"
 echo ""
 
 # Run the Python script (uses uv if available, falls back to python).
-# `--no-sync` reuses the env already created by `uv sync` (VS Code Web init
-# or the developer's local sync) instead of re-syncing.
+# `--only-group provision` installs exactly the deps post_provision.py imports
+# (httpx, psycopg2-binary, azure-identity, azure-search-documents); `--inexact`
+# leaves any already-installed packages untouched. This guarantees httpx is
+# present whether the sandbox synced provision-only, the full graph, or nothing.
 if command -v uv &> /dev/null; then
-    uv run --no-sync python "$SCRIPT_DIR/post_provision.py"
+    uv run --only-group provision --inexact python "$SCRIPT_DIR/post_provision.py"
 elif command -v python3 &> /dev/null; then
     python3 "$SCRIPT_DIR/post_provision.py"
 else
