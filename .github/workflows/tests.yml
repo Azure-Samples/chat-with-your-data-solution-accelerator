@@ -31,9 +31,9 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up uv
-        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -41,7 +41,7 @@ jobs:
         run: uv sync --frozen --group dev
       - name: Get coverage artifact ID
         id: coverage-artifact
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         if: github.event_name == 'pull_request'
         with:
           script: |
@@ -67,7 +67,7 @@ jobs:
           result-encoding: string
           retries: 3
       - name: Download main coverage artifact
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         if: github.event_name == 'pull_request' && steps.coverage-artifact.outputs.result != ''
         continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
         with:
@@ -88,7 +88,7 @@ jobs:
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
       - name: Run Python Tests
         run: uv run pytest --junitxml=coverage-junit.xml --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=${{ steps.coverage-value.outputs.MIN_COVERAGE }}
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -97,7 +97,7 @@ jobs:
             coverage.xml
           if-no-files-found: error
       - name: Setup node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
           cache: "npm"
