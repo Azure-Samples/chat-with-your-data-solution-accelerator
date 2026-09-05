@@ -17,6 +17,8 @@ updates:
       all-actions:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
 
   # Grouped Python dependencies
   - package-ecosystem: "pip"
