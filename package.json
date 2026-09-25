@@ -14,8 +14,8 @@
     "lint": "npm run lint --workspaces --if-present"
   },
   "overrides": {
-    "@eslint/eslintrc@3.3.5": {
-      "js-yaml": "4.3.0"
+    "@eslint/eslintrc@3.3.6": {
+      "js-yaml": "4.3.2"
     },
     "esbuild": "0.28.1",
     "minimatch@3.1.5": {
