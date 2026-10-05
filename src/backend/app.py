@@ -4,7 +4,7 @@ Backend must boot headless (no frontend dependency). Telemetry is
 configured to export *directly* to Application Insights when
 `ObservabilitySettings.app_insights_connection_string` is set;
 otherwise it is a no-op so the backend-only profile boots without any
-sidecar (per v2-backend.instructions.md).
+sidecar (per v2-backend.instructions.md)
 
 Lifespan also constructs the credential + LLM provider + agents
 provider **once** and stashes them on `app.state` (see
