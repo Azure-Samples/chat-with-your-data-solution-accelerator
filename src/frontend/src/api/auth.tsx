@@ -1,25 +1,19 @@
 /**
- * Frontend identity resolution. `getUserInfo()` reads the signed-in user
- * from the Easy Auth `/.auth/me` endpoint on the SPA's own origin and
- * narrows the principal down to the Entra object-identifier claim, which
- * the backend uses as the per-user partition key. The lookup degrades to
- * `null` whenever no identity provider is configured, the caller is not
- * signed in, or the payload carries no usable object id, so the bootstrap
+ * Frontend identity resolution. `getUserInfo()` drives the browser-side
+ * MSAL (PKCE) flow via the `api/msal` seam to resolve the signed-in user
+ * and a backend-audience access token. The object id becomes the per-user
+ * partition key and the access token the bearer every API client forwards.
+ * The lookup degrades to `null` whenever no identity provider is
+ * configured (local dev) or the browser is mid-redirect, so the bootstrap
  * falls back to the default user.
  *
  * The header builder, default-user constant, and resolved-id store live
  * alongside this getter; together they are the single seam every API
- * client spreads to forward `x-ms-client-principal-id`.
+ * client spreads to forward `x-ms-client-principal-id` + `Authorization`.
  */
-import type { AuthMeResponse, UserInfo } from "@/models/auth";
-
-/**
- * Entra object-identifier claim URI. The stable per-user id (the `oid`)
- * the backend partitions chat history on -- preferred over the mutable
- * email / UPN carried in `AuthMeResponse.user_id`.
- */
-const OBJECT_ID_CLAIM =
-  "http://schemas.microsoft.com/identity/claims/objectidentifier";
+import { getMsalApp, resolveAuthWith } from "@/api/msal";
+import { getAuthConfig } from "@/api/runtimeConfig";
+import type { UserInfo } from "@/models/auth";
 
 /**
  * Identity header every API client forwards for per-user partitioning.
@@ -47,35 +41,34 @@ export const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
 let currentUserId: string | null = null;
 
 /**
- * Resolve the signed-in user from Easy Auth `/.auth/me` (the SPA's own
- * origin -- never the backend), narrowing to the object-identifier claim.
- * Returns `null` when `/.auth/me` is unavailable (no identity provider,
- * not signed in), the principal list is empty, or no usable object id is
- * present, so callers fall back to the default user. A failed fetch or
- * malformed payload degrades to `null` rather than throwing -- an absent
- * identity provider is the normal local-dev state, not an error.
+ * Resolve the signed-in user through the browser-side MSAL flow, reading
+ * the client id / authority / backend scope from the runtime config.
+ * Returns `null` when no identity provider is configured (`getMsalApp`
+ * yields no app) or the browser is navigating through a login / token
+ * redirect (`resolveAuthWith` yields no result yet), so callers fall back
+ * to the default user. `loadRuntimeConfig()` must have resolved before
+ * this runs so the auth config is populated.
  */
 export async function getUserInfo(): Promise<UserInfo | null> {
-  try {
-    const response = await fetch("/.auth/me");
-    if (!response.ok) {
-      return null;
-    }
-    const principals = (await response.json()) as AuthMeResponse[];
-    const principal = principals[0];
-    if (!principal) {
-      return null;
-    }
-    const userId = principal.user_claims.find(
-      (claim) => claim.typ === OBJECT_ID_CLAIM,
-    )?.val ?? principal.user_id;
-    if (!userId) {
-      return null;
-    }
-    return { userId, claims: principal.user_claims };
-  } catch {
+  const authConfig = getAuthConfig();
+  const app = await getMsalApp(authConfig);
+  if (!app) {
     return null;
   }
+  // Forward the ID token (audience = client id), so OIDC scopes suffice;
+  // a configured apiScope is honoured when present for forward-compat.
+  const scopes = authConfig.apiScope
+    ? [authConfig.apiScope]
+    : ["openid", "profile"];
+  const resolved = await resolveAuthWith(app, scopes);
+  if (!resolved) {
+    return null;
+  }
+  return {
+    userId: resolved.userId,
+    claims: resolved.claims,
+    accessToken: resolved.accessToken,
+  };
 }
 
 /**
@@ -90,8 +83,8 @@ export function getUserId(): string {
 /**
  * Record the resolved per-user id so subsequent {@link userIdHeaders}
  * calls forward it; passing `null` clears the override back to the
- * default. Called once by the auth bootstrap after `/.auth/me` resolves
- * (or settles on the default when no principal is present).
+ * default. Called once by the auth bootstrap after the MSAL flow
+ * resolves (or settles on the default when no user is present).
  */
 export function setUserId(userId: string | null): void {
   currentUserId = userId;
@@ -104,4 +97,42 @@ export function setUserId(userId: string | null): void {
  */
 export function userIdHeaders(): Record<string, string> {
   return { [PRINCIPAL_ID_HEADER]: getUserId() };
+}
+
+/**
+ * The backend-audience bearer token (the MSAL id token) resolved by the
+ * auth bootstrap, or `null` when none was issued (local dev, or no
+ * identity provider is configured). A module-level singleton so
+ * {@link authHeaders} stays synchronous and dependency-free at each call
+ * site -- set once by the auth bootstrap, exactly like {@link setUserId}.
+ */
+let currentAccessToken: string | null = null;
+
+/**
+ * Record the backend bearer token so subsequent {@link authHeaders} calls
+ * forward it; `null` clears it. Called by the auth bootstrap after the
+ * MSAL flow resolves (alongside {@link setUserId}).
+ */
+export function setAccessToken(token: string | null): void {
+  currentAccessToken = token;
+}
+
+/** The resolved backend bearer token, or `null` when none is available. */
+export function getAccessToken(): string | null {
+  return currentAccessToken;
+}
+
+/**
+ * Build the `Authorization: Bearer <token>` header every backend API
+ * client spreads onto its request. Returns an empty object when no token
+ * has been resolved, so local dev (no identity provider) and the existing
+ * unit tests keep working unchanged -- the header is simply absent and the
+ * backend's `AZURE_REQUIRE_ADMIN_AUTH` gate stays disabled on loopback.
+ * This is the real trust credential; `userIdHeaders()` is only a
+ * partition hint. The single source of the forwarded bearer token --
+ * clients never assemble it inline.
+ */
+export function authHeaders(): Record<string, string> {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }

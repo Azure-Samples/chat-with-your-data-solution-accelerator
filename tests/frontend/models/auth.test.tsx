@@ -5,12 +5,7 @@
  */
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { AuthPhase } from "@/models/auth";
-import type {
-  AuthMeResponse,
-  AuthState,
-  UserClaim,
-  UserInfo,
-} from "@/models/auth";
+import type { AuthState, UserClaim, UserInfo } from "@/models/auth";
 
 describe("AuthPhase enum", () => {
   it("maps every member to its canonical string", () => {
@@ -36,21 +31,13 @@ describe("AuthPhase enum", () => {
 });
 
 describe("auth wire + domain shapes", () => {
-  it("accepts the external /.auth/me principal shape (snake_case)", () => {
+  it("accepts a resolved identity claim shape (typ / val)", () => {
     const claim: UserClaim = {
-      typ: "http://schemas.microsoft.com/identity/claims/objectidentifier",
+      typ: "oid",
       val: "6b2e1f54-1c2d-4a8b-9f0e-1234567890ab",
     };
-    const principal: AuthMeResponse = {
-      user_id: "user@contoso.example.com",
-      user_claims: [claim],
-      provider_name: "aad",
-    };
-    expect(principal.user_claims[0]?.typ).toMatch(/objectidentifier$/);
-    expect(principal.user_claims[0]?.val).toBe(
-      "6b2e1f54-1c2d-4a8b-9f0e-1234567890ab",
-    );
-    expect(principal.provider_name).toBe("aad");
+    expect(claim.typ).toBe("oid");
+    expect(claim.val).toBe("6b2e1f54-1c2d-4a8b-9f0e-1234567890ab");
   });
 
   it("accepts the FE-owned resolved UserInfo shape", () => {

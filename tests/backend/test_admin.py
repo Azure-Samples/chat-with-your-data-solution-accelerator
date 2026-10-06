@@ -44,6 +44,7 @@ from backend.dependencies import (
     get_database_client,
     get_search_provider,
     get_user_id,
+    require_authenticated_user,
 )
 from backend.models.admin import (
     AdminConfig,
@@ -190,6 +191,12 @@ def admin_app_factory():
         # Pin get_user_id so route tests receive a fixed caller GUID
         # without forging the x-ms-client-principal-id header.
         app.dependency_overrides[get_user_id] = lambda: _FIXED_USER_ID
+        # Pin the router-level auth gate to a fixed authenticated caller
+        # so functional route tests don't need to drive EasyAuth headers;
+        # the fail-closed 401 behavior is covered in test_admin_auth.py.
+        app.dependency_overrides[require_authenticated_user] = (
+            lambda: _FIXED_USER_ID
+        )
         # Pin a sentinel credential so routes consuming ``CredentialDep``
         # don't trip on the lifespan-less ASGI test transport.
         cred = credential if credential is not None else AsyncMock()

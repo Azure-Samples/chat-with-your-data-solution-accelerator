@@ -57,6 +57,12 @@ hooks:
         Write-Host "   Or using Bash:" -ForegroundColor Yellow
         Write-Host "   bash infra/scripts/post-provision/post_deployment_setup.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
         Write-Host ""
+        Write-Host "4. Secure the backend (enables Easy Auth so anonymous callers cannot reach /api/admin/*):" -ForegroundColor Yellow
+        Write-Host "   .\infra\scripts\post-provision\setup_auth.ps1 -ResourceGroupName `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "   Or using Bash:" -ForegroundColor Yellow
+        Write-Host "   bash infra/scripts/post-provision/setup_auth.sh `"$env:AZURE_RESOURCE_GROUP`"" -ForegroundColor Cyan
+        Write-Host ""
       continueOnError: false
       interactive: true
     posix:
@@ -75,6 +81,9 @@ hooks:
         echo ""
         echo "3. Run the post-deployment setup script:"
         echo "   bash infra/scripts/post-provision/post_deployment_setup.sh \"$AZURE_RESOURCE_GROUP\""
+        echo ""
+        echo "4. Secure the backend (enables Easy Auth so anonymous callers cannot reach /api/admin/*):"
+        echo "   bash infra/scripts/post-provision/setup_auth.sh \"$AZURE_RESOURCE_GROUP\""
         echo ""
       continueOnError: false
       interactive: true
