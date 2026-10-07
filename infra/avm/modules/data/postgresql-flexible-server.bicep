@@ -78,6 +78,9 @@ param highAvailabilityZone int = -1
 @description('Optional. Managed identities for the resource.')
 param managedIdentities object = { systemAssigned: true }
 
+@description('Optional. Enable/Disable Advanced Threat Protection. Disabled by default because the underlying AVM module names the advancedThreatProtectionSettings child resource with a value other than the RP-required "Default", which fails deployment.')
+param enableAdvancedThreatProtection bool = false
+
 // ============================================================================
 // AVM Module Deployment
 // ============================================================================
@@ -88,6 +91,7 @@ module postgresServer 'br/public:avm/res/db-for-postgre-sql/flexible-server:0.15
     location: location
     tags: tags
     enableTelemetry: enableTelemetry
+    enableAdvancedThreatProtection: enableAdvancedThreatProtection
     skuName: skuName
     tier: skuTier
     storageSizeGB: storageSizeGB
