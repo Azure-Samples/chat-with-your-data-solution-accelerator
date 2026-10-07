@@ -6,7 +6,10 @@
  * as the local-dev fallback).
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deriveDocumentHref } from "@/pages/chat/components/CitationDetailPanel/documentHref";
+import {
+  deriveDocumentHref,
+  resolveCitationDocument,
+} from "@/pages/chat/components/CitationDetailPanel/documentHref";
 import type { Citation } from "@/models/chat";
 import { loadRuntimeConfig, resetRuntimeConfig } from "@/api/runtimeConfig";
 
@@ -92,5 +95,49 @@ describe("deriveDocumentHref", () => {
     expect(deriveDocumentHref(citation({ title: "Benefit_Options.pdf" }))).toBe(
       "https://local.example.com/api/files/Benefit_Options.pdf",
     );
+  });
+});
+
+describe("resolveCitationDocument", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    resetRuntimeConfig();
+  });
+
+  it("classifies a blob filename in the title as a gated file", () => {
+    expect(
+      resolveCitationDocument(citation({ title: "Benefit_Options.pdf" })),
+    ).toEqual({ kind: "file", filename: "Benefit_Options.pdf" });
+  });
+
+  it("classifies a raw blob-storage URL as a gated file by its name", () => {
+    expect(
+      resolveCitationDocument(
+        citation({
+          url: "https://acct.blob.core.windows.net/documents/Benefit_Options.pdf",
+        }),
+      ),
+    ).toEqual({ kind: "file", filename: "Benefit_Options.pdf" });
+  });
+
+  it("classifies a non-blob http URL as an external link", () => {
+    expect(
+      resolveCitationDocument(
+        citation({ url: "https://contoso.com/policies/leave.pdf" }),
+      ),
+    ).toEqual({ kind: "external", url: "https://contoso.com/policies/leave.pdf" });
+  });
+
+  it("classifies an http title as an external link when the url is empty", () => {
+    expect(
+      resolveCitationDocument(
+        citation({ title: "https://contoso.com/news/update", url: "" }),
+      ),
+    ).toEqual({ kind: "external", url: "https://contoso.com/news/update" });
+  });
+
+  it("returns null when neither url nor title is usable", () => {
+    expect(resolveCitationDocument(citation({ title: "", url: "" }))).toBeNull();
   });
 });

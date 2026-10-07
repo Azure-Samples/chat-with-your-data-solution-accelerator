@@ -173,8 +173,7 @@ def test_config_returns_auth_fields_from_env(tmp_path: Path) -> None:
     body = response.json()
     assert body["authClientId"] == "11111111-1111-1111-1111-111111111111"
     assert body["authAuthority"] == (
-        "https://login.microsoftonline.com/"
-        "22222222-2222-2222-2222-222222222222"
+        "https://login.microsoftonline.com/" "22222222-2222-2222-2222-222222222222"
     )
     assert body["authApiScope"] == (
         "api://11111111-1111-1111-1111-111111111111/user_impersonation"

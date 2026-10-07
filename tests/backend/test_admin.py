@@ -194,9 +194,7 @@ def admin_app_factory():
         # Pin the router-level auth gate to a fixed authenticated caller
         # so functional route tests don't need to drive EasyAuth headers;
         # the fail-closed 401 behavior is covered in test_admin_auth.py.
-        app.dependency_overrides[require_authenticated_user] = (
-            lambda: _FIXED_USER_ID
-        )
+        app.dependency_overrides[require_authenticated_user] = lambda: _FIXED_USER_ID
         # Pin a sentinel credential so routes consuming ``CredentialDep``
         # don't trip on the lifespan-less ASGI test transport.
         cred = credential if credential is not None else AsyncMock()
