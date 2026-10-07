@@ -1,8 +1,8 @@
 /**
  * Auth state machine for the app shell. Owns the `AuthState`
  * (`userId` / `userInfo` / `phase`) and exposes a single
- * `resolve(userInfo)` action the shell calls once the Easy Auth
- * `/.auth/me` lookup settles. `resolve` keeps the `api/auth.tsx`
+ * `resolve(userInfo)` action the shell calls once the MSAL identity
+ * lookup settles. `resolve` keeps the `api/auth.tsx`
  * resolved-id singleton in sync so every API client forwards the right
  * `x-ms-client-principal-id`, and settles the lifecycle phase to
  * `Resolved`:
@@ -16,7 +16,7 @@
  * component below the shell needs to consume this hook.
  */
 import { useCallback, useState } from "react";
-import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
+import { DEFAULT_USER_ID, setAccessToken, setUserId } from "@/api/auth";
 import { AuthPhase, type AuthState, type UserInfo } from "@/models/auth";
 
 /** Pre-bootstrap state: default user, nothing resolved, still loading. */
@@ -42,8 +42,10 @@ export function useAuth(): UseAuthResult {
 
   const resolve = useCallback((userInfo: UserInfo | null) => {
     if (userInfo) {
-      // A signed-in user resolved: forward their object id everywhere.
+      // A signed-in user resolved: forward their object id everywhere,
+      // and the backend bearer token that authenticates the ingress.
       setUserId(userInfo.userId);
+      setAccessToken(userInfo.accessToken ?? null);
       setAuth({
         userId: userInfo.userId,
         userInfo,
@@ -51,8 +53,9 @@ export function useAuth(): UseAuthResult {
       });
       return;
     }
-    // No signed-in user: fall back to the default user.
+    // No signed-in user: fall back to the default user and no token.
     setUserId(null);
+    setAccessToken(null);
     setAuth({
       userId: DEFAULT_USER_ID,
       userInfo: null,

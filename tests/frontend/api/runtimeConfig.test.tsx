@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getAuthConfig,
   getBackendUrl,
   loadRuntimeConfig,
   resetRuntimeConfig,
@@ -110,5 +111,54 @@ describe("runtimeConfig", () => {
     resetRuntimeConfig();
 
     expect(getBackendUrl()).toBe("https://env.example.com");
+  });
+
+  it("defaults the auth config to empty before /config loads", () => {
+    expect(getAuthConfig()).toEqual({
+      clientId: "",
+      authority: "",
+      apiScope: "",
+    });
+  });
+
+  it("caches the MSAL auth config from /config", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        backendUrl: "https://backend.example.com",
+        authClientId: "client-123",
+        authAuthority: "https://login.microsoftonline.com/tenant-456",
+        authApiScope: "api://client-123/user_impersonation",
+      }),
+    );
+
+    await loadRuntimeConfig();
+
+    expect(getAuthConfig()).toEqual({
+      clientId: "client-123",
+      authority: "https://login.microsoftonline.com/tenant-456",
+      apiScope: "api://client-123/user_impersonation",
+    });
+  });
+
+  it("resetRuntimeConfig clears the cached auth config", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        backendUrl: "https://backend.example.com",
+        authClientId: "client-123",
+        authAuthority: "https://login.microsoftonline.com/tenant-456",
+        authApiScope: "api://client-123/user_impersonation",
+      }),
+    );
+
+    await loadRuntimeConfig();
+    expect(getAuthConfig().clientId).toBe("client-123");
+
+    resetRuntimeConfig();
+
+    expect(getAuthConfig()).toEqual({
+      clientId: "",
+      authority: "",
+      apiScope: "",
+    });
   });
 });

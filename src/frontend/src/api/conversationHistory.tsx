@@ -16,7 +16,7 @@
  * `HistoryPanel` base convention.
  */
 import type { ChatMessage, Citation, MessageRole } from "@/models/chat";
-import { userIdHeaders } from "@/api/auth";
+import { authHeaders, userIdHeaders } from "@/api/auth";
 import { getBackendUrl } from "@/api/runtimeConfig";
 
 /** Result of {@link fetchConversation}: the resolved id + rehydrated transcript. */
@@ -140,7 +140,7 @@ export async function fetchConversation(id: string): Promise<LoadedConversation>
   const url = `${backendUrl()}/api/history/conversations/${encodeURIComponent(id)}`;
   const response = await fetch(url, {
     method: "GET",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(

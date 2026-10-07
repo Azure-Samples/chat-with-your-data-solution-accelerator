@@ -10,6 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@azure/msal-browser": "^4.0.0",
     "@fluentui/react-components": "^9.73.8",
     "@fluentui/react-icons": "^2.0.326",
     "microsoft-cognitiveservices-speech-sdk": "^1.51.0",
