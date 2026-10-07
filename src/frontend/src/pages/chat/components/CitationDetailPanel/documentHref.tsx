@@ -27,6 +27,17 @@ import { getBackendUrl } from "@/api/runtimeConfig";
 
 const BLOB_HOST_FRAGMENT = ".blob.core.windows.net";
 
+/**
+ * Classified "Open document" target for a citation. An `external`
+ * document is a plain http(s) URL the browser opens directly; a `file`
+ * document is a blob stored behind the backend Easy Auth gate, reachable
+ * only by the authenticated `/api/files/<name>` fetch (a bearer-less
+ * top-level navigation is rejected with 401).
+ */
+export type CitationDocument =
+  | { kind: "external"; url: string }
+  | { kind: "file"; filename: string };
+
 function isHttpUrl(value: string): boolean {
   return value.startsWith("http://") || value.startsWith("https://");
 }
@@ -56,21 +67,34 @@ function lastPathSegment(rawUrl: string): string {
   }
 }
 
-export function deriveDocumentHref(citation: Citation): string | null {
+/**
+ * Classify a citation's document target as an external URL (open
+ * directly) or a backend-gated file (fetch with the bearer). Returns
+ * `null` when neither `url` nor `title` yields a usable target.
+ */
+export function resolveCitationDocument(citation: Citation): CitationDocument | null {
   const url = citation.url;
   if (isHttpUrl(url)) {
     if (isAzureBlobHost(url)) {
       const filename = lastPathSegment(url);
-      return filename.length > 0 ? filesHref(filename) : null;
+      return filename.length > 0 ? { kind: "file", filename } : null;
     }
-    return url;
+    return { kind: "external", url };
   }
   const title = citation.title;
   if (isHttpUrl(title)) {
-    return title;
+    return { kind: "external", url: title };
   }
   if (title.length > 0) {
-    return filesHref(title);
+    return { kind: "file", filename: title };
   }
   return null;
+}
+
+export function deriveDocumentHref(citation: Citation): string | null {
+  const doc = resolveCitationDocument(citation);
+  if (doc === null) {
+    return null;
+  }
+  return doc.kind === "external" ? doc.url : filesHref(doc.filename);
 }
