@@ -13,8 +13,8 @@
  * runs a one-shot `getAdminStatus()`
  * probe: a 2xx surfaces the gated admin entry, any non-2xx (or
  * transport failure) keeps it hidden so non-admin sessions never see a
- * dead-end link. Alongside the health probe, `AppShell` runs the Easy
- * Auth `/.auth/me` lookup (via `useAuth`) to resolve the signed-in user
+ * dead-end link. Alongside the health probe, `AppShell` runs the MSAL
+ * identity lookup (via `useAuth`) to resolve the signed-in user
  * -- or the default user when no principal is present -- so every API call
  * forwards a per-user `x-ms-client-principal-id`. `historyOpen`,
  * `newChatNonce`, and
@@ -65,6 +65,8 @@ function adminChildPath(section: Section): string {
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   const url = `${getBackendUrl().replace(/\/$/, "")}/api/health`;
   try {
+    // `/api/health` is excluded from the backend Easy Auth gate (a public
+    // liveness probe), so it carries no token and does not wait on sign-in.
     const response = await fetch(url, { signal });
     if (!response.ok) {
       return { status: "error", message: `HTTP ${response.status}` };
@@ -105,40 +107,51 @@ function AppShell(): JSX.Element {
   const { auth, resolve } = useAuth();
 
   useEffect(() => {
+    // Health is a public liveness probe (excluded from the backend Easy
+    // Auth gate), so it fires early -- right after the backend origin
+    // resolves from `/config` -- without waiting on sign-in.
     const controller = new AbortController();
     let cancelled = false;
-    // Resolve the runtime backend origin from `/config` before probing,
-    // so the deployed split-host SPA targets the backend Container App
-    // rather than its own App Service host.
     void loadRuntimeConfig()
       .then(() => fetchHealth(controller.signal))
       .then((next) => {
-        // Skip the state update if the component unmounted mid-flight
-        // (the cleanup aborts the fetch and flips `cancelled`).
         if (!cancelled) {
           setHealth(next);
         }
       });
-    // Resolve identity in parallel with config+health. /.auth/me is a
-    // same-origin Easy Auth call that doesn't depend on the backend URL,
-    // so it must not wait behind the health probe -- the chat route is
-    // gated on this resolving, so the sooner it settles the sooner
-    // history loads under the correct partition.
-    void getUserInfo().then((userInfo) => {
-      if (!cancelled) {
-        resolve(userInfo);
-      }
-    });
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [resolve]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
+    // Resolve identity after the runtime config loads: the MSAL flow
+    // needs the client id / authority from `/config` before it can
+    // acquire a token. The admin probe below waits on the resolved phase
+    // so it forwards the bearer.
     void loadRuntimeConfig()
-      .then(() => getAdminStatus())
+      .then(() => getUserInfo())
+      .then((userInfo) => {
+        if (!cancelled) {
+          resolve(userInfo);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resolve]);
+
+  useEffect(() => {
+    // The admin-status probe hits the gated `/api/admin/*` surface, which
+    // returns 401 for anonymous requests, so it must forward the resolved
+    // bearer. Wait until identity settles (token set via `resolve`).
+    if (auth.phase !== AuthPhase.Resolved) {
+      return;
+    }
+    let cancelled = false;
+    void getAdminStatus()
       .then(() => {
         if (!cancelled) {
           setAdminAvailable(true);
@@ -152,7 +165,7 @@ function AppShell(): JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [auth.phase]);
 
   return (
     <CoralShellColumn>

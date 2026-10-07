@@ -1,7 +1,7 @@
 ---
 title: Admin and configuration
 description: Manage documents and application settings from the admin pages built into the Chat with Your Data web app.
-ms.date: 2026-07-03
+ms.date: 2026-10-05
 ms.topic: how-to
 ---
 
@@ -18,7 +18,15 @@ Administration is part of the web app. There is no separate admin site to deploy
 
 ## Access control
 
-End users sign in interactively through the Container Apps built-in authentication (Easy Auth). The admin area is reached through the same app at `/admin`, and you control who can open it at the identity provider or ingress layer rather than with an in-app role check. See [App authentication setup](authentication_setup.md) for how to restrict admin access.
+End users sign in interactively through the Container Apps built-in authentication (Easy Auth). The admin area is reached through the same app at `/admin`, and the admin API it calls lives on the backend Container App.
+
+Admin access is enforced in two layers:
+
+- **Backend ingress authentication.** Easy Auth on the backend Container App rejects any request without a validated Entra token (returns 401 before the request reaches the app). The frontend and backend are separate Container Apps with separate ingress, so the frontend's sign-in does not cover the backend — you must enable backend authentication explicitly by running the `setup_auth` script. See [App authentication setup](authentication_setup.md).
+- **In-app fail-closed gate.** The backend requires a caller identity on every `/api/admin/*` route (`AZURE_REQUIRE_ADMIN_AUTH`, default `true`) as defense in depth, and records the authenticated identity as the audit actor on configuration changes.
+
+> [!IMPORTANT]
+> Running the backend without `setup_auth` leaves the admin API reachable by anonymous callers. Run the [authentication setup script](authentication_setup.md#recommended-run-the-setup-script-configures-both-apps) before exposing a deployment.
 
 ## Admin pages
 

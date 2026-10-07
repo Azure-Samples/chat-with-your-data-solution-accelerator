@@ -338,6 +338,35 @@ class NetworkSettings(BaseSettings):
         )
 
 
+class AuthSettings(BaseSettings):
+    """Admin-surface authentication toggle.
+
+    Reads: AZURE_REQUIRE_ADMIN_AUTH.
+
+    When ``require_admin_auth`` is True (the secure default) every
+    ``/api/admin`` route requires a caller identity injected by the
+    platform authentication layer (Azure Container Apps EasyAuth) via
+    the ``x-ms-client-principal-id`` header. A request without a valid
+    principal is rejected with 401 before it reaches the handler, so an
+    anonymous internet caller can no longer read config, disable content
+    safety, or mutate / delete the indexed corpus.
+
+    The header is only trustworthy when the **backend** Container App
+    ingress has EasyAuth enabled -- the platform then strips any client-
+    supplied value and injects the validated principal. Enable it with
+    the ``setup_auth`` post-provision script (see
+    docs/authentication_setup.md).
+
+    Local development runs without EasyAuth: set
+    ``AZURE_REQUIRE_ADMIN_AUTH=false`` to restore the anonymous-caller
+    ergonomics on a loopback dev stack.
+    """
+
+    model_config = SettingsConfigDict(env_prefix="AZURE_", extra="ignore")
+
+    require_admin_auth: bool = True
+
+
 class OrchestratorSettings(BaseSettings):
     """Runtime-tunable orchestrator selection (registry key).
 
@@ -519,6 +548,7 @@ class AppSettings(BaseSettings):
     storage: StorageSettings = Field(default_factory=StorageSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     network: NetworkSettings = Field(default_factory=NetworkSettings)
+    auth: AuthSettings = Field(default_factory=AuthSettings)
     orchestrator: OrchestratorSettings = Field(default_factory=OrchestratorSettings)
     speech: SpeechSettings = Field(default_factory=SpeechSettings)
     content_safety: ContentSafetySettings = Field(default_factory=ContentSafetySettings)

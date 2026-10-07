@@ -4,7 +4,7 @@ Backend must boot headless (no frontend dependency). Telemetry is
 configured to export *directly* to Application Insights when
 `ObservabilitySettings.app_insights_connection_string` is set;
 otherwise it is a no-op so the backend-only profile boots without any
-sidecar (per v2-backend.instructions.md).
+sidecar (per v2-backend.instructions.md)
 
 Lifespan also constructs the credential + LLM provider + agents
 provider **once** and stashes them on `app.state` (see
@@ -32,7 +32,13 @@ from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.databases import registry as databases_registry
 from backend.core.providers.llm import registry as llm_registry
 from backend.core.providers.search import registry as search_registry
-from backend.core.settings import AppSettings, IndexStore, NetworkSettings, get_settings
+from backend.core.settings import (
+    AppSettings,
+    AuthSettings,
+    IndexStore,
+    NetworkSettings,
+    get_settings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -295,8 +301,7 @@ def create_app() -> FastAPI:
 
     # Sourced from typed `NetworkSettings.cors_origins`,
     # which reads the bare `BACKEND_CORS_ORIGINS` env var via
-    # `validation_alias`. Empty list -> wildcard, matching the legacy
-    # behavior of the previous `os.getenv` default.
+    # `validation_alias`.
     #
     # Instantiated standalone (not via `get_settings()`) so module
     # import time stays cheap and side-effect-free for tools that just
@@ -304,7 +309,17 @@ def create_app() -> FastAPI:
     # validates lazily inside the lifespan, where DB / Foundry env
     # checks belong.
     network = NetworkSettings()
-    origins = list(network.cors_origins) or ["*"]
+    auth = AuthSettings()
+    origins = list(network.cors_origins)
+    if not origins:
+        # No explicit origins configured. Fall back to a wildcard only
+        # when admin auth is disabled (local dev). When auth is required
+        # (the secure default), a wildcard backend is a cross-site risk,
+        # so deny cross-origin by default -- the operator sets
+        # `BACKEND_CORS_ORIGINS` to the frontend origin (the `setup_auth`
+        # script records it in the azd env). Same-origin requests are
+        # unaffected; only cross-origin browser calls are gated.
+        origins = [] if auth.require_admin_auth else ["*"]
     # CORS spec forbids `Access-Control-Allow-Credentials: true` paired
     # with a wildcard origin. Browsers silently drop credentials in
     # that combo, so flip credentials off when origins is wide-open.

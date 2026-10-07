@@ -101,7 +101,12 @@ def test_config_returns_backend_url_from_env(tmp_path: Path) -> None:
         os.environ.pop("BACKEND_API_URL", None)
 
     assert response.status_code == 200
-    assert response.json() == {"backendUrl": "https://backend.example.com"}
+    assert response.json() == {
+        "backendUrl": "https://backend.example.com",
+        "authClientId": "",
+        "authAuthority": "",
+        "authApiScope": "",
+    }
 
 
 def test_config_defaults_to_empty_when_env_unset(tmp_path: Path) -> None:
@@ -114,7 +119,12 @@ def test_config_defaults_to_empty_when_env_unset(tmp_path: Path) -> None:
     response = client.get("/config")
 
     assert response.status_code == 200
-    assert response.json() == {"backendUrl": ""}
+    assert response.json() == {
+        "backendUrl": "",
+        "authClientId": "",
+        "authAuthority": "",
+        "authApiScope": "",
+    }
 
 
 def test_config_route_takes_precedence_over_spa_catch_all(tmp_path: Path) -> None:
@@ -128,4 +138,43 @@ def test_config_route_takes_precedence_over_spa_catch_all(tmp_path: Path) -> Non
     response = client.get("/config")
 
     assert response.status_code == 200
-    assert response.json() == {"backendUrl": ""}
+    assert response.json() == {
+        "backendUrl": "",
+        "authClientId": "",
+        "authAuthority": "",
+        "authApiScope": "",
+    }
+
+
+def test_config_returns_auth_fields_from_env(tmp_path: Path) -> None:
+    """GET /config surfaces the MSAL client id, authority, and API scope.
+
+    The SPA runs a browser-side PKCE flow, so it needs the app
+    registration client id, the tenant authority, and the backend API
+    scope at runtime -- all env-specific, hence served from /config
+    rather than baked into the bundle.
+    """
+    (tmp_path / "index.html").write_text("<html></html>")
+    os.environ["AZURE_AUTH_CLIENT_ID"] = "11111111-1111-1111-1111-111111111111"
+    os.environ["AZURE_TENANT_ID"] = "22222222-2222-2222-2222-222222222222"
+    os.environ["AZURE_AUTH_API_SCOPE"] = (
+        "api://11111111-1111-1111-1111-111111111111/user_impersonation"
+    )
+    try:
+        module = _load_app(tmp_path)
+        client = TestClient(module.app)
+        response = client.get("/config")
+    finally:
+        os.environ.pop("AZURE_AUTH_CLIENT_ID", None)
+        os.environ.pop("AZURE_TENANT_ID", None)
+        os.environ.pop("AZURE_AUTH_API_SCOPE", None)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["authClientId"] == "11111111-1111-1111-1111-111111111111"
+    assert body["authAuthority"] == (
+        "https://login.microsoftonline.com/" "22222222-2222-2222-2222-222222222222"
+    )
+    assert body["authApiScope"] == (
+        "api://11111111-1111-1111-1111-111111111111/user_impersonation"
+    )

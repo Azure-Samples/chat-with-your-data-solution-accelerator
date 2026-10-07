@@ -412,12 +412,23 @@ bash infra/scripts/post-provision/post_deployment_setup.sh "<your-resource-group
 > [!NOTE]
 > The script auto-discovers all resources in the resource group. It handles private networking (WAF) deployments by temporarily enabling public access, performing the setup, then restoring the original state.
 
-### 5.3 Configure authentication (Recommended)
+### 5.3 Configure authentication (Required for public deployments)
 
-The deployed app works without an identity provider, but it then treats every visitor as a single shared default user with no sign-in and no per-user history isolation. Configure authentication to require Microsoft Entra ID sign-in, give each user their own chat history, and control who can reach the admin area.
+The deployed app works without an identity provider, but it then treats every visitor as a single shared default user — and the backend admin API is reachable by anonymous callers. Run the setup script to secure both Container Apps in one step:
 
-1. Follow [Set up authentication](./authentication_setup.md).
-2. Allow a few minutes for the authentication changes to take effect.
+**PowerShell (Windows):**
+
+```powershell
+.\infra\scripts\post-provision\setup_auth.ps1 -ResourceGroupName "<your-resource-group-name>"
+```
+
+**Bash (Linux/macOS/WSL):**
+
+```bash
+bash infra/scripts/post-provision/setup_auth.sh "<your-resource-group-name>"
+```
+
+The script configures Easy Auth on the frontend (if not already set), secures the backend ingress (anonymous → 401) with the frontend's token accepted, enables the in-app admin gate, and verifies the result. See [Set up authentication](./authentication_setup.md) for details and the manual portal alternative. After it finishes, sign out and back in so the browser picks up a fresh token, then confirm `curl -i "https://<backend-fqdn>/api/admin/status"` returns `401`.
 
 ### 5.4 Verify deployment
 
