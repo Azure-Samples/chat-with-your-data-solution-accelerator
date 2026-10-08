@@ -22,7 +22,7 @@ content-safety / post-prompt guards once they are exposed via DI.
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Header, Request
+from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import StreamingResponse
 
 from backend.dependencies import (
@@ -36,6 +36,7 @@ from backend.dependencies import (
     SearchProviderDep,
     SettingsDep,
     UserIdDep,
+    require_authenticated_user,
 )
 from backend.models.conversation import ConversationRequest, ConversationResponse
 from backend.core.agents.definitions import CWYD_AGENT
@@ -52,7 +53,11 @@ from backend.services.sse import SSE_MEDIA_TYPE, wants_sse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api", tags=["conversation"])
+router = APIRouter(
+    prefix="/api",
+    tags=["conversation"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 @router.post(

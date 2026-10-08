@@ -14,7 +14,11 @@ from azure.core.exceptions import ClientAuthenticationError
 from fastapi import FastAPI
 
 from backend.core.settings import SpeechSettings
-from backend.dependencies import get_app_settings, get_credential_provider
+from backend.dependencies import (
+    get_app_settings,
+    get_credential_provider,
+    require_authenticated_user,
+)
 from backend.routers import speech as speech_router
 
 # ---------------------------------------------------------------------------
@@ -64,6 +68,11 @@ def _build_app(settings: Any, credential_provider: Any) -> FastAPI:
     app.include_router(speech_router.router)
     app.dependency_overrides[get_app_settings] = lambda: settings
     app.dependency_overrides[get_credential_provider] = lambda: credential_provider
+    # Bypass the router-level auth gate; the 401 fail-closed behavior is
+    # covered in test_admin_auth.py.
+    app.dependency_overrides[require_authenticated_user] = (
+        lambda: "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+    )
     return app
 
 
