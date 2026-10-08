@@ -28,14 +28,22 @@ Status surface:
 import mimetypes
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from fastapi.responses import Response
 
-from backend.dependencies import CredentialDep, SettingsDep
+from backend.dependencies import (
+    CredentialDep,
+    SettingsDep,
+    require_authenticated_user,
+)
 from backend.models.errors import ErrorResponse
 from backend.services.files import download_document
 
-router = APIRouter(prefix="/api", tags=["files"])
+router = APIRouter(
+    prefix="/api",
+    tags=["files"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 @router.get(

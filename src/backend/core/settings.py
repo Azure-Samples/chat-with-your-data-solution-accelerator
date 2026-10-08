@@ -339,17 +339,19 @@ class NetworkSettings(BaseSettings):
 
 
 class AuthSettings(BaseSettings):
-    """Admin-surface authentication toggle.
+    """API authentication toggle.
 
     Reads: AZURE_REQUIRE_ADMIN_AUTH.
 
     When ``require_admin_auth`` is True (the secure default) every
-    ``/api/admin`` route requires a caller identity injected by the
-    platform authentication layer (Azure Container Apps EasyAuth) via
-    the ``x-ms-client-principal-id`` header. A request without a valid
-    principal is rejected with 401 before it reaches the handler, so an
-    anonymous internet caller can no longer read config, disable content
-    safety, or mutate / delete the indexed corpus.
+    protected API router (``/api/admin``, ``/api/history``,
+    ``/api/conversation``, ``/api/files``, ``/api/speech``) requires a
+    caller identity injected by the platform authentication layer (Azure
+    Container Apps EasyAuth) via the ``x-ms-client-principal-id`` header.
+    A request without a valid principal is rejected with 401 before it
+    reaches the handler, so an anonymous internet caller can no longer
+    reach the chat, history, document, or admin surfaces. ``/api/health``
+    is the single public exception (a liveness probe).
 
     The header is only trustworthy when the **backend** Container App
     ingress has EasyAuth enabled -- the platform then strips any client-
