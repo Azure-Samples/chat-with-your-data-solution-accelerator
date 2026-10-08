@@ -19,6 +19,7 @@ from backend.dependencies import (
     get_llm_provider,
     get_post_prompt_validator,
     get_search_provider,
+    require_authenticated_user,
 )
 from backend.core.agents.definitions import (
     CWYD_AGENT,
@@ -210,6 +211,11 @@ def app_with_fakes(monkeypatch: pytest.MonkeyPatch):
 
     app = create_app()
     app.dependency_overrides[get_app_settings] = lambda: _fake_settings()
+    # Bypass the router-level auth gate (fail-closed 401 is covered in
+    # test_admin_auth.py); these tests exercise orchestrator behavior.
+    app.dependency_overrides[require_authenticated_user] = (
+        lambda: "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+    )
     app.dependency_overrides[get_llm_provider] = lambda: object()
     # Always override the agents provider: ASGITransport doesn't run
     # lifespan, so `app.state.agents_provider` is never set. Without

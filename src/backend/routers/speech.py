@@ -15,15 +15,23 @@ flow implemented in :mod:`backend.core.speech`.
 import logging
 
 from azure.core.exceptions import AzureError
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.core.speech import mint_speech_token
-from backend.dependencies import CredentialProviderDep, SettingsDep
+from backend.dependencies import (
+    CredentialProviderDep,
+    SettingsDep,
+    require_authenticated_user,
+)
 from backend.models.errors import ErrorResponse
 from backend.models.speech import SpeechConfig
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/speech", tags=["speech"])
+router = APIRouter(
+    prefix="/api/speech",
+    tags=["speech"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 @router.get(
