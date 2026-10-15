@@ -1,10 +1,13 @@
 # Backend image: FastAPI + uv (shared by docker-compose.dev + azd deploy)
 FROM python:3.11-slim
 
+# Route the `pip install uv` bootstrap through the Microsoft mirror; uv sync
+# itself resolves from the [[tool.uv.index]] in pyproject.toml.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT=/opt/venv
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PIP_INDEX_URL=https://packagefeedproxy.microsoft.io/pypi/simple
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential curl ca-certificates \

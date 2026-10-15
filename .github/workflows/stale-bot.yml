@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Mark Stale Issues and PRs
-        uses: actions/stale@v10
+        uses: actions/stale@1e223db275d687790206a7acac4d1a11bd6fe629 # v10
         with:
           stale-issue-message: "This issue is stale because it has been open 180 days with no activity. Remove stale label or comment, or it will be closed in 30 days."
           stale-pr-message: "This PR is stale because it has been open 180 days with no activity. Please update or it will be closed in 30 days."
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0  # Fetch full history for accurate branch checks
       - name: Fetch All Branches
@@ -75,7 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload CSV Report of Inactive Branches
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: merged-branches-report
           path: merged_branches_report.csv

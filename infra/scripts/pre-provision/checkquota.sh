@@ -4,13 +4,26 @@
 IFS=', ' read -ra REGIONS <<< "$AZURE_REGIONS"
 
 SUBSCRIPTION_ID="${AZURE_SUBSCRIPTION_ID}"
+
+# Model deployment names, SKUs, and minimum capacities.
+# Defaults mirror the parameter defaults in infra/main.bicep. Override via env
+# vars to match a customized deployment.
+GPT_MODEL_NAME="${GPT_MODEL_NAME:-gpt-5.4-mini}"
+GPT_DEPLOYMENT_TYPE="${GPT_DEPLOYMENT_TYPE:-GlobalStandard}"
 GPT_MIN_CAPACITY="${GPT_MIN_CAPACITY}"
+
+REASONING_MODEL_NAME="${REASONING_MODEL_NAME:-gpt-5-mini}"
+REASONING_DEPLOYMENT_TYPE="${REASONING_DEPLOYMENT_TYPE:-GlobalStandard}"
+REASONING_MIN_CAPACITY="${REASONING_MIN_CAPACITY:-$GPT_MIN_CAPACITY}"
+
+TEXT_EMBEDDING_MODEL_NAME="${TEXT_EMBEDDING_MODEL_NAME:-text-embedding-3-small}"
+TEXT_EMBEDDING_DEPLOYMENT_TYPE="${TEXT_EMBEDDING_DEPLOYMENT_TYPE:-Standard}"
 TEXT_EMBEDDING_MIN_CAPACITY="${TEXT_EMBEDDING_MIN_CAPACITY}"
 
 # Authentication is handled by the caller workflow via OIDC
 
 echo "🔄 Validating required environment variables..."
-if [[ -z "$SUBSCRIPTION_ID" || -z "$GPT_MIN_CAPACITY" || -z "$TEXT_EMBEDDING_MIN_CAPACITY" || -z "$REGIONS" ]]; then
+if [[ -z "$SUBSCRIPTION_ID" || -z "$GPT_MIN_CAPACITY" || -z "$REASONING_MIN_CAPACITY" || -z "$TEXT_EMBEDDING_MIN_CAPACITY" || -z "$REGIONS" ]]; then
     echo "❌ ERROR: Missing required environment variables."
     exit 1
 fi
@@ -22,10 +35,13 @@ if ! az account set --subscription "$SUBSCRIPTION_ID"; then
 fi
 echo "✅ Azure subscription set successfully."
 
-# Define models and their minimum required capacities
+# Define models and their minimum required capacities.
+# Quota usage names follow the "OpenAI.<SkuName>.<ModelName>" convention
+# returned by `az cognitiveservices usage list`.
 declare -A MIN_CAPACITY=(
-    ["OpenAI.GlobalStandard.gpt5.1"]=$GPT_MIN_CAPACITY
-    ["OpenAI.GlobalStandard.text-embedding-3-small"]=$TEXT_EMBEDDING_MIN_CAPACITY
+    ["OpenAI.${GPT_DEPLOYMENT_TYPE}.${GPT_MODEL_NAME}"]=$GPT_MIN_CAPACITY
+    ["OpenAI.${REASONING_DEPLOYMENT_TYPE}.${REASONING_MODEL_NAME}"]=$REASONING_MIN_CAPACITY
+    ["OpenAI.${TEXT_EMBEDDING_DEPLOYMENT_TYPE}.${TEXT_EMBEDDING_MODEL_NAME}"]=$TEXT_EMBEDDING_MIN_CAPACITY
 )
 
 VALID_REGION=""

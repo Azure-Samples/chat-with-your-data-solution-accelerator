@@ -20,9 +20,26 @@ const CONFIG_URL = "/config";
 
 interface FrontendConfig {
   backendUrl: string;
+  authClientId: string;
+  authAuthority: string;
+  authApiScope: string;
 }
 
+/** Browser-side MSAL (PKCE) parameters resolved from `/config`. */
+export interface AuthRuntimeConfig {
+  clientId: string;
+  authority: string;
+  apiScope: string;
+}
+
+const EMPTY_AUTH_CONFIG: AuthRuntimeConfig = {
+  clientId: "",
+  authority: "",
+  apiScope: "",
+};
+
 let cachedBackendUrl: string | null = null;
+let cachedAuthConfig: AuthRuntimeConfig | null = null;
 let inFlight: Promise<void> | null = null;
 
 /**
@@ -37,10 +54,20 @@ export function getBackendUrl(): string {
 }
 
 /**
- * Fetch `/config` once and cache `backendUrl`. Idempotent: concurrent
- * and repeat calls share a single in-flight request, and a resolved
- * cache short-circuits without a network round trip. On any failure the
- * cache is left unset so `getBackendUrl()` keeps using the env fallback.
+ * Browser-side MSAL parameters, read synchronously by the auth
+ * bootstrap. Returns the `/config` values once loaded, else an all-empty
+ * config so a local dev stack (no identity provider) skips sign-in.
+ */
+export function getAuthConfig(): AuthRuntimeConfig {
+  return cachedAuthConfig ?? EMPTY_AUTH_CONFIG;
+}
+
+/**
+ * Fetch `/config` once and cache `backendUrl` and the MSAL auth config.
+ * Idempotent: concurrent and repeat calls share a single in-flight
+ * request, and a resolved cache short-circuits without a network round
+ * trip. On any failure the cache is left unset so `getBackendUrl()` keeps
+ * using the env fallback and `getAuthConfig()` stays empty.
  */
 export function loadRuntimeConfig(): Promise<void> {
   if (cachedBackendUrl !== null) {
@@ -61,6 +88,12 @@ export function loadRuntimeConfig(): Promise<void> {
       if (typeof body.backendUrl === "string") {
         cachedBackendUrl = body.backendUrl;
       }
+      cachedAuthConfig = {
+        clientId: typeof body.authClientId === "string" ? body.authClientId : "",
+        authority:
+          typeof body.authAuthority === "string" ? body.authAuthority : "",
+        apiScope: typeof body.authApiScope === "string" ? body.authApiScope : "",
+      };
     } catch {
       // Network or parse failure: leave the cache unset so
       // getBackendUrl() falls back to the build-time env value.
@@ -74,5 +107,6 @@ export function loadRuntimeConfig(): Promise<void> {
 /** Clear cached state. Test-only seam for isolation between cases. */
 export function resetRuntimeConfig(): void {
   cachedBackendUrl = null;
+  cachedAuthConfig = null;
   inFlight = null;
 }

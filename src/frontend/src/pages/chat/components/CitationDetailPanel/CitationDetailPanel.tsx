@@ -22,8 +22,30 @@
 import { Dismiss20Regular } from "@fluentui/react-icons";
 import { ChatActionType, useChat } from "@/pages/chat/ChatContext";
 import { MarkdownContent } from "@/pages/chat/components/MarkdownContent";
-import { deriveDocumentHref } from "./documentHref";
+import { fetchDocumentObjectUrl } from "@/api/files";
+import { deriveDocumentHref, resolveCitationDocument } from "./documentHref";
 import styles from "./CitationDetailPanel.module.css";
+
+/**
+ * Open a backend-gated document file. `/api/files/<name>` sits behind
+ * Easy Auth, so a bearer-less navigation 401s; instead a blank tab is
+ * opened synchronously (within the click gesture, so it is not blocked),
+ * then redirected to the authenticated blob object URL once the fetch
+ * resolves. On failure the placeholder tab is closed.
+ */
+async function openFileDocument(filename: string): Promise<void> {
+  const tab = window.open("", "_blank");
+  try {
+    const objectUrl = await fetchDocumentObjectUrl(filename);
+    if (tab) {
+      tab.location.href = objectUrl;
+    } else {
+      window.open(objectUrl, "_blank", "noopener,noreferrer");
+    }
+  } catch {
+    tab?.close();
+  }
+}
 
 export function CitationDetailPanel() {
   const { state, dispatch } = useChat();
@@ -31,7 +53,7 @@ export function CitationDetailPanel() {
   if (citation === null) return null;
 
   const title = citation.title.length > 0 ? citation.title : "Source";
-  const documentHref = deriveDocumentHref(citation);
+  const document = resolveCitationDocument(citation);
 
   return (
     <aside
@@ -56,13 +78,30 @@ export function CitationDetailPanel() {
       <h3 className={styles.title} data-testid="citation-detail-title">
         {title}
       </h3>
-      {documentHref !== null && (
+      {document !== null && document.kind === "external" && (
         <a
-          href={documentHref}
+          href={document.url}
           target="_blank"
           rel="noopener noreferrer"
           className={styles.link}
           data-testid="citation-detail-link"
+        >
+          Open document
+        </a>
+      )}
+      {document !== null && document.kind === "file" && (
+        <a
+          href={deriveDocumentHref(citation) ?? "#"}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.link}
+          data-testid="citation-detail-link"
+          onClick={(event) => {
+            // The blob lives behind Easy Auth; a plain navigation 401s,
+            // so intercept and fetch it with the forwarded bearer.
+            event.preventDefault();
+            void openFileDocument(document.filename);
+          }}
         >
           Open document
         </a>

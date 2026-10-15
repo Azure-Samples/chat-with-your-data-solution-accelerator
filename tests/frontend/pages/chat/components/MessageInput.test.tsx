@@ -181,6 +181,17 @@ describe("MessageInput (preserved behavior)", () => {
     expect(probeMessages()).toEqual([]);
     expect(streamChatMock).not.toHaveBeenCalled();
   });
+
+  it("returns focus to the input after the stream finishes", async () => {
+    renderInput();
+    const field = getField();
+    await submit("hello world");
+
+    await waitFor(() => {
+      expect(field).not.toBeDisabled();
+    });
+    expect(document.activeElement).toBe(field);
+  });
 });
 
 describe("MessageInput SSE wiring", () => {

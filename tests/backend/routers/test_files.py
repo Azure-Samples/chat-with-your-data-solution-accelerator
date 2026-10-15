@@ -12,7 +12,11 @@ import pytest
 from azure.core.exceptions import AzureError
 from fastapi import FastAPI
 
-from backend.dependencies import get_app_settings, get_credential
+from backend.dependencies import (
+    get_app_settings,
+    get_credential,
+    require_authenticated_user,
+)
 from backend.exception_handlers import install_exception_handlers
 from backend.routers import files as files_router
 
@@ -29,6 +33,11 @@ def _build_app(settings: Any) -> FastAPI:
     install_exception_handlers(app)
     app.dependency_overrides[get_app_settings] = lambda: settings
     app.dependency_overrides[get_credential] = lambda: AsyncMock()
+    # Bypass the router-level auth gate; the 401 fail-closed behavior is
+    # covered in test_admin_auth.py.
+    app.dependency_overrides[require_authenticated_user] = (
+        lambda: "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+    )
     return app
 
 

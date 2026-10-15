@@ -14,7 +14,6 @@ from azure.core.exceptions import AzureError
 
 from backend.core.types import SearchDocument
 
-
 logger = logging.getLogger(__name__)
 
 

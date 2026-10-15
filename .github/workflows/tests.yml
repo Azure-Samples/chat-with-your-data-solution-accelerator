@@ -31,9 +31,9 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -41,7 +41,7 @@ jobs:
         run: uv sync --frozen --group dev
       - name: Get coverage artifact ID
         id: coverage-artifact
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         if: github.event_name == 'pull_request'
         with:
           script: |
@@ -67,7 +67,7 @@ jobs:
           result-encoding: string
           retries: 3
       - name: Download main coverage artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         if: github.event_name == 'pull_request' && steps.coverage-artifact.outputs.result != ''
         continue-on-error: true # There is a chance that the artifact doesn't exist, or has expired
         with:
@@ -88,7 +88,7 @@ jobs:
           echo "MIN_COVERAGE=$MIN_COVERAGE" >> "$GITHUB_OUTPUT"
       - name: Run Python Tests
         run: uv run pytest --junitxml=coverage-junit.xml --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=${{ steps.coverage-value.outputs.MIN_COVERAGE }}
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: ${{ !cancelled() }}
         with:
           name: coverage
@@ -97,7 +97,7 @@ jobs:
             coverage.xml
           if-no-files-found: error
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 20
           cache: "npm"

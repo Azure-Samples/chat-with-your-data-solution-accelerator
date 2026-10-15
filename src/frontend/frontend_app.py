@@ -13,13 +13,11 @@ the App Service runs this module via uvicorn (see the `appCommandLine`
 on the frontend site in `infra/main.bicep`).
 """
 
-import base64
-import json
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Header
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 # `DIST_DIR` env var lets tests point at a fixture without rebuilding.
@@ -40,55 +38,33 @@ class FrontendConfig(BaseModel):
     in local dev), serialized to the wire as `backendUrl`. Serving it
     from a runtime endpoint instead of a build-time constant means the
     same built bundle works against any backend.
+
+    The `auth_*` fields carry the browser-side MSAL (PKCE) parameters:
+    the app registration client id, the tenant authority URL, and the
+    backend API scope the SPA requests an access token for. All are
+    env-specific, so they are served at runtime rather than baked into
+    the bundle, and all default to empty on a local dev stack with no
+    identity provider.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     backend_url: str = Field(default="", serialization_alias="backendUrl")
+    auth_client_id: str = Field(default="", serialization_alias="authClientId")
+    auth_authority: str = Field(default="", serialization_alias="authAuthority")
+    auth_api_scope: str = Field(default="", serialization_alias="authApiScope")
 
 
 @app.get("/config")
 def get_config() -> FrontendConfig:
-    """Return the backend base URL from the `BACKEND_API_URL` env var."""
-    return FrontendConfig(backend_url=os.environ.get("BACKEND_API_URL", ""))
-
-
-@app.get("/.auth/me")
-def auth_me(
-    principal: str = Header(default="", alias="x-ms-client-principal"),
-    principal_id: str = Header(default="", alias="x-ms-client-principal-id"),
-    principal_name: str = Header(default="", alias="x-ms-client-principal-name"),
-) -> JSONResponse:
-    """Serve the Easy Auth /.auth/me claims payload.
-
-    Container Apps Easy Auth injects ``X-MS-CLIENT-PRINCIPAL`` (base64-
-    encoded JSON with the full claim set), ``X-MS-CLIENT-PRINCIPAL-ID``
-    (user object id or UPN), and ``X-MS-CLIENT-PRINCIPAL-NAME`` into every
-    request from an authenticated user.  For unauthenticated requests Easy
-    Auth blocks the call before it reaches this handler (``RedirectToLoginPage``
-    mode).  We decode those headers and return the same array shape that App
-    Service Easy Auth produces, so the SPA's ``getUserInfo()`` works without
-    any browser-side changes.
-    """
-    if not principal:
-        return JSONResponse(content=[])
-    try:
-        # base64 padding may be stripped -- add == to be safe.
-        decoded = json.loads(
-            base64.b64decode(principal + "==").decode("utf-8", errors="replace")
-        )
-        claims: list[dict[str, str]] = decoded.get("claims", [])
-        provider_name: str = decoded.get("auth_typ", "aad")
-    except Exception:
-        return JSONResponse(content=[])
-    return JSONResponse(
-        content=[
-            {
-                "user_id": principal_id or principal_name,
-                "user_claims": claims,
-                "provider_name": provider_name,
-            }
-        ]
+    """Return the backend URL and browser-side MSAL parameters from env."""
+    tenant_id = os.environ.get("AZURE_TENANT_ID", "")
+    authority = f"https://login.microsoftonline.com/{tenant_id}" if tenant_id else ""
+    return FrontendConfig(
+        backend_url=os.environ.get("BACKEND_API_URL", ""),
+        auth_client_id=os.environ.get("AZURE_AUTH_CLIENT_ID", ""),
+        auth_authority=authority,
+        auth_api_scope=os.environ.get("AZURE_AUTH_API_SCOPE", ""),
     )
 
 

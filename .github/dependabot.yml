@@ -12,7 +12,6 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "build"
-    target-branch: "dependabotchanges"
     open-pull-requests-limit: 10
     groups:
       all-actions:
@@ -26,7 +25,6 @@ updates:
       interval: "monthly"
     commit-message:
       prefix: "build"
-    target-branch: "dependabotchanges"
     open-pull-requests-limit: 10
     groups:
       langchain:
@@ -38,12 +36,11 @@ updates:
 
   # Grouped frontend npm dependencies (main app)
   - package-ecosystem: "npm"
-    directory: "/code/frontend"
+    directory: "/src/frontend"
     schedule:
       interval: "monthly"
     commit-message:
       prefix: "build"
-    target-branch: "dependabotchanges"
     open-pull-requests-limit: 10
     groups:
       frontend-deps:
@@ -52,12 +49,11 @@ updates:
 
   # Grouped frontend npm dependencies (UI tests)
   - package-ecosystem: "npm"
-    directory: "/tests/integration/ui"
+    directory: "/tests/frontend"
     schedule:
       interval: "monthly"
     commit-message:
       prefix: "build"
-    target-branch: "dependabotchanges"
     open-pull-requests-limit: 10
     groups:
       frontend-deps:

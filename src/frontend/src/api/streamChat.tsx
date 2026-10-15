@@ -31,7 +31,7 @@
  */
 import { StreamChannel } from "@/models/chat";
 import type { StreamEvent, StreamMessage } from "@/models/chat";
-import { userIdHeaders } from "@/api/auth";
+import { authHeaders, userIdHeaders } from "@/api/auth";
 import { getBackendUrl } from "@/api/runtimeConfig";
 
 const KNOWN_CHANNELS: ReadonlySet<StreamChannel> = new Set(
@@ -241,6 +241,7 @@ async function* streamChatOnce(
         "Content-Type": "application/json",
         Accept: "text/event-stream",
         ...userIdHeaders(),
+        ...authHeaders(),
       },
       body: JSON.stringify(payload),
       ...(signal ? { signal } : {}),

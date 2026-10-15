@@ -17,7 +17,7 @@ import uuid
 from typing import Annotated
 
 from azure.core.credentials_async import AsyncTokenCredential
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request, status
 
 from backend.core.providers.agents.base import BaseAgentsProvider
 from backend.core.providers.credentials.base import BaseCredentialProvider
@@ -289,8 +289,44 @@ def get_user_id(request: Request) -> str:
 UserIdDep = Annotated[str, Depends(get_user_id)]
 
 
+def require_authenticated_user(request: Request, settings: SettingsDep) -> str:
+    """Authenticate the caller for the admin surface and return their id.
+
+    Reads the platform-injected ``x-ms-client-principal-id`` header.
+    When it carries a valid GUID the caller is authenticated and the id
+    is returned (used as the admin-audit actor). When the header is
+    missing or malformed the behavior depends on
+    ``settings.auth.require_admin_auth``:
+
+    * required (the secure default) -> raise 401, fail closed. An
+      anonymous internet caller never reaches the admin handlers.
+    * not required (local dev, ``AZURE_REQUIRE_ADMIN_AUTH=false``) ->
+      fall back to the anonymous default id.
+
+    Unlike :func:`get_user_id` (which never raises because it only
+    scopes a tenant partition), this dependency is a trust boundary: it
+    is mounted at the ``/api/admin`` router level so every admin route
+    inherits the gate. The header is only trustworthy when the backend
+    Container App ingress has EasyAuth enabled -- the platform strips any
+    client-supplied value and injects the validated principal.
+    """
+    raw = request.headers.get(_PRINCIPAL_ID_HEADER, "").strip()
+    if raw and _is_valid_guid(raw):
+        return raw
+    if settings.auth.require_admin_auth:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required.",
+        )
+    return _DEFAULT_USER_ID
+
+
+AuthUserDep = Annotated[str, Depends(require_authenticated_user)]
+
+
 __all__ = [
     "AgentsProviderDep",
+    "AuthUserDep",
     "CredentialDep",
     "CredentialProviderDep",
     "DatabaseClientDep",
@@ -308,4 +344,5 @@ __all__ = [
     "get_runtime_overrides",
     "get_search_provider",
     "get_user_id",
+    "require_authenticated_user",
 ]

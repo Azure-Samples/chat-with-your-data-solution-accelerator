@@ -50,7 +50,6 @@ from backend.core.types import SearchDocument, SearchResult
 from .registry import registry
 from .base import BaseSearch, SourceListing
 
-
 logger = logging.getLogger(__name__)
 
 

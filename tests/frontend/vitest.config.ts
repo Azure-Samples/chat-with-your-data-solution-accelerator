@@ -14,6 +14,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("../../src/frontend/src", import.meta.url)),
+      // tabster's CJS `main` hides createTabster from cjs-module-lexer; pin to
+      // its ESM entry so @fluentui/react-tabster's named import resolves.
+      tabster: fileURLToPath(
+        new URL("../../node_modules/tabster/dist/esm/index.js", import.meta.url),
+      ),
     },
   },
   test: {
@@ -22,5 +27,15 @@ export default defineConfig({
     setupFiles: ["./setup.tsx"],
     include: ["**/*.{test,spec}.{ts,tsx}"],
     css: false,
+    // Inline @fluentui so Vite transforms it through the tabster alias above
+    // instead of externalizing the barrel and hitting Node's CJS lexer.
+    server: {
+      deps: {
+        inline: [/@fluentui\//, "tabster"],
+      },
+    },
+    // First real-render spec pays a one-time ~30s barrel transform.
+    testTimeout: 60000,
+    hookTimeout: 60000,
   },
 });

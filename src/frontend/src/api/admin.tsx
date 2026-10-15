@@ -20,7 +20,7 @@ import type {
   RuntimeConfig,
   UploadResponse,
 } from "@/models/admin";
-import { userIdHeaders } from "@/api/auth";
+import { authHeaders, userIdHeaders } from "@/api/auth";
 import { getBackendUrl, loadRuntimeConfig } from "@/api/runtimeConfig";
 
 const ADMIN_STATUS_URL = "/api/admin/status";
@@ -117,7 +117,7 @@ async function parseErrorBody(
 export async function getAdminStatus(): Promise<AdminStatus> {
   const response = await fetch(await apiUrl(ADMIN_STATUS_URL), {
     method: "GET",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(
@@ -145,6 +145,7 @@ export async function addDocumentUrl(url: string): Promise<IngestUrlResponse> {
       Accept: "application/json",
       "Content-Type": "application/json",
       ...userIdHeaders(),
+      ...authHeaders(),
     },
     body: JSON.stringify(requestBody),
   });
@@ -172,7 +173,7 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
   formData.append("file", file, file.name);
   const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_URL), {
     method: "POST",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
     body: formData,
   });
   if (!response.ok) {
@@ -195,7 +196,7 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
 export async function reprocessAll(): Promise<ReprocessResponse> {
   const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_REPROCESS_URL), {
     method: "POST",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(
@@ -220,7 +221,7 @@ export async function reprocessAll(): Promise<ReprocessResponse> {
 export async function listDocuments(): Promise<ListDocumentsResponse> {
   const response = await fetch(await apiUrl(ADMIN_DOCUMENTS_URL), {
     method: "GET",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(
@@ -249,7 +250,7 @@ export async function deleteDocument(
   const url = await apiUrl(`${ADMIN_DOCUMENTS_URL}/${encodeURIComponent(source)}`);
   const response = await fetch(url, {
     method: "DELETE",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(
@@ -274,7 +275,7 @@ export async function deleteDocument(
 export async function getAdminConfig(): Promise<AdminConfig> {
   const response = await fetch(await apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
     method: "GET",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(
@@ -299,7 +300,7 @@ export async function getAdminConfig(): Promise<AdminConfig> {
 export async function getAssistantTypePresets(): Promise<AssistantTypePresets> {
   const response = await fetch(await apiUrl(ADMIN_CONFIG_EFFECTIVE_URL), {
     method: "GET",
-    headers: { Accept: "application/json", ...userIdHeaders() },
+    headers: { Accept: "application/json", ...userIdHeaders(), ...authHeaders() },
   });
   if (!response.ok) {
     throw new Error(
@@ -337,6 +338,7 @@ export async function patchAdminConfig(
       Accept: "application/json",
       "Content-Type": "application/json",
       ...userIdHeaders(),
+      ...authHeaders(),
     },
     body: JSON.stringify(patch),
   });

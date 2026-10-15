@@ -31,7 +31,7 @@ asyncpg) directly, keeping the surface registry-only (Hard Rule #4).
 import logging
 from typing import Annotated, cast
 
-from fastapi import APIRouter, HTTPException, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 
 from backend.core.types import ChatMessage, ChatRole, Conversation, MessageRecord
 from backend.dependencies import (
@@ -39,6 +39,7 @@ from backend.dependencies import (
     DatabaseClientDep,
     SettingsDep,
     UserIdDep,
+    require_authenticated_user,
 )
 from backend.models.errors import ErrorResponse
 from backend.models.history import (
@@ -51,7 +52,11 @@ from backend.models.history import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/history", tags=["history"])
+router = APIRouter(
+    prefix="/api/history",
+    tags=["history"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 # Routes

@@ -20,12 +20,17 @@ Operator surface for the v2 backend. Exposes:
 * the document write routes (upload, URL ingest, reprocess, delete)
   that fan work onto the ingestion pipeline.
 
-Every route resolves the caller through
-:data:`backend.dependencies.UserIdDep`, which reads the
-``x-ms-client-principal-id`` header and returns the caller's GUID when
-it is present and well-formed, or the anonymous default GUID otherwise.
-There is no role gate and no Easy Auth requirement -- the router never
-rejects a request on identity grounds.
+Every route is gated by
+:func:`backend.dependencies.require_authenticated_user`, mounted at the
+router level: it reads the platform-injected
+``x-ms-client-principal-id`` header and, when
+``AZURE_REQUIRE_ADMIN_AUTH`` is enabled (the secure default), rejects
+any request without a valid principal with 401 before the handler runs.
+The resolved id is also the audit actor persisted as ``updated_by`` on
+PATCH-config. The header is trustworthy only when the backend Container
+App ingress has EasyAuth enabled (the platform strips any client-
+supplied value); local dev disables the gate with
+``AZURE_REQUIRE_ADMIN_AUTH=false``.
 """
 
 import logging
@@ -34,6 +39,7 @@ from typing import Annotated, Any
 from fastapi import (
     APIRouter,
     Body,
+    Depends,
     File,
     HTTPException,
     Path,
@@ -51,6 +57,7 @@ from backend.dependencies import (
     SearchProviderDep,
     SettingsDep,
     UserIdDep,
+    require_authenticated_user,
 )
 from backend.core.agents.definitions import CWYD_DEFAULT_BODY
 from backend.core.agents.presets import (
@@ -92,7 +99,11 @@ from backend.services.ingestion import (
 )
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+router = APIRouter(
+    prefix="/api/admin",
+    tags=["admin"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 # Routes

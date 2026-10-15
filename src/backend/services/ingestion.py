@@ -23,6 +23,7 @@ state is request-scoped, mirroring the discipline in
 :mod:`functions.add_url.blueprint`.
 """
 
+import html
 import logging
 import re
 from hashlib import blake2b
@@ -34,6 +35,7 @@ from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 
 from backend.core.paths import parser_key_for_path
+from backend.core.providers.parsers.base import ParserKey
 from backend.core.settings import AppSettings, IngestionTrigger
 from backend.models.admin import (
     IngestUrlRequest,
@@ -71,6 +73,46 @@ _MAX_URL_BLOB_STEM = 200
 # URL punctuation (it must round-trip through
 # :func:`backend.services.files._validate_filename`).
 _UNSAFE_BLOB_CHARS = re.compile(r"[^A-Za-z0-9._-]+")
+
+_HTML_HEAD_OPEN_TAG = re.compile(rb"<head(?:\s[^>]*)?>", re.IGNORECASE)
+_HTML_OPEN_TAG = re.compile(rb"<html(?:\s[^>]*)?>", re.IGNORECASE)
+
+# The citation view opens a stored page as a same-origin ``blob:`` URL,
+# so the snapshot must never execute the source site's scripts there.
+_SNAPSHOT_CSP = "script-src 'none'; object-src 'none'"
+
+
+def _prepare_html_snapshot(content: bytes, source_url: str) -> bytes:
+    """Make a fetched HTML page render like its source when re-opened.
+
+    The citation view opens the stored page from a ``blob:`` URL, where
+    relative (``/w/load.php``) and protocol-relative
+    (``//upload.wikimedia.org/...``) stylesheet and image references
+    cannot resolve. A leading ``<base href>`` pointing at ``source_url``
+    re-anchors them to the original site, and a ``script-src 'none'``
+    CSP ``<meta>`` keeps the third-party page's scripts (inline,
+    external, and event handlers) from running in the app's origin.
+    The ``<base>`` is inserted first so it takes precedence over any
+    ``<base>`` the page declares itself. Text extraction by the HTML
+    parser is unaffected.
+    """
+    injected = (
+        f'<base href="{html.escape(source_url, quote=True)}">'
+        f'<meta http-equiv="Content-Security-Policy" content="{_SNAPSHOT_CSP}">'
+    ).encode("utf-8")
+    head = _HTML_HEAD_OPEN_TAG.search(content)
+    if head is not None:
+        return content[: head.end()] + injected + content[head.end() :]
+    root = _HTML_OPEN_TAG.search(content)
+    if root is not None:
+        return (
+            content[: root.end()]
+            + b"<head>"
+            + injected
+            + b"</head>"
+            + content[root.end() :]
+        )
+    return injected + content
 
 
 def _blob_name_for_url(url: str) -> str:
@@ -114,7 +156,9 @@ async def ingest_url(
 
     Fetches the URL bytes via :func:`functions.add_url.url_fetcher.fetch_url`,
     derives a deterministic blob filename (:func:`_blob_name_for_url`),
-    and hands both to :func:`upload_document` -- the same path admin
+    prepares HTML pages for faithful citation rendering
+    (:func:`_prepare_html_snapshot`), and hands both to
+    :func:`upload_document` -- the same path admin
     file upload uses -- so the URL's content flows through the
     identical store-then-``batch_push`` pipeline (enqueued under
     ``DIRECT_ENQUEUE``; Event-Grid-driven otherwise). This mirrors v1's
@@ -129,6 +173,8 @@ async def ingest_url(
     """
     content = await fetch_url(request.url)
     filename = _blob_name_for_url(request.url)
+    if parser_key_for_path(filename) == ParserKey.HTML:
+        content = _prepare_html_snapshot(content, request.url)
     receipt = await upload_document(
         filename=filename,
         content=content,

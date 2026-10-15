@@ -16,6 +16,7 @@ from backend.services.ingestion import (
     MAX_UPLOAD_SIZE_BYTES,
     UploadRejected,
     _blob_name_for_url,
+    _prepare_html_snapshot,
     ingest_url,
     reprocess_all,
     upload_document,
@@ -61,6 +62,85 @@ def test_blob_name_for_url_is_deterministic_and_has_no_separators() -> None:
 
 
 # ---------------------------------------------------------------------------
+# _prepare_html_snapshot -- citation page keeps source styling + images
+# ---------------------------------------------------------------------------
+
+_SNAPSHOT_PREFIX = (
+    b'<base href="https://en.wikipedia.org/wiki/Microsoft">'
+    b'<meta http-equiv="Content-Security-Policy" '
+    b"content=\"script-src 'none'; object-src 'none'\">"
+)
+
+
+def test_prepare_html_snapshot_injects_base_and_csp_right_after_head() -> None:
+    page = (
+        b'<!DOCTYPE html><html lang="en"><HEAD class="x">'
+        b'<link rel="stylesheet" href="/w/load.php?modules=site.styles">'
+        b'</HEAD><body><img src="//upload.wikimedia.org/logo.png"></body></html>'
+    )
+    out = _prepare_html_snapshot(page, "https://en.wikipedia.org/wiki/Microsoft")
+    head_end = page.index(b'<HEAD class="x">') + len(b'<HEAD class="x">')
+    assert out == page[:head_end] + _SNAPSHOT_PREFIX + page[head_end:]
+
+
+def test_prepare_html_snapshot_precedes_page_declared_base() -> None:
+    page = b'<html><head><base href="/other/"></head><body/></html>'
+    out = _prepare_html_snapshot(page, "https://en.wikipedia.org/wiki/Microsoft")
+    assert out.index(_SNAPSHOT_PREFIX) < out.index(b'<base href="/other/">')
+
+
+def test_prepare_html_snapshot_does_not_match_header_element() -> None:
+    page = b"<html><header>top</header><p>body</p></html>"
+    out = _prepare_html_snapshot(page, "https://en.wikipedia.org/wiki/Microsoft")
+    assert (
+        out
+        == b"<html><head>"
+        + _SNAPSHOT_PREFIX
+        + b"</head><header>top</header><p>body</p></html>"
+    )
+
+
+def test_prepare_html_snapshot_prepends_when_no_html_or_head_tag() -> None:
+    out = _prepare_html_snapshot(
+        b"<p>fragment</p>", "https://en.wikipedia.org/wiki/Microsoft"
+    )
+    assert out == _SNAPSHOT_PREFIX + b"<p>fragment</p>"
+
+
+def test_prepare_html_snapshot_escapes_source_url_attribute() -> None:
+    out = _prepare_html_snapshot(b"<p>x</p>", 'https://example.com/a?b=1&c="><script>')
+    assert (
+        b'<base href="https://example.com/a?b=1&amp;c=&quot;&gt;&lt;script&gt;">' in out
+    )
+    assert b"<script>" not in out
+
+
+@pytest.mark.asyncio
+async def test_ingest_url_leaves_non_html_content_untouched(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pdf_bytes = b"%PDF-1.7 <head>"
+    monkeypatch.setattr(
+        ingestion_module, "fetch_url", AsyncMock(return_value=pdf_bytes)
+    )
+    fake_upload = AsyncMock(
+        return_value=UploadResponse(
+            filename="example.com_report.pdf",
+            blob_path="docs/example.com_report.pdf",
+            ingestion_job_id="job",
+            queued=True,
+        )
+    )
+    monkeypatch.setattr(ingestion_module, "upload_document", fake_upload)
+
+    request = IngestUrlRequest(url="https://example.com/report.pdf")
+    await ingest_url(request, settings=NS(), credential=MagicMock())
+
+    _, up_kwargs = fake_upload.call_args
+    assert up_kwargs["content"] == pdf_bytes
+
+
+# ---------------------------------------------------------------------------
 # ingest_url -- registry dispatch + receipt assembly
 # ---------------------------------------------------------------------------
 
@@ -95,7 +175,9 @@ async def test_ingest_url_downloads_and_uploads_like_a_file(
     fake_fetch.assert_awaited_once_with("https://example.com/page")
     _, up_kwargs = fake_upload.call_args
     assert up_kwargs["filename"] == "example.com_page.html"
-    assert up_kwargs["content"] == b"<html>page</html>"
+    assert up_kwargs["content"] == _prepare_html_snapshot(
+        b"<html>page</html>", "https://example.com/page"
+    )
     assert up_kwargs["settings"] is settings
     assert up_kwargs["credential"] is credential
     # Receipt echoes the URL and maps the upload result (no synchronous

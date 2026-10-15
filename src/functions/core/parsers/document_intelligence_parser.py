@@ -23,7 +23,10 @@ normalised to one trailing slash. Auth is UAMI bearer for
 
 Chunking strategy -- paginated formats (PDF, images) emit one ``Chunk``
 per Document Intelligence page, joining ``page.lines[*].content`` with
-``\\n``; pages with no lines (or whitespace-only content) are skipped.
+``\n``. Detected tables also emit structured label/value rows in the same
+page chunk. Soft-wrapped numeric fragments inside one cell are rejoined so
+identifiers and dates retain their cell value. Pages with no lines or table
+rows are skipped.
 Office and HTML formats (DOCX, PPTX, XLSX, HTML) are "pageless" -- the
 service returns their text in ``result.paragraphs`` and leaves
 ``page.lines`` empty, so when the page pass yields nothing the parser
@@ -59,6 +62,24 @@ logger = logging.getLogger(__name__)
 # a large document yields retrieval-friendly chunks instead of thousands of
 # sub-sentence ones.
 _FALLBACK_CHUNK_TARGET_CHARS = 2000
+
+
+def _rejoin_wrapped_cell(content: str) -> str:
+    """Collapse a soft-wrapped value inside a table cell.
+
+    Document Intelligence joins the visual lines of a wrapped cell value with a
+    space (e.g. ``"MA23000000424 7"``). Fragments are rejoined only where both
+    sides of the break are digits, so an identifier or number split across lines
+    is restored while ordinary word spacing (``"Chassis 19,000"``) is kept.
+    """
+    tokens = content.split()
+    if not tokens:
+        return ""
+    normalized = tokens[0]
+    for token in tokens[1:]:
+        separator = "" if normalized[-1].isdigit() and token[0].isdigit() else " "
+        normalized = f"{normalized}{separator}{token}"
+    return normalized
 
 
 @registry.register(ParserKey.DOCX)
@@ -132,10 +153,64 @@ class DocumentIntelligenceParser(BaseParser):
 
         chunks: list[Chunk] = []
         index = 0
-        for page in result.pages or []:
+        for page_position, page in enumerate(result.pages or [], start=1):
+            page_number = getattr(page, "page_number", page_position)
+            table_rows: list[str] = []
+            covered_ranges: list[tuple[int, int]] = []
+            for table in result.tables or []:
+                if not any(
+                    region.page_number == page_number
+                    for region in (table.bounding_regions or [])
+                ):
+                    continue
+
+                rows = [
+                    ["" for _ in range(table.column_count)]
+                    for _ in range(table.row_count)
+                ]
+                for cell in table.cells or []:
+                    for span in cell.spans or []:
+                        covered_ranges.append((span.offset, span.offset + span.length))
+                    normalized = _rejoin_wrapped_cell(cell.content or "")
+                    if normalized:
+                        rows[cell.row_index][cell.column_index] = normalized
+
+                for row in rows:
+                    fields: list[str] = []
+                    column_index = 0
+                    while column_index < len(row):
+                        value = row[column_index]
+                        if value.endswith(":") and column_index + 1 < len(row):
+                            paired_value = row[column_index + 1]
+                            fields.append(f"{value} {paired_value}".rstrip())
+                            column_index += 2
+                            continue
+                        if value:
+                            fields.append(value)
+                        column_index += 1
+                    if fields:
+                        table_rows.append(" | ".join(fields))
+
+            # Drop raw page lines that a table cell already covers (matched by
+            # character span); otherwise soft-wrapped cell values reappear split.
             page_text = "\n".join(
-                line.content for line in (page.lines or []) if line.content
+                line.content
+                for line in (page.lines or [])
+                if line.content
+                and not any(
+                    span.offset < cell_end and cell_start < span.offset + span.length
+                    for span in (line.spans or [])
+                    for cell_start, cell_end in covered_ranges
+                )
             ).strip()
+
+            if table_rows:
+                structured_tables = "\n".join(table_rows)
+                page_text = (
+                    f"{page_text}\n\nStructured table:\n{structured_tables}"
+                    if page_text
+                    else f"Structured table:\n{structured_tables}"
+                )
             if not page_text:
                 continue
             chunks.append(

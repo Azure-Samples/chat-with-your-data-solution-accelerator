@@ -26,7 +26,6 @@ from pydantic import BaseModel
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.types import ChatMessage, ChatRole, SearchResult
 
-
 # Default validation prompt -- asks the model for a single yes/no token
 # so the parse step stays trivial. Format placeholders match the v1
 # contract (`{question}`, `{answer}`, `{sources}`) so existing prompt

@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useState, type JSX } from "react";
 import { Delete16Regular, Edit16Regular } from "@fluentui/react-icons";
 import type { HistoryConversation } from "@/models/chat";
-import { userIdHeaders } from "@/api/auth";
+import { authHeaders, userIdHeaders } from "@/api/auth";
 import { getBackendUrl, loadRuntimeConfig } from "@/api/runtimeConfig";
 import styles from "./HistoryPanel.module.css";
 
@@ -50,6 +50,7 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...userIdHeaders(),
+    ...authHeaders(),
   };
   if (init?.headers !== undefined) {
     Object.assign(headers, init.headers as Record<string, string>);

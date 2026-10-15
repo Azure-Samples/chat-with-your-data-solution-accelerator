@@ -5,8 +5,14 @@
  * citation is selected, escapes raw HTML in the snippet, and clears
  * itself when dismissed.
  */
-import { describe, expect, it } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { FluentProvider, webLightTheme } from "@fluentui/react-components";
 import { CitationDetailPanel } from "@/pages/chat/components/CitationDetailPanel/CitationDetailPanel";
 import {
@@ -14,7 +20,18 @@ import {
   ChatProvider,
   useChat,
 } from "@/pages/chat/ChatContext";
+import { fetchDocumentObjectUrl } from "@/api/files";
 import type { Citation } from "@/models/chat";
+
+vi.mock("@/api/files", () => ({
+  fetchDocumentObjectUrl: vi.fn(),
+}));
+
+const fetchDocumentObjectUrlMock = vi.mocked(fetchDocumentObjectUrl);
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 const docFull: Citation = {
   id: "doc-1",
@@ -181,6 +198,46 @@ describe("CitationDetailPanel", () => {
     expect(link.getAttribute("href")).toBe("/api/files/No%20Link%20Source.pdf");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  });
+
+  it("fetches the blob with the bearer and opens it when a file link is clicked", async () => {
+    fetchDocumentObjectUrlMock.mockResolvedValue("blob:doc-url");
+    const tab = { location: { href: "" }, close: vi.fn() } as unknown as Window;
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(tab);
+
+    renderHarness(docNoUrl);
+    act(() => {
+      fireEvent.click(screen.getByTestId("harness-show"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("citation-detail-link"));
+    });
+
+    // The gated `/api/files/<name>` blob is fetched with the forwarded
+    // bearer (not navigated to), then the placeholder tab is redirected
+    // to the resulting object URL.
+    expect(fetchDocumentObjectUrlMock).toHaveBeenCalledWith("No Link Source.pdf");
+    await waitFor(() => {
+      expect(tab.location.href).toBe("blob:doc-url");
+    });
+    openSpy.mockRestore();
+  });
+
+  it("does not fetch through the files API for an external citation link", () => {
+    renderHarness(docFull);
+    act(() => {
+      fireEvent.click(screen.getByTestId("harness-show"));
+    });
+
+    const link = screen.getByTestId(
+      "citation-detail-link",
+    ) as HTMLAnchorElement;
+    // External citations keep a plain anchor to the source URL -- no
+    // authenticated blob fetch is involved.
+    expect(link.getAttribute("href")).toBe(
+      "https://example.com/benefit-options.pdf",
+    );
+    expect(fetchDocumentObjectUrlMock).not.toHaveBeenCalled();
   });
 
   it("omits the open-document link when the citation has no url and no title", () => {

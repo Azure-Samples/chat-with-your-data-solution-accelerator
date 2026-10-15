@@ -38,6 +38,7 @@ def _apply_env(monkeypatch: pytest.MonkeyPatch, env: dict[str, str]) -> None:
         "AZURE_CONTENT_SAFETY_ENDPOINT",
         "AZURE_CONTENT_SAFETY_ENABLED",
         "AZURE_CONTENT_SAFETY_SEVERITY_THRESHOLD",
+        "AZURE_REQUIRE_ADMIN_AUTH",
     ]:
         monkeypatch.delenv(key, raising=False)
     for key, value in env.items():
@@ -504,16 +505,34 @@ def test_create_app_cors_uses_typed_settings(
 def test_create_app_cors_falls_back_to_wildcard(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """No `BACKEND_CORS_ORIGINS` -> wildcard origin + credentials disabled
-    (CORS spec forbids credentials with `*`).
+    """No `BACKEND_CORS_ORIGINS` + admin auth disabled (local dev) ->
+    wildcard origin + credentials disabled (CORS spec forbids credentials
+    with `*`).
     """
-    _apply_env(monkeypatch, COSMOS_ENV)
+    env = {**COSMOS_ENV, "AZURE_REQUIRE_ADMIN_AUTH": "false"}
+    _apply_env(monkeypatch, env)
     monkeypatch.delenv("BACKEND_CORS_ORIGINS", raising=False)
 
     app = create_app()
     cors = next(m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware")
     assert cors.kwargs.get("allow_origins") == ["*"]
     assert cors.kwargs.get("allow_credentials") is False
+
+
+def test_create_app_cors_denies_cross_origin_when_auth_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No `BACKEND_CORS_ORIGINS` + admin auth required (the secure
+    default) -> NO wildcard. Cross-origin browser calls are denied until
+    the operator sets the frontend origin (the `setup_auth` script records
+    it), closing the `*`-origin exposure on a protected backend.
+    """
+    _apply_env(monkeypatch, COSMOS_ENV)
+    monkeypatch.delenv("BACKEND_CORS_ORIGINS", raising=False)
+
+    app = create_app()
+    cors = next(m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware")
+    assert cors.kwargs.get("allow_origins") == []
 
 
 # ---------------------------------------------------------------------------

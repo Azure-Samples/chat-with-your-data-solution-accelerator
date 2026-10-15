@@ -15,6 +15,7 @@ from backend.dependencies import (
     get_content_safety_guard,
     get_database_client,
     get_user_id,
+    require_authenticated_user,
 )
 
 # ---------------------------------------------------------------------------
@@ -91,6 +92,10 @@ def app_with_fake_db():
     app.dependency_overrides[get_app_settings] = lambda: _FakeSettings()
     # Pin user_id so tests don't need to pretend Easy Auth is wired.
     app.dependency_overrides[get_user_id] = lambda: _TEST_USER_ID
+    # Bypass the router-level auth gate (its fail-closed 401 behavior is
+    # covered in test_admin_auth.py); functional route tests just need an
+    # authenticated caller without driving EasyAuth headers.
+    app.dependency_overrides[require_authenticated_user] = lambda: _TEST_USER_ID
     app.state._test_db = db  # type: ignore[attr-defined]
     return app
 
