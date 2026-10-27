@@ -76,6 +76,7 @@ For trivial single-line edits, you may proceed directly — but still respect th
 
 ## Local development
 
+- Node.js: use version 24 for Docker, CI, and devcontainers.
 - Python: `uv sync` from the repo root.
 - v2 dev stack: `docker compose -f docker/docker-compose.dev.yml up`.
 - v2 backend-only: `docker compose -f docker/docker-compose.dev.yml --profile backend-only up`.
