@@ -16,10 +16,12 @@
 # workspace (package.json) exists only so the Vitest tree under
 # tests/frontend can resolve the frontend's deps from one hoisted
 # node_modules; the deployable frontend never needs it.
-FROM node:20-alpine AS dev
+FROM node:24-alpine AS dev
 WORKDIR /app
 # npm resolves from the Microsoft mirror, not the default registry.
 ENV NPM_CONFIG_REGISTRY=https://pkgs.dev.azure.com/ms-feed-12/1es-public/_packaging/npm-public/npm/registry/
+# Use npm 11 to resolve Vite's optional peers consistently across stages.
+RUN npm install -g npm@11
 COPY src/frontend/package.json ./
 RUN npm install
 COPY src/frontend ./
@@ -32,10 +34,12 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
 # and is exercised by CI; this image installs from the frontend package.json
 # so the frontend-only build stays independent per the plug-and-play
 # rationale at the top of this file.
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 # npm resolves from the Microsoft mirror, not the default registry.
 ENV NPM_CONFIG_REGISTRY=https://pkgs.dev.azure.com/ms-feed-12/1es-public/_packaging/npm-public/npm/registry/
+# See dev-stage note: npm 11 is required to resolve Vite's optional peers.
+RUN npm install -g npm@11
 COPY src/frontend/package.json ./
 RUN npm install
 COPY src/frontend ./
