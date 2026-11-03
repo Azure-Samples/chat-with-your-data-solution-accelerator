@@ -34,7 +34,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
   packages: write
 
@@ -91,4 +90,3 @@ jobs:
       app_name: ${{ matrix.app_name }}
       dockerfile: ${{ matrix.dockerfile }}
       push: false
-    secrets: inherit
