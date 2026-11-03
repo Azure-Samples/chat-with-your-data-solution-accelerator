@@ -99,7 +99,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 20
+          node-version: 22
           cache: "npm"
           cache-dependency-path: "package-lock.json"
       - name: Run frontend unit tests
