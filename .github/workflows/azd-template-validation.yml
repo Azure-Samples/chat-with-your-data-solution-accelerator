@@ -23,10 +23,6 @@ permissions:
 
 jobs:
   template_validation:
-    # Pull requests from forks never run with the production environment or Azure credentials.
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: production
     name: azd template validation
