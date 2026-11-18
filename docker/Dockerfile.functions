@@ -8,8 +8,8 @@
 #   /home/site/wwwroot/backend/           shared tree (`from backend.core...`)
 #
 # Blueprints nest under a functions/ package (not flattened) because they
-# import each other as `from functions.<sub>.<mod>`. Dependencies come from
-# pyproject.toml [project.dependencies], read with stdlib tomllib so the
+# import each other as `from functions.<sub>.<mod>`. Dependencies and security
+# constraints come from pyproject.toml, read with stdlib tomllib so the
 # repo-root readme (outside the build context) is never touched.
 FROM mcr.microsoft.com/azure-functions/python:4-python3.11
 
@@ -22,12 +22,12 @@ ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
 WORKDIR /home/site/wwwroot
 
 # Runtime dependencies from the single-source dependency list. tomllib
-# (stdlib, Python 3.11) reads only [project.dependencies]; pip installs them
-# into the system Python the Functions worker uses.
+# (stdlib, Python 3.11) exports [project.dependencies] and uv's transitive
+# security constraints; pip installs them into the Functions worker's Python.
 COPY pyproject.toml ./pyproject.toml
-RUN python -c "import tomllib, pathlib; deps = tomllib.loads(pathlib.Path('pyproject.toml').read_text('utf-8'))['project']['dependencies']; pathlib.Path('requirements.txt').write_text('\n'.join(deps) + '\n', 'utf-8')" \
-    && pip install --no-cache-dir -r requirements.txt \
-    && rm -f pyproject.toml requirements.txt
+RUN python -c "import tomllib, pathlib; config = tomllib.loads(pathlib.Path('pyproject.toml').read_text('utf-8')); pathlib.Path('requirements.txt').write_text('\n'.join(config['project']['dependencies']) + '\n', 'utf-8'); pathlib.Path('constraints.txt').write_text('\n'.join(config['tool']['uv']['constraint-dependencies']) + '\n', 'utf-8')" \
+    && pip install --no-cache-dir -r requirements.txt -c constraints.txt \
+    && rm -f pyproject.toml requirements.txt constraints.txt
 
 # Host entry point + runtime config at the deploy root.
 COPY src/functions/function_app.py src/functions/host.json ./
