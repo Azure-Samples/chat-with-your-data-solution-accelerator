@@ -1,0 +1,38 @@
+on:
+  workflow_run:
+    workflows: ["Validate Deployment"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  issues: write
+
+name: Create-Release
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    # Trust guard: only run for successful runs triggered by a non-fork,
+    # non-pull_request event on this same repository. This prevents the
+    # privileged workflow_run context (write-scoped GITHUB_TOKEN + secrets)
+    # from ever checking out and executing attacker-controlled code from a
+    # fork PR head (CodeQL: actions/untrusted-checkout).
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event != 'pull_request' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+
+    steps:
+      - name: Checkout
+        # SHA-pinned to actions/checkout v6 (d23441a) for supply-chain safety.
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Create release
+        run: bash .github/scripts/release.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
